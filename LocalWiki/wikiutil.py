@@ -962,7 +962,7 @@ def send_title(request, text, **keywords):
     page_help_contents = getSysPage(request, 'Wiki Guide').page_name
     page_title_index = getSysPage(request, 'Title Index').page_name
     page_user_prefs = getSysPage(request, 'User Preferences').page_name
-    page_find_page = getSysPage(request, 'Find Page').page_name
+    page_find_page = getSysPage(request, 'Search').page_name
 
     # parent page?
     page_parent_page = None
