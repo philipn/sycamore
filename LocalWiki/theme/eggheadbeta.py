@@ -363,8 +363,6 @@ SRC="%(web_dir)s/utils.js"></SCRIPT>
 %(stylesheets_html)s
                 """ % dict	
 
-	# I guess this is probably the best place for this now
-        self.request.user.checkFavorites(d['title'])
         return html
 
     def header(self, d):
@@ -503,6 +501,8 @@ SRC="%(web_dir)s/utils.js"></SCRIPT>
 """ % dict
 
         
+	# I guess this is probably the best place for this now
+	self.request.user.checkFavorites(d['page_name'])
         return html
 
 def execute(request):
