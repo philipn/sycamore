@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 """
-    LocalWiki - Data associated with a single Request
+    MoinMoin - Data associated with a single Request
 
     @copyright: 2001-2003 by Jürgen Hermann <jh@web.de>
     @copyright: 2003-2004 by Thomas Waldmann
@@ -8,8 +8,8 @@
 """
 
 import os, time, sys
-from LocalWiki import config, wikiutil
-from LocalWiki.util import LocalWikiNoFooter
+from MoinMoin import config, wikiutil
+from MoinMoin.util import MoinMoinNoFooter
 import cPickle
 #############################################################################
 ### Timing
@@ -58,12 +58,15 @@ class RequestBase:
         self.writestack = []
         self.clock = Clock()
         # order is important here!
-        from LocalWiki import user
+        from MoinMoin import user
         self.user = user.User(self)
         self.dicts = self.initdicts()
 
-        from LocalWiki import i18n
-
+        from MoinMoin import i18n
+        pdfile= open(config.data_dir +'/pagedict.pickle' , 'r') # pickled self.pagedict
+        self.pagedict = cPickle.load(pdfile)
+        pdfile.close()
+    
         if config.theme_force:
             theme_name = config.theme_default
         else:
@@ -218,7 +221,7 @@ class RequestBase:
         raise "NotImplementedError"
 
     def initdicts(self):
-        from LocalWiki import wikidicts
+        from MoinMoin import wikidicts
         dicts = wikidicts.GroupDict()
         dicts.scandicts()
         return dicts
@@ -228,7 +231,7 @@ class RequestBase:
         forbidden = 0
         if ((self.query_string != '' or self.request_method != 'GET')
             and self.query_string != 'action=rss_rc' and self.query_string != 'action=events&rss=1' and self.query_string != 'rss=1&action=events'):
-            from LocalWiki.util import web
+            from MoinMoin.util import web
             forbidden = web.isSpiderAgent(request=self)
 
         if not forbidden and config.hosts_deny:
@@ -333,15 +336,15 @@ class RequestBase:
             return self.finish()
 
         # Imports
-        from LocalWiki.Page import Page
+        from MoinMoin.Page import Page
 
         if self.query_string == 'action=xmlrpc':
-            from LocalWiki.wikirpc import xmlrpc
+            from MoinMoin.wikirpc import xmlrpc
             xmlrpc(self)
             return self.finish()
         
         if self.query_string == 'action=xmlrpc2':
-            from LocalWiki.wikirpc import xmlrpc2
+            from MoinMoin.wikirpc import xmlrpc2
             xmlrpc2(self)
             return self.finish()
 
@@ -374,7 +377,7 @@ class RequestBase:
                     return self.finish()
 
             # handle request
-            from LocalWiki import wikiaction
+            from MoinMoin import wikiaction
 
             pagename = self.recodePageName(pagename)
             pdfile = open(config.data_dir + '/pagedict.pickle', 'r')
@@ -384,9 +387,9 @@ class RequestBase:
                 pagename = pagedict[pagename.lower()]
             if self.form.has_key('filepath') and self.form.has_key('noredirect'):
                 # looks like user wants to save a drawing
-                from LocalWiki.action.AttachFile import execute
+                from MoinMoin.action.AttachFile import execute
                 execute(pagename, self)
-                raise LocalWikiNoFooter
+                raise MoinMoinNoFooter
 
             if action:
                 handler = wikiaction.getHandler(action)
@@ -408,7 +411,7 @@ class RequestBase:
                 if config.allow_extended_names:
                     Page(query).send_page(self, count_hit=1)
                 else:
-                    from LocalWiki.parser.wiki import Parser
+                    from MoinMoin.parser.wiki import Parser
                     import re
                     word_match = re.match(Parser.word_rule, query)
                     if word_match:
@@ -419,8 +422,8 @@ class RequestBase:
                         self.write('<p>' + _("Can't work out query") + ' "<pre>' + query + '</pre>"')
 
             # generate page footer
-            # (actions that do not want this footer use raise util.LocalWikiNoFooter to break out
-            # of the default execution path, see the "except LocalWikiNoFooter" below)
+            # (actions that do not want this footer use raise util.MoinMoinNoFooter to break out
+            # of the default execution path, see the "except MoinMoinNoFooter" below)
 
             self.clock.stop('run')
             self.clock.stop('total')
@@ -435,14 +438,14 @@ class RequestBase:
 
                 if 0: # temporarily disabled - do we need that?
                     import socket
-                    from LocalWiki import version
-                    self.write('<!-- LocalWiki %s on %s served this page in %s secs -->' % (
+                    from MoinMoin import version
+                    self.write('<!-- MoinMoin %s on %s served this page in %s secs -->' % (
                         version.revision, socket.gethostname(), self.clock.value('total')) +
                                '</body></html>')
                 else:
                     self.write('</body>\n</html>\n\n')
             
-        except LocalWikiNoFooter:
+        except MoinMoinNoFooter:
             pass
 
         except: # catch and print any exception
@@ -451,7 +454,7 @@ class RequestBase:
             self.http_headers()
             self.write("\n<!-- ERROR REPORT FOLLOWS -->\n")
             try:
-                from LocalWiki.support import cgitb
+                from MoinMoin.support import cgitb
             except:
                 # no cgitb, for whatever reason
                 self.print_exception(*saved_exc)
@@ -745,7 +748,7 @@ class RequestTwisted(RequestBase):
         # calling finish here will send the rest of the data to the next
         # request. leave the finish call to run()
         #self.twistd.finish()
-        raise LocalWikiNoFooter
+        raise MoinMoinNoFooter
 
 
 # CLI ------------------------------------------

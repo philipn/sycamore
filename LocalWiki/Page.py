@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 """
-    LocalWiki - Page class
+    MoinMoin - Page class
 
     @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
@@ -8,10 +8,10 @@
 
 # Imports
 import cStringIO, os, re, urllib, os.path, random
-from LocalWiki import caching, config, user, util, wikiutil
+from MoinMoin import caching, config, user, util, wikiutil
 import cPickle
-#import LocalWiki.util.web
-from LocalWiki.logfile import eventlog
+#import MoinMoin.util.web
+from MoinMoin.logfile import eventlog
 
 class Page:
     """Page - Manage an (immutable) page associated with a WikiName.
@@ -38,16 +38,6 @@ class Page:
         self._raw_body_modified = 0
         self.hilite_re = None
         
-        if os.path.exists(config.data_dir + '/pagedict.pickle'):
-            pdfile= open(config.data_dir +'/pagedict.pickle' , 'r') # pickled self.pagedict
-            self.pagedict = cPickle.load(pdfile)
-            pdfile.close() 
-        else:
-            self.pagedict = {}
-            pdfile = open(config.data_dir + '/pagedict.pickle', 'w')
-            cPickle.dump(self.pagedict, pdfile, 2)
-            pdfile.close()
-
         if keywords.has_key('formatter'):
             self.formatter = keywords.get('formatter')
             self.default_formatter = 0
@@ -114,7 +104,7 @@ class Page:
 
         result = None
         if not self.prev_date: # we don't have a last-edited entry for backup versions        
-            from LocalWiki.logfile import editlog
+            from MoinMoin.logfile import editlog
             try:
                 log = editlog.EditLog(wikiutil.getPagePath(self.page_name, 'last-edited', check_create=0)).next()
             except StopIteration:
@@ -152,7 +142,7 @@ class Page:
         _ = request.getText
         
         result = None
-        from LocalWiki.logfile import editlog
+        from MoinMoin.logfile import editlog
         try:
             log = editlog.EditLog(wikiutil.getPagePath
                                   (self.page_name, 'last-edited',
@@ -312,8 +302,8 @@ class Page:
         text = text or self.split_title(request)
         fmt = getattr(self, 'formatter', None)
 
-        if self.pagedict.has_key(self.page_name.lower()):
-                url =   wikiutil.quoteWikiname( self.pagedict[self.page_name.lower()])
+        if request.pagedict.has_key(self.page_name.lower()):
+                url =   wikiutil.quoteWikiname(request.pagedict[self.page_name.lower()])
         else:
                 url = wikiutil.quoteWikiname(self.page_name)
         
@@ -328,12 +318,11 @@ class Page:
         # create a link to attachments if any exist
         attach_link = ''
         if kw.get('attachment_indicator', 0):
-            from LocalWiki.action import AttachFile
+            from MoinMoin.action import AttachFile
             attach_link = AttachFile.getIndicator(request, self.page_name)
 
         
-        #self.pagedict was loaded above
-        if self.pagedict.has_key(self.page_name.lower()):
+        if request.pagedict.has_key(self.page_name.lower()):
             return wikiutil.link_tag(request, url, text, formatter=fmt, **kw) + attach_link
         elif request.user.show_nonexist_qm:
             kw['css_class'] = 'nonexistent'
@@ -421,7 +410,7 @@ class Page:
 
         # if necessary, load the default formatter
         if self.default_formatter:
-            from LocalWiki.formatter.text_html import Formatter
+            from MoinMoin.formatter.text_html import Formatter
             self.formatter = Formatter(request, store_pagelinks=1)
         self.formatter.setPage(self)
         request.formatter = self.formatter
@@ -530,7 +519,7 @@ class Page:
 
                 # collect form definitions
                 if not wikiform:
-                    from LocalWiki import wikiform
+                    from MoinMoin import wikiform
                     pi_formtext.append('<table border="1" cellspacing="1" cellpadding="3">\n'
                         '<form method="POST" action="%s">\n'
                         '<input type="hidden" name="action" value="formtest">\n' % self.url(request))
@@ -627,7 +616,7 @@ class Page:
 
             # check for pending footnotes
             if getattr(request, 'footnotes', None):
-                from LocalWiki.macro.FootNote import emit_footnotes
+                from MoinMoin.macro.FootNote import emit_footnotes
                 request.write(emit_footnotes(request, self.formatter))
 
         # end wiki content div
@@ -666,7 +655,7 @@ class Page:
         @param needsupdate: if 1, force update of the cached compiled page
         """
         formatter_name = str(self.formatter.__class__).\
-                         replace('LocalWiki.formatter.', '').\
+                         replace('MoinMoin.formatter.', '').\
                          replace('.Formatter', '')
 
         # if no caching
@@ -679,7 +668,7 @@ class Page:
 
         #try cache
         _ = request.getText
-        from LocalWiki import wikimacro
+        from MoinMoin import wikimacro
         arena = 'Page.py'
         key = wikiutil.quoteFilename(self.page_name) + '.' + formatter_name
         cache = caching.CacheEntry(arena, key)
@@ -700,7 +689,7 @@ class Page:
 
         # render page
         if needsupdate:
-            from LocalWiki.formatter.text_python import Formatter
+            from MoinMoin.formatter.text_python import Formatter
             formatter = Formatter(request, ["page"], self.formatter)
 
             import marshal
@@ -743,7 +732,7 @@ class Page:
         
         @param request: the request object
         """
-        from LocalWiki.action import LikePages
+        from MoinMoin.action import LikePages
         _ = request.getText
   
         request.write(self.formatter.paragraph(1))
