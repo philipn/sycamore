@@ -72,7 +72,7 @@ _cfg_defaults = {
     'default_lang': 'en',
     'default_logo': 'defaultlogo.png',
     'default_markup': 'wiki',
-    'domain': 'daviswiki.org',
+    'domain': '',
     'edit_locking': 'warn 10', # None, 'warn <timeout mins>', 'lock <timeout mins>'
     'edit_rows': 30,
     'hosts_deny': [],

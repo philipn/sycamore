@@ -59,7 +59,8 @@ catchphrase = 'Your phrase here..'
 relative_dir = 'installhtml/index.cgi'
 
 #your domain (used for cookies, etc)
-domain = 'localhost'
+# uncomment only if you've got a domain and want cookies to work across subdomains
+#domain = 'daviswiki.org'
 
 # encoding and WikiName char sets
 # (change only for outside America or Western Europe)
