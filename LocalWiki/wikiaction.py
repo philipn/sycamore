@@ -151,7 +151,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
     searchlog = open(config.app_dir + '/search.log','a')
     searchlog.write(needle + '\n')
     searchlog.close()
-
+    
     #try:
         #needle_re = re.compile(needle, re.IGNORECASE)
     # The regexp on the sides of the regexp string in needle_re are so that we ignore strings occuring inside of words in our display of the matches  -- this doesn't affect the searching at all, just the display.  So we display only where "hey" occurs, not where "hey" occurs inside of the word "they".  This is sort of a hack.
@@ -243,8 +243,6 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
                         request.write('<li>%s</li>' % Page(wikiutil.unquoteFilename(filename)).link_to(request))
                 request.write('</ul>')
                 request.write('</div>\n') # end content div
-
-
     if len(full_hits) < 1:
       request.write('<h3>&nbsp;No full text matches</h3>')
     else:
@@ -294,8 +292,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
                         % (relative_dir, urllib.quote_plus(needle), pstart+pwith+count, pwith))
       else:
          request.write('</div></dl>')
-
-      wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
+    wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
 
 
 def do_titlesearch(pagename, request, fieldname='value'):

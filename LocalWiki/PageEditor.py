@@ -364,7 +364,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 #                'license_link': wikiutil.getSysPage(self.request, config.page_license_page).link_to(self.request),
 #            }, '</em></p>')
         
-        fixedName = re.sub("'","_27",self.page_name)
+        #fixedName = re.sub("'","_27",self.page_name)
         applet = 1
         exclude = '"User Preferences" "Recent Changes" "Davis Map" "Front Page" "To Do"'
         if string.find(exclude, '"' + self.page_name + '"') >= 0:
@@ -394,7 +394,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 <input type="button" class="formbutton" onClick="location.href='%s/%s?action=Rename'" value="Rename">&nbsp;&nbsp;</td></tr></table>
 </p>%s
 <p>
-''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, relative_dir, fixedName, button_spellcheck, relative_dir, fixedName, relative_dir, fixedName,mapHtml))
+''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, relative_dir, wikiutil.quoteWikiname(self.page_name), button_spellcheck, relative_dir, wikiutil.quoteWikiname(self.page_name), relative_dir, wikiutil.quoteWikiname(self.page_name),mapHtml))
 
         #if config.mail_smarthost:
         #    self.request.write('''<input type="checkbox" name="notify" value="1"%s><label>%s</label>''' % (

@@ -39,10 +39,13 @@ class Theme(ThemeBase):
         @return: banner html
         """
         # 'banner_html': self.emit_custom_html('<div id="banner">\n<a id="bannertext" href="http://cwhipple.info">cwhipple.info</a>\n<p id="desctext">an evolving repository</p>\n</div>\n')
+        if config.relative_dir: add_on = '/'
+        else: add_on = ''
+
         if d['script_name']:
             html ='&nbsp;<a href="%(script_name)s">' % d
         else:
-            html ='&nbsp;<a href="/">' % d
+            html ='&nbsp;<a href="/' + config.relative_dir + add_on + 'Front_Page">' % d
         html = html + '<img align="middle" src="/%s" border=0></a>' % config.default_logo 
         return html
 
@@ -192,7 +195,7 @@ class Theme(ThemeBase):
 <div class="tabArea">
 %(edittext_html)s
 %(info_html)s
-<a href="%(relative_dir)s/" class="%(frontpage_class)s">Front Page</a>
+<a href="%(relative_dir)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
 <a href="%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
 <a href="%(relative_dir)s/People" class="%(people_class)s">People</a>
 <a href="%(relative_dir)s/Bookmarks" class="%(bookmarks_class)s">Bookmarks</a>
@@ -205,7 +208,7 @@ class Theme(ThemeBase):
 <div class="tabArea">
 %(edittext_html)s
 %(info_html)s
-<a href="%(relative_dir)s/" class="%(frontpage_class)s">Front Page</a>
+<a href="%(relative_dir)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
 <a href="%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
 <a href="%(relative_dir)s/People" class="%(people_class)s">People</a>
 <a href="%(relative_dir)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
