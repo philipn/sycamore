@@ -1,0 +1,1165 @@
+<?xml version="1.0" ?>
+<data>
+<category id="0" name="Categories">
+  <category id="1" img="food.png" name="Restaurants"/>
+  <category id="12" img="coffee.png" name="Cafes"/>
+  <category id="2" img="dollar.png" name="Shopping"/>
+  <category id="3" img="hand.png" name="Services"/>
+  <category id="4" img="run.png" name="Parks &amp; Recreation"/>
+  <category id="5" img="people.png" name="Community"/>
+  <category id="6" img="arts.png" name="Art &amp; Entertainment"/>
+  <category id="7" img="edu.png" name="Education"/>
+  <category id="9" img="head.png" name="People"/>
+  <category id="10" img="gov.png" name="Government"/>
+  <category id="11" img="bike.png" name="Bars &amp; Night Life"/>
+  <category id="13" img="house.png" name="Housing"/>
+  <category id="14" img="wifi.png" name="WiFi Hot Spots"/>
+  <category id="99" name="Other"/>
+</category>
+  <pages>
+    
+    
+  <page id="1" name="Cafe Roma">
+<location x="6634271.1392" y="1959973.3010954545"/>
+<cat id="12"/>
+<cat id="14"/>
+</page><page id="3" name="Cafe Roma">
+<location x="6635620.778293333" y="1960092.175959091"/>
+<cat id="14"/>
+<cat id="12"/>
+</page><page id="5" name="The Graduate">
+<location x="6630362.34482" y="1961063.7498068183"/>
+<cat id="11"/>
+<cat id="1"/>
+<cat id="6"/>
+</page><page id="6" name="Ciocolat">
+<location x="6634633.817546667" y="1960056.5135"/>
+<cat id="12"/>
+</page><page id="8" name="Starbucks">
+<location x="6636007.238826667" y="1960110.0071886363"/>
+<cat id="12"/>
+<cat id="14"/>
+</page><page id="9" name="Starbucks">
+<location x="6630173.88158" y="1961063.7498068183"/>
+<cat id="12"/>
+<cat id="14"/>
+</page><page id="10" name="Fluffy Donuts">
+<location x="6630510.42308" y="1961117.5024704547"/>
+<cat id="12"/>
+</page><page id="11" name="Borders">
+<location x="6635834.817973333" y="1959135.2333068182"/>
+<cat id="2"/>
+<cat id="12"/>
+<cat id="14"/>
+</page><page id="12" name="Pita Pit">
+<location x="6635650.506026667" y="1959919.8074068183"/>
+<cat id="1"/>
+</page><page id="14" name="Ali Baba">
+<location x="6634235.46592" y="1959884.1449477272"/>
+<cat id="1"/>
+<cat id="14"/>
+</page><page id="2" name="Farmers Market">
+<location x="6634883.530506667" y="1960199.1633363636"/>
+<cat id="5"/>
+<cat id="2"/>
+</page><page id="17" name="University Mall">
+<location x="6630268.1132000005" y="1960956.2444795456"/>
+<cat id="2"/>
+<cat id="1"/>
+<cat id="3"/>
+<cat id="5"/>
+<cat id="12"/>
+<cat id="11"/>
+<cat id="6"/>
+</page><page id="7" name="Mishka's">
+<location x="6635626.72384" y="1959711.7763954545"/>
+<cat id="12"/>
+<cat id="14"/>
+</page><page id="18" name="Public Skate Park">
+<location x="6634481.61278" y="1965525.2208886363"/>
+<cat id="4"/>
+</page><page id="19" name="Davis Senior High School">
+<location x="6633081.60014" y="1965162.3904090908"/>
+<cat id="7"/>
+</page><page id="22" name="Manor Park or Slide Hill Park">
+<location x="6642780.35992" y="1966130.2330704546"/>
+<cat id="4"/>
+</page><page id="23" name="Central Park">
+<location x="6634752.72848" y="1960466.6317795455"/>
+<cat id="4"/>
+</page><page id="24" name="Oxford Circle Park">
+<location x="6628760.40728" y="1961305.636793182"/>
+<cat id="4"/>
+</page><page id="26" name="PhilipNeustrom">
+<location x="6630833.50292" y="1961829.7252636363"/>
+<cat id="9"/>
+</page><page id="27" name="Armadillo Music">
+<location x="6635947.78336" y="1959979.2448386364"/>
+<cat id="6"/>
+<cat id="2"/>
+</page><page id="29" name="Delta of Venus">
+<location x="6634895.4216" y="1959343.2643181817"/>
+<cat id="12"/>
+<cat id="14"/>
+<cat id="1"/>
+<cat id="11"/>
+<cat id="6"/>
+</page><page id="30" name="Turtle House">
+<location x="6634728.946293334" y="1959604.7890181819"/>
+<cat id="13"/>
+</page><page id="20" name="Dos Coyotes">
+<location x="6628680.679846667" y="1966494.1813886364"/>
+<cat id="1"/>
+<cat id="14"/>
+</page><page id="31" name="Dos Coyotes">
+<location x="6640528.99053" y="1959081.8848409092"/>
+<cat id="14"/>
+<cat id="1"/>
+</page><page id="32" name="Plainfield Station">
+<location x="6617676.2213883335" y="1976926.313725"/>
+<cat id="11"/>
+<cat id="6"/>
+<cat id="1"/>
+</page><page id="33" name="Pirate Ship">
+<location x="6630739.2713" y="1961628.152775"/>
+<cat id="6"/>
+<cat id="11"/>
+</page><page id="34" name="Chipotle">
+<location x="6635632.669386666" y="1960032.7385272728"/>
+<cat id="1"/>
+</page><page id="35" name="Bogey's Books">
+<location x="6635644.5604799995" y="1959997.0760681818"/>
+<cat id="2"/>
+</page><page id="36" name="Bomb Shelter">
+<location x="6630766.19462" y="1962205.993909091"/>
+<cat id="13"/>
+</page><page id="39" name="Redrum Burger">
+<location x="6636559.233613334" y="1957980.758525"/>
+<cat id="1"/>
+</page><page id="40" name="Kathmandu Kitchen">
+<location x="6636316.407253333" y="1960228.8820522728"/>
+<cat id="1"/>
+</page><page id="4" name="Ben &amp; Jerry's">
+<location x="6635787.2535999995" y="1959087.6833613636"/>
+<cat id="12"/>
+</page><page id="41" name="Shields Library">
+<location x="6633440.905758333" y="1958456.7445636364"/>
+<cat id="7"/>
+<cat id="14"/>
+</page><page id="42" name="Arboretum">
+<location x="6633739.370183334" y="1957348.498759091"/>
+<cat id="4"/>
+<cat id="5"/>
+</page><page id="44" name="Crepeville">
+<location x="6634948.93152" y="1960044.6260136364"/>
+<cat id="12"/>
+<cat id="1"/>
+</page><page id="45" name="Davis Food Co-Op">
+<location x="6636016.242020001" y="1962044.735918182"/>
+<cat id="2"/>
+<cat id="5"/>
+</page><page id="47" name="California National Primate Research Center">
+<location x="6617305.966246666" y="1958794.8253499998"/>
+<cat id="7"/>
+</page><page id="48" name="Chamonix">
+<location x="6631143.1211" y="1966089.623856818"/>
+<cat id="12"/>
+<cat id="14"/>
+</page><page id="51" name="Great Wall">
+<location x="6635870.491253333" y="1960121.894675"/>
+<cat id="1"/>
+</page><page id="52" name="KDVS">
+<location x="6633128.228741666" y="1959550.7820886364"/>
+<cat id="5"/>
+<cat id="6"/>
+</page><page id="54" name="Locomotive Hedge">
+<location x="6636155.877493333" y="1960561.7316704546"/>
+<cat id="99"/>
+</page><page id="56" name="Memorial Union">
+<location x="6633384.0553916665" y="1959508.15725"/>
+<cat id="10"/>
+<cat id="7"/>
+<cat id="3"/>
+<cat id="5"/>
+<cat id="6"/>
+</page><page id="57" name="Newsbeat">
+<location x="6635507.812906667" y="1960175.3883636363"/>
+<cat id="2"/>
+</page><page id="58" name="Noodle Express">
+<location x="6636191.550773333" y="1960407.1943477273"/>
+<cat id="1"/>
+</page><page id="59" name="Navin's Copy Shop">
+<location x="6634348.431306667" y="1959991.132325"/>
+<cat id="3"/>
+<cat id="7"/>
+</page><page id="61" name="Carl's Jr.">
+<location x="6638388.770573333" y="1966577.647834091"/>
+<cat id="1"/>
+</page><page id="63" name="ArlenAbraham">
+<location x="6632825.828600001" y="1963173.5418545455"/>
+<cat id="9"/>
+</page><page id="64" name="Cafe Bernardo">
+<location x="6635365.119786667" y="1960139.7259045455"/>
+<cat id="11"/>
+<cat id="1"/>
+<cat id="12"/>
+</page><page id="65" name="Taco Bell">
+<location x="6649592.2146000005" y="1963087.1777"/>
+<cat id="1"/>
+</page><page id="66" name="Taco Bell">
+<location x="6636048.857653333" y="1961055.0623545456"/>
+<cat id="1"/>
+</page><page id="15" name="MikeIvanov">
+<location x="6629248.191216666" y="1959067.700584091"/>
+<cat id="9"/>
+</page><page id="16" name="Taqueria Guadalajara">
+<location x="6631116.19778" y="1965955.2421977273"/>
+<cat id="1"/>
+</page><page id="69" name="Taqueria Guadalajara">
+<location x="6648829.110533333" y="1962149.2495"/>
+<cat id="1"/>
+</page><page id="70" name="Woodstock's Pizza">
+<location x="6636256.951786666" y="1960139.7259045455"/>
+<cat id="1"/>
+<cat id="11"/>
+</page><page id="72" name="In-N-Out">
+<location x="6636709.071383333" y="1958935.781090909"/>
+<cat id="1"/>
+</page><page id="74" name="Del Taco">
+<location x="6638528.320685" y="1959723.6612136364"/>
+<cat id="1"/>
+</page><page id="75" name="Steve's Place Pizza">
+<location x="6635924.001173333" y="1960466.6317795455"/>
+<cat id="1"/>
+</page><page id="76" name="Train Station">
+<location x="6636720.704426667" y="1959907.9199204545"/>
+<cat id="3"/>
+</page><page id="77" name="Cantina del Cabo">
+<location x="6636340.18944" y="1959783.1013136364"/>
+<cat id="11"/>
+<cat id="1"/>
+</page><page id="78" name="The Quad">
+<location x="6633384.0553916665" y="1959010.867465909"/>
+<cat id="99"/>
+<cat id="4"/>
+<cat id="14"/>
+<cat id="5"/>
+</page><page id="79" name="Dairy Queen">
+<location x="6636421.155066666" y="1961458.4356363637"/>
+<cat id="1"/>
+</page><page id="82" name="Anderson Plaza">
+<location x="6630941.1962" y="1965982.1185295454"/>
+<cat id="2"/>
+<cat id="1"/>
+<cat id="12"/>
+</page><page id="84" name="Thai Bistro">
+<location x="6635763.471413333" y="1960139.7259045455"/>
+<cat id="1"/>
+</page><page id="53" name="Kerr Hall">
+<location x="6632613.130716667" y="1959155.3205636365"/>
+<cat id="7"/>
+</page><page id="25" name="Wellman Hall">
+<location x="6632776.962745" y="1959062.8532181818"/>
+<cat id="14"/>
+<cat id="7"/>
+</page><page id="68" name="Memorial Union: Flagpole">
+<location x="6633311.19762" y="1959219.336418182"/>
+<cat id="99"/>
+</page><page id="81" name="UC Davis Bookstore">
+<location x="6633403.798331667" y="1959596.3186727273"/>
+<cat id="2"/>
+<cat id="7"/>
+</page><page id="55" name="Marya Welch Tennis Center">
+<location x="6632833.947798333" y="1960272.0415818181"/>
+<cat id="4"/>
+</page><page id="60" name="North Hall">
+<location x="6633667.354203333" y="1959226.449290909"/>
+<cat id="7"/>
+<cat id="3"/>
+</page><page id="46" name="Chem 194">
+<location x="6632748.470218333" y="1958145.2926363635"/>
+<cat id="7"/>
+</page><page id="49" name="Social Sciences and Humanities Building">
+<location x="6633774.201178334" y="1959688.7860181818"/>
+<cat id="7"/>
+</page><page id="50" name="Dutton Hall">
+<location x="6633831.186231667" y="1959148.207690909"/>
+<cat id="3"/>
+<cat id="7"/>
+</page><page id="43" name="Bike Barn">
+<location x="6632534.776268333" y="1958031.4866727272"/>
+<cat id="3"/>
+</page><page id="73" name="Coffee House">
+<location x="6633218.596908334" y="1959297.578018182"/>
+<cat id="5"/>
+<cat id="1"/>
+<cat id="3"/>
+<cat id="12"/>
+</page><page id="85" name="G Street Pub">
+<location x="6636358.02608" y="1960110.0071886363"/>
+<cat id="1"/>
+<cat id="11"/>
+<cat id="6"/>
+</page><page id="86" name="Outdoor Adventures">
+<location x="6632527.653136667" y="1958138.1797636363"/>
+<cat id="3"/>
+<cat id="4"/>
+</page><page id="87" name="Silo">
+<location x="6632321.082318333" y="1958131.066890909"/>
+<cat id="12"/>
+<cat id="7"/>
+<cat id="1"/>
+<cat id="2"/>
+</page><page id="88" name="Meat Lab">
+<location x="6631266.379233333" y="1956368.1274704547"/>
+<cat id="2"/>
+</page><page id="67" name="Bargain Barn">
+<location x="6630541.537058333" y="1956353.919190909"/>
+<cat id="99"/>
+</page><page id="89" name="24 Hour Reading Room">
+<location x="6633489.275911666" y="1958600.516490909"/>
+<cat id="7"/>
+<cat id="14"/>
+</page><page id="90" name="Taqueria Davis">
+<location x="6637550.996916667" y="1961899.2934545453"/>
+<cat id="1"/>
+</page><page id="92" name="Plant and Environmental Sciences Building">
+<location x="6632613.130716667" y="1959866.6078363636"/>
+<cat id="7"/>
+</page><page id="93" name="Sharps and Flats">
+<location x="6639907.02063" y="1958088.1665863637"/>
+<cat id="13"/>
+</page><page id="94" name="Loyola House">
+<location x="6643493.64354" y="1964829.9339136365"/>
+<cat id="13"/>
+<cat id="6"/>
+</page><page id="95" name="Everson Hall">
+<location x="6633090.380538333" y="1958095.5025272728"/>
+<cat id="7"/>
+</page><page id="96" name="Safeway">
+<location x="6628465.185183333" y="1966418.1475204546"/>
+<cat id="2"/>
+</page><page id="97" name="Safeway">
+<location x="6640259.47024" y="1958864.5089727272"/>
+<cat id="2"/>
+</page><page id="98" name="Tennis Club Apartments">
+<location x="6647169.996135" y="1961752.1687272727"/>
+<cat id="99"/>
+<cat id="13"/>
+</page><page id="99" name="Pinkadot">
+<location x="6635662.39712" y="1960139.7259045455"/>
+<cat id="2"/>
+</page><page id="100" name="Peet's Coffee">
+<location x="6628832.793726667" y="1966494.1813886364"/>
+<cat id="12"/>
+</page><page id="101" name="DCTV">
+<location x="6638612.545826667" y="1961907.7562386363"/>
+<cat id="5"/>
+</page><page id="102" name="Fuji Chef">
+<location x="6636268.842879999" y="1960092.175959091"/>
+<cat id="1"/>
+</page><page id="103" name="Savvy Shoppe">
+<location x="6635745.634773334" y="1959456.1954386362"/>
+<cat id="2"/>
+</page><page id="104" name="MU Bus Phone 1">
+<location x="6633254.212566667" y="1959738.5761272728"/>
+<cat id="99"/>
+</page><page id="105" name="MU Bus Phone 2">
+<location x="6633197.227513334" y="1959752.8018727272"/>
+<cat id="99"/>
+</page><page id="106" name="Silo Phone">
+<location x="6632256.974133333" y="1958109.7282727272"/>
+<cat id="99"/>
+</page><page id="107" name="Quad Phone 1">
+<location x="6633453.660253334" y="1959475.3998363637"/>
+<cat id="99"/>
+</page><page id="108" name="Quad Phone 2">
+<location x="6633460.783385" y="1959496.7384545454"/>
+<cat id="99"/>
+</page><page id="109" name="Downtown Phone 5">
+<location x="6635495.921813333" y="1959664.22645"/>
+<cat id="99"/>
+</page><page id="110" name="Downtown Phone 6">
+<location x="6635240.263306666" y="1960139.7259045455"/>
+<cat id="99"/>
+</page><page id="111" name="Downtown Phone 4">
+<location x="6634176.010453333" y="1959913.8636636364"/>
+<cat id="99"/>
+</page><page id="112" name="Downtown Phone 3">
+<location x="6635038.11472" y="1960086.232215909"/>
+<cat id="99"/>
+</page><page id="113" name="RohiniJasavala">
+<location x="6623082.7639" y="1961091.6920204547"/>
+<cat id="9"/>
+</page><page id="116" name="AmeliaCarlson">
+<location x="6638850.307033333" y="1964885.8607590909"/>
+<cat id="9"/>
+</page><page id="117" name="South Davis Phone 1">
+<location x="6640186.907085" y="1958978.3725227274"/>
+<cat id="99"/>
+</page><page id="118" name="Downtown Phone 2">
+<location x="6635787.2535999995" y="1959539.4078431819"/>
+<cat id="99"/>
+</page><page id="119" name="Hot Dogger">
+<location x="6635751.58032" y="1959533.4641"/>
+<cat id="1"/>
+</page><page id="120" name="Downtown Phone 1">
+<location x="6636655.303413333" y="1959901.9761772726"/>
+<cat id="99"/>
+</page><page id="83" name="Sophia's Thai Kitchen">
+<location x="6635680.23376" y="1959509.6891272727"/>
+<cat id="1"/>
+<cat id="11"/>
+</page><page id="121" name="Tanglewood">
+<location x="6639171.022915" y="1958574.6744818182"/>
+<cat id="13"/>
+</page><page id="122" name="The Drake">
+<location x="6630052.72664" y="1965861.1750363635"/>
+<cat id="13"/>
+</page><page id="123" name="PSE Phone">
+<location x="6633000.315416667" y="1957220.624243182"/>
+<cat id="99"/>
+</page><page id="124" name="Med School Phone">
+<location x="6629020.7897499995" y="1956837.0006954547"/>
+<cat id="99"/>
+</page><page id="125" name="The Belfry">
+<location x="6634144.604025001" y="1959560.754309091"/>
+<cat id="5"/>
+</page><page id="126" name="Hoagland Hall">
+<location x="6631886.571286666" y="1959318.9166363636"/>
+<cat id="7"/>
+</page><page id="127" name="Asmundson Hall">
+<location x="6632242.72787" y="1959247.787909091"/>
+<cat id="7"/>
+</page><page id="128" name="L and 2nd Garden">
+<location x="6637823.421465" y="1960386.14005"/>
+<cat id="99"/>
+</page><page id="129" name="Whole Earth Bench">
+<location x="6632997.779826667" y="1959148.207690909"/>
+<cat id="99"/>
+</page><page id="130" name="Griffin Lounge">
+<location x="6633254.212566667" y="1959375.8196181818"/>
+<cat id="14"/>
+<cat id="7"/>
+</page><page id="131" name="J Street Apartments">
+<location x="6635899.27088" y="1964438.4459954547"/>
+<cat id="13"/>
+</page><page id="132" name="KrisFricke">
+<location x="6630564.26972" y="1963872.3264818182"/>
+<cat id="9"/>
+</page><page id="134" name="Taqueria Super Tamale">
+<location x="6622584.396875" y="1963699.9196477274"/>
+<cat id="1"/>
+</page><page id="135" name="Watermelon Music">
+<location x="6635668.342666667" y="1959866.3137181818"/>
+<cat id="2"/>
+<cat id="6"/>
+</page><page id="133" name="YawenChen">
+<location x="6629514.26024" y="1966035.8711931817"/>
+<cat id="9"/>
+</page><page id="136" name="Seal Of The University">
+<location x="6633296.951356667" y="1959503.8513272728"/>
+<cat id="7"/>
+</page><page id="137" name="Chestnut Park">
+<location x="6638794.36322" y="1964466.409418182"/>
+<cat id="4"/>
+</page><page id="138" name="EricKlein">
+<location x="6629450.334893334" y="1960422.959"/>
+<cat id="99"/>
+<cat id="9"/>
+</page><page id="139" name="Ken's Bike &amp; Ski">
+<location x="6635948.93372" y="1962340.375568182"/>
+<cat id="3"/>
+<cat id="2"/>
+</page><page id="140" name="Mace Ranch Park">
+<location x="6644367.263958333" y="1964765.183"/>
+<cat id="4"/>
+</page><page id="141" name="Arboretum Terrace">
+<location x="6635906.164533333" y="1959170.895765909"/>
+<cat id="99"/>
+<cat id="5"/>
+<cat id="4"/>
+<cat id="7"/>
+</page><page id="142" name="JackHaskel">
+<location x="6631089.27446" y="1965216.1430727271"/>
+<cat id="9"/>
+</page><page id="143" name="ASUCD">
+<location x="6633368.182673333" y="1959546.5285636364"/>
+<cat id="10"/>
+<cat id="5"/>
+</page><page id="144" name="Visor Lady">
+<location x="6633261.335698334" y="1959368.7067454546"/>
+<cat id="9"/>
+</page><page id="145" name="Davis Paintball Center">
+<location x="6636633.284641667" y="1970709.8034249998"/>
+<cat id="99"/>
+<cat id="4"/>
+</page><page id="146" name="The Arbors">
+<location x="6637813.0553" y="1960054.9006318182"/>
+<cat id="99"/>
+<cat id="13"/>
+</page><page id="147" name="PC Game Arena">
+<location x="6637107.16496" y="1959527.520356818"/>
+<cat id="99"/>
+<cat id="11"/>
+<cat id="6"/>
+</page><page id="148" name="Olive Drive Market">
+<location x="6637083.382773333" y="1959361.0955477273"/>
+<cat id="99"/>
+<cat id="2"/>
+<cat id="5"/>
+</page><page id="149" name="Tapioca Express">
+<location x="6635787.2535999995" y="1959598.845275"/>
+<cat id="99"/>
+<cat id="11"/>
+<cat id="12"/>
+<cat id="1"/>
+</page><page id="150" name="Central Davis Phone 1">
+<location x="6633943.14638" y="1965404.2773954545"/>
+<cat id="99"/>
+</page><page id="151" name="Movie Theaters">
+<location x="6636078.5853866665" y="1959420.5329795454"/>
+<cat id="99"/>
+<cat id="4"/>
+<cat id="6"/>
+<cat id="11"/>
+</page><page id="152" name="Movie Theaters">
+<location x="6636167.768586666" y="1961078.8373272729"/>
+<cat id="99"/>
+<cat id="6"/>
+<cat id="11"/>
+<cat id="4"/>
+</page><page id="153" name="Tower Records">
+<location x="6636048.857653333" y="1959997.0760681818"/>
+<cat id="2"/>
+</page><page id="155" name="Soga's">
+<location x="6635650.506026667" y="1959961.413609091"/>
+<cat id="1"/>
+</page><page id="156" name="John Natsoulas Art Gallery">
+<location x="6635787.2535999995" y="1959325.4330886363"/>
+<cat id="6"/>
+</page><page id="157" name="Greystone">
+<location x="6641549.596026666" y="1962928.4211681818"/>
+<cat id="13"/>
+</page><page id="158" name="Sycamore Lane Apartments">
+<location x="6630281.57486" y="1961332.513125"/>
+<cat id="13"/>
+</page><page id="161" name="Subway">
+<location x="6636393.69936" y="1959860.369975"/>
+<cat id="1"/>
+</page><page id="162" name="Subway">
+<location x="6630591.19304" y="1961117.5024704547"/>
+<cat id="1"/>
+</page><page id="164" name="Subway">
+<location x="6649144.305325001" y="1962535.509240909"/>
+<cat id="1"/>
+</page><page id="165" name="Subway">
+<location x="6637493.66956" y="1966200.1416272728"/>
+<cat id="1"/>
+</page><page id="166" name="Sproul Hall">
+<location x="6634023.510786667" y="1958579.1778727272"/>
+<cat id="7"/>
+</page><page id="167" name="Malcolm Hall">
+<location x="6631038.9186183335" y="1960556.556490909"/>
+<cat id="13"/>
+</page><page id="168" name="Hart Hall">
+<location x="6632990.656695" y="1958792.5640545455"/>
+<cat id="7"/>
+</page><page id="169" name="Thai Recipes">
+<location x="6635858.60016" y="1959616.6765045454"/>
+<cat id="1"/>
+</page><page id="170" name="Thai Nakorn">
+<location x="6636143.9864" y="1961162.0497318183"/>
+<cat id="1"/>
+</page><page id="171" name="2k Thai Food">
+<location x="6636245.060693333" y="1960211.0508227274"/>
+<cat id="1"/>
+</page><page id="172" name="49er Video">
+<location x="6631264.27604" y="1965968.6803636362"/>
+<cat id="2"/>
+<cat id="6"/>
+</page><page id="173" name="The Domes">
+<location x="6629006.577158333" y="1959792.322840909"/>
+<cat id="99"/>
+</page><page id="174" name="Downtown Phone 7">
+<location x="6634140.337173333" y="1959848.4824886364"/>
+<cat id="99"/>
+</page><page id="175" name="Davis Arch mural">
+<location x="6636405.590453333" y="1960038.6822704545"/>
+<cat id="6"/>
+</page><page id="176" name="Fountain Circle Townhomes Apartments">
+<location x="6629669.420066667" y="1966722.2829931818"/>
+<cat id="13"/>
+</page><page id="177" name="BrettHolycross">
+<location x="6643484.95615" y="1965922.487"/>
+<cat id="9"/>
+</page><page id="178" name="Nugget">
+<location x="6638248.91104" y="1966228.1050500001"/>
+<cat id="99"/>
+<cat id="12"/>
+<cat id="3"/>
+<cat id="2"/>
+</page><page id="179" name="Nugget">
+<location x="6648472.047066666" y="1962015.543590909"/>
+<cat id="99"/>
+</page><page id="180" name="Tibet Nepal">
+<location x="6636215.33296" y="1960335.8694295455"/>
+<cat id="2"/>
+</page><page id="181" name="Bike tunnels">
+<location x="6635585.468900001" y="1964382.9767863636"/>
+<cat id="99"/>
+</page><page id="182" name="Bike tunnels">
+<location x="6636120.204213333" y="1959105.514590909"/>
+<cat id="99"/>
+</page><page id="183" name="Quick Shop Market">
+<location x="6639535.618746666" y="1963347.872509091"/>
+<cat id="99"/>
+</page><page id="184" name="Davis Cemetery">
+<location x="6640025.127113333" y="1964256.6837477274"/>
+<cat id="99"/>
+</page><page id="185" name="Applebee's">
+<location x="6638352.09588" y="1959340.6656363637"/>
+<cat id="1"/>
+</page><page id="186" name="Baker's Square">
+<location x="6634752.72848" y="1959575.0703022727"/>
+<cat id="1"/>
+</page><page id="187" name="Fuzio">
+<location x="6635721.852586666" y="1959075.7958749998"/>
+<cat id="1"/>
+</page><page id="188" name="Little Prague">
+<location x="6636209.387413333" y="1960740.0439659092"/>
+<cat id="1"/>
+</page><page id="189" name="Jusco">
+<location x="6636352.080533333" y="1960163.5008772728"/>
+<cat id="1"/>
+</page><page id="190" name="Manna Korean">
+<location x="6635870.491253333" y="1960246.7132818182"/>
+<cat id="1"/>
+</page><page id="80" name="Kinko's">
+<location x="6635858.60016" y="1960407.1943477273"/>
+<cat id="3"/>
+<cat id="14"/>
+<cat id="11"/>
+</page><page id="192" name="Blockbuster">
+<location x="6635882.382346666" y="1960329.9256863636"/>
+<cat id="2"/>
+<cat id="6"/>
+</page><page id="193" name="Blockbuster">
+<location x="6629098.993016667" y="1966354.7859636364"/>
+<cat id="2"/>
+<cat id="6"/>
+</page><page id="194" name="Community Park">
+<location x="6634118.147960001" y="1965793.984206818"/>
+<cat id="4"/>
+<cat id="5"/>
+</page><page id="195" name="Wake Forest Apartments">
+<location x="6629271.95036" y="1961587.8382772729"/>
+<cat id="13"/>
+</page><page id="196" name="Sam's Mediterranean">
+<location x="6634556.52544" y="1960038.6822704545"/>
+<cat id="1"/>
+</page><page id="197" name="Airport">
+<location x="6622267.385145" y="1955612.564125"/>
+<cat id="99"/>
+</page><page id="198" name="Cactus Corners">
+<location x="6618046.47653" y="1961089.0136749998"/>
+<cat id="99"/>
+</page><page id="199" name="The California Aggie">
+<location x="6633104.626801667" y="1959496.7384545454"/>
+<cat id="99"/>
+<cat id="3"/>
+</page><page id="200" name="Jack in the Box">
+<location x="6636132.095306667" y="1960656.8315613638"/>
+<cat id="1"/>
+</page><page id="202" name="B&amp;L Bike Shop">
+<location x="6635692.124853333" y="1960205.1070795455"/>
+<cat id="3"/>
+<cat id="2"/>
+</page><page id="203" name="Sutter Hospital">
+<location x="6626865.241833333" y="1966333.718134091"/>
+<cat id="3"/>
+</page><page id="204" name="Hibbert Lumber">
+<location x="6636078.5853866665" y="1961358.1932568182"/>
+<cat id="3"/>
+<cat id="2"/>
+</page><page id="205" name="Mother &amp; Baby Source">
+<location x="6636239.115146667" y="1959919.8074068183"/>
+<cat id="2"/>
+</page><page id="206" name="Monitor Graveyard">
+<location x="6630669.4503833335" y="1956197.6281159092"/>
+<cat id="99"/>
+</page><page id="207" name="Off-Campus Books">
+<location x="6634063.045066667" y="1959842.5387454545"/>
+<cat id="2"/>
+<cat id="7"/>
+</page><page id="208" name="Mr. Chan's">
+<location x="6634080.881706667" y="1959925.75115"/>
+<cat id="1"/>
+</page><page id="209" name="Raja Indian Cuisine">
+<location x="6634128.44608" y="1959949.5261227272"/>
+<cat id="1"/>
+</page><page id="210" name="Third and B">
+<location x="6634758.674026666" y="1960115.9509318182"/>
+<cat id="4"/>
+<cat id="6"/>
+<cat id="5"/>
+</page><page id="154" name="Wok n' Roll">
+<location x="6635692.124853333" y="1959723.663881818"/>
+<cat id="1"/>
+</page><page id="211" name="Davis Police Department">
+<location x="6641933.322333333" y="1962728.6417727272"/>
+<cat id="10"/>
+<cat id="3"/>
+<cat id="5"/>
+</page><page id="212" name="Acorn Veterinary">
+<location x="6637913.24816" y="1966284.0318954545"/>
+<cat id="3"/>
+</page><page id="214" name="RadioShack">
+<location x="6635969.200646667" y="1962187.3904659091"/>
+<cat id="2"/>
+</page><page id="215" name="TomLangston">
+<location x="6630470.4741" y="1957788.955425"/>
+<cat id="9"/>
+</page><page id="115" name="Cindy's">
+<location x="6649722.2302" y="1963156.3976181818"/>
+<cat id="1"/>
+</page><page id="216" name="Cindy's">
+<location x="6649491.06025" y="1962609.1739636364"/>
+<cat id="1"/>
+</page><page id="217" name="Olson Hall">
+<location x="6633852.555626667" y="1958586.2907454546"/>
+<cat id="99"/>
+<cat id="7"/>
+</page><page id="218" name="Cross Cultural Center">
+<location x="6633767.078046667" y="1958892.1442727272"/>
+<cat id="99"/>
+</page><page id="219" name="EricTsay">
+<location x="6637220.130346666" y="1959438.3642090908"/>
+<cat id="99"/>
+</page><page id="220" name="California Raptor Center">
+<location x="6633004.784253334" y="1950728.1631749999"/>
+<cat id="99"/>
+</page><page id="221" name="Craft Center">
+<location x="6632299.712923333" y="1957917.6807090908"/>
+<cat id="99"/>
+<cat id="6"/>
+</page><page id="222" name="Hillel House">
+<location x="6634037.834608333" y="1960090.6967113635"/>
+<cat id="99"/>
+<cat id="5"/>
+</page><page id="223" name="Chabad of Davis">
+<location x="6634443.560053334" y="1960008.9635545455"/>
+<cat id="99"/>
+<cat id="5"/>
+</page><page id="224" name="ARC">
+<location x="6630426.329295" y="1959617.6572909092"/>
+<cat id="99"/>
+</page><page id="225" name="Kim's Mart">
+<location x="6635739.689226666" y="1960704.3815068183"/>
+<cat id="99"/>
+</page><page id="226" name="Bizarro World">
+<location x="6635822.92688" y="1961209.5996772728"/>
+<cat id="99"/>
+</page><page id="227" name="Absolute Cellular">
+<location x="6635799.144693334" y="1961138.274759091"/>
+<cat id="99"/>
+</page><page id="228" name="Post Office">
+<location x="6635454.302986667" y="1960139.7259045455"/>
+<cat id="99"/>
+</page><page id="229" name="Post Office">
+<location x="6640170.321466667" y="1961636.710181818"/>
+<cat id="99"/>
+</page><page id="230" name="Konditorei">
+<location x="6642164.977973334" y="1962802.5857659092"/>
+<cat id="1"/>
+</page><page id="231" name="Downtown Phone 12">
+<location x="6634247.357013334" y="1959961.413609091"/>
+<cat id="99"/>
+</page><page id="232" name="West Entry Parking Structure">
+<location x="6630860.840326667" y="1958472.4847818182"/>
+<cat id="7"/>
+<cat id="99"/>
+</page><page id="233" name="Life Sciences Addition">
+<location x="6631224.120041667" y="1958401.3560545454"/>
+<cat id="7"/>
+</page><page id="234" name="Briggs Hall">
+<location x="6631423.567728333" y="1958593.4036181818"/>
+<cat id="7"/>
+</page><page id="235" name="Sciences Laboratory Buildings">
+<location x="6631779.724311667" y="1958593.4036181818"/>
+<cat id="7"/>
+</page><page id="236" name="Sciences Laboratory Buildings">
+<location x="6631494.799045" y="1958380.0174363637"/>
+<cat id="7"/>
+</page><page id="237" name="Haring Hall">
+<location x="6632043.280183333" y="1958415.5818"/>
+<cat id="7"/>
+</page><page id="238" name="Walker Hall">
+<location x="6632955.041036666" y="1958493.8234"/>
+<cat id="7"/>
+</page><page id="239" name="Temporary Buildings">
+<location x="6632719.977691667" y="1958372.9045636363"/>
+<cat id="7"/>
+</page><page id="240" name="Toad Tunnel">
+<location x="6640011.14116" y="1961362.4694954546"/>
+<cat id="99"/>
+<cat id="4"/>
+<cat id="5"/>
+</page><page id="241" name="Shields Bus Phone 1">
+<location x="6633182.98125" y="1958287.550090909"/>
+<cat id="99"/>
+</page><page id="242" name="Aquarius">
+<location x="6635602.941653334" y="1960139.7259045455"/>
+<cat id="2"/>
+</page><page id="244" name="Samira's">
+<location x="6635983.4566399995" y="1959866.3137181818"/>
+<cat id="2"/>
+</page><page id="245" name="Pak Mail">
+<location x="6638402.756526667" y="1966228.1050500001"/>
+<cat id="3"/>
+</page><page id="246" name="Parcel Dispatch PDQ">
+<location x="6636031.021013333" y="1960050.5697568182"/>
+<cat id="3"/>
+</page><page id="248" name="UPS Store">
+<location x="6628541.242123334" y="1966532.1983227273"/>
+<cat id="3"/>
+</page><page id="249" name="UPS Store">
+<location x="6634883.530506667" y="1959420.5329795454"/>
+<cat id="3"/>
+</page><page id="251" name="Parrot Cellular">
+<location x="6628401.804400001" y="1966544.870634091"/>
+<cat id="2"/>
+</page><page id="252" name="Parrot Cellular">
+<location x="6640342.39956" y="1959319.9631727273"/>
+<cat id="2"/>
+</page><page id="253" name="Mobile Connections">
+<location x="6636280.733973334" y="1959830.651259091"/>
+<cat id="2"/>
+</page><page id="254" name="Chautauqua">
+<location x="6630544.074876667" y="1966722.2829931818"/>
+<cat id="13"/>
+</page><page id="255" name="La Salle">
+<location x="6630404.637153333" y="1966532.1983227273"/>
+<cat id="13"/>
+</page><page id="256" name="Emerson Hall">
+<location x="6629245.02704" y="1961345.9512909092"/>
+<cat id="13"/>
+</page><page id="257" name="Castilian Hall">
+<location x="6628275.78752" y="1961937.2305909093"/>
+<cat id="13"/>
+</page><page id="258" name="Solano Park">
+<location x="6634833.739741667" y="1958385.703165909"/>
+<cat id="13"/>
+</page><page id="259" name="Alphabet Moon">
+<location x="6635912.11008" y="1960175.3883636363"/>
+<cat id="2"/>
+</page><page id="260" name="Scale">
+<location x="6631886.571286666" y="1959767.027618182"/>
+<cat id="99"/>
+<cat id="4"/>
+</page><page id="261" name="Elevator Room">
+<location x="6632577.515058333" y="1958664.5323454544"/>
+<cat id="99"/>
+<cat id="4"/>
+</page><page id="262" name="Davis Friends Meeting">
+<location x="6637647.515046666" y="1961264.5975159092"/>
+<cat id="99"/>
+<cat id="5"/>
+</page><page id="263" name="2Bennett Audimotive">
+<location x="6636498.59" y="1958158.1218181818"/>
+<cat id="3"/>
+</page><page id="264" name="Davis Fuel Stop">
+<location x="6637675.486953333" y="1961795.9025477273"/>
+<cat id="99"/>
+</page><page id="265" name="Sudwerk">
+<location x="6640053.09902" y="1961096.8169795456"/>
+<cat id="1"/>
+</page><page id="266" name="Cruess Hall">
+<location x="6632128.757763334" y="1959774.140490909"/>
+<cat id="99"/>
+<cat id="7"/>
+</page><page id="267" name="Hing's">
+<location x="6635811.035786667" y="1959842.5387454545"/>
+<cat id="1"/>
+</page><page id="268" name="Hibachi">
+<location x="6635032.169173333" y="1960169.4446204545"/>
+<cat id="1"/>
+</page><page id="269" name="Osaka Sushi">
+<location x="6636123.046133333" y="1962159.4270431818"/>
+<cat id="1"/>
+</page><page id="270" name="Papa John's">
+<location x="6635913.2568333335" y="1962494.988115909"/>
+<cat id="1"/>
+</page><page id="271" name="Posh Bagel">
+<location x="6636060.748746666" y="1959925.75115"/>
+<cat id="12"/>
+</page><page id="272" name="London Fish'n Chips">
+<location x="6635680.23376" y="1959438.3642090908"/>
+<cat id="1"/>
+</page><page id="273" name="Seasons">
+<location x="6636173.714133333" y="1959444.3079522727"/>
+<cat id="1"/>
+</page><page id="274" name="Pasta">
+<location x="6636417.4815466665" y="1959961.413609091"/>
+<cat id="1"/>
+</page><page id="275" name="Hacienda Park">
+<location x="6630214.494803334" y="1968078.220309091"/>
+<cat id="4"/>
+</page><page id="276" name="Covell Park">
+<location x="6633332.829343333" y="1968090.8926204545"/>
+<cat id="4"/>
+</page><page id="277" name="La Playa Park">
+<location x="6645861.020466667" y="1966249.5640454546"/>
+<cat id="4"/>
+</page><page id="278" name="N Street Park">
+<location x="6638652.801733333" y="1962193.8181363635"/>
+<cat id="4"/>
+</page><page id="279" name="Northstar Park">
+<location x="6633307.47703" y="1970359.2363545455"/>
+<cat id="4"/>
+</page><page id="280" name="Oak Grove Park">
+<location x="6639255.346333333" y="1967898.6035909092"/>
+<cat id="4"/>
+</page><page id="281" name="Civic Center Park">
+<location x="6634104.6863" y="1961520.6474477274"/>
+<cat id="4"/>
+</page><page id="283" name="Longs">
+<location x="6628452.509026667" y="1966278.7520954546"/>
+<cat id="2"/>
+</page><page id="284" name="Longs">
+<location x="6638094.8900666665" y="1966227.2797272727"/>
+<cat id="2"/>
+</page><page id="285" name="Varsity Theatre">
+<location x="6635924.001173333" y="1959759.326340909"/>
+<cat id="6"/>
+</page><page id="286" name="The House">
+<location x="6631551.784098334" y="1959703.0117636365"/>
+<cat id="99"/>
+</page><page id="287" name="Pepperwood">
+<location x="6629200.40227" y="1966595.5598795456"/>
+<cat id="13"/>
+</page><page id="288" name="Big 5 Sporting Goods">
+<location x="6629111.669173334" y="1966240.7351613638"/>
+<cat id="99"/>
+</page><page id="290" name="Dead Zone Novelties">
+<location x="6634859.74832" y="1959485.9141545454"/>
+<cat id="2"/>
+</page><page id="291" name="Pizza Guys">
+<location x="6637424.708086667" y="1961731.1509090909"/>
+<cat id="1"/>
+</page><page id="292" name="Davis Berkeley Shuttle">
+<location x="6633389.552068333" y="1958301.7758363637"/>
+<cat id="99"/>
+<cat id="3"/>
+</page><page id="293" name="Caffe Italia">
+<location x="6636607.739039999" y="1958808.327431818"/>
+<cat id="1"/>
+</page><page id="294" name="Heritage House Apartments">
+<location x="6629796.9551" y="1961144.3788022727"/>
+<cat id="13"/>
+</page><page id="295" name="Washington Mutual">
+<location x="6635543.486186666" y="1960561.7316704546"/>
+<cat id="3"/>
+</page><page id="296" name="The Colleges at La Rue">
+<location x="6629702.99415" y="1959010.867465909"/>
+<cat id="13"/>
+</page><page id="297" name="All Things Right And Relevant">
+<location x="6638654.5036866665" y="1963375.8359318182"/>
+<cat id="2"/>
+</page><page id="298" name="R &amp; R Thrift">
+<location x="6638822.335126666" y="1963375.8359318182"/>
+<cat id="2"/>
+</page><page id="299" name="Wash Mill">
+<location x="6638990.166566666" y="1963361.8542204546"/>
+<cat id="3"/>
+</page><page id="300" name="Symposium">
+<location x="6638528.630106666" y="1963180.0919727273"/>
+<cat id="1"/>
+</page><page id="301" name="Shangri-La Restaurant">
+<location x="6639004.15252" y="1963180.0919727273"/>
+<cat id="1"/>
+</page><page id="302" name="International Food Market">
+<location x="6639157.998006666" y="1963166.1102613637"/>
+<cat id="2"/>
+</page><page id="303" name="Videos To Go">
+<location x="6639171.98396" y="1963333.8907977273"/>
+<cat id="3"/>
+</page><page id="304" name="Party and Vac">
+<location x="6639339.8154" y="1963152.12855"/>
+<cat id="2"/>
+</page><page id="305" name="Matthews Mattress">
+<location x="6639325.829446667" y="1963319.9090863636"/>
+<cat id="99"/>
+<cat id="2"/>
+</page><page id="306" name="George's Auto Repair">
+<location x="6638500.6581999995" y="1963375.8359318182"/>
+<cat id="3"/>
+</page><page id="307" name="JevanGray">
+<location x="6634858.53926" y="1962703.2060477273"/>
+<cat id="9"/>
+</page><page id="308" name="DMV">
+<location x="6639745.4080466665" y="1961921.73795"/>
+<cat id="10"/>
+</page><page id="309" name="Comcast">
+<location x="6638580.15151" y="1960624.2183818182"/>
+<cat id="99"/>
+</page><page id="310" name="Botanical Conservatory">
+<location x="6631786.847443333" y="1959062.8532181818"/>
+<cat id="99"/>
+</page><page id="311" name="Art Building">
+<location x="6633588.999755001" y="1958187.9698727273"/>
+<cat id="99"/>
+<cat id="6"/>
+</page><page id="312" name="The Basement Gallery">
+<location x="6633524.89157" y="1958173.7441272726"/>
+<cat id="6"/>
+</page><page id="313" name="Davis Wetlands">
+<location x="6658404.286971667" y="1976556.28335"/>
+<cat id="99"/>
+</page><page id="314" name="122">
+<location x="6629489.805275" y="1958968.2426272726"/>
+<cat id="99"/>
+</page><page id="315" name="McKeon Condominiums">
+<location x="6639014.798825" y="1968472.2922"/>
+<cat id="13"/>
+</page><page id="316" name="Playfields Park">
+<location x="6640487.52587" y="1960023.8469363637"/>
+<cat id="4"/>
+</page><page id="318" name="Young Hall">
+<location x="6633695.84673" y="1959418.4968545455"/>
+<cat id="99"/>
+<cat id="7"/>
+</page><page id="319" name="City Hall">
+<location x="6634346.996180001" y="1960969.6826454545"/>
+<cat id="5"/>
+<cat id="10"/>
+<cat id="3"/>
+</page><page id="320" name="Burger King">
+<location x="6648985.3258" y="1962372.0926818182"/>
+<cat id="99"/>
+</page><page id="321" name="Casitas">
+<location x="6630835.62648" y="1966722.2829931818"/>
+<cat id="13"/>
+</page><page id="322" name="Student Housing">
+<location x="6631423.567728333" y="1959660.3345272727"/>
+<cat id="13"/>
+</page><page id="323" name="LGBTRC">
+<location x="6633909.540680001" y="1958949.0472545454"/>
+<cat id="99"/>
+<cat id="5"/>
+<cat id="3"/>
+</page><page id="324" name="Voorhies Hall">
+<location x="6634037.75705" y="1959020.1759818182"/>
+<cat id="99"/>
+</page><page id="325" name="MU Information Center">
+<location x="6633389.552068333" y="1959425.6097272728"/>
+<cat id="99"/>
+<cat id="3"/>
+</page><page id="327" name="Veihmeyer Hall">
+<location x="6632506.283741667" y="1959638.9959090909"/>
+<cat id="7"/>
+</page><page id="328" name="GSA">
+<location x="6632399.436766666" y="1957910.5678363636"/>
+<cat id="99"/>
+</page><page id="329" name="Experimental College">
+<location x="6632449.2986883335" y="1957896.3420909091"/>
+<cat id="99"/>
+</page><page id="330" name="Cowell Student Health Center">
+<location x="6631972.048866667" y="1960101.3326363638"/>
+<cat id="3"/>
+</page><page id="331" name="Veterans Memorial Building">
+<location x="6633795.06812" y="1964356.1004545453"/>
+<cat id="6"/>
+<cat id="5"/>
+</page><page id="333" name="Togo's">
+<location x="6628617.299063333" y="1966481.5090772728"/>
+<cat id="1"/>
+</page><page id="334" name="Noah's Bagels">
+<location x="6628756.736786667" y="1966468.836765909"/>
+<cat id="1"/>
+<cat id="12"/>
+</page><page id="335" name="Bakuhatsu Taiko Dan">
+<location x="6626488.29376" y="1958498.80105"/>
+<cat id="99"/>
+</page><page id="336" name="Davis Waldorf School">
+<location x="6628376.452086667" y="1969370.7960681817"/>
+<cat id="7"/>
+</page><page id="337" name="PVUSA">
+<location x="6637595.94801" y="1971005.827725"/>
+<cat id="99"/>
+</page><page id="338" name="Social Science 1100">
+<location x="6633617.492281667" y="1959553.6414363636"/>
+<cat id="7"/>
+</page><page id="339" name="The Dominoes">
+<location x="6629251.106896667" y="1967926.1525727273"/>
+<cat id="6"/>
+<cat id="4"/>
+</page><page id="340" name="Hunt Hall">
+<location x="6632983.533563334" y="1959759.9147454547"/>
+<cat id="7"/>
+</page><page id="341" name="Rec Hall">
+<location x="6630426.329295" y="1959212.2235454547"/>
+<cat id="4"/>
+</page><page id="342" name="Hutchison Hall">
+<location x="6632185.742816667" y="1958977.4987454545"/>
+<cat id="7"/>
+</page><page id="343" name="Storer Hall">
+<location x="6631858.07876" y="1958870.8056545455"/>
+<cat id="7"/>
+</page><page id="344" name="TravisGrathwell">
+<location x="6633370.857813333" y="1966405.475209091"/>
+<cat id="9"/>
+</page><page id="345" name="Mace Ranch School">
+<location x="6644812.146533333" y="1965603.3188181818"/>
+<cat id="7"/>
+</page><page id="346" name="Davis Senior Center">
+<location x="6633929.68472" y="1961843.1634295455"/>
+<cat id="5"/>
+<cat id="4"/>
+</page><page id="347" name="Hattie Weber Museum">
+<location x="6634723.000746666" y="1960906.468775"/>
+<cat id="7"/>
+</page><page id="348" name="Village Homes Community Center">
+<location x="6624015.6047416665" y="1961641.465490909"/>
+<cat id="99"/>
+</page><page id="349" name="StacieTownsend">
+<location x="6631067.40295" y="1956908.0420931817"/>
+<cat id="9"/>
+</page><page id="351" name="Tau Kappa Epsilon">
+<location x="6630995.04284" y="1960929.3681477273"/>
+<cat id="99"/>
+</page><page id="352" name="California Ave.">
+<location x="6632420.806161666" y="1959062.8532181818"/>
+<cat id="99"/>
+</page><page id="353" name="Cal Aggie Christian Association">
+<location x="6632004.66734" y="1960983.1208113637"/>
+<cat id="5"/>
+</page><page id="354" name="Davis Commons">
+<location x="6635763.471413333" y="1959182.7832522728"/>
+<cat id="2"/>
+<cat id="1"/>
+</page><page id="355" name="E Street Plaza">
+<location x="6635751.58032" y="1960086.232215909"/>
+<cat id="4"/>
+<cat id="1"/>
+<cat id="2"/>
+</page><page id="356" name="Ryerson Hall">
+<location x="6630732.623956666" y="1960535.2178727274"/>
+<cat id="13"/>
+</page><page id="357" name="Gilmore Hall">
+<location x="6630668.515771667" y="1960229.3643454546"/>
+<cat id="99"/>
+</page><page id="358" name="Bixby Hall">
+<location x="6631046.04175" y="1960172.4613636364"/>
+<cat id="99"/>
+</page><page id="359" name="Alder Hall">
+<location x="6630782.485878333" y="1960698.8139454545"/>
+<cat id="13"/>
+</page><page id="360" name="Thompson Hall">
+<location x="6630939.194775" y="1960734.378309091"/>
+<cat id="13"/>
+</page><page id="361" name="Miller Hall">
+<location x="6631110.149935" y="1960691.7010727273"/>
+<cat id="13"/>
+</page></pages>
+</data>

@@ -1,0 +1,26 @@
+This is the central place for resources that help keep the wiki well-organized.
+
+= Making the wiki well-organized/good on a global scale =
+
+ * ["Recent Changes"] -- Shows all changes in the wiki.  Of course, you've ''got'' to know about ["Recent Changes"].  This is the grand-daddy of them all
+
+== Keeping the wiki well-linked ==
+ * ["Wanted Pages"] -- Shows all links that aren't yet pages.
+ * ["Orphaned Pages"] -- Pages that are not linked to from anywhere.
+ * ["Outgoing Links"] -- Ranks all pages based on the number of links on them.  A page with '''0''' links is a dead end!
+
+== Misc metrics ==
+ * ["Page Size"] -- Shows list of pages ranked by size.  Gives indication of how much content there is.
+ * ["Title Index"] -- Master list of all pages in the wiki.
+ * ["Word Index"] -- Words used in titles.  Good for finding similar pages.
+ * ["Random Page"]
+
+= Making individual pages better organized =
+
+If you have a lot of headings (which you should -- they're great for breaking up big pages!), {{{[[TableOfContents]]}}} will generate a table of contents for the page based on the headlines in the page (play with it).
+
+So that means, given the current headlines on ''this'' page, if I do {{{[[TableOfContents]]}}}, I get:
+
+[[TableOfContents]]
+
+and those are links to those sections in the text.  Nifty!

@@ -1,0 +1,2 @@
+/var/www/lib/LocalWiki/theme/classic.py:239: DeprecationWarning: calling themes without correct request
+  warnings.warn("calling themes without correct request", DeprecationWarning)

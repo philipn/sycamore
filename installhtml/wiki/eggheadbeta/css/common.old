@@ -1,0 +1,104 @@
+/*  common.css - MoinMoin Default Styles
+
+    Copyright (c) 2001, 2002, 2003 by Jýrgen Hermann
+*/
+
+/* content styles */
+
+html {
+	margin:0;
+	padding:0;
+	background-color: white;
+	color: black;
+}
+
+h2 {
+	font-size: 1.6em;
+}
+
+h3 {
+	font-size: 1.3em;
+}
+
+h4, h5, h6 {
+	font-size: 1em;
+}
+
+li p {
+	margin: .2em 0;
+}
+
+li.gap {
+    margin-top: 8pt;
+}
+
+dt {
+    font-weight: normal;
+}
+    
+a img {
+	border: 0;
+}
+
+img {
+	border: 1px solid #000000;
+}
+img.photo {
+	border: 2px solid #ff0000;
+}
+
+img.borderless {
+        border: 0px;
+}
+
+img.drawing {
+	border: 0;
+}
+
+dt {
+	font-weight: bold;
+}
+
+pre {
+    padding: .5em;
+    white-space: pre-wrap;
+}
+
+#content {
+}
+
+.footnotes ul {
+	padding: 0 2em;
+	margin: 0 0 1em;
+}
+
+.footnotes li {
+	list-style: none;
+}
+
+/* eye catchers */
+.warning 
+{
+    color: #000000;
+    background-color: #EDD097;
+    padding: 1pt;
+}
+
+.error 
+{
+    color: #FF0000;
+    background-color: #EDD097;
+    padding: 1pt;
+}
+
+strong.highlight 
+{
+    background-color: #FFee55;
+    font-weight: inherit;
+    padding: 1pt;
+}
+
+ background-color: #FFAA00;
+    padding: 1pt;
+}
+
