@@ -82,6 +82,7 @@ class Parser:
 (?P<url_bracket>\[((%(url)s)\:|#|\:)[^\s\]]+(\s[^\]]+)?\])
 (?P<url>%(url_rule)s)
 (?P<email>[-\w._+]+\@[\w-]+\.[\w.-]+)
+(?P<alert>\/!\\)
 (?P<smiley>(?<=\s)(%(smiley)s)(?=\s))
 (?P<smileyA>^(%(smiley)s)(?=\s))
 (?P<ent>[<>&])"""  % {
@@ -382,6 +383,11 @@ class Parser:
         else:
             result = result + self.formatter.rule(min(len(word), 10) - 2)
         return result
+
+
+    def _alert_repl(self, word):
+        """show alert icon."""
+        return self.request.theme.make_icon('attention.png')
 
 
     def _word_repl(self, word, text=None):

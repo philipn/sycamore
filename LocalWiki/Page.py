@@ -306,7 +306,6 @@ class Page:
                 url =   wikiutil.quoteWikiname(request.pagedict[self.page_name.lower()])
         else:
                 url = wikiutil.quoteWikiname(self.page_name)
-        
  
         #that makes problems with moin_dump, thus commented out:
         #url = url.replace('_2f', '/')

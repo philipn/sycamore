@@ -7,7 +7,7 @@
 """
 
 # Imports
-import os, re, urllib, difflib
+import os, re, urllib, difflib, string
 from LocalWiki import config, util, version
 from LocalWiki.util import filesys, pysupport
 import cPickle
@@ -95,12 +95,16 @@ def unquoteFilename(filename):
     @rtype: string
     @return: decoded, original filename
     """
+                                    
     return urllib.unquote(filename.replace('_', '%'))
 
 
 # XXX UNICODE - see above
-quoteWikiname = quoteFilename
-unquoteWikiname = unquoteFilename
+def quoteWikiname(filename):
+    return quoteFilename(filename).replace('_', '%').replace('%20', '_')
+
+def unquoteWikiname(filename):
+    return string.strip(unquoteFilename(filename.replace('_', '%20')))
 
 
 def escape(s, quote=None):

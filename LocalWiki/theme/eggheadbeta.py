@@ -186,7 +186,7 @@ class Theme(ThemeBase):
 <a href="/%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
 <a href="/%(relative_dir)s/People" class="%(people_class)s">People</a>
 <a href="/%(relative_dir)s/Bookmarks" class="%(bookmarks_class)s">Bookmarks</a>
-<a href="/%(relative_dir)s/Recent Changes" class="%(recent_class)s">Recent Changes</a>
+<a href="/%(relative_dir)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
 %(other_html)s
 </div>
 """ % dict

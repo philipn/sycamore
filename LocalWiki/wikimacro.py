@@ -310,7 +310,7 @@ class Macro:
                         current_letter = letter
                     else:
                         html.append('<br>')
-                    html.append('<a href="/%s/%s">%s</a>\n' % (config.relative_dir, name, name))
+                    html.append('<a href="/%s/%s">%s</a>\n' % (config.relative_dir, wikiutil.quoteWikiname(name), name))
 #Page(name).link_to(self.request, attachment_indicator=1))
 
         # add rss link

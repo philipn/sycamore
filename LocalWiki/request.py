@@ -360,8 +360,10 @@ class RequestBase:
             action = self.form.get('action',[None])[0]
 
             pagename = None
+            oldlink = None
             if len(path_info) and path_info[0] == '/':
                 pagename = wikiutil.unquoteWikiname(path_info[1:])
+                oldlink = wikiutil.unquoteFilename(path_info[1:])
         except: # catch and print any exception
             self.reset_output()
             self.http_headers()
@@ -380,10 +382,16 @@ class RequestBase:
             from LocalWiki import wikiaction
 
             pagename = self.recodePageName(pagename)
+            oldlink = self.recodePageName(oldlink)
             pdfile = open(config.data_dir + '/pagedict.pickle', 'r')
             pagedict = cPickle.load(pdfile)
             pdfile.close()
-            if pagename and pagedict.has_key(pagename.lower()):
+            if config.domain and (config.domain == "daviswiki.org" or config.domain == "rocwiki.org") and self.http_referer.find(config.domain) == -1:
+                  if pagename and pagedict.has_key(pagename.lower()):
+                     pagename = pagedict[pagename.lower()];
+                  elif oldlink and pagedict.has_key(oldlink.lower()):
+                     pagename = pagedict[oldlink.lower()]
+            elif pagename and pagedict.has_key(pagename.lower()):
                 pagename = pagedict[pagename.lower()]
             if self.form.has_key('filepath') and self.form.has_key('noredirect'):
                 # looks like user wants to save a drawing
