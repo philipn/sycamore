@@ -180,13 +180,17 @@ class UserSettingsHandler:
   
             # load the user data and check for validness
             theuser = user.User(self.request, uid, name=name, password=password)
+
+            if config.relative_dir: add_on = '/'
+            else: add_on = ''
+
             if not theuser.valid:
                 return_string = """
-Unknown user name or wrong password.<br /><br />New user?  <a href="/%s/?User Preferences">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
-<form action="/%s/" method="POST"><input type="hidden" name="action" value="userform">
+Unknown user name or wrong password.<br /><br />New user?  <a href="/%s%sUser_Preferences">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
+<form action="/%s%s" method="POST"><input type="hidden" name="action" value="userform">
 Email address: <input class="formfields" type="text" name="email">&nbsp;<input type="submit" class="formbutton" name="login_sendmail" value="Mail me my account data">
 </form>
-""" % (config.relative_dir, config.relative_dir)
+""" % (config.relative_dir, add_on, config.relative_dir, add_on)
 
                 return return_string
 
