@@ -28,9 +28,7 @@ def execute(macro, args, **kw):
 
     request = macro.request
     _ = request.getText
-    d = {}
     pagename = macro.formatter.page.page_name
-    d['q_page_name'] = wikiutil.quoteWikiname(pagename)
 
     tnow = time.time()
     msg = ""
@@ -49,6 +47,9 @@ def execute(macro, args, **kw):
     from LocalWiki import user
     formatter = Formatter(request)
     find_month = { 1:"Jan.", 2:"Feb.", 3:"Mar.", 4:"Apr.", 5:"May", 6:"Jun.", 7:"Jul.", 8:"Aug.", 9:"Sept.", 10:"Oct.", 11:"Nov.", 12:"Dec." }   
+
+    if config.relative_dir: add_on = '/'
+    else: add_on = ''
 
     request.write('<table>')
     if not local_favoriteList:
@@ -80,7 +81,7 @@ def execute(macro, args, **kw):
 
           if line.ed_time > bookmark:
             # We do bold
-            line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<strong style="font-size: 10px;">[<a href="/%s/' % config.relative_dir + line.pagename + '?action=diff&date2=0&date1=' + str(bookmark) + '">diff</a>]</strong> &nbsp;' +  formatter.pagelink(line.pagename)
+            line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<strong style="font-size: 10px;">[<a href="/%s%s' % (config.relative_dir, add_on) + line.pagename + '?action=diff&date2=0&date1=' + str(bookmark) + '">diff</a>]</strong> &nbsp;' +  formatter.pagelink(line.pagename)
             line_of_text = line_of_text + " &nbsp;" + '<b><span align="right" style="font-size: 12px;">' + 'last modified '
             line_of_text = line_of_text + '%s %s' % (find_month[day[1]], day[2])
             line_of_text = line_of_text + time.strftime(" at %I:%M %p by</span></b>", line.time_tuple) + '<span class="faveditor">'
@@ -88,11 +89,11 @@ def execute(macro, args, **kw):
               line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (formatter.pagelink(user.User(request, line.userid).name), line.comment)
             else:
               line_of_text = line_of_text + ' %s</span>' % (formatter.pagelink(user.User(request, line.userid).name))
-            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s/Bookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, line.pagename) + '</td></tr>'
+            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s%sBookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, add_on, line.pagename) + '</td></tr>'
 
           else:
              # We don't do bold
-            line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<font style="font-size: 10px;">[<a href="/%s/' % config.relative_dir + line.pagename + '?action=diff&date2=0&date1=' + str(bookmark) + '">diff</a>]</font> &nbsp;' + formatter.pagelink(line.pagename) + ' &nbsp;<span align="right" class="favtime">last modified '
+            line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<font style="font-size: 10px;">[<a href="/%s%s' % (config.relative_dir, add_on) + line.pagename + '?action=diff&date2=0&date1=' + str(bookmark) + '">diff</a>]</font> &nbsp;' + formatter.pagelink(line.pagename) + ' &nbsp;<span align="right" class="favtime">last modified '
             line_of_text = line_of_text + '%s %s' % (find_month[day[1]], day[2]) 
             line_of_text = line_of_text + time.strftime(" at %I:%M %p by</span>", line.time_tuple) + '<span class="faveditor">'
             if line.comment:
@@ -100,7 +101,7 @@ def execute(macro, args, **kw):
             else:
                line_of_text = line_of_text + ' %s</span>' % (formatter.pagelink(user.User(request, line.userid).name))
 
-            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s/Bookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, line.pagename)
+            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s%sBookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, add_on, line.pagename)
             line_of_text = line_of_text + '</td></tr>'
 
           seen_list.append((pagename, line_of_text))
