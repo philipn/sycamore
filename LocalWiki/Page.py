@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 """
-    MoinMoin - Page class
+    LocalWiki - Page class
 
     @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
@@ -8,10 +8,10 @@
 
 # Imports
 import cStringIO, os, re, urllib, os.path, random
-from MoinMoin import caching, config, user, util, wikiutil
+from LocalWiki import caching, config, user, util, wikiutil
 import cPickle
-#import MoinMoin.util.web
-from MoinMoin.logfile import eventlog
+#import LocalWiki.util.web
+from LocalWiki.logfile import eventlog
 
 class Page:
     """Page - Manage an (immutable) page associated with a WikiName.
@@ -104,7 +104,7 @@ class Page:
 
         result = None
         if not self.prev_date: # we don't have a last-edited entry for backup versions        
-            from MoinMoin.logfile import editlog
+            from LocalWiki.logfile import editlog
             try:
                 log = editlog.EditLog(wikiutil.getPagePath(self.page_name, 'last-edited', check_create=0)).next()
             except StopIteration:
@@ -142,7 +142,7 @@ class Page:
         _ = request.getText
         
         result = None
-        from MoinMoin.logfile import editlog
+        from LocalWiki.logfile import editlog
         try:
             log = editlog.EditLog(wikiutil.getPagePath
                                   (self.page_name, 'last-edited',
@@ -318,7 +318,7 @@ class Page:
         # create a link to attachments if any exist
         attach_link = ''
         if kw.get('attachment_indicator', 0):
-            from MoinMoin.action import AttachFile
+            from LocalWiki.action import AttachFile
             attach_link = AttachFile.getIndicator(request, self.page_name)
 
         
@@ -410,7 +410,7 @@ class Page:
 
         # if necessary, load the default formatter
         if self.default_formatter:
-            from MoinMoin.formatter.text_html import Formatter
+            from LocalWiki.formatter.text_html import Formatter
             self.formatter = Formatter(request, store_pagelinks=1)
         self.formatter.setPage(self)
         request.formatter = self.formatter
@@ -519,7 +519,7 @@ class Page:
 
                 # collect form definitions
                 if not wikiform:
-                    from MoinMoin import wikiform
+                    from LocalWiki import wikiform
                     pi_formtext.append('<table border="1" cellspacing="1" cellpadding="3">\n'
                         '<form method="POST" action="%s">\n'
                         '<input type="hidden" name="action" value="formtest">\n' % self.url(request))
@@ -616,7 +616,7 @@ class Page:
 
             # check for pending footnotes
             if getattr(request, 'footnotes', None):
-                from MoinMoin.macro.FootNote import emit_footnotes
+                from LocalWiki.macro.FootNote import emit_footnotes
                 request.write(emit_footnotes(request, self.formatter))
 
         # end wiki content div
@@ -655,7 +655,7 @@ class Page:
         @param needsupdate: if 1, force update of the cached compiled page
         """
         formatter_name = str(self.formatter.__class__).\
-                         replace('MoinMoin.formatter.', '').\
+                         replace('LocalWiki.formatter.', '').\
                          replace('.Formatter', '')
 
         # if no caching
@@ -668,7 +668,7 @@ class Page:
 
         #try cache
         _ = request.getText
-        from MoinMoin import wikimacro
+        from LocalWiki import wikimacro
         arena = 'Page.py'
         key = wikiutil.quoteFilename(self.page_name) + '.' + formatter_name
         cache = caching.CacheEntry(arena, key)
@@ -689,7 +689,7 @@ class Page:
 
         # render page
         if needsupdate:
-            from MoinMoin.formatter.text_python import Formatter
+            from LocalWiki.formatter.text_python import Formatter
             formatter = Formatter(request, ["page"], self.formatter)
 
             import marshal
@@ -732,7 +732,7 @@ class Page:
         
         @param request: the request object
         """
-        from MoinMoin.action import LikePages
+        from LocalWiki.action import LikePages
         _ = request.getText
   
         request.write(self.formatter.paragraph(1))
