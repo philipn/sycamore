@@ -133,7 +133,7 @@ def execute(macro, args):
                             htmltext.append('<ul>\n<h4>%s</h4>\n'
                                   '<a href="/%s%sEvents_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s<br>\n'
                                   '<b>Location:</b> %s<br>\n'
-                                  '%s&nbsp;&nbsp;(Posted by <a href="/%s/%s">%s</a>)\n</ul>\n' % (processed_name,config.relative_dir, add_on, id,ptime,processed_location,processed_text,config.relative_dir,posted_by,posted_by))
+                                  '%s&nbsp;&nbsp;(Posted by <a href="/%s%s%s">%s</a>)\n</ul>\n' % (processed_name,config.relative_dir, add_on, id,ptime,processed_location,processed_text,config.relative_dir,add_on, posted_by,posted_by))
                         else:
                             string_day = datetoday(int(day),int(month),int(year))
                             old_date = date
