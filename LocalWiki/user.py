@@ -167,9 +167,7 @@ class User:
         self.show_nonexist_qm = 0
         self.show_fancy_links = 1
         self.show_fancy_diff = 1
-        # again, for daylight savings stuff
-        self.tz_offset = int(-25200-3600)
-        #self.tz_offset = -25200
+        self.tz_offset = -25200
         self.show_topbottom = 0
         self.show_emoticons = 0
         
@@ -197,7 +195,6 @@ class User:
         self.remember_me = 1
         self.wikiname_add_spaces = 0
         self.remember_last_visit = 0
-        #self.tz_offset = -25200
         self.show_topbottom = 0
         self.show_fancy_links = 1
         self.show_emoticons = 0
@@ -315,7 +312,7 @@ class User:
             vars(self)[key] = val
 
         #-3600 for daylight savings
-        self.tz_offset = int(-25200-3600)
+        self.tz_offset = -25200
 
         # old passwords are untrusted
         if hasattr(self, 'password'): del self.password
