@@ -8,13 +8,13 @@
 
 # Imports
 from LocalWiki import config, wikiutil
+from LocalWiki.Page import Page
 
 Dependencies = ["pages"]
 
 def execute(macro, args):
     # get list of pages and their objects
-    #pages = wikiutil.getPageDict(config.text_dir)
-    pages = {}
+    pages = wikiutil.getPageDict(config.text_dir)
 
     # get sizes and sort them
     sizes = []
@@ -36,6 +36,6 @@ def execute(macro, args):
         result.append(macro.formatter.listitem(0))
     result.append(macro.formatter.number_list(0))
 
-    #return ''.join(result)
-    return '<i>Temporarily disabled.</i>'
+
+    return ''.join(result)
 

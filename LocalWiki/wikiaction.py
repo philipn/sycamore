@@ -103,7 +103,7 @@ def page_exists_slut(pagename):
     Making a page object ties you down.  You have to worry about memory and processor time. . shesh. .
     We're slutty so we just see if the text file associated with the page exists or not.
     """
-    return os.path.exists(config.data_dir + "/text/" + wikiutil.quoteWikiname(pagename))
+    return os.path.exists(config.data_dir + "/text/" + wikiutil.quoteFilename(pagename))
 
 def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pwith=10, tstart=0, twith=10):
     _ = request.getText
@@ -214,31 +214,33 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
         pagename_line = s.readline()
         data_line = s.readline()
 
- 
+    relative_dir = ''
+    if config.relative_dir:
+        relative_dir = '/' + config.relative_dir 
     if inc_title:
         if len(title_hits) < 1:
                 request.write('<h3>&nbsp;No title matches</h3>')
                 request.write('<table id="footer" cellpadding="8"><tr><td>\n') # start content div
                 request.write('The %s does not have any entries with the exact title "' % config.sitename+ needle + '" <br />')
-                request.write('Would you like to <a href="/%s/' % config.relative_dir + needle + '">create a new page with this title</a>?')
+                request.write('Would you like to <a href="%s/' % relative_dir + needle + '">create a new page with this title</a>?')
                 request.write('</td></tr></table>\n')
         else:
                 request.write('<h3>&nbsp;Title matches</h3>')
                 if not title_hits[0].lower() == needle.lower():
                         request.write('<table id="footer" cellpadding="8"><tr><td>The %s does not have any entries with the exact title "' % config.sitename + needle + '". <br />')
-                        request.write('Would you like to <a href="/%s/' % config.relative_dir + needle + '">create a new page with this title</a>?</td></tr></table>')
+                        request.write('Would you like to <a href="%s/' % relative_dir + needle + '">create a new page with this title</a>?</td></tr></table>')
         request.write('<div id="content">\n') # start content div
         request.write('<ul>')
         if len(title_hits) > twith:
                 for filename in title_hits[0:twith]:
-                        request.write('<li>%s</li>' % Page(filename).link_to(request))
+                        request.write('<li>%s</li>' % Page(wikiutil.unquoteFilename(filename)).link_to(request))
                 request.write('</ul>')
-                request.write('<p>(<a href="/%s/?action=newsearch&string=%s&tstart=%s">next %s matches</a>)'
-                        % (config.relative_dir, needle, tstart+twith+tcount, twith))
+                request.write('<p>(<a href="%s/?action=newsearch&string=%s&tstart=%s">next %s matches</a>)'
+                        % (relative_dir, needle, tstart+twith+tcount, twith))
                 request.write('</div>\n') # end content div
         else:
                 for filename in title_hits:
-                        request.write('<li>%s</li>' % Page(filename).link_to(request))
+                        request.write('<li>%s</li>' % Page(wikiutil.unquoteFilename(filename)).link_to(request))
                 request.write('</ul>')
                 request.write('</div>\n') # end content div
 
@@ -256,7 +258,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
               elif percent > 32:
                 color = "#ffee55"
               request.write('<p><table><tr><td width="40" valign="middle"><table id="progbar" cellspacing="0" cellpadding="0"><tr><td height="7" width="%d" bgcolor="%s"></td><td width="%d" bgcolor="#eeeeee"></td></tr></table></td><td>' % (percent/3, color, 33 - percent/3))
-              request.write(Page(wikiutil.unquoteWikiname(page_name)).link_to(request, querystr=
+              request.write(Page(wikiutil.unquoteFilename(page_name)).link_to(request, querystr=
                   'action=highlight&amp;value=%s' % urllib.quote_plus(needle)))
               request.write('</td></tr></table>\n')
               if context:
@@ -288,8 +290,8 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
                         request.write('</p>\n')
 
       if len(full_hits) > pwith:
-         request.write('<p>&nbsp;(<a href="/%s/?action=newsearch&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
-                        % (config.relative_dir, urllib.quote_plus(needle), pstart+pwith+count, pwith))
+         request.write('<p>&nbsp;(<a href="%s/?action=newsearch&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
+                        % (relative_dir, urllib.quote_plus(needle), pstart+pwith+count, pwith))
       else:
          request.write('</div></dl>')
 

@@ -6,6 +6,8 @@ import xml.dom.minidom
 from cStringIO import StringIO
 
 
+
+
 def getText(nodelist):
     rc = ""
     for node in nodelist:
@@ -19,6 +21,10 @@ def execute(macro, args):
     root = dom.documentElement
     htmltext = []
     
+    if config.relative_dir:
+        add_on = '/'
+    else:
+        add_on = ''
 
     old_date = ''
     import string, re
@@ -125,41 +131,42 @@ def execute(macro, args):
                 if macro.request.user.may.admin("Events Board") or posted_by == macro.request.user.name:                
                         if date == old_date:
                             htmltext.append('<ul>\n<h4>%s</h4>\n'
-                            '<a href="/%s/Events_20Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s<br>\n'
-                            '<b>Location:</b> %s<br>\n'
-                            '%s&nbsp;&nbsp;(Posted by <a href="/%s/%s">%s</a>)\n</ul>\n' % (processed_name,config.relative_dir, id,ptime,processed_location,processed_text,config.relative_dir,posted_by,posted_by))
+                                  '<a href="/%s%sEvents_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s<br>\n'
+                                  '<b>Location:</b> %s<br>\n'
+                                  '%s&nbsp;&nbsp;(Posted by <a href="/%s/%s">%s</a>)\n</ul>\n' % (processed_name,config.relative_dir, add_on, id,ptime,processed_location,processed_text,config.relative_dir,posted_by,posted_by))
                         else:
                             string_day = datetoday(int(day),int(month),int(year))
                             old_date = date
                             htmltext.append('<h2>%s, %s %s</h2>\n'
-                            '<ul><h4>%s</h4>\n'
-                            '<a href="/%s/Events_20Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n'
-                            '<b>Location:</b> %s<br>\n'
-                            '%s&nbsp;&nbsp;(Posted by <a href="/%s/%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,processed_name,config.relative_dir,id,ptime,processed_location,processed_text,config.relative_dir,posted_by,posted_by))
-
+                                    '<ul><h4>%s</h4>\n'
+                                    '<a href="/%s%sEvents_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n'
+                                    '<b>Location:</b> %s<br>\n'
+                                    '%s&nbsp;&nbsp;(Posted by <a href="/%s%s%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,processed_name,config.relative_dir,add_on, id,ptime,processed_location,processed_text,config.relative_dir,add_on,posted_by,posted_by))
                 else:
                     if date == old_date:
                             htmltext.append('<ul>\n<h4>%s</h4>\n'
-                            '<b>Time:</b> %s<br>\n'
-                            '<b>Location:</b> %s<br>\n'
-                            '%s&nbsp;&nbsp;(Posted by <a href="/%s/%s">%s</a>)\n</ul>\n' % (processed_name,ptime,processed_location,processed_text,config.relative_dir,posted_by,posted_by))                                
+                                    '<b>Time:</b> %s<br>\n'
+                                    '<b>Location:</b> %s<br>\n'
+                                    '%s&nbsp;&nbsp;(Posted by <a href="/%s%s%s">%s</a>)\n</ul>\n' % (processed_name,ptime,processed_location,processed_text,config.relative_dir,add_on, posted_by,posted_by))                                   
+
                     else:                                        
                             string_day = datetoday(int(day),int(month),int(year))                                        
                             old_date = date
                             htmltext.append('<h2>%s, %s %s</h2>\n'
-                            '<ul>\n<h4>%s</h4>\n'                                        
-                            '<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n'                                       '<b>Location:</b> %s<br>\n'                                        
-                            '%s&nbsp;&nbsp;(Posted by <a href="/%s/%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,processed_name,ptime,processed_location,processed_text,config.relative_dir,posted_by,posted_by))
+                                    '<ul>\n<h4>%s</h4>\n'                                        
+                                    '<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n' 
+                                    '<b>Location:</b> %s<br>\n'                                        
+                                    '%s&nbsp;&nbsp;(Posted by <a href="/%s%s%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,processed_name,ptime,processed_location,processed_text,config.relative_dir,add_on, posted_by,posted_by))
 
     title = "Post a new event:"
     htmltext.append('<h3>%s</h3>\n'
                 '<table border="0" cellspacing="0" cellpadding="3">\n'
-                '<tr><td><form method="POST" action="/%s/%s">\n'
+                '<tr><td><form method="POST" action="/%s%s%s">\n'
                 '<input type="hidden" name="action" value="events">\n'
                 '<input type="hidden" name="ticket" value="%s">\n'
                 'Event name: <input class="formfields" type="text" name="event_name" size="30">&nbsp;\n'
                 'Location: <input class="formfields" type="text" name="event_location" size="25"><br><br>\n'
-		% (title, config.relative_dir, macro.formatter.page.page_name, createTicket()))
+		% (title, config.relative_dir, add_on, macro.formatter.page.page_name, createTicket()))
 
     monthstring ='<p>Date: <select name="month">\n<option value="1">January</option>\n<option value="2">February</option>\n<option value="3">March</option>\n<option value="4">April</option>\n<option value="5">May</option>\n<option value="6">June</option>\n<option value="7">July</option>\n <option value="8">August</option>\n<option value="9">September</option>\n<option value="10">October</option>\n<option value="11">November</option>\n<option value="12">December</option>\n</select>\n'
     newmonthstring = monthstring.replace('value="%s"' % str(int(current_month)), 'value="%s" selected' % str(int(current_month)))

@@ -17,18 +17,24 @@ def clean(text):
 	text=text.replace('\x97','&#8212;') # em-dash
 	return text
 
+
 def execute(pagename, request):
     _ = request.getText
     actname = __name__.split('.')[-1]
     page = PageEditor(pagename, request)
     msg = ''
     oldtext = page.get_raw_body()
+    if not config.relative_dir:
+            add_on = ''
+    else:
+            add_on = '/'
+
 
     # Do we want an RSS feed?
     if request.form.has_key('rss'):
       if request.form.get("rss")[0] == "1":
         request.http_headers()
-        request.write(doRSS(request))
+        request.write(doRSS(request,add_on))
         raise util.LocalWikiNoFooter
 
     # be extra paranoid
@@ -113,16 +119,17 @@ def execute(pagename, request):
         
     return page.send_page(request, msg)
 
-def doRSS(request):
+def doRSS(request, add_on):
     dom = xml.dom.minidom.parse(config.app_dir + "/events.xml")
     events = dom.getElementsByTagName("event") 
     root = dom.documentElement
 
     #set up the RSS file
     rss_init_text = """<?xml version="1.0" ?>
-<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>%s Events Board</title><link>http://%s/%s/Events Board</link><description>Events occuring soon, taken from the %s Events Board.</description><language>en-us</language>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>%s Events Board</title><link>http://%s%s%s/Events_Board</link><description>Events occuring soon, taken from the %s Events Board.</description><language>en-us</language>
 </channel>
-</rss>""" % (config.sitename, config.domain, config.relative_dir, config.sitename)
+</rss>""" % (config.sitename, config.domain, add_on, config.relative_dir, config.sitename)
+
     rss_dom = xml.dom.minidom.parseString(rss_init_text)
     channel = rss_dom.getElementsByTagName("channel")[0]
     #items = channel.getElementsByTagName("item")
@@ -232,10 +239,11 @@ def doRSS(request):
 		total_date = "%s, %s %s" % (datetoday(int(day),int(month),int(year)),findMonth(month),day)
                 item = rss_dom.createElement("item")
                 rss_text = []
+                
                 rss_text.append('<b>Date:</b> %s<br>\n'
                             '<b>Time:</b> %s<br>\n'
                             '<b>Location:</b> %s<br><br>\n'
-                            '%s&nbsp;&nbsp;(Posted by <a href="http://%s/%s/%s">%s</a>)\n' % (total_date,ptime,processed_location,processed_text,config.domain,config.relative_dir,posted_by,posted_by))        
+                            '%s&nbsp;&nbsp;(Posted by <a href="http://%s/%s%s%s">%s</a>)\n' % (total_date,ptime,processed_location,processed_text,config.domain,config.relative_dir,add_on, posted_by,posted_by))        
 		item_guid = rss_dom.createElement("guid")
 		item_guid.setAttribute("isPermaLink","false")
 		item_guid.appendChild(rss_dom.createTextNode(''.join(id)))
@@ -246,7 +254,7 @@ def doRSS(request):
                 item_title.appendChild(rss_dom.createTextNode(processed_name))
                 item.appendChild(item_title)
                 item_link = rss_dom.createElement("link")
-                item_link.appendChild(rss_dom.createTextNode("http://%s/%s/Events Board" % (config.domain, config.relative_dir)))
+                item_link.appendChild(rss_dom.createTextNode("http://%s%s/Events_Board" % (config.domain, config.relative_dir)))
                 item.appendChild(item_link)
                 item_date = rss_dom.createElement("dc:date")
                 item_date.appendChild(rss_dom.createTextNode("%s-%s-%s" % (current_year,current_month,current_day)))

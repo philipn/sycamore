@@ -94,13 +94,16 @@ def execute(pagename, request):
         )
 
     # emit channel description
+    relative_dir = ''
+    if config.relative_dir:
+        relative_dir = '/' + config.relative_dir
     handler._out.write(
         '<channel>'
         '<title>Recent Changes</title>'
-        '<link>http://%s/%s/Recent_20Changes</link>'
+        '<link>http://%s%s/Recent_Changes</link>'
         '<description>Davis Wiki Recent Changes</description>'
         '<language>en-us</language>'
-        % (config.domain, config.relative_dir)
+        % (config.domain, relative_dir)
         )
 
     # emit items
@@ -118,7 +121,7 @@ def execute(pagename, request):
         handler._out.write('<dc:date>%s</dc:date>' % util.W3CDate(item.time))   
 
         # description
-        desc_text = item.comment
+        desc_text = unicode(item.comment,config.charset).encode('ascii','replace')
         if diffs:
             # !!! TODO: rewrite / extend wikiutil.pagediff
             # searching for the matching pages doesn't really belong here

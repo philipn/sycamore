@@ -26,8 +26,11 @@ def simpleParse(request, text):
     # so the ''text'' stuff, along with [http://myurl.com url] -> a href, and the ["wiki link" link text] -> a href
     # Wiki links
 
-    text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])', r'<a href="/%s/\g<wikilink>">\g<wikilink></a>' % config.relative_dir, text)
-    text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])', r'<a href="/%s/\g<wikilink>">\g<txt></a>' % config.relative_dir, text)
+    if config.relative_dir:  add_on = '/'
+    else: add_on = ''
+
+    text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])', r'<a href="/%s%s\g<wikilink>">\g<wikilink></a>' % (config.relative_dir, add_on), text)
+    text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])', r'<a href="/%s%s\g<wikilink>">\g<txt></a>' % (config.relative_dir, add_on), text)
     # External links
 #    text = re.sub(r'(\[(?P<link>([^ ])+) (?P<ltext>([^\]])+)\])', r'<a href="\g<link>">\g<ltext></a>', text)
     text = re.sub(r'(\[(?P<link>[^\]]+(.jpg|.jpeg|.gif|.png))\])', r'<img src="\g<link>">', text)
@@ -101,10 +104,10 @@ def unquoteFilename(filename):
 
 # XXX UNICODE - see above
 def quoteWikiname(filename):
-    return quoteFilename(filename).replace('_', '%').replace('%20', '_')
+    return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2f', '/')
 
 def unquoteWikiname(filename):
-    return string.strip(unquoteFilename(filename.replace('_', '%20')))
+    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2f')))
 
 
 def escape(s, quote=None):

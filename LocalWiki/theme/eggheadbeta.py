@@ -39,7 +39,10 @@ class Theme(ThemeBase):
         @return: banner html
         """
         # 'banner_html': self.emit_custom_html('<div id="banner">\n<a id="bannertext" href="http://cwhipple.info">cwhipple.info</a>\n<p id="desctext">an evolving repository</p>\n</div>\n')
-        html ='&nbsp;<a href="%(script_name)s">' % d
+        if d['script_name']:
+            html ='&nbsp;<a href="%(script_name)s">' % d
+        else:
+            html ='&nbsp;<a href="/">' % d
         html = html + '<img align="middle" src="/%s" border=0></a>' % config.default_logo 
         return html
 
@@ -80,20 +83,24 @@ class Theme(ThemeBase):
         """
         _ = self.request.getText
         html = []
+        if config.relative_dir:
+            relative_dir = '/' + config.relative_dir
+        else:
+            relative_dir = ''
         if self.request.user.valid:
             html.append('<div class="user"><table align="center" border="0" cellpadding="2"><tr><td>Welcome, ') 
            
             html.append('%s' % wikiutil.link_tag(self.request, self.request.user.name))
             html.append('<br />')
             html.append('</td></tr>')
-            html.append('<form action="/%s/" method="POST">' % config.relative_dir)
+            html.append('<form action="%s" method="POST">' % config.relative_dir)
             html.append('<input type="hidden" name="action" value="userform">')
             html.append('<input type="hidden" name="logout" value="Logout">')
-            html.append('<tr><td align="right"><a href="/%s/User Preferences"><img src="/settings.png" border="0"></a>' % config.relative_dir)
+            html.append('<tr><td align="right"><a href="%s/User Preferences"><img src="/settings.png" border="0"></a>' % relative_dir)
             html.append('<br/><input type="image" name="Submit" value="Submit" src="%s" height="15" width="80" border="0"></td></tr></table>' % self.img_url('logout.png'))
             html.append('</form></div>')
         else:
-            html.append('<div class="user"><form action="/%s/%s" method="POST">' % (config.relative_dir, d['page_name']))
+            html.append('<div class="user"><form action="%s/%s" method="POST">' % (relative_dir, d['page_name']))
             html.append('<input type="hidden" name="action" value="userform">')
             html.append('<table width="225" border="0" cellspacing="2" cellpadding="0">')
             html.append('<tr> <td width="50%" align="right" nowrap>User name:</td>')
@@ -102,7 +109,7 @@ class Theme(ThemeBase):
             html.append('<td align="right">Password:</td>')
             html.append('<td colspan="2" align="left" nowrap> <input class="formfields" size="22" type="password" name="password"> ')
             html.append('<input type="hidden" name="login" value="Login">')
-            html.append('</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login"></td><td align="right"><a href="/%s/User Preferences"><img src="%s" border="0"></a></td></tr></table>' % (self.img_url('login.png'), config.relative_dir, self.img_url('newuser.png')))
+            html.append('</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login"></td><td align="right"><a href="%s/User Preferences"><img src="%s" border="0"></a></td></tr></table>' % (self.img_url('login.png'), relative_dir, self.img_url('newuser.png')))
             html.append('</form></div>')
         return ''.join(html)
 
@@ -176,32 +183,36 @@ class Theme(ThemeBase):
         dict.update(d)
         
         # so our formatting here looks nicer :)
-        dict['relative_dir'] = config.relative_dir
+        if config.relative_dir:
+            dict['relative_dir'] = '/' + config.relative_dir
+        else:
+            dict['relative_dir'] = ''
         if self.request.user.valid:
-                html = """
+            html = """
 <div class="tabArea">
 %(edittext_html)s
 %(info_html)s
-<a href="/%(relative_dir)s" class="%(frontpage_class)s">Front Page</a>
-<a href="/%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
-<a href="/%(relative_dir)s/People" class="%(people_class)s">People</a>
-<a href="/%(relative_dir)s/Bookmarks" class="%(bookmarks_class)s">Bookmarks</a>
-<a href="/%(relative_dir)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
+<a href="%(relative_dir)s/" class="%(frontpage_class)s">Front Page</a>
+<a href="%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
+<a href="%(relative_dir)s/People" class="%(people_class)s">People</a>
+<a href="%(relative_dir)s/Bookmarks" class="%(bookmarks_class)s">Bookmarks</a>
+<a href="%(relative_dir)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
 %(other_html)s
 </div>
 """ % dict
         else:
-                        html = """
+            html = """
 <div class="tabArea">
 %(edittext_html)s
 %(info_html)s
-<a href="/%(relative_dir)s" class="%(frontpage_class)s">Front Page</a>
-<a href="/%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
-<a href="/%(relative_dir)s/People" class="%(people_class)s">People</a>
-<a href="/%(relative_dir)s/Recent Changes" class="%(recent_class)s">Recent Changes</a>
+<a href="%(relative_dir)s/" class="%(frontpage_class)s">Front Page</a>
+<a href="%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
+<a href="%(relative_dir)s/People" class="%(people_class)s">People</a>
+<a href="%(relative_dir)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
 %(other_html)s
 </div>
 """ % dict
+
         return ''.join(html)
 
 
@@ -378,7 +389,10 @@ SRC="%(web_dir)s/utils.js"></SCRIPT>
            self.showapplet = 1
         apphtml = ""
         if self.showapplet:
-           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/points.xml"><param name="highlight" value="%s"><param name="wiki" value="/%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, config.web_dir, d['title_text'], config.relative_dir)
+           relative_dir = ''
+           if config.relative_dir:
+               relative_dir = '/' + config.relative_dir
+           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/points.xml"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, config.web_dir, d['title_text'], relative_dir)
         dict = {
             'config_header1_html': self.emit_custom_html(config.page_header1),
             'config_header2_html': self.emit_custom_html(config.page_header2),

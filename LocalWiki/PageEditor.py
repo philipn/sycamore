@@ -373,9 +373,12 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
           applet = 0
         mapButton = ""
         mapHtml = ""
+        relative_dir = ''
+        if config.relative_dir:
+          relative_dir = '/' + config.relative_dir
         if applet:
           mapButton = '<input id="show" class="formbutton" type="button" value="Edit Map" onclick="doshow();"/><input class="formbutton" id="hide" style="display: none;" type="button" value="Hide Map" onclick="dohide();"/>'
-          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/points.xml"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="/%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, config.web_dir, self.page_name, config.relative_dir)
+          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/points.xml"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, config.web_dir, self.page_name, relative_dir)
         
         self.request.write('''
 <p>
@@ -385,13 +388,13 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 <input type="submit" class="formbutton" name="button_cancel" value="%s">
 </td><td width="12">&nbsp;</td><td bgcolor="#ccddff" style="border: 1px dashed #AAAAAA;">
 &nbsp;&nbsp;%s
-<input type="button" class="formbutton" onClick="window.open('/%s/%s?action=AttachFile', 'attachments', 'width=800,height=600,scrollbars=1')" value="Images">
+<input type="button" class="formbutton" onClick="window.open('%s/%s?action=AttachFile', 'attachments', 'width=800,height=600,scrollbars=1')" value="Images">
 %s
-<input type="button" class="formbutton" onClick="location.href='/%s/%s?action=DeletePage'" value="Delete">
-<input type="button" class="formbutton" onClick="location.href='/%s/%s?action=Rename'" value="Rename">&nbsp;&nbsp;</td></tr></table>
+<input type="button" class="formbutton" onClick="location.href='%s/%s?action=DeletePage'" value="Delete">
+<input type="button" class="formbutton" onClick="location.href='%s/%s?action=Rename'" value="Rename">&nbsp;&nbsp;</td></tr></table>
 </p>%s
 <p>
-''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, config.relative_dir, fixedName, button_spellcheck, config.relative_dir, fixedName, config.relative_dir, fixedName,mapHtml))
+''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, relative_dir, fixedName, button_spellcheck, relative_dir, fixedName, relative_dir, fixedName,mapHtml))
 
         #if config.mail_smarthost:
         #    self.request.write('''<input type="checkbox" name="notify" value="1"%s><label>%s</label>''' % (
@@ -407,7 +410,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
              _('Remove trailing whitespace from each line')
          ))
 
-        self.request.write('<p>By clicking "Save Changes" you are agreeing to release your contribution under the <a href="http://creativecommons.org/licenses/by/2.0/">Creative Commons-By license</a>, unless noted otherwise. <b>Do not submit copyrighted work (including images) without permission.</b>  For more information, see <a href="/%s/Copyrights">Copyrights</a>.' %config.relative_dir)
+        self.request.write('<p>By clicking "Save Changes" you are agreeing to release your contribution under the <a href="http://creativecommons.org/licenses/by/2.0/">Creative Commons-By license</a>, unless noted otherwise. <b>Do not submit copyrighted work (including images) without permission.</b>  For more information, see <a href="%s/Copyrights">Copyrights</a>.' %relative_dir)
 
         badwords_re = None
         if preview is not None:
@@ -508,7 +511,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         cache.remove()
 
 	# remove entry from the search databases
-	os.spawnl(os.P_WAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', '%s' % wikiutil.quoteWikiname(self.page_name))
+	os.spawnl(os.P_WAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', '%s' % wikiutil.quoteFilename(self.page_name))
 
     def _sendNotification(self, comment, emails, email_lang, oldversions):
         """
@@ -762,7 +765,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         for page in pages:
                 p = Page(page)
                 #add_to_index(wikiutil.quoteWikiname(p.page_name), p.get_raw_body())
-                os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', '%s' % wikiutil.quoteWikiname(p.page_name), '%s' % wikiutil.quoteFilename(p.get_raw_body()))
+                os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', '%s' % wikiutil.quoteFilename(p.page_name), '%s' % wikiutil.quoteFilename(p.get_raw_body()))
 
 
     def saveText(self, newtext, datestamp, **kw):
@@ -836,7 +839,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
                 action = 'SAVENEW'
                
            
-            if not os.path.exists(config.data_dir + "/text/" + wikiutil.quoteWikiname(self.page_name)):  
+            if not os.path.exists(config.data_dir + "/text/" + wikiutil.quoteFilename(self.page_name)):  
             # update pagedict ionary
                 pdfile= open(config.data_dir +'/pagedict.pickle' , 'r') # pickled pagedict
                 pagedict = cPickle.load(pdfile)
@@ -887,7 +890,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
                                     {'pagename': self.page_name})
 
                 # we quote the pagetext so we can pass it as a single argument and then have the process run without us paying it any attention
-                os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteWikiname(self.page_name), wikiutil.quoteFilename(newtext))
+                os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteFilename(self.page_name), wikiutil.quoteFilename(newtext))
 
             # we only need to build the index like..once..
                 #self.build_index()

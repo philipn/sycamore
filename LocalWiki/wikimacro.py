@@ -290,6 +290,9 @@ class Macro:
         current_letter = None
         #for name in pages:
         #    html.append(' %s ' % name)
+        relative_dir = ''
+        if config.relative_dir:
+            relative_dir = '/' + config.relative_dir
         for name in pages:
             if 1: #self.request.user.may.read(name):
                 if not wikiutil.isSystemPage(self.request, name):
@@ -310,7 +313,7 @@ class Macro:
                         current_letter = letter
                     else:
                         html.append('<br>')
-                    html.append('<a href="/%s/%s">%s</a>\n' % (config.relative_dir, wikiutil.quoteWikiname(name), name))
+                    html.append('<a href="%s/%s">%s</a>\n' % (relative_dir, wikiutil.quoteWikiname(name), name))
 #Page(name).link_to(self.request, attachment_indicator=1))
 
         # add rss link

@@ -8,7 +8,7 @@ Dependencies = []
 
 def execute(macro, args):
     html = []
-    pagename = wikiutil.quoteWikiname(macro.formatter.page.page_name)
+    pagename = wikiutil.quoteFilename(macro.formatter.page.page_name)
     image_location = config.data_dir + '/pages/' + pagename + '/attachments/'
 
     if not args:
@@ -30,12 +30,12 @@ def execute(macro, args):
       linktext = 'Upload new attachment "%s"' % (full_image_name)
       return wikiutil.attach_link_tag(macro.request,
                 '%s?action=AttachFile&amp;rename=%s%s' % (
-                    pagename,
+                    wikiutil.quoteWikiname(macro.formatter.page.page_name),
                     full_image_name,
                     ''),
                 linktext)
 
-    image_name = wikiutil.quoteWikiname(image_name)
+    image_name = wikiutil.quoteFilename(image_name)
     the_rest = re_obj.group('the_rest')
     re_obj = re.search('.+?"(?P<caption>.+)"', the_rest)
     if re_obj is not None:

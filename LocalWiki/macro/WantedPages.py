@@ -27,8 +27,8 @@ def execute(macro, args):
     wanted = {}
     pages = wikiutil.getPageDict(config.text_dir)
     for page in pages.values():
-        if not wikiutil.isSystemPage(macro.request, page.page_name):
-            continue
+        #if not wikiutil.isSystemPage(macro.request, page.page_name):
+#    continue
         # Regular users won't get /MoinEditorBackup pages shown anyway, but
         # WikiAdmin(s)  would - because they have global read rights.
         # Further, pages wanted from editor backup pages are irrelevant.
