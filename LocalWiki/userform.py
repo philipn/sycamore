@@ -162,9 +162,6 @@ class UserSettingsHandler:
 	    if form.has_key('code') and form.has_key('uid'):
                given_uid = form['uid'][0]
                given_code = form['code'][0]
-	       t = open('/var/www/html/testprint','w')
-	       t.write(given_uid + '   ' + given_code)
-	       t.close()
 	
                if self.isValidCode(given_uid, given_code):
 		  uid = given_uid
