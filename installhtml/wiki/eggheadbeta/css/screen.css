@@ -20,13 +20,13 @@ div.tabArea {
 div.floatLeft {
   margin: 10px 10px 10px 0px;
   float: left;
-  clear: both;
+  clear: left;
 }
 
 div.floatRight {
   margin: 10px 0px 10px 10px;
   float: right;
-  clear: both;
+  clear: right;
 }
 
 div.noFloat {
