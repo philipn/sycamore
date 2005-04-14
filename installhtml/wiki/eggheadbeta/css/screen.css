@@ -134,7 +134,7 @@ a.smalltab.smallactiveTab, a.smalltab.smallactiveTab:hover, a.smalltab.smallacti
 .formfields {
         background-color: #FFFFFF;
         border: 1px solid #999999;
-        font-family: Verdana sans-serif;
+        font-family: Verdana, sans-serif;
         font-size: 11px;
         color: #333333;
         text-decoration: none;
@@ -224,6 +224,7 @@ hr {
 .footnotes div {
         width: 5em;
         border-top: 1px solid #CBCBCB;
+        clear: both;
 }
 
 /* user interface styles */
