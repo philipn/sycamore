@@ -128,7 +128,7 @@ def execute(macro, args):
                     unix_day = time.mktime((0, 0, 1, 0, 0, 0, 0, 0, 0)) - time.mktime((0,0,0,0,0,0,0,0,0))
                     unix_hour = time.mktime((0, 0, 0, 1, 0, 0, 0, 0, 0)) - time.mktime((0,0,0,0,0,0,0,0,0))
                     unix_now = time.time() + (config.tz_offset * unix_hour)
-                    if event_unix_time <= unix_now and time.gmtime(unix_now)[2] == int(day):
+                    if event_unix_time <= unix_now + unix_day and time.gmtime(unix_now)[2] == int(day):
                     # same day, let's print it!
                         are_events_today = True
                         htmltext.append('\n<p>%s [<a href="/%s%sEvents_Board#head-%s">info</a>]</p>\n'
