@@ -124,11 +124,11 @@ def execute(macro, args):
                                     '<b>Location:</b> %s<br>\n'
                                     '%s&nbsp;&nbsp;(Posted by <a href="/%s%s%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,id, processed_name,config.relative_dir,add_on, id,ptime,processed_location,processed_text,config.relative_dir,add_on,posted_by,posted_by))
                 elif do_mini:
-                    event_unix_time = time.mktime((int(year), int(month), int(day), int(hour), int(minute), 0, 0, 0, 0))
+                    event_unix_time = time.mktime((int(year), int(month), int(day), 0, 0, 0, 0, 0, 0))
                     unix_day = time.mktime((0, 0, 1, 0, 0, 0, 0, 0, 0)) - time.mktime((0,0,0,0,0,0,0,0,0))
                     unix_hour = time.mktime((0, 0, 0, 1, 0, 0, 0, 0, 0)) - time.mktime((0,0,0,0,0,0,0,0,0))
                     unix_now = time.time() + (config.tz_offset * unix_hour)
-                    if event_unix_time + unix_day >= unix_now and time.gmtime(unix_now)[2] == int(day):
+                    if event_unix_time <= unix_now and time.gmtime(unix_now)[2] == int(day):
                     # same day, let's print it!
                         are_events_today = True
                         htmltext.append('\n<p>%s [<a href="/%s%sEvents_Board#head-%s">info</a>]</p>\n'
