@@ -153,7 +153,6 @@ class User:
         self.email = ""
         self.edit_rows = config.edit_rows
         self.edit_cols = 80
-        #self.tz_offset = -2520
         self.last_saved = str(time.time())
         self.css_url = ""
         self.language = ""
@@ -167,7 +166,8 @@ class User:
         self.show_nonexist_qm = 0
         self.show_fancy_links = 1
         self.show_fancy_diff = 1
-        self.tz_offset = -25200
+        #config.tz_offset is in hours, so we convert it
+        self.tz_offset = int(config.tz_offset) * (time.mktime((0,0,0,1,0,0,0,0,0)) - time.mktime((0,0,0,0,0,0,0,0,0)))
         self.show_topbottom = 0
         self.show_emoticons = 0
         
@@ -312,7 +312,7 @@ class User:
             vars(self)[key] = val
 
         #-3600 for daylight savings
-        self.tz_offset = -25200
+        self.tz_offset = int(config.tz_offset) * (time.mktime((0,0,0,1,0,0,0,0,0)) - time.mktime((0,0,0,0,0,0,0,0,0)))
 
         # old passwords are untrusted
         if hasattr(self, 'password'): del self.password

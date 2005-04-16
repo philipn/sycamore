@@ -254,7 +254,7 @@ def doRSS(request, add_on):
                 item_title.appendChild(rss_dom.createTextNode(processed_name))
                 item.appendChild(item_title)
                 item_link = rss_dom.createElement("link")
-                item_link.appendChild(rss_dom.createTextNode("http://%s%s/Events_Board" % (config.domain, config.relative_dir)))
+                item_link.appendChild(rss_dom.createTextNode("http://%s/%s%sEvents_Board" % (config.domain, config.relative_dir, add_on)))
                 item.appendChild(item_link)
                 item_date = rss_dom.createElement("dc:date")
                 item_date.appendChild(rss_dom.createTextNode("%s-%s-%s" % (current_year,current_month,current_day)))

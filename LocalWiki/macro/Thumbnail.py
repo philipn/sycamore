@@ -1,7 +1,7 @@
 # Part of the Local Wiki (http://daviswiki.org) Project
 # -*- coding: iso-8859-1 -*-
 from LocalWiki import config, wikiutil
-import sys, re, os
+import sys, re, os, array
 
 Dependencies = []
 
@@ -79,8 +79,27 @@ def execute(macro, args):
                 
       # open the original image
       from PIL import Image
-
       im = Image.open(image_location + full_image_name)
+      converted = 0
+      if not im.palette is None:
+         if im.info.has_key('transparency'):
+           trans = im.info['transparency']
+           pal = []
+           ind = 0
+           numcols = len(im.palette.palette) / 3;
+           while ind < numcols:
+             if ind == trans:
+               pal.append( ord('\xff') )
+               pal.append(ord('\xff'))
+               pal.append( ord('\xff'))
+             else:
+               pal.append(ord(im.palette.palette[ind * 3]))
+               pal.append(ord(im.palette.palette[ind * 3 + 1]))
+               pal.append(ord(im.palette.palette[ind * 3 + 2]))
+             ind = ind + 1
+           im.putpalette(pal)
+         im = im.convert("RGB")
+         converted = 1
       if im.size[0] >= im.size[1]:
          max = im.size[0]
          min = im.size[1]
@@ -101,7 +120,9 @@ def execute(macro, args):
 	   x = int((min * px_size)/max)
 	   y = px_size
            shrunk_im = im.resize((x,y), Image.ANTIALIAS)
-
+      if converted  == 1:
+        shrunk_im = shrunk_im.convert("P",dither=Image.NONE, palette=Image.ADAPTIVE)
+        image_extension = 'png'
       # save the image's thumbnail in the format image.thumbnail.192.23.jpg or image.thumbnail.60.26.png, where the number indicates the size
       shrunk_im.save(image_location + image_name + '.thumbnail.%s.%s.%s' % (x, y, image_extension), quality=90)
     captionJS = caption.replace('"', "\'")
