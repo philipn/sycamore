@@ -89,7 +89,7 @@ def execute(macro, args, **kw):
               line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (formatter.pagelink(user.User(request, line.userid).name), line.comment)
             else:
               line_of_text = line_of_text + ' %s</span>' % (formatter.pagelink(user.User(request, line.userid).name))
-            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s%sBookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, add_on, line.pagename) + '</td></tr>'
+            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s%sBookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, add_on, wikiutil.quoteFilename(line.pagename)) + '</td></tr>'
 
           else:
              # We don't do bold
@@ -101,7 +101,7 @@ def execute(macro, args, **kw):
             else:
                line_of_text = line_of_text + ' %s</span>' % (formatter.pagelink(user.User(request, line.userid).name))
 
-            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s%sBookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, add_on, line.pagename)
+            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s%sBookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, add_on, wikiutil.quoteFilename(line.pagename))
             line_of_text = line_of_text + '</td></tr>'
 
           seen_list.append((pagename, line_of_text))

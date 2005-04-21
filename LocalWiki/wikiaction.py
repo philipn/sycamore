@@ -968,7 +968,7 @@ def do_favorite(pagename, request):
     _ = request.getText
 
     if request.form.has_key('delete'):
-       removed_pagename = request.form.get('delete')[0]
+       removed_pagename = wikiutil.unquoteFilename(request.form.get('delete')[0])
        request.user.delFavorite(removed_pagename)
        msg = _("Page '%s' removed from Bookmarks" % removed_pagename)
 

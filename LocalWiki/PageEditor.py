@@ -886,8 +886,8 @@ delete the changes of the other person, which is excessively rude!</em></p>
 		log = 0
 
                 # add event log entry
-                eventlog.EventLog().add(self.request, 'SAVEPAGE',
-                                    {'pagename': self.page_name})
+                #eventlog.EventLog().add(self.request, 'SAVEPAGE',
+                #                    {'pagename': self.page_name})
 
                 # we quote the pagetext so we can pass it as a single argument and then have the process run without us paying it any attention
                 os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteFilename(self.page_name), wikiutil.quoteFilename(newtext))

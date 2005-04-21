@@ -401,8 +401,8 @@ class Page:
 	polite_msg = ""
 
         # count hit?
-        if keywords.get('count_hit', 0):
-            eventlog.EventLog().add(request, 'VIEWPAGE', {'pagename': self.page_name})
+        #if keywords.get('count_hit', 0):
+        #     eventlog.EventLog().add(request, 'VIEWPAGE', {'pagename': self.page_name})
 
         # load the text
         body = self.get_raw_body()
