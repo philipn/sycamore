@@ -213,12 +213,11 @@ pre {
 }
 
 hr {
-        border-style: none;
-        background-color: #CBCBCB;
-        color: #CBCBCB;
+    background-color: #CBCBCB;
+    color: #CBCBCB;
 	width: auto;
 	text-align: left;
-	margin: 4px 0 4px 0;
+    margin: 10px 0px 10px 4px;
 }
 
 .footnotes div {
