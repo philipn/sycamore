@@ -156,10 +156,7 @@ class Formatter(FormatterBase):
         return '%s\n' % result
     
     def rule(self, size=0):
-        if size:
-            return '<hr size="%d">\n' % (size,)
-        else:
-            return '<hr>\n'
+        return '<hr noshade="noshade" size="1" />'
 
     # Lists ##############################################################
 
