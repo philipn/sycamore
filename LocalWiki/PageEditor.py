@@ -369,7 +369,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         exclude = '"User Preferences" "Recent Changes" "Davis Map" "Front Page" "To Do"'
         if string.find(exclude, '"' + self.page_name + '"') >= 0:
           applet = 0
-        if applet and is_word_in_file(config.web_root + config.web_dir + "/map.xml", '"' + self.page_name.replace("&", "&amp;") + '"') or on_same_line(config.web_root + config.web_dir + "/points.xml", "category", '"' + self.page_name.replace("&", "&amp;") + '"'):
+        if applet and is_word_in_file(config.web_root + "/map.xml", '"' + self.page_name.replace("&", "&amp;") + '"') or on_same_line(config.web_root + "/points.xml", "category", '"' + self.page_name.replace("&", "&amp;") + '"'):
           applet = 0
         mapButton = ""
         mapHtml = ""
