@@ -58,21 +58,21 @@ def execute(macro, args):
 		# The user has hard-coded time! This is ESSENTIAL for security.
 		if int(year) < int(current_year) :
 			root.removeChild(event)
-			the_xml = dom.toxml()
+			the_xml = dom.toprettyxml()
 			xmlfile = open(config.app_dir + "/events.xml","w")
 			xmlfile.write(the_xml)
 			xmlfile.close()
 		elif int(year) == int(current_year):
 			if int(month) < int(current_month):
 		           root.removeChild(event)
-                           the_xml = dom.toxml()
+                           the_xml = dom.toprettyxml()
                            xmlfile = open(config.app_dir + "/events.xml","w")
                            xmlfile.write(the_xml)
                            xmlfile.close()
 			elif int(month) == int(current_month):
 			   if int(day) < int(current_day):
 			      root.removeChild(event)
-	                      the_xml = dom.toxml()
+	                      the_xml = dom.toprettyxml()
                               xmlfile = open(config.app_dir + "/events.xml","w")
                               xmlfile.write(the_xml)
                               xmlfile.close()

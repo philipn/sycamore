@@ -61,11 +61,11 @@ def execute(pagename, request):
                 if int(e.getAttribute("uid")) == uid:
 		    name = e.getAttribute("name")
 		    root.removeChild(e)
-                    the_xml = dom.toxml()
+                    the_xml = dom.toprettyxml()
                     xmlfile = open(config.app_dir + "/events.xml", "w")
                     xmlfile.write(the_xml)
                     xmlfile.close()
-                    dom.toxml()
+                    dom.toprettyxml()
 		    msg = 'Event "%s" <b>deleted</b>!' % name
         elif request.form.get('del')[0] == "1":
             uid = request.form.get('uid')[0]
@@ -76,7 +76,7 @@ def execute(pagename, request):
                 if e.getAttribute("uid") == uid and e.getAttribute("posted_by") == request.user.name:
                     name = e.getAttribute("name")
                     root.removeChild(e)
-                    the_xml = dom.toxml()
+                    the_xml = dom.topretyxml()
                     xmlfile = open(config.app_dir + "/events.xml","w")
                     xmlfile.write(the_xml)
                     xmlfile.close()
@@ -214,7 +214,7 @@ def doRSS(request, add_on):
             deleted = 0
             if int(year) < int(current_year) :
                 root.removeChild(event)
-                the_xml = dom.toxml()
+                the_xml = dom.toprettxml()
                 xmlfile = open(config.app_dir + "/events.xml","w")
                 xmlfile.write(the_xml)
                 xmlfile.close()
@@ -222,7 +222,7 @@ def doRSS(request, add_on):
             elif int(year) == int(current_year):
                 if int(month) < int(current_month):
                     root.removeChild(event)
-                    the_xml = dom.toxml()
+                    the_xml = dom.toprettyxml()
                     xmlfile = open(config.app_dir + "/events.xml","w")
                     xmlfile.write(the_xml)
                     xmlfile.close()
@@ -230,7 +230,7 @@ def doRSS(request, add_on):
                 elif int(month) == int(current_month):
                     if int(day) < int(current_day):
                         root.removeChild(event)
-                        the_xml = dom.toxml()
+                        the_xml = dom.toprettyxml()
                         xmlfile = open(config.app_dir + "/events.xml","w")
                         xmlfile.write(the_xml)
                         xmlfile.close()
@@ -266,7 +266,7 @@ def doRSS(request, add_on):
                 channel.appendChild(item)
         # do we need this?
         #(dom_rss.documentElement).appendChild(channel)
-    the_xml = rss_dom.toxml()
+    the_xml = rss_dom.toprettyxml()
 
     return the_xml
 
@@ -403,11 +403,11 @@ def writeEvent(request, event_text, event_name, event_location, month, day, hour
     else:
        root.insertBefore(event,events[index]) 
 
-    the_xml = dom.toxml()
+    the_xml = dom.toprettyxml()
     xmlfile = open(config.app_dir + "/events.xml", "w")
     xmlfile.write(the_xml)
     xmlfile.close()
-    dom.toxml()
+    dom.toprettyxml()
     # Record the changes in the editlog
     log = editlog.EditLog()
     log.add(request, "Events Board", None, os.path.getmtime(config.app_dir + "/events.xml"),

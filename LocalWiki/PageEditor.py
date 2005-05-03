@@ -949,7 +949,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
            user.setAttribute("join_date",self.request.user.getFormattedDateTime(time.time()))
            root.appendChild(user)
 
-       the_xml = dom.toxml()
+       the_xml = dom.toprettyxml()
        temp_stamp = str(time.time())
        xmlfile = open(config.app_dir + "/userstats.xml." + temp_stamp,"w")
        xmlfile.write(the_xml)
