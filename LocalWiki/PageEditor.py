@@ -624,15 +624,15 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         @return: new text of wikipage, variables replaced
         """
         #!!! TODO: Allow addition of variables via moin_config (and/or a text file)
-        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", util.datetime.tmtuple())
+        #now = time.strftime("%Y-%m-%dT%H:%M:%SZ", util.datetime.tmtuple())
+#now = time.asctime(time.localtime(time.time() + config.tz_offset))
+        now = self.request.user.getFormattedDateTime(time.time())
         system_vars = {
-            'PAGE': lambda s=self: s.page_name,
-            'TIME': lambda t=now: "[[DateTime(%s)]]" % t,
-            'DATE': lambda t=now: "[[Date(%s)]]" % t,
-            'USERNAME': lambda s=self: s._user_variable(),
-            'USER': lambda s=self: "-- %s" % (s._user_variable(),),
-            'SIG': lambda s=self, t=now: "-- %s [[DateTime(%s)]]"
+            'SIG': lambda s=self, t=now: "[\"%s\"] %s"
                 % (s._user_variable(), t,),
+            'sig': lambda s=self, t=now: "[\"%s\"] %s"
+                % (s._user_variable(), t,),
+
         }
 
         if self.request.user.valid and self.request.user.name:
@@ -949,7 +949,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
            user.setAttribute("join_date",self.request.user.getFormattedDateTime(time.time()))
            root.appendChild(user)
 
-       the_xml = dom.toprettyxml()
+       the_xml = dom.toprettyxml('')
        temp_stamp = str(time.time())
        xmlfile = open(config.app_dir + "/userstats.xml." + temp_stamp,"w")
        xmlfile.write(the_xml)
