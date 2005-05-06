@@ -76,7 +76,7 @@ def execute(pagename, request):
                 if e.getAttribute("uid") == uid and e.getAttribute("posted_by") == request.user.name:
                     name = e.getAttribute("name")
                     root.removeChild(e)
-                    the_xml = dom.topretyxml()
+                    the_xml = dom.toxml()
                     xmlfile = open(config.app_dir + "/events.xml","w")
                     xmlfile.write(the_xml)
                     xmlfile.close()
@@ -214,7 +214,7 @@ def doRSS(request, add_on):
             deleted = 0
             if int(year) < int(current_year) :
                 root.removeChild(event)
-                the_xml = dom.toprettxml()
+                the_xml = dom.toxml()
                 xmlfile = open(config.app_dir + "/events.xml","w")
                 xmlfile.write(the_xml)
                 xmlfile.close()
