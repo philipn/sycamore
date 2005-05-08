@@ -29,7 +29,7 @@ class Theme:
         # navibar
         'help':       ("%(page_help_contents)s", "moin-help.png",   12, 11),
         'find':       ("%(page_find_page)s",     "moin-search.png", 12, 12),
-        'diff':       ("Diffs",                  "moin-diff.png",   61, 15),
+        'diff':       ("Diffs",                  "moin-diff.png",   59, 13),
         'info':       ("Info",                   "moin-info.png",   12, 11),
         'edit':       ("Edit",                   "moin-edit.png",   27, 15),
         'unsubscribe':("Unsubscribe",            "moin-unsubscribe.png",  14, 10),
@@ -45,10 +45,10 @@ class Theme:
         # RecentChanges
 	'event':      ("New Event",              "devil.png", 15, 15),
         'rss':        ("[RSS]",                  "moin-rss.png",    36, 14),
-        'deleted':    ("[DELETED]",              "moin-deleted.png",58, 15),
-        'updated':    ("[UPDATED]",              "localwiki-updated.png",61, 15),
-        'new':        ("[NEW]",                  "localwiki-new.png",    61, 15),
-        'diffrc':     ("[DIFF]",                 "localwiki-diff.png",   61, 15),
+        'deleted':    ("[DELETED]",              "localwiki-deleted.png",59, 13),
+        'updated':    ("[UPDATED]",              "localwiki-updated.png",59, 13),
+        'new':        ("[NEW]",                  "localwiki-new.png",    59, 13),
+        'diffrc':     ("[DIFF]",                 "localwiki-diff.png",   59, 13),
         # General
         'bottom':     ("[BOTTOM]",               "moin-bottom.png", 14, 10),
         'top':        ("[TOP]",                  "moin-top.png",    14, 10),
@@ -210,7 +210,7 @@ class Theme:
                 ret = ("", icon, "", "")
         return (ret[0], self.img_url(ret[1])) + ret[2:]
    
-    def make_icon(self, icon, vars=None):
+    def make_icon(self, icon, vars=None, actionButton=False):
         """
         This is the central routine for making <img> tags for icons!
         All icons stuff except the top left logo, smileys and search
@@ -231,15 +231,23 @@ class Theme:
         if self.request:
             alt = self.request.getText(alt)
         try:
-            tag = self.request.formatter.image(html_class="borderless", src=img, alt=alt, width=w, height=h)
+            if actionButton:
+                tag = self.request.formatter.image(html_class="actionButton", src=img, alt=alt, width=w, height=h)
+            else:
+                tag = self.request.formatter.image(html_class="borderless", src=img, alt=alt, width=w, height=h)
         except AttributeError: # XXX FIXME if we have no formatter or no request 
-            tag = '<img class="borderless" src="%s" alt="%s" width="%s" height="%s">' % (
-                img, alt, w, h)
+            if actionButton:
+                tag = '<img class="actionButton" src="%s" alt="%s" width="%s" height="%s">' % (
+                    img, alt, w, h)
+            else:
+                tag = '<img class="borderless" src="%s" alt="%s" width="%s" height="%s">' % (
+                    img, alt, w, h)
+
             import warnings
             warnings.warn("calling themes without correct request", DeprecationWarning)
         return tag
 
-    def make_iconlink(self, which, d):
+    def make_iconlink(self, which, d, actionButton=False):
         """
         Make a link with an icon
 
@@ -251,7 +259,7 @@ class Theme:
         page_params, title, icon = config.page_icons_table[which]
         d['title'] = title % d
         d['i18ntitle'] = self.request.getText(d['title'])
-        img_src = self.make_icon(icon, d)
+        img_src = self.make_icon(icon, d, actionButton)
         return wikiutil.link_tag(self.request, page_params % d, img_src, attrs='title="%(i18ntitle)s"' % d)
 
     def iconbar(self, d):

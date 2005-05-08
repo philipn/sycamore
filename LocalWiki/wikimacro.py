@@ -423,7 +423,7 @@ class Macro:
 
     def _macro_Icon(self, args):
         icon = args.lower()
-        return self.request.theme.make_icon(icon)
+        return self.request.theme.make_icon(icon, actionButton=True)
 
     def _macro_PageList(self, args):
         _ = self._

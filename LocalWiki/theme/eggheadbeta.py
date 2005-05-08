@@ -99,8 +99,8 @@ class Theme(ThemeBase):
             html.append('<form action="%s" method="POST">' % config.relative_dir)
             html.append('<input type="hidden" name="action" value="userform">')
             html.append('<input type="hidden" name="logout" value="Logout">')
-            html.append('<tr><td align="right"><a href="%s/User Preferences"><img src="/settings.png" border="0"></a>' % relative_dir)
-            html.append('<br/><input type="image" name="Submit" value="Submit" src="%s" height="15" width="80" border="0"></td></tr></table>' % self.img_url('logout.png'))
+            html.append('<tr><td align="right"><a href="%s/User Preferences"><img src="%s" class="actionButton"></a>' % (relative_dir, self.img_url('settings.png')))
+            html.append('<br/><input type="image" name="Submit" value="Submit" src="%s" height="13" width="78" class="actionButton"></td></tr></table>' % self.img_url('logout.png'))
             html.append('</form></div>')
         else:
             html.append('<div class="user"><form action="%s/%s" method="POST">' % (relative_dir, d['page_name']))
@@ -112,7 +112,7 @@ class Theme(ThemeBase):
             html.append('<td align="right">Password:</td>')
             html.append('<td colspan="2" align="left" nowrap> <input class="formfields" size="22" type="password" name="password"> ')
             html.append('<input type="hidden" name="login" value="Login">')
-            html.append('</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login"></td><td align="right"><a href="%s/User Preferences"><img src="%s" border="0"></a></td></tr></table>' % (self.img_url('login.png'), relative_dir, self.img_url('newuser.png')))
+            html.append('</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login" class="actionButton"></td><td align="right"><a href="%s/User Preferences"><img src="%s" class="actionButton"></a></td></tr></table>' % (self.img_url('login.png'), relative_dir, self.img_url('newuser.png')))
             html.append('</form></div>')
         return ''.join(html)
 
@@ -219,7 +219,7 @@ class Theme(ThemeBase):
         return ''.join(html)
 
 
-    def make_iconlink(self, which, d):
+    def make_iconlink(self, which, d, actionButton=False):
         """
         Make a link with an icon
 
@@ -231,7 +231,7 @@ class Theme(ThemeBase):
         page_params, title, icon = config.page_icons_table[which]
         d['title'] = title % d
         d['i18ntitle'] = self.request.getText(d['title'])
-        img_src = self.make_icon(icon, d)
+        img_src = self.make_icon(icon, d, actionButton)
         return wikiutil.link_tag(self.request, page_params % d, d['i18ntitle'], attrs='title="%(title)s"' % d)
 
 

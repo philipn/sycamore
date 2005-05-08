@@ -58,23 +58,23 @@ def format_page_edits(macro, lines, showcomments, bookmark):
     html_link = ''
     if not page.exists():
         # indicate page was deleted
-        html_link = request.theme.make_icon('deleted')
+        html_link = request.theme.make_icon('deleted', actionButton=True)
     elif is_new:
         # show "NEW" icon if page was created after the user's bookmark
         if len(lines) == 1: 
-           html_link = request.theme.make_icon('new')
+           html_link = request.theme.make_icon('new', actionButton=True)
         else:
-           img = request.theme.make_icon('new')
+           img = request.theme.make_icon('new', actionButton=True)
            html_link = wikiutil.link_tag(request,wikiutil.quoteWikiname(pagename) + "?action=diff", img, formatter=macro.formatter,pretty_url=1)
     elif hilite:
         # show "UPDATED" icon if page was edited after the user's bookmark
-        img = request.theme.make_icon('updated')
+        img = request.theme.make_icon('updated', actionButton=True)
         html_link = wikiutil.link_tag(request,
                                       wikiutil.quoteWikiname(pagename) + "?action=diff&date=" + str(bookmark),
                                       img, formatter=macro.formatter, pretty_url=1)
     else:
         # show "DIFF" icon else
-        img = request.theme.make_icon('diffrc')
+        img = request.theme.make_icon('diffrc', actionButton=True)
         html_link = wikiutil.link_tag(request,
                                       wikiutil.quoteWikiname(line.pagename) + "?action=diff",
                                       img, formatter=macro.formatter, pretty_url=1)
