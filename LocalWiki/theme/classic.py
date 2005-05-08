@@ -29,7 +29,7 @@ class Theme:
         # navibar
         'help':       ("%(page_help_contents)s", "moin-help.png",   12, 11),
         'find':       ("%(page_find_page)s",     "moin-search.png", 12, 12),
-        'diff':       ("Diffs",                  "moin-diff.png",   47, 15),
+        'diff':       ("Diffs",                  "moin-diff.png",   61, 15),
         'info':       ("Info",                   "moin-info.png",   12, 11),
         'edit':       ("Edit",                   "moin-edit.png",   27, 15),
         'unsubscribe':("Unsubscribe",            "moin-unsubscribe.png",  14, 10),
@@ -46,9 +46,9 @@ class Theme:
 	'event':      ("New Event",              "devil.png", 15, 15),
         'rss':        ("[RSS]",                  "moin-rss.png",    36, 14),
         'deleted':    ("[DELETED]",              "moin-deleted.png",58, 15),
-        'updated':    ("[UPDATED]",              "moin-updated.png",61, 15),
-        'new':        ("[NEW]",                  "moin-new.png",    48, 15),
-        'diffrc':     ("[DIFF]",                 "moin-diff.png",   47, 15),
+        'updated':    ("[UPDATED]",              "localwiki-updated.png",61, 15),
+        'new':        ("[NEW]",                  "localwiki-new.png",    61, 15),
+        'diffrc':     ("[DIFF]",                 "localwiki-diff.png",   61, 15),
         # General
         'bottom':     ("[BOTTOM]",               "moin-bottom.png", 14, 10),
         'top':        ("[TOP]",                  "moin-top.png",    14, 10),
