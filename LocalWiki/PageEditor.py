@@ -868,9 +868,9 @@ delete the changes of the other person, which is excessively rude!</em></p>
                          kw.get('comment', ''), action=action)
 
 		# write the page-centric editlog entry
-		log = editlog.EditLog(config.data_dir + '/pages/' + wikiutil.quoteFilename(self.page_name) + '/editlog')
-		log.add(self.request, self.page_name, None, mtime,
-			kw.get('comment', ''), action=action)
+                log = editlog.EditLog(config.data_dir + '/pages/' + wikiutil.quoteFilename(self.page_name) + '/editlog')
+                log.add(self.request, self.page_name, None, mtime,
+			        kw.get('comment', ''), action=action)
 
                 # write last-edited file
                 lastedited = wikiutil.getPagePath(self.page_name, 'last-edited')
