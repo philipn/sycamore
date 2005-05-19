@@ -21,7 +21,7 @@ _TEMPLATE_RE = None
 _FORM_RE = None
 _CATEGORY_RE = None
 
-def simpleParse(request, text):
+def simpleParse(request, text, external=False):
     # this needs to convert all the basic formatting to HTML
     # so the ''text'' stuff, along with [http://myurl.com url] -> a href, and the ["wiki link" link text] -> a href
     # Wiki links
@@ -29,8 +29,12 @@ def simpleParse(request, text):
     if config.relative_dir:  add_on = '/'
     else: add_on = ''
 
-    text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])', r'<a href="/%s%s\g<wikilink>">\g<wikilink></a>' % (config.relative_dir, add_on), text)
-    text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])', r'<a href="/%s%s\g<wikilink>">\g<txt></a>' % (config.relative_dir, add_on), text)
+    if not external:
+      text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])', r'<a href="/%s%s\g<wikilink>">\g<wikilink></a>' % (config.relative_dir, add_on), text)
+      text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])', r'<a href="/%s%s\g<wikilink>">\g<txt></a>' % (config.relative_dir, add_on), text)
+    else:
+      text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])', r'<a href="http://%s/%s%s\g<wikilink>">\g<wikilink></a>' % (config.domain, config.relative_dir, add_on), text)
+      text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])', r'<a href="http://%s/%s%s\g<wikilink>">\g<txt></a>' % (config.domain, config.relative_dir, add_on), text)
     # External links
 #    text = re.sub(r'(\[(?P<link>([^ ])+) (?P<ltext>([^\]])+)\])', r'<a href="\g<link>">\g<ltext></a>', text)
     text = re.sub(r'(\[(?P<link>[^\]]+(.jpg|.jpeg|.gif|.png))\])', r'<img src="\g<link>">', text)

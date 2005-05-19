@@ -420,7 +420,7 @@ def doParse(text, request):
    import re
    #from cStringIO import StringIO
    text = re.sub('[\n]', '<br>', text)
-   formatted_text = wikiutil.simpleParse(request,text)
+   formatted_text = wikiutil.simpleParse(request,text, external=True)
    #Parser = wikiutil.importPlugin("parser", "wiki", "Parser")
    #buffer = StringIO()
    #request.redirect(buffer)
