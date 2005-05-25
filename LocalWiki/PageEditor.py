@@ -857,31 +857,30 @@ delete the changes of the other person, which is excessively rude!</em></p>
 
             self.lock.release(force=not msg)
 
-            i_am_parent = os.fork()
-            if not i_am_parent:
-                # we'll try to change the stats early-on
-                self.userStatAdd(self.request.user.name, action, self.page_name)
-
-		# write the editlog entry
-                log = editlog.EditLog()
-                log.add(self.request, self.page_name, None, mtime,
+	# write the editlog entry
+            log = editlog.EditLog()
+            log.add(self.request, self.page_name, None, mtime,
                          kw.get('comment', ''), action=action)
 
 		# write the page-centric editlog entry
-                log = editlog.EditLog(config.data_dir + '/pages/' + wikiutil.quoteFilename(self.page_name) + '/editlog')
-                log.add(self.request, self.page_name, None, mtime,
+            log = editlog.EditLog(config.data_dir + '/pages/' + wikiutil.quoteFilename(self.page_name) + '/editlog')
+            log.add(self.request, self.page_name, None, mtime,
 			        kw.get('comment', ''), action=action)
 
                 # write last-edited file
-                lastedited = wikiutil.getPagePath(self.page_name, 'last-edited')
-                try:
-                         os.remove(lastedited)
-                except OSError:
-                        pass
-                log = editlog.EditLog(lastedited)
-                log.add(self.request, self.page_name, None, mtime,
+            lastedited = wikiutil.getPagePath(self.page_name, 'last-edited')
+            try:
+                      os.remove(lastedited)
+            except OSError:
+                      pass
+            log = editlog.EditLog(lastedited)
+            log.add(self.request, self.page_name, None, mtime,
                     kw.get('comment', ''), action=action)
-		
+
+            # slow non-critical stuff here
+            self.userStatAdd(self.request.user.name, action, self.page_name)
+
+			
 		# I do this log = 0 to call the destuctor of the log object -- we do os._exit(0) so we've gotta do this on our own
 		log = 0
 
