@@ -881,15 +881,10 @@ delete the changes of the other person, which is excessively rude!</em></p>
             self.userStatAdd(self.request.user.name, action, self.page_name)
 
 			
-		# I do this log = 0 to call the destuctor of the log object -- we do os._exit(0) so we've gotta do this on our own
-		log = 0
+		    # I do this log = 0 to call the destuctor of the log object -- we do os._exit(0) so we've gotta do this on our own
+            log = 0
 
-                # add event log entry
-                #eventlog.EventLog().add(self.request, 'SAVEPAGE',
-                #                    {'pagename': self.page_name})
-
-                # we quote the pagetext so we can pass it as a single argument and then have the process run without us paying it any attention
-                os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteFilename(self.page_name), wikiutil.quoteFilename(newtext))
+            os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteFilename(self.page_name), wikiutil.quoteFilename(newtext))
 
             # we only need to build the index like..once..
                 #self.build_index()
@@ -899,14 +894,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
                  #msg = msg + self._notifySubscribers(kw.get('comment', ''))
                 #        self._notifySubscribers(kw.get('comment', ''))
 
-		# we do this so we don't return another copy of the page to the user!
-                os._exit(0)
-            else:
-
-        # remove lock (forcibly if we were allowed to break it by the UI)
-        # !!! this is a little fishy, since the lock owner might not notice
-        # we broke his lock ==> but datestamp checking during preview will
-                return msg
+            return msg
 
     def notifySubscribers(self, **kw):
         msg = ''
