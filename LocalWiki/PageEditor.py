@@ -880,7 +880,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
             log = 0
 
             os.spawnl(os.P_NOWAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteFilename(self.page_name), wikiutil.quoteFilename(newtext))
-            os.spawnl(os.P_NOWAIT, config.app_dir + '/add_to_userstats', config.app_dir + '/add_to_userstats', config.app_dir, self.request.user.name, action, self.page_name)
+            os.spawnl(os.P_NOWAIT, config.app_dir + '/add_to_userstats', config.app_dir + '/add_to_userstats', config.app_dir, config.tz_offset, self.request.user.name, action, self.page_name)
 
             # we only need to build the index like..once..
                 #self.build_index()
