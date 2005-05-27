@@ -15,7 +15,6 @@ from LocalWiki.logfile import editlog, eventlog
 import LocalWiki.util.web
 import LocalWiki.util.mail
 import LocalWiki.util.datetime
-import xml.dom.minidom
 import cPickle
 
 
@@ -877,14 +876,11 @@ delete the changes of the other person, which is excessively rude!</em></p>
             log.add(self.request, self.page_name, None, mtime,
                     kw.get('comment', ''), action=action)
 
-            # slow non-critical stuff here
-            self.userStatAdd(self.request.user.name, action, self.page_name)
-
-			
 		    # I do this log = 0 to call the destuctor of the log object -- we do os._exit(0) so we've gotta do this on our own
             log = 0
 
-            os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteFilename(self.page_name), wikiutil.quoteFilename(newtext))
+            os.spawnl(os.P_NOWAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteFilename(self.page_name), wikiutil.quoteFilename(newtext))
+            os.spawnl(os.P_NOWAIT, config.app_dir + '/add_to_userstats', config.app_dir + '/add_to_userstats', config.app_dir, self.request.user.name, action, self.page_name)
 
             # we only need to build the index like..once..
                 #self.build_index()
@@ -901,49 +897,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
         #if config.mail_smarthost and kw.get('notify', 0):
         msg = msg + self._notifySubscribers(kw.get('comment', ''))
         return msg
-
-    def userStatAdd(self, username, action, pagename):
-       dom = xml.dom.minidom.parse(config.app_dir + "/userstats.xml")
-       users = dom.getElementsByTagName("user")
-       root = dom.documentElement
-       #is the user in the XML file?
-       user_is_in = 0
-       for user in users:
-          if user.getAttribute("name") == username:
-            user_is_in = 1
-            edit_count = int(user.getAttribute("edit_count"))
-            user.setAttribute("edit_count", str(edit_count + 1))
-            if action == 'SAVENEW':
-               user.setAttribute("created_count", str(int(user.getAttribute("created_count")) + 1))
-            user.setAttribute("last_edit",self.request.user.getFormattedDateTime(time.time()))
-            user.setAttribute("last_page_edited",pagename)
-            break
-            
-
-       if not user_is_in:
-           user = dom.createElement("user")
-           user.setAttribute("name", username) 
-           user.setAttribute("edit_count","1")
-           # Did we make this page first for reals?
-           if action == 'SAVENEW':
-              user.setAttribute("created_count","1")
-           else:
-              user.setAttribute("created_count","0")
-           # Fill in other data (this is an older user)
-           user.setAttribute("last_edit",self.request.user.getFormattedDateTime(time.time()))
-           user.setAttribute("last_page_edited",pagename)
-           user.setAttribute("file_count","0")
-           user.setAttribute("join_date",self.request.user.getFormattedDateTime(time.time()))
-           root.appendChild(user)
-
-       the_xml = dom.toprettyxml('')
-       temp_stamp = str(time.time())
-       xmlfile = open(config.app_dir + "/userstats.xml." + temp_stamp,"w")
-       xmlfile.write(the_xml)
-       xmlfile.close()
-       os.rename(config.app_dir + "/userstats.xml." + temp_stamp, config.app_dir + "/userstats.xml")
-        
-
+    
 
 class PageLock:
     """
