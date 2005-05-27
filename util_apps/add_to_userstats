@@ -1,0 +1,81 @@
+#!/usr/bin/python
+import time
+import sys
+import xml.dom.minidom
+sys.path.extend(['/var/www/lib/python','/var/www/html/dwiki'])
+from LocalWiki import config
+import os
+
+
+tz_offset = int(config.tz_offset) * (time.mktime((0,0,0,1,0,0,0,0,0)) - time.mktime((0,0,0,0,0,0,0,0,0)))
+
+def tmtuple(tmsecs=None):
+    """ Return a time tuple.
+
+        This is currently an alias for gmtime(), but allows later tweaking.
+    """
+    # avoid problems due to timezones etc. - especially a underflow
+    if -86400 <= tmsecs <= 86400: # if we are around 0, we maybe had
+        tmsecs = 0                # 0 initially, so reset it to 0.
+    return time.gmtime(tmsecs or time.time())
+
+def getFormattedDateTime(tm):
+    """
+    Get formatted date and time adjusted for user's timezone.
+                                                              
+    @param tm: time (UTC UNIX timestamp)
+    @rtype: string
+    @return: formatted date and time, see config.datetime_fmt
+    """
+    datetime_fmt = '%Y-%m-%d %H:%M:%S'
+    return time.strftime(datetime_fmt, tmtuple(tm + tz_offset))
+
+
+
+def userStatAdd(app_dir, username, action, pagename):
+   dom = xml.dom.minidom.parse(app_dir + "/userstats.xml")
+   users = dom.getElementsByTagName("user")
+   root = dom.documentElement
+   #is the user in the XML file?
+   user_is_in = 0
+   for user in users:
+      if user.getAttribute("name") == username:
+        user_is_in = 1
+        edit_count = int(user.getAttribute("edit_count"))
+        user.setAttribute("edit_count", str(edit_count + 1))
+        if action == 'SAVENEW':
+           user.setAttribute("created_count", str(int(user.getAttribute("created_count")) + 1))
+        user.setAttribute("last_edit",getFormattedDateTime(time.time()))
+        user.setAttribute("last_page_edited",pagename)
+        break
+        
+                                                                                                 
+   if not user_is_in:
+       user = dom.createElement("user")
+       user.setAttribute("name", username) 
+       user.setAttribute("edit_count","1")
+       # Did we make this page first for reals?
+       if action == 'SAVENEW':
+          user.setAttribute("created_count","1")
+       else:
+          user.setAttribute("created_count","0")
+       # Fill in other data (this is an older user)
+       user.setAttribute("last_edit",getFormattedDateTime(time.time()))
+       user.setAttribute("last_page_edited",pagename)
+       user.setAttribute("file_count","0")
+       user.setAttribute("join_date",getFormattedDateTime(time.time()))
+       root.appendChild(user)
+                                                                                                 
+   the_xml = dom.toprettyxml('')
+   temp_stamp = str(time.time())
+   xmlfile = open(app_dir + "/userstats.xml." + temp_stamp,"w")
+   xmlfile.write(the_xml)
+   xmlfile.close()
+   os.rename(app_dir + "/userstats.xml." + temp_stamp, app_dir + "/userstats.xml")
+
+if len(sys.argv) < 5:
+   print "not enough arguments.  need config.app_dir location, username, action, and pagename."
+   sys.exit(1)
+
+
+userStatAdd(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
