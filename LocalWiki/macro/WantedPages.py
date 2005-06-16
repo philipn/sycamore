@@ -68,7 +68,7 @@ def execute(macro, args):
     wanted_omg.sort(comparey)
     most_wanted = wanted_omg[0:60]
     most_wanted.sort(comparey2)
-    result.append('<p>The "most" wanted pages based upon the number of links made from other pages:</p>')
+    result.append('<p>The "most" wanted pages based upon the number of links made from other pages.  Bigger means more wanted:</p>')
     result.append('<div style="margin-top: 0px; margin-left: auto; margin-right: auto; width: 760px; text-align: left; vertical-align: top;padding-left: 7px; padding-right: 7px;">')
     result.append('<p style="padding: 15px;  line-height: 1.45; margin-top: 0; padding-left: 7px; padding-right: 7px; width: 760px; solid 1px #eee; background: #f5f5f5; border: 1px solid rgb(170, 170, 170); ">')
     if config.relative_dir:
