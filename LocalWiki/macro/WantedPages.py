@@ -88,7 +88,7 @@ def execute(macro, args):
 
     result.append('</p></div>')
 
-    result.append('<p>What follows is a list of all non-existing pages (links made to pages that do not yet exist).  Each non-existing page includes a list, following it, of all the pages where it is referred to:</p>')
+    result.append('<p>What follows is a list of all "wanted" pages.  Each wanted page includes a list, following it, of all the pages where it is referred to:</p>')
     result.append(macro.formatter.number_list(1))
     for name in wantednames:
         if not name: continue
