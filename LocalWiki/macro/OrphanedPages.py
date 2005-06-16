@@ -46,10 +46,15 @@ def execute(macro, args):
     orphanednames.sort()
     result = []
     result.append(macro.formatter.number_list(1))
+    from LocalWiki.Page import Page
     for name in orphanednames:
-        if not name: continue
+        if not name.strip(): continue
+        page = Page(name)
+        is_redirect = False
+        if page.isRedirect():  is_redirect = True
         result.append(macro.formatter.listitem(1))
-        result.append(macro.formatter.pagelink(name, generated=1))
+        if is_redirect:  result.append('<i>' + macro.formatter.pagelink(name, generated=1) + '</i>')
+        else: result.append(macro.formatter.pagelink(name, generated=1))
         result.append(macro.formatter.listitem(0))
     result.append(macro.formatter.number_list(0))
 
