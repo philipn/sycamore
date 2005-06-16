@@ -830,6 +830,16 @@ class Page:
     # the page. This cache ensures that we don't have to parse ACLs for
     # some page twice.
     _acl_cache = {}
+
+    def isRedirect(self):
+        """
+        If the page is a redirect this returns True.  If not it returns False.
+        """
+        body = self.get_raw_body()
+        if body[0:9] == '#redirect': return True
+        return False
+
+
     
     def getACL(self):
         """
