@@ -335,7 +335,6 @@ def getPageList(text_dir):
 
     """
     pagedict = getNoCaseDict(text_dir)
-    print pagedict
     #pages = os.listdir(text_dir)
     result = pagedict.values()
     return result
