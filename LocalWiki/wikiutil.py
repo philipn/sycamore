@@ -300,6 +300,21 @@ def filterCategoryPages(pagelist):
 #############################################################################
 ### Page storage helpers
 #############################################################################
+def getNoCaseDict(text_dir):
+    """
+    Returns dict of strings.  Keys are lowercase names and values are the proper cased names.
+    """
+
+    if os.path.exists(config.data_dir + '/pagedict.pickle'):
+        pdfile = open(config.data_dir + '/pagedict.pickle', 'r')
+        pagedict = cPickle.load(pdfile)
+        pdfile.close()
+    else:
+        pagedict = {}                                               
+        pdfile = open(config.data_dir + '/pagedict.pickle', 'w')
+        cPickle.dump(pagedict, pdfile, 2)
+        pdfile.close()                                             
+    return pagedict
 
 def getPageList(text_dir):
     """
@@ -319,17 +334,8 @@ def getPageList(text_dir):
 
 
     """
-
-    if os.path.exists(config.data_dir + '/pagedict.pickle'):
-        pdfile = open(config.data_dir + '/pagedict.pickle', 'r')
-        pagedict = cPickle.load(pdfile)
-        pdfile.close()
-    else:
-        pagedict = {}
-        pdfile = open(config.data_dir + '/pagedict.pickle', 'w')
-        cPickle.dump(pagedict, pdfile, 2)
-        pdfile.close()
-            
+    pagedict = getNoCaseDict(text_dir)
+    print pagedict
     #pages = os.listdir(text_dir)
     result = pagedict.values()
     return result
@@ -349,6 +355,18 @@ def getPageDict(text_dir):
     for name in pagenames:
         pages[name] = Page(name)
     return pages
+   
+def getNoCasePageDict(text_dir):
+    """
+    Gets the dictionary of page objects for all pages, with the lowercase version of the page name as the key.
+    """
+    from LocalWiki.Page import Page
+    pages = {}
+    pagenames = getPageList(text_dir)
+    for name in pagenames:
+        pages[name.lower()] = Page(name)
+    return pages
+
 
 
 def getBackupList(backup_dir, pagename=None):

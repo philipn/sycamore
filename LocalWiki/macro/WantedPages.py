@@ -25,7 +25,8 @@ def execute(macro, args):
     # build a dict of wanted pages
     _guard = 1
     wanted = {}
-    pages = wikiutil.getPageDict(config.text_dir)
+    translation_dict = wikiutil.getNoCaseDict(config.text_dir)
+    pages = wikiutil.getNoCasePageDict(config.text_dir)
     for page in pages.values():
         #if not wikiutil.isSystemPage(macro.request, page.page_name):
 #    continue
@@ -34,7 +35,7 @@ def execute(macro, args):
         # Further, pages wanted from editor backup pages are irrelevant.
         links = page.getPageLinks(macro.request)
         for link in links:
-            if not pages.has_key(link):
+            if not pages.has_key(link.lower()):
                 if wanted.has_key(link):
                     wanted[link][page.page_name] = 1
                 else:
@@ -56,7 +57,7 @@ def execute(macro, args):
         result.append(macro.formatter.pagelink(name, generated=1))
 
         wherelink = lambda n, w=name, p=pages: \
-            p[n].link_to(macro.request, querystr='action=highlight&value=%s' % urllib.quote_plus(w))
+            p[n.lower()].link_to(macro.request, querystr='action=highlight&value=%s' % urllib.quote_plus(w))
         where = wanted[name].keys()
         where.sort()
         if macro.formatter.page.page_name in where:
