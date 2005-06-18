@@ -268,7 +268,7 @@ def execute(macro, args, **kw):
     if request.user.valid:
         d['rc_curr_bookmark'] = _('(will show you only changes made since you last pressed \'clear\')')
         if bookmark:
-            d['rc_curr_bookmark'] = _('(currently set to %s)') % (
+            d['rc_curr_bookmark'] = _('(last cleared at %s)') % (
                 request.user.getFormattedDateTime(bookmark),) + ' [' + wikiutil.link_tag(
                     request,
                     wikiutil.quoteWikiname(macro.formatter.page.page_name)
@@ -364,7 +364,6 @@ def execute(macro, args, **kw):
         
         # end listing by default if user has a bookmark and we reached it
         if not max_days and not hilite:
-            msg = _('<h5>Bookmark reached</h5>')
             break
 
         if pages.has_key(line.pagename):
