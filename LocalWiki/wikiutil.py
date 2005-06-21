@@ -80,6 +80,7 @@ def getSmiley(text, formatter):
 def quoteFilename(filename):
     """
     Return a simple encoding of filename in plain ascii.
+    "string here"->"string_20here"
     
     @param filename: the original filename, maybe containing non-ascii chars
     @rtype: string
@@ -108,6 +109,9 @@ def unquoteFilename(filename):
 
 # XXX UNICODE - see above
 def quoteWikiname(filename):
+    """
+    "string here"->"string_here"
+    """
     return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2f', '/')
 
 def unquoteWikiname(filename):
