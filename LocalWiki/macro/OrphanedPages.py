@@ -53,7 +53,7 @@ def execute(macro, args):
         is_redirect = False
         if page.isRedirect():  is_redirect = True
         result.append(macro.formatter.listitem(1))
-        if is_redirect:  result.append('<i>' + macro.formatter.pagelink(name, generated=1) + '</i>')
+        if is_redirect:  result.append('&nbsp;&nbsp;<i>' + macro.formatter.pagelink(name, generated=1) + '</i>')
         else: result.append(macro.formatter.pagelink(name, generated=1))
         result.append(macro.formatter.listitem(0))
     result.append(macro.formatter.number_list(0))
