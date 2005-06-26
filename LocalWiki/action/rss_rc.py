@@ -62,8 +62,7 @@ def execute(pagename, request):
     for line in log.reverse():
         if not request.user.may.read(line.pagename):
             continue
-        if ((line.action[:4] != 'SAVE') or
-            (line.pagename in pages)): continue
+        if ((line.pagename in pages)): continue
         #if log.dayChanged() and log.daycount > _MAX_DAYS: break
         line.editor = line.getEditorData(request)[1]
         line.time = util.datetime.tmtuple(line.ed_time) # UTC
