@@ -28,6 +28,8 @@ def execute(macro, args):
     for key in pages.keys():
         if wikiutil.isSystemPage(macro.request, pages[key].page_name):
             del pages[key]
+        elif not macro.request.user.may.read(pages[key].page_name):
+            del pages[key]
     orphaned = {}
     orphaned.update(pages)
     for page in pages.values():
