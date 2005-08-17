@@ -105,7 +105,7 @@ acl_rights_default = "AdminGroup:admin,read,write,delete,revert BannedGroup:read
 
 attachments = {
     'dir': '/var/www/html/installhtml/wiki/data/pages',
-    'url': '/installhtml/wiki/data/pages',
+    'url': '/installhtml/dwiki/data/pages',
 }
 
 mail_smarthost = "localhost"
