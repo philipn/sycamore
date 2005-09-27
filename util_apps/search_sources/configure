@@ -425,7 +425,6 @@ PACKAGE_VERSION='0.8.5'
 PACKAGE_STRING='xapian-examples 0.8.5'
 PACKAGE_BUGREPORT=''
 
-ac_unique_file="delve.cc"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>

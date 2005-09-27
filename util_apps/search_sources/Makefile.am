@@ -4,7 +4,7 @@
 # 1.8.5 contains a lot of fixes over 1.6.3
 AUTOMAKE_OPTIONS = 1.8.5
 
-bin_PROGRAMS = quest delve copydatabase\
+bin_PROGRAMS = quest copydatabase\
 	simpleindex simplesearch simpleexpand
 
 AM_CXXFLAGS = @AM_CXXFLAGS@
@@ -14,8 +14,6 @@ noinst_HEADERS = gnu_getopt.h
 quest_SOURCES = quest.cc getopt.cc
 quest_LDADD = $(XAPIAN_LIBS)
 
-delve_SOURCES = delve.cc getopt.cc
-delve_LDADD = $(XAPIAN_LIBS)
 
 copydatabase_SOURCES = copydatabase.cc
 copydatabase_LDADD = $(XAPIAN_LIBS)
