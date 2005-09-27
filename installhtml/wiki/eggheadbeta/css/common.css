@@ -58,7 +58,23 @@ img.photo {
 }
 
 img.borderless {
-        border: 0px;
+    border: 0px;
+}
+
+a img.actionButton {
+   border: 1px solid #000088;
+}
+
+a img.actionButton:hover {
+  border: 1px solid green;
+}
+
+input.actionButton {
+  border: 1px solid #000088;
+}
+
+input.actionButton:hover {
+  border: 1px solid green;
 }
 
 img.drawing {
