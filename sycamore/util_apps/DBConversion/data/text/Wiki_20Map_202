@@ -1,0 +1,13 @@
+What is it that we'd ideally like to have in a Wiki Map that we're lacking now?  
+
+Here's some generals:
+ * Be able to load in GIS data in an automated fashion and have the map created
+ * Smooth movement of the map itself -- not static views (at least within the xy coordiates)
+ * 'Points' but also the ability to draw polygon regions on the map
+ * Map reads from easily modifiable XML.
+ * Ideally we want to be able to tell the map, after it's already rendered a set of points, that we want it to then 'highlight' regions -- a la google maps.
+ 
+-----
+I think the map data should be able to be versioned in a fashion similar to pages, and images (hopefully).  "Map location modified" should then link to the map interface with the change shown.  This would entail..?  It might seem more useful to maintain page-specific XML data (points, region) and then global data (description, immutables) for this very reason..?
+
+I agree that page-specific map data should be maintained.  This would mean adding a column to current pages as well as all pages?

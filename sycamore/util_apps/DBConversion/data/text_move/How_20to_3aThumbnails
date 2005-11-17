@@ -1,0 +1,17 @@
+Want to upload that nice, pretty, awesome photo you took, but you're bummed out that you have to shrink it down to post it in a page?  Well, just {{{[[Thumbnail]]}}} it!  Upload and image as usual (say, {{{image.jpg}}}), but then instead of using {{{attachment:image.jpg}}} you use {{{[[Thumbnail(image.jpg)]]}}}.
+
+== Options ==
+In addition, you can specify some things to make your life easier and pages prettier.  To set a size for your thumbnail, you simply add a maximum size (in pixels).  To give the image a caption, simply add a {{{"statement in quotes"}}}.  To say make the thumbnail forced to the left or to the right (it can look ''very nice'' like this sometimes), write {{{left}}} or {{{right}}}.
+
+=== Example ===
+So I upload the image as usual:
+
+attachment:image.jpg
+
+Then I write:
+
+{{{[[Thumbnail(image.jpg)]]}}}
+
+[[Thumbnail(image.jpg)]]
+
+= MORE COMING SOON=

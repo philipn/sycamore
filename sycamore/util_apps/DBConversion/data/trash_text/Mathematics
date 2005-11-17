@@ -1,0 +1,71 @@
+The Mathematics department is based in ["Kerr Hall"], until they move (pending completion of the ["University Construction" construction]) to the ["Mathematical Sciences Building"].  The department is headed by Chairperson John K. Hunter, Vice Chairperson Joel Hass, and Vice Chairperson Janko Gravner (Undergraduate matters).  The official office, for departmental matters, is 565 ["Kerr Hall"].
+
+  *''Anyone have any idea whats moving into Kerr after the math department moves? By the way its a fitting move, coming to join the engineers and physicists on south campus.'' --["JamesDawe"]
+
+The department is filled to the brim with brilliant researchers.  We served as a home to [http://www.math.cornell.edu/People/Faculty/thurston.html Bill Thurston], Fields Medalist c/o his [http://mathworld.wolfram.com/ThurstonsGeometrizationConjecture.html Geometrization Conjecture], for a number of years.  Trying to group and classify what's studied is futile, but there does seem to be a lot of topology, geometry, mathematical physics, and numerical analysis going on up in ["Kerr Hall"].
+
+('''Note:''' Most all of this information can be found, more formally, in the ["General Catalog"] -- located more specifically at [http://registrar.ucdavis.edu/UCDWebCatalog/programs/MAT/MATfac.html])
+
+The Math department offers A.B. and B.S. degrees, as well as a minor.  The difference between the A.B. and B.S. is, as usual, the A.B. degree has less strict guidelines for courses as well as having less courses required (usually).  The A.B. degree is probably better suited for students pursuing another major or those who wish to tailor a more unique upper division program.  The minor is just 20 units in upper division courses.
+
+Within the B.S., students must choose a track within the major that decides the course of upper-divison study.  The tracks are "Preparation for Graduate Study in Mathematics", "Computational and Applied Mathematics", "Mathematics for Secondary Teaching", and "General Mathematics."  Basically, if you want to go to graduate school for Mathematics (or something very close, such as Theoretical Physics), then the Grad-track is the only track you should consider.  The Computational/Applied track seems to consist mostly of students from other majors who wish to double-major in Mathematics, especially Computer Science.  The Teaching track is, well, for those who wish to become High School/lower teachers.  The program doesn't incorporate getting teaching credentials, but that's something you have to do on your own.
+
+The Grad Track requires completion of the 127 and 150 series.  Computational/Applied requires completion of no particular track, but most take the 149 series.  Teaching requires either the 149 series or 150A,B (not C), but most in the track take the number theory courses (115).
+
+== Courses ==
+=== Lower Division ===
+So, everyone has to take Calculus.  We have two Calculus series: 21 and 16.  21 is for people who will take more Mathematics courses after the series, whereas 16 is for those who need only Calculus for their further work.  This means Science, Engineering, and Mathematics type majors have to take 21, and Social Science / some Biology take 16.  What you take after this depends highly on your major.
+
+22A - Linear Algebra.  ''It's my opinion that this is the most confused course in the department.  It starts off with very basic operations on matrices, which are used to solve basic linear equations.  This seems to encompass the majority of the class no matter how it's taught.  Then the instructor must also use this class to prepare advancing students for material in upper division mathematics courses, and must focus a lot on vector spaces, change of basis, and linear operators (with their eigenvalues, eigenvectors).  This leads to a tedious, calculation-based course (for the majority) and then a half-assed effort at a real linear algebra course.  The 167 course tries to remedy this but fails due to the amount of material it must make up for''-["PhilipNeustrom"]
+
+22B - Differential Equations.  You learn to solve and classify basic ordinary differential equations.  There may or may not be very complex applications shown.
+=== Upper Division ===
+108 - Introduction to Abstract Mathematics.  This is perhaps the most talked about course in the department.  Most (all?) Computer Science majors have to take this before they graduate, hence most of the people in the course are Computer Science majors.  This is a "proof class" in the sense that you're supposed to learn how to give a good, rigorous mathematical argument.  You can learn a lot in this class, but most people have bad experiences overall.  There is a certain understandable level of anality (this isn't a word) that's given to the students after this class, but it is sometimes hard for students to learn that not every argument is given in strict propositional and existential quantifier terms.
+
+111 - History of Mathematics.
+
+114 - Convex Geometry
+
+115A - Number Theory.  You learn basic properties of congruences, prime numbers, diophantine equations, and learn some interesting functions (such as euler's function and the moebius function).
+
+115B/C are a continuation and of A and topics are the choice of the instructor.
+
+116 - Differential Geometry.  A slight continuation of 21D.  You study curves and surfaces and their curvature properties using vector analysis and differential geometry.
+
+The philosophical importance of the course is profound.  Differential geometry provides a context in which one can study many kinds of geometry beyond the Euclidean geometry of high school.  Other geometries will often be weird and interesting.  For example, if you look at the geometry on a sphere, you can take the great circles (equators of the sphere) to be your straight lines.  Then, in a small enough region, the straight lines will be the paths that minimize distance between points.  That's to be expected.  But two straight lines will always intersect (parallel or not)!  It is the differential calculus that allows one to look at the geometry in a convenient way.
+
+This class studies curves and surfaces, but this is only the beginning of differential geometry.  When we speak about a curve, we are considering a one-dimensional object embedded in our three-dimensional space.  When we talk about a surface, we are considering something two-dimensional embedded in three-dimensional space.  But we only put the three-dimensional space in because we perceive ourselves to live in 3-D space, so that seems the most natural surrounding for our curve or surface.  It was Riemann in the nineteenth century who first realized that we may divorce the curve and surface from the ambient 3-D space.  Furthermore, why limit ourselves to 1- or 2-dimensional objects?  We should consider n dimensions, as many as we want for a purpose at hand.  Riemann called these n-dimensional surfaces, liberated from any ambient space, manifolds.  Einstein's theory of General Relativity considers the space-time continuum to be a four-dimensional manifold.  Gravity is curvature in the manifold, and particles under the influence of gravity follow the straight lines in the non-Euclidean geometry.
+
+118A - Partial Differential Equations.  You learn the some basic methods of solving basic, special-case, PDEs. Also covers classical Fourier series indepth for the last couple weeks of class.
+
+118B - Partial Differential Equations.  You learn about Green's Functions, a very useful way to solve some linear PDEs.  Unfortunately, the Green's Function is usually quite difficult to determine.  It depends on the geometry of the boundary conditions, and involves quite a bit of work even for simple geometry.  For more complicated geometry, the problem becomes intractable.  Also, Fourier series solutions are studied in more depth.  The sines and cosines in a Fourier series can be thought of as a "basis" for the space of functions, in the sense of linear algebra.  You learn about several different kinds of "bases" in that spirit.
+
+118C - Partial Differential Equations.  Hands down, the most thrilling of the 118 series.  Like a cathedral among chapels.  You learn the theory of distributions--a distribution being a mysterious "generalized function".  For example, the delta function is a distribution that is 0 everywhere but at x = 0, and has an integral of 1.  But this cannot be a function, it must be something more general!  It turns out that the delta function and Green's Function are intimately related.  Moreover, you learn about an extremely useful operation called convolution.  You learn about Laplace and Fourier Transforms.  The power of these combined techniques in essence allow you to solve any linear PDE.
+
+119A,B - Ordinary Differential Equations.  Sometimes referred to as "the Phase-plane class," you focus on phase planes and classification of singularities.  You also learn all sorts of other analysis in the process.
+
+121 - Advanced Analysis for the Sciences.  This course fills the gap for those who need to learn tools like Fourier series and Fourier transforms but cannot afford the time to take 119 and 118.
+
+127A,B,C - Advanced Calculus.  This a series in elementary real analysis.  This means that a lot of the material (in A and B) will be familiar to you from your previous courses, but will be set in a much more rigorous framework and worked with from there.  The C course, which non-Grad track majors do not have to take, focuses on developing more advanced topics in elementary analysis such as the total derivative (or Frechet derivative), the implicit/inverse function theorems, change of variables, and differential forms.
+
+128A,B,C - Numerical Analysis.  This is not a "series" and can be taken in any order.  The topics differ but all focus on developing algorithmic methods of solving mathematical problems.  Involves programming.
+
+131 - Probability Theory.  
+
+132A,B - Stochastic Processes.
+
+141 - Euclidean Geometry.  This course has typically been taught to be an axiomatic, slow, and through treatment of Euclidean geometry.  In recent years it has incorporated much (if not most of the course) time to discussion of alternative geometries such as spherical and hyperbolic.
+
+145 - Combinatorics.  This is supposed to be a fun class.  You learn basic counting methods, and learn about generating functions and recurrence relations. 
+
+147 - Topology.  This is a basic course on point-set and combinatorial topology.  ''When I took it, it was entirely point-set and we focused just on the first chapters of Munkres without covering anything algebraic.''-["PhilipNeustrom"]
+
+149A,B - Discrete Mathematics.  This is generally viewed as the "alternative to 150," but many students do end up taking some of both.  You learn combinatorial, algebraic, and other methods that work with discrete structures.  Basically, this course is a bit of combinatorics, a bit of algebra, and a bit of graph theory.
+
+150A,B,C - Modern Algebra.  This is the standard abstract algebra series.  The difference about Davis is that instead of being merely one or two courses, it's three.  This allows for a lot of time to carefully develop the ideas and theories.  You learn, basically, groups, fields, and rings.  It's a whole lot more than just that, though.
+
+167 - Advanced Linear Algebra.
+
+185A - Complex Analysis with Applications.  
+
+185B - Complex Analysis with Applications.

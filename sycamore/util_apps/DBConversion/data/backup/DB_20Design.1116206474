@@ -1,0 +1,34 @@
+= Questions =
+Should we [http://www.livejournal.com/~codetoad/206453.html store the page text/cached versions] in the DB? -- So far, we're leaning toward a strong 'yes.'
+
+Should we store the images in the database?  Images are much larger than text, so the ability of the DB to query cache is essential here, and apache might likely trump MySQL in caching on this issue.  If we stored the images in a database that would mean a much more streamlined backup process.  The downside is possibly speed issues.  Also, we'd need a little helper script called 'img' or somethign such to pull images out.  If we used files as images then we'd have to do lookup (so we'd hit the DB anyway, but with less throughput).  We'd then have two data organization schemes -- the DB and the image file hierarchy.
+
+= What's been done so far =
+["PhilipNeustrom"] has simple reading/writing from MySQL working locally.  Next up is to get the backup pages (Info tab) and Recent Changes to work right.  Then images.
+
+= Schema =
+{{{
+mysql> show tables;
++----------------+
+| Tables_in_wiki |
++----------------+
+| curpages       |
++----------------+
+1 row in set (0.00 sec)
+}}}
+
+{{{
+mysql> describe curPages;
++------------+------------------------------------------------------------------------------+------+-----+---------+-------+
+| Field      | Type                                                                         | Null | Key | Default | Extra |
++------------+------------------------------------------------------------------------------+------+-----+---------+-------+
+| name       | varchar(255)                                                                 |      | PRI |         |       |
+| text       | mediumtext                                                                   | YES  |     | NULL    |       |
+| cachedText | mediumblob                                                                   | YES  |     | NULL    |       |
+| editTime   | datetime                                                                     | YES  |     | NULL    |       |
+| cachedTime | datetime                                                                     | YES  |     | NULL    |       |
+| userEdited | varchar(19)                                                                  | YES  | MUL | NULL    |       |
+| editType   | enum('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO') | YES  |     | NULL    |       |
++------------+------------------------------------------------------------------------------+------+-----+---------+-------+
+7 rows in set (0.09 sec)
+}}}

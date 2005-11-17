@@ -1,0 +1,29 @@
+= Finding wiki software =
+ * somewhat new concept
+ * few examples of successful projects
+ * software-wise:
+    * MoinMoin -- used by many in open source community
+      * stuck to wiki traditions (CamelCase)
+        * CamelCase makes sense when you're talkingAboutObjects
+      * seemed easy to hack
+    * MediaWiki -- huge, used by wikipedia
+      * broke conventions (no CamelCase)
+ * project-wise:
+    * wikipedia
+    * software documentation/open source community used wiki
+
+= Altering the software =
+ * We wanted some core features
+   * Map
+   * Events Board
+   * But still wanted to keep it simple -- no email/bulletin board systems
+ * Usability
+ * Wanted it to __look nice!__
+
+== Scalability & Usability ==
+ * Didn't want CamelCase -- moin had broken link system
+ * Search
+  * Before:  {{{grep}}}
+  * Now:  "Xapian" probabilistic engine
+ * Concrete features: RSS, Bookmarks, Comments, Thumbnails...and more.
+ * We've changed practically everything: editing and using simple.

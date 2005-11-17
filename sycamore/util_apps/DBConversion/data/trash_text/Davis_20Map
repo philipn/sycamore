@@ -1,0 +1,13 @@
+== Navigate the Wiki via a map ==
+[[Map()]]
+[[BR]]
+If your browser does not support Java, you can use the [http://daviswiki.org/davismap.html static map] (which pales in comparison).  You ought to [http://jdl.sun.com/webapps/getjava/BrowserRedirect?locale=en&host=www.java.com:80 get java], though, really!
+= General Davis map information =
+
+The city of Davis has maintained a rather extensive collection of useful and interesting maps over at their [http://www.cityofdavis.org/gis/ Geographic Information System] site.  The [http://www.cityofdavis.org/gis/library/ downloadable map layers] page is especially useful for the wiki.  You can download .zip files containing layer files, which you can view with [http://www.esri.com/software/arcexplorer/download4.html].  These files contain a lot of useful data.  For instance: the parks file contains the locations/shapes of all the parks, size of all the parks, and their names.
+
+Among the most interesting are the 2003 aerial photos, which you can [http://www2.dcn.org/orgs/orthophotos/ download individually in high resolution] or [http://www.cityofdavis.org/gis/2003aerial browse seamlessly using flash].
+
+The [http://www.cityofdavis.org/gis/unitrans Unitrans route map] is likely the most useful to students, though.
+
+The city also has a [http://www.city.davis.ca.us/gis/bikemap.pdf bike map] available in PDF form. This map shows ["Bike Paths" bike paths] in addition to city streets.

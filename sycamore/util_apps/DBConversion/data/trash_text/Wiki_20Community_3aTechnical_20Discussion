@@ -1,0 +1,51 @@
+[[Comments()]]
+
+'''Older Comments can be found by going through the revision history in the ''Info'' tab. Comments are deleted only in entries marked "CLEANUP" -- ["KenBloom"]'''
+
+------
+''2005-01-19 00:27:55'' [[nbsp]] What backend does DavisWiki use for storing documents in and resolving conflicts? I happened to notice that conflict resolution frequently needs help with conflicts that CVS and Subversion never had trouble with (i.e. the conflicting changes are in really far-away parts of the page). --["KenBloom"]------
+''2005-01-19 00:40:30'' [[nbsp]] {{{diff page1 page2}}} is the system :0  If you'd like to write something better, all you need to know is that there are two versions of the page, each stored entirely -- say, page1, page2.   I don't know what would be smarter, but you might be able to come up with something.  (sorry, the source will be up soon..i'm just busy with so much other stuff right now).  But really, that's all you need to know to write a method..  --["PhilipNeustrom"]
+  * [[s(start)]]I think what I would like to see is: the edit page remembers what revision number was current when the user clicked the edit button. So the reconcile logic does: {{{
+diff PageName.version_when_user_clicked NewVersion > thepatch
+cp PageName.currentversion temp
+patch temp thepatch
+mv temp PageName.newversion
+rm temp.orig
+}}} but since patch doesn't handle rejects in a way that would be friendly for us, I don't know what to do to accomplish that logic. (I'm not seeing how it would make sense to check out a whole svn or cvs working directory in order for a user to make a change.) -- ["KenBloom"][[s(stop)]]
+  * I started looking at diff3(1) and realized that (a) it does what I described (b) you're probably alreay using it (c)the problem is probably that each paragraph is one long line, rather than the unix way where it's broken up into several lines. This gives diff3 much less context when trying to merge changes. I'm looking to see if there's something along the lines of wdiff3 that might help. -- ["KenBloom"]
+------
+''2005-01-19 18:41:46'' [[nbsp]] I think we ought to draft up a simple ["Disclaimer"] in the style of [http://en.wikipedia.org/wiki/Wikipedia_talk:General_disclaimer Wikipedia' disclaimer] just to cover ourselves from potential issues.  Anyone want to take a stab at it -- marching through the wikipedia one and adding what is important for us (without so much detail)? --["PhilipNeustrom"]
+  * In addition, what do you folks think about attaching the upload history to an image?  As of now I am not sure how the CC licensing is supposed to work with respect to uploaded images.  Would giving "DavisWiki.org" as a collective 'credit' for a used image suffice under the terms of the license (When using the image -- even on this site itself)  Furthermore, do we need to clarify that 'original author' is also the collective entity that is Davis Wiki?  Or would that not even work?  How about citing and using text?  There is __no__ 'original author' for a wiki page, so I think the only good solution is to somehow assert that the original author ''or'' the collective can be credited (under the terms of the CC license -- so that it would just be "CC license + 'original author' can be understood to also mean Davis Wiki?"  Is the only solution attaching an author tag to each image?  I am __really__ concerned about this issue and any legal or otherwise useful advice anyone could give me would help a lot. --["PhilipNeustrom"]
+------
+''2005-01-19 18:44:19'' [[nbsp]] Real easy and obvious request:  I had somebody who didn't realize what the "Diff" button on the Revision History page meant.  Diff is somewhat a technical term; a better general public term might be "Compare Revisions", but that's unlikely to fit, so a footnote with "Show Differences Between Versions" or something along those lines would be a good idea for those who aren't familar with diff and patch.  ;) --["JabberWokky"]------
+''2005-01-19 20:07:46'' [[nbsp]] Sure.  How about "Compare" instead of "Diff"? --["PhilipNeustrom"]
+------
+''2005-01-21 19:41:43'' [[nbsp]] Does anyone have any objections with us gutting our 'blacklist' spam method (which seems to cause some confusion around these parts) and using the {{{rel="nofollow"}}} [http://www.google.com/googleblog/2005/01/preventing-comment-spam.html attribute] on all outgoing links? --["PhilipNeustrom"]------
+''2005-01-22 00:24:19'' [[nbsp]] Is increasing the Google standing the only purpose of link spamming?  Also, how would we make it obvious that the scheme is being used? --["MikeIvanov"]------
+''2005-01-22 00:54:22'' [[nbsp]] Yes, that is the only reason for the kind of wiki spam that takes place.  (Typically they write "sponsored links" and list a ton of random sites..hundreds, if not thouands..the only other reason to spam is to increase visability, which does't happen with the mass wiki spamming schemes i've seen..) --["PhilipNeustrom"]------
+''2005-01-22 01:10:54'' [[nbsp]] I'm all for killing the current blacklist.  Maybe it's a good idea to clear it but keep it there in case we need to quickly blacklist a particular URL? --["MikeIvanov"]------
+''2005-01-23 00:05:11'' [[nbsp]] I'd like to be able to help increase a page's pagerank if we've legitimately linked to it from here (and not linked to it because of spam). --["KenBloom"]
+  * What do you propose, then?  The blacklist method doesn't seem to work well because it hinders legit edits (see ["Poker"]).  I am currently in favor of the google solution..not that it'd stop all spam, but it'd at least be a step in the right direction..
+    * Would the spammers really know/care that all of our links have {{{rel="nofollow"}}} on them. (IOW, would that actually prevent them from spamming, or would it just prevent their spams from accomplishing their goal? -- ["KenBloom"]
+     * It would prevent them from accomplishing their goal.  Google hits us about once an hour so the chance for a pagerank increase is actually there.  We can see how we fly without any filters/rel in place (my guess is that we'll get hit pretty soon, but it's really not a big deal, just hit 'revert')
+------
+''2005-01-25 19:38:31'' [[nbsp]] Why don't we just relax the blacklist regexps a bit, such as restricting it to actual links. --["MikeIvanov"]
+  * Yeah + it should say something more useful to the person as well.
+------
+''2005-01-25 23:22:32'' [[nbsp]] Just a thought on my diff question: The {{{[[Comments]]}}} box seems to be intended to mitigate the effects of edit conflicts for one-liners at the bottom of the page. If use the add comment box, you only have a version of the page out for editing for a split second, so it's very difficult to get a conflicting change in in that time, plus the semantics of the change are really clear. Use of the {{{[[Comments]]}}} box may mitigate against the need to find/invents something like wdiff3 --["KenBloom"]------
+''2005-01-25 23:25:11'' [[nbsp]] The problem is people do not preview before they save, often.  I think investigating a better diff algorithm would be cool, though.  If I "move" a block of text and then make a subtle change in that block it is hard to tell where the change took place. --["PhilipNeustrom"]
+------
+''2005-01-26 00:31:04'' [[nbsp]] Any chance of getting links to work properly in headers/definitions?  Personally, I don't really like the style, but it looks better than seeing the raw wiki code. --["BrentLaabs"]
+------
+''2005-01-28 14:45:24'' [[nbsp]] ''note: I'm moving these next few comments from personal user pages to here because it seems a more appropriate place.''[[BR]] 
+I saw your recent redirect deletion binge, Arlen... not a bad idea to clean stuff up.  But are you remembering to consider that while a redirect might not be referenced on the wiki, there still could be an external site that links to it? --["JevanGray"]
+------
+''2005-01-28 14:48:15'' [[nbsp]] true, but at some point the wiki just becomes a jumbled maze of redirects. besides, i think philip (not sure really) may be building some sort of case insensitivity into the next release. --["ArlenAbraham"]------
+''2005-01-28 14:57:34'' [[nbsp]] Yes, links will be case insensitive in the next release.  --["MikeIvanov"]------
+''2005-01-28 14:59:51'' [[nbsp]] mike, does that work for links coming in from outside as well? jevan was concerned with my useless redirect purging. --["ArlenAbraham"]
+------
+''2005-01-28 16:01:16'' [[nbsp]] Yes, links will be resolved during the request, so it will work for external referrals as well. --["MikeIvanov"]------
+''2005-01-30 12:11:10'' [[nbsp]] There's a program "wdiff3" in maxdb-buildtools that may be useful for reconciling conflcits. It's written in python. It seems to have syntax errors (and I'm no python expert) but maybe someone else would know how to make it work to replace diff3 for merging. --["KenBloom"]
+------
+''2005-02-01 15:12:54'' [[nbsp]] Ummm.... I accidentally deleted a couple photos from the [On Campus Co-Ops] page when I tried to recombine it onto the [On Campus Co-ops] page... is it possible to recover these images?? Sorry about that. --["AlphaDog"]------
+''2005-02-01 15:19:46'' [[nbsp]] I was able to recover the images in my previous comment, so please disregard and have a happy day. --["AlphaDog"]

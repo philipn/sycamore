@@ -1,0 +1,19 @@
+The collective of 12 student programmers managed my Jim Moersfelder who provide technical support in the ["Computer Science Instructional Facility"].
+
+Find them in '''Room 47''' in the basement of ["Kemper Hall" Engineering II] any time ["Computer Science Instructional Facility" CSIF] is open.
+
+They've got a '''["microwaves" microwave]''' in there if you've got something you want to nuke, and a '''minifridge''' if you've got a beverage you want to cool down, but keep in mind that eating is not allowed inside the ["Computer Science Instructional Facility" labs] (i.e. eat in the halls).
+
+CSIF Support staff can reset your password, help you with issues of logging in, help you print something out, etc.
+
+'''If you're having trouble logging in:''' it is most likely a quota issue, do the following
+ * press ''ctrl-alt-f1'' on one of the CSIF machines
+ * login at the terminal
+ * type ''quota -v'' to see if you're at your quota, if you are
+ * delete some of your files (you can use ''du --max-depth=1 | sort -n'' to see which of your directories is taking up the most space
+ * once you're done, press ''ctrl-alt-f7'' to get back into X, and login with the graphical interface as usual
+
+
+'''Current CSIF employees'''
+ * ["PaulIvanov"]
+ * ["ElvinLee" Elvin Lee] - ''I'm an employee, too, damnit. :( Sorta....''

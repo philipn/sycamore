@@ -1,0 +1,41 @@
+#acl AdminGroup:read,write,edit,delete,revert,admin All:read
+2004-11-15  Welcome to our 100th user, ChristyMarsden!  At the moment the wiki has 102 ["User Statistics" users], 586 pages, and we have raised $20 in ["Donate" donations].  Thanks to everyone involved.  I think it's safe to say so far the project is a catastrophic success.
+[[BR]]-----
+2004-11-05  Have [http://www.mozilla.org/products/firefox/ Firefox] or [http://www.mozilla.org/products/mozilla1.x/ Mozilla]?  Then you should [[firefoxsearch]] [[BR]]-----
+2004-10-26  Welcome to Davis Wiki!  We've added map support over in ["Davis Map"] and a "View Map" link in all pages with a map location.  Those of you who were here before we were public, you might want to re-read the ["Davis Wiki Guide"] as there's a lot of new stuff.  If you have any comments/suggestions about general site matters, ["To Do"] is the place to put them, for now.  Welcome!
+[[BR]]-----
+2004-10-13  We're going to open the site up very soon!  It's a matter of days, literally.  We still have a few things left ["To Do" to do], but it's going to happen soon!  More updates as they come. .
+[[BR]]-----
+2004-08-31 Being Davis students, we've been busy moving into our new places this past week. Once things stablize we will continue to move toward our goals for public release. MikeIvanov is going to make some really cool mapping stuff that will help tie a lot of our content together in new ways. We're also securing our existing code a little more. Anyway, have a good day!
+[[BR]]-----
+2004-08-10  WikiNames are dead!  Long live {{{["Links like this"]}}}!  From now on, if you see a space, include a space.  It's really that simple!  Some things might be broken, but of course, fix any broken links or ["To Do" tell us] about your problems.
+[[BR]]-----
+2004-08-09  [[s(begin)]]What do you think of the ["Wiki Name"] business?  Would it be better if we only had one way to link to pages -- just using {{{["Page Name"]}}} and got rid of ["Wiki Names"] all together?  Or is it nice?  Please let us know in ["To Do"].[[s(end)]]
+[[BR]]-----
+2004-08-04  The development has slowed down a little in the last week, but that's only because we have other things we need to be doing.  Nevertheless, we have added some editor buttons which make formatting a page much easier.  Try them out when you edit a page!  Also, we have set up a {{{PayPal}}} account for possible future donations.
+[[BR]]-----
+2004-07-29  The features just keep on coming.  In the last couple of days ["PhilipNeustrom"] has developed a dynamic XML-based ["Events Board"].  As we speak, he is implementing an RSS feed that will allow you to view the most up-to-date events through your favorite blogging site.  The next thing to come will be the long-anticipated interactive map--but I promise it will be good.
+[[BR]]-----
+2004-07-26  We now have a comments feature.  This might seem pointless as you can edit all the pages, but this allows for quick comments that don't log in ["Recent Changes"] -- ideal for personal pages or where you want people to comment without contributing content (like ["To Do"]) and do so in a standard way.  To include comments just write {{{[[Comments]]}}} or {{{[[Comments(text)]]}}} in your page.
+[[BR]]-----
+2004-07-20  The wiki is now very pretty.  There's still a lot of work to be done -- but what do you think?  Leave a note in ["To Do"].
+[[BR]]-----
+2004-07-19  Lots of work has gone into the new theme, codenamed "egghead," and we plan to finalize the navigation and layout aspects tonight, followed by a rehaul of the colors and fonts.  Since it is pretty usable, it is now the default theme.  [wiki:ToDo Let us know] what you think about it.
+[[BR]]-----
+2004-07-09  We have started working on cleaning up the wiki, rebuilding the interface, and implementing new features that will improve navigability, which may or may not be a real word.  Thanks to ["JenndelaVega"] and others for contributing content; we're doing the same, only behind the scenes.
+[[BR]]-----
+2004-07-05  Thanks to the efforts and monetary investments of ["PhilipNeustrom"], we are now on real, solid hosting.  The wiki is ''fast'', and it will only get faster after we implement optimizations.  The DNS changes are pending, so in a couple of hours you will be able to reach the wiki simply by going to daviswiki.org
+[[BR]]-----
+2004-07-04  The wiki was down for about 10 hours for unknown reasons.  Apologies to everyone who was unable to access it.  ["PhilipNeustrom"] has set up some permanent hosting, so we will be moving to that probably tomorrow and certainly by Monday, if everything goes well.  In the meantime, continue to add content, and as long as we don't go down again before the move, everything will be transferred seamlessly in a day or two.  Thank you for flying ["Davis Wiki"].
+[[BR]]-----
+2004-07-02  Everything is coming along so well!  Mike has started work on a java applet to do '''exactly''' what we want to do with mapping.  We're going to start associating GPS/other data with nodes -- but you'll notice when it goes into effect because there'll be some sort of "add map location" button on every page.  Besides mapping, we've still got a lot of ideas floating in our head -- so check out ["To Do"] !
+[[BR]]-----
+2004-07-02  http://daviswiki.org now redirects to our place here.  When we move to real servers we'll make it more than redirect.
+[[BR]]-----
+2004-06-29  Some users on here. '''We have a BusinessTemplate now'''.  Try to use this so searches will be easier later on when we've got a lot of businesses.  (Templates show up when you create a new page, so just select the appropriate one, if offered).
+[[BR]]-----
+2004-06-29  Now on Joshua's server.
+[[BR]]-----
+2004-06-27  Opened laptop for external access by Mike, Paul, and some others!  Wiki away!!
+[[BR]]-----
+2004-06-24  Started up the Wiki on my laptop.

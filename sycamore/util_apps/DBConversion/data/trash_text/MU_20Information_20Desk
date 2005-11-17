@@ -1,0 +1,1 @@
+#redirect MU Information Center

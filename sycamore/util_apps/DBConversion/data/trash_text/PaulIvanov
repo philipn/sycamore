@@ -1,0 +1,52 @@
+||attachment:mesmall.jpg||undergrad @ UCDavis [[BR]]major: ["Computer Science"] [[BR]]email: pivanov at ucdavis dot edu [[BR]]current occupation: ["CSIF Support"][[BR]]previous occupation: ["Summer Advising"][[BR]]what makes me happiest? ["LenaGranik" my girl] [[heart]] (see below)||
+
+[[center(begin)]]
+||<v>attachment:hotchess.jpg [[BR]]as you can tell i'm a sexy russian ||<v>attachment:knife.jpg [[BR]]and a knife-weilding maniac [[heart]] ||
+[[center(end)]]
+
+
+
+[[center(begin)]] attachment:look.jpg [[center(end)]]
+
+
+
+
+= personal news =
+
+I'm ["Friends Urging Campus Kindness" running for senate].
+
+
+
+== Note from Philip ==
+Along with the things scribbled down on that piece of paper, a couple other things that need to be done with the case-insensitive links:
+ 
+ * The Rename action should allow you to rename just as it does now (so we can have reasonable case fixes) but it needs to __not__ create a redirect page if pagenameIsSame(new_name, old name) where pagenameIsSame is a more general function that (for now) just does .lower() (but we're going to hopefully have it do underscores and stuff later). I think the method should go in wikiutil.py for now.
+  * Also, it should add a new key when it does the Rename action (for the new page name).
+ * pagenameIsSame on page creation..
+ * Should function at the request level as well, for backward compatability. (and so we can move to _ style spaces using the same function).
+ * I might think of more
+
+
+[[Stats(PaulIvanov)]]
+[[Comments]]
+Hey Bro, hope you like how things are right now.  The wiki missed you this week :0) - ["PhilipNeustrom"] <3
+-----
+["JenndelaVega"] misses Paul.
+------
+''2004-08-17 03:40:25'' [[nbsp]] What do you mean by that?  We need content before we can link our own content to our own content extensively.. - ["PhilipNeustrom"]------
+''2004-08-17 03:44:40'' [[nbsp]] Well, it's easier to just link up as much crap now, and add as you go - ["PaulIvanov"]------
+''2004-08-17 03:48:13'' [[nbsp]] I agree.  But we need to be careful to choose the right names and check ["Wanted Pages"] and ["Orphaned Pages"] - ["PhilipNeustrom"]------
+''2004-10-22 03:33:56'' [[nbsp]] test - ["MikeIvanov"]------
+''2004-12-13 16:14:50'' [[nbsp]] Ah, I remember you from summer advising. - ["AndreyGoder"]
+------
+''2004-12-24 03:05:32'' [[nbsp]] Pablo Honey? --["KrisFricke"]------
+''2005-01-01 14:22:46'' [[nbsp]] Paul, I remember you telling me no ["Temporary Buildings"] had been removed -- and that you'd learned that from a meeting with the guy in charge of the long-term development of the ["Campus"].  Can you confirm or clarify this in ["Temporary Buildings"]? --["PhilipNeustrom"]
+------
+''2005-01-12 23:56:41'' [[nbsp]] Hey, do you need help figuring out the capitalization thing? --["MikeIvanov"]
+------
+''2005-01-13 00:01:12'' [[nbsp]] Nice work! --["MikeIvanov"]
+------
+''2005-01-15 11:34:20'' [[nbsp]] good luck on the senate run --["PaulLanzi"]------
+''2005-01-19 11:18:31'' [[nbsp]] I'm so hawt that I strut the streets of Davis in really tight jeans ;) - ["PaulIvanov"]
+
+

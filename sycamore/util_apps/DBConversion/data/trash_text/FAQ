@@ -1,0 +1,21 @@
+[[Anchor(top)]]For now most of the FAQs can be found in ["Davis Wiki Guide"].
+
+If you have a question, ask it here!
+
+== How do I include an image without uploading it to Davis Wiki? ==
+To include an offsite image simply paste in the url of the photo.  So if the photo was located at {{{http://wherethepictureis.com/thepicture.jpg}}} you would just paste {{{http://wherethepictureis.com/thepicture.jpg}}} into the page.  The wiki sees that it's an external link and then sees that it's an image, so it displays it.
+=== When should I do this? ===
+Do this when you don't really think the image needs to be in the Davis Wiki.  Uploading an image (By clicking on Images in edit and then including {{{attachment:thefilename}}} in the page's text) is preferred most of the time.  When you upload an image it will be here for years to come, whereas if you just link to it (by pasting the URL) then it will likely disappear in a few years.  An example might be a photograph that's very personal (for your page on here).  Again, for most cases, uploading is preferable.
+
+== Can one link to a certain part of a page? For instance, Coffee/Cafes on the Restaurants page? ==
+First you must set an 'anchor'.  So, say you're on the coffee section of a page.  You place an anchor here with the label ''coffee'' by putting {{{[[Anchor(coffee)]]}}} by that area.  Then you can create a link to that section by putting {{{[#coffee Text for the link here]}}}  wherever you'd like on the page.  Clicking on the link will take you directly to that section.  For example:  There has been an anchor with the label ''top'' placed at the very top of this page.  If I write {{{[#top the top of the page!]}}} it displays as:  [#top the top of the page!]  Go ahead and click on it :)
+
+''As far as I know, you can only link to an anchor from within its own page, but ["PhilipNeustrom" phil] may change that in the future.'' - ["KenjiYamada"]
+  ''It'd be very helpful to be able to link from other pages. It'd help at keeping stuff centralized yet still linkable from different areas. Thanks Kenji.'' - ["JackHaskel"]
+    * What do you folks think about the notation {{{["Page name":anchorname Link text]}}}?
+
+How do you delete a page?  The page entitled "Taqueria Super Burrito" is a mess-up, it actually refers to "Taqueria Super Tamale" which already exists.  Can someone fix my naming error??
+  * Just go into edit and press "Delete" down under the text area.  Make sure you integrate what you wrote into the other page.
+
+== I accidentially deleted some images from a page, is there an easy way to recover them? ==
+For now, just go to [http://daviswiki.org/image_backup/ daviswiki.org/image_backup].

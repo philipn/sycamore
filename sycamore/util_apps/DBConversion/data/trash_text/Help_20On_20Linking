@@ -1,0 +1,52 @@
+##language:en
+== Simple Rule ==
+For pages ''inside'' the wiki, use brackets with quotes.  For pages outside the wiki, use brackets '''without''' quotes.
+== Pages inside the wiki ==
+If you enclose a sequence of characters in square brackets and double quotes {{{["like this"]}}}, that makes it a page name.  To have it display with alternative text, write it {{{["like this" with the display stuff here]}}}.
+
+== URLs and Inline Images ==
+There are several way to insert external references[[FootNote(The opposite of external references are the internal ["A Wiki Page"] links.)]] into the text:
+ * direct URL insertion; if the URL ends in an image extension ("{{{.gif}}}", "{{{.jpg}}}" or "{{{.png}}}"), the URL is converted to an image tag.
+ * bracketed URLs.
+ * email addresses.
+
+If you enter URLs into normal text, there is the problem of detecting what belongs to the URL and what not. There are four ways to force the ending of an URL:
+ * put a space after the URL.
+ * use the bracketed URL syntax.
+
+The supported URL schemes are: `http`, `https`, `ftp`, `nntp`, `news`, `mailto`, `telnet`, and `file`.
+
+[[FootNote]]
+
+=== Example ===
+{{{
+ * http://daviswiki.org
+ * [http://daviswiki.org]
+ * [http://daviswiki.org Davis Wiki - The best place on the Internet]
+ * http://daviswiki.org/circleblack.png
+ * [http://daviswiki.org/circleblack.png]
+ * [http://daviswiki.org/circleblack.png our old logo]
+ * ["A Page In The Wiki"]
+ * ["A Page In The Wiki" blah blah]
+ * jh@web.de
+ * [#anchorname Anchor Link]
+}}} 
+
+=== Display ===
+ * http://daviswiki.org
+ * [http://daviswiki.org]
+ * [http://daviswiki.org Davis Wiki - The best place on the Internet]
+ * http://daviswiki.org/circleblack.png
+ * [http://daviswiki.org/circleblack.png]
+ * [http://daviswiki.org/circleblack.png our old logo]
+ * ["A Page In The Wiki"]
+ * ["A Page In The Wiki" blah blah]
+ * jh@web.de
+ * [#anchorname Anchor Link]
+
+= How to redirect a page =
+To have a page redirect to another page, simply put the line:
+
+{{{#redirect A Page In The Wiki}}}
+
+as the first line of the page you want to redirect to ["A Page In The Wiki"].  So putting that line in any page, at the top, will make that page redirect to ["A Page In The Wiki"].

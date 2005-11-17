@@ -1,0 +1,5 @@
+Welcome to the [http://daviswiki.org DavisWiki.org] development wiki!  This is where we discuss development issues and try to make our wiki software work properly.
+
+If you want to contribute to the code, see ["How To: Install"].  Our subversion repository is at http://daviswiki.org/repos. If you fix something or make a new feature, feel free to email [[MailTo(philipn AT gmail DOT com)]] a patch (for now.  Eventually we'll have a better way to do stuff).
+
+We've got a bunch of ["Known Issues"] and ["stuff we should do"].

@@ -1,0 +1,81 @@
+= Questions =
+Should we [http://www.livejournal.com/~codetoad/206453.html store the page text/cached versions] in the DB? -- So far, we're leaning toward a strong 'yes.'
+
+Should we store the images in the database?  Images are much larger than text, so the ability of the DB to query cache is essential here, and apache might likely trump MySQL in caching on this issue.  If we stored the images in a database that would mean a much more streamlined backup process.  The downside is possibly speed issues.  Also, we'd need a little helper script called 'img' or somethign such to pull images out.  If we used files as images then we'd have to do lookup (so we'd hit the DB anyway, but with less throughput).  We'd then have two data organization schemes -- the DB and the image file hierarchy.
+
+== Blobs in python? ==
+We're playing with the [http://sourceforge.net/projects/mysql-python MySQLdb] python module.  I don't know the right way to put binary objects into the DB.  This is important because we'd like to store the cached version of a page as binary.  So what I've been doing is something like this:
+
+{{{
+            code = compile(src, self.page_name, 'exec')
+            cache.update(marshal.dumps(code))
+}}}
+
+where marshal.dumps takes a python object and serializes it to a string.
+
+then: 
+{{{
+        cursor.execute("UPDATE curPages set cachedText=%s, cachedTime=FROM_UNIXTIME(%s) where name=%s", (content, time.time(), self.key))
+}}}
+
+
+This is lame.  I'd just like to be able to store the binary object in the field like I'm supposed to.  I might as well be using a string and not a blob..
+
+= Schema =
+{{{
+mysql> show tables;
++----------------+
+| Tables_in_wiki |
++----------------+
+| allpages       |
+| curpages       |
++----------------+
+2 rows in set (0.00 sec)
+}}}
+
+
+{{{
+mysql> describe allPages;
++------------+--------------------------------------------------------------------------------------------+------+-----+---------------------+-------+
+| Field      | Type                                                                                       | Null | Key | Default             | Extra |
++------------+--------------------------------------------------------------------------------------------+------+-----+---------------------+-------+
+| name       | varchar(255)                                                                               |      | PRI |                     |       |
+| text       | mediumtext                                                                                 | YES  |     | NULL                |       |
+| editTime   | datetime                                                                                   |      | PRI | 0000-00-00 00:00:00 |       |
+| userEdited | varchar(19)                                                                                | YES  | MUL | NULL                |       |
+| editType   | enum('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT') | YES  |     | NULL                |       |
+| comment    | varchar(81)                                                                                | YES  |     | NULL                |       |
++------------+--------------------------------------------------------------------------------------------+------+-----+---------------------+-------+
+6 rows in set (0.00 sec)
+}}}
+
+{{{
+mysql> describe curPages;
++------------+--------------+------+-----+---------+-------+
+| Field      | Type         | Null | Key | Default | Extra |
++------------+--------------+------+-----+---------+-------+
+| name       | varchar(255) |      | PRI |         |       |
+| text       | mediumtext   | YES  |     | NULL    |       |
+| cachedText | mediumblob   | YES  |     | NULL    |       |
+| editTime   | datetime     | YES  |     | NULL    |       |
+| cachedTime | datetime     | YES  |     | NULL    |       |
+| userEdited | varchar(19)  | YES  | MUL | NULL    |       |
++------------+--------------+------+-----+---------+-------+
+6 rows in set (0.25 sec)
+}}}
+
+= To do =
+== Basic working parts ==
+ * --X Reading/writing of pages and backups. X--
+ * --X Info, revisions, diffs, etc. X--
+ * make sure pagedict is no where to be found in the code
+ * ["Recent Changes"]
+ * ["Bookmarks"]
+ * Misc functions
+
+== The fun stuff ==
+ * user table and everything involved with removing the file-based user system
+  * Cookies done via a table, as well.  Kill the damned seralized bullshit.
+ * link table
+
+[[Comments]]

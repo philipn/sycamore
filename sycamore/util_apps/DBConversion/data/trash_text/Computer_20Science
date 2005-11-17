@@ -1,0 +1,81 @@
+The [http://www.cs.ucdavis.edu/ Computer Science] department is based at 2063 ["Kemper Hall"].
+
+It offers two B.S. degrees: one in Computer Science, which is given by the ["Letters and Science" College of Letters and Science], and one in Computer Science Engineering, given by the ["College of Engineering"], as well as a 24-unit minor. CS majors are allowed more freedom in the courses they take, as, unlike Engineering majors, they do not have almost all 180 units planned out for them. They also don't have to take any Communication or English classes. The primary difference between the majors is that the CSE major focuses significantly more on software/hardware interactions, while the CS major is more software-oriented. They are very similar otherwise.
+
+[[TableOfContents]]
+
+== The Difference Between Computer Science and Computer Science Engineering ==
+
+The Computer Science Engineering (abbreviated CSE or ECS) major requires taking the Physics 9 series of classes, ECS 160 and also four Electrical Engineering courses:
+ * ENG 17 - Circuits
+ * EEC 100 - Circuits II
+ * EEC 180a - Digital Design
+ * EEC 172 - Microcomputer-Based System Design (i.e. Embedded Processors)
+If its units were counted the way the College of ["Letters and Science"] counts units, it would be 140 units. It ''requires'' 33 units of General Eduation classes, which practically speaking means you're going to have to take 36 units because they've eliminated all of the 5 unit GEs except for sociology.
+
+The Computer Science (CS) major is a B.S. in the College of ["Letters and Science"]. It requires you to choose from one of three science tracks Bio, Chem or Physics. It also requires a couple more math courses. If you want to learn about Bioinformatics, then ''do not'' major in CSE, becasue you won't have room for the Biology that you need to learn Bioinformatics.
+
+  * ''I am an ECS major, and I found the ENG 17 and EEC 180a to be quite painful. I also found that EEC 180a was almost completely a repetition of things I had learned in ECS 154a and ECS 154b (see below). But EEC172 was a lot of fun, and practically requires these circuits courses as prerequisites. Given the choice again, knowing what I know now. I probably would have chosen CS instead. -- ["KenBloom"]''
+
+== Courses ==
+
+The department's descriptions of these classes are available at http://www.cs.ucdavis.edu/courses/exp_course_desc/index.html
+
+=== Lower Division ===
+
+''ECS 10 - Basic Concepts of Computing'': An introductory course intended for non-majors.
+
+''ECS 15 - Introduction to Computers'': Another introductory course. This one appears to focus more on computers themselves instead of simply using them. Gives SciEng and Writing GE credit.
+
+''ECS 20 - Discrete Mathematics for Computer Science'': A fairly simple logic course. Subjects covered include logical proofs, graph theory, and solving of recurrence relations; the kind of math to prepare you for analysing algorithms in 122A.
+
+''ECS 30 - Introduction to Programming and Problem Solving'': This is the first real programming course, normally taught in C. If you're lucky you'll have ["Sean Davis"], ["Dave Buscaglia"] or ["Dean Sniegowski"] as your professor. It covers basics such as control structures, operators, functions, arrays, strings, and pointers.  Buscaglia also goes over linked lists and such, plus has been known to make his students write a set of programs akin to tar.
+
+''ECS 40 - Introduction to Software Development and Object-Oriented Programming'': The logical extension of ECS30 into the realm of C++, this is generally considered a ["Weeder Classes" weeder class] for the CS department. Students in ECS40 learn about all sorts of object-oriented tomfoolery like inheritance and polymorphism. If taught by ["Sean Davis"], they can expect to make programs with mountains of weird, abstract classes to solve whatever ridiculous task he came up with that particular quarter.  You won't sleep much and when you do, you'll have nightmares.
+
+''ECS 50 - Computer Organization and Machine-Dependent Programming'': As much as the Professors who teach it may argue the point, this is basically "The Assembly Language Course". Depending on who's teaching it, you'll either code in straight x86 assembly (["Norman Matloff"]) and learn a lot about real computers, or in the MIPS language on a simulator (everyone else) and learn a lot about fake computers. ECS50 is a required prerequisite for most upper division ECS courses, especially the ones that deal with hardware.  The alternative is EEC70, but as it is often taught by Wilkens, is a load of crap.  Don't go there.
+
+=== Upper Division ===
+
+''ECS 110 - Data Structures and Programming'': The next logical extension in the "basic programming" track from ECS40, 110 is the software-side gateway to most upper divison ECS courses. The course covers using basic data structures such as arrays, stacks/queues, trees, hash tables for applications like sorting and graph problems. Taking this class with ["Sean Davis"] is a lot harder than with any other professor, as his programs are a lot harder and he grades submitted programs based on their running time. Nevertheless, those who survive Davis usually recommend it as a positive experience in hindsight.
+
+''ECS 120 - Introduction to the Theory of Computation'': THE ABSOLUTE MOST THEORETICAL COURSE in the CS department. No programming whatsoever. Students work their way from state diagrams to turing machines, finally ending with the question of decidability on a turing machine and its implications for algorithms on physical computers. Difficulty of the coursework can vary greatly by professor, as some require rigorous proofs while others are content if students just learn the core concepts.
+
+''ECS 122A - Algorithm Design and Analysis'': The second most theoretical course in the CS department. Analyse and design algorithms for problems like sorting, searching and graph traversal, and get introduced to the world of NP/NP-complete problems. Like ECS120, some professors will require more rigor than others. Students can expect a nauseous reaction upon having to sit through the same two weeks of sorting algorithm nonsense that they were likely already exposed to in ECS30, ECS110, and to a lesser extent 20 and 40. [The course ECS122B is almost never taught.]
+
+''ECS 140A - Programming Languages'': A somewhat nasty crash-course through several programming languages. Lecture and Lab are almost entirely disjoint for this one: you'll be expected to learn the languages on your own because what's covered in lecture is mostly the abstract concepts behind them. Typical languages covered are C++, Java, LISP and Prolog.  Olsen is a pretty good prof and lets you use older versions of the texts, but will make you buy the packaged photocopied notes from the bookstore.  You'll learn a lot from doing his programming assignments.
+
+''ECS 140B - Programming Languages'': A continuation of ECS 140A.  More exposure to various programming languages and the concepts behind the implementation of their features.
+
+''ECS 142 - Compilers'': Probably considered the most obscurely technical class in Computer Science, this class teaches you to build a compiler in 5 easy steps. The only class that could conceivably compete for that title would be ECS 150, if its goal was to ''write'' an operating system. (1) Understand the language. (2) Lexical Analysis -- find the tokens (3) Parse the tokens and determine whether they match the structure of the language (4) Check the semantics of the language (5) Generate code. Ooh! This sounds a bit like ["Linguistics" Computational Linguistics].
+
+''ECS 145 - Scripting Languages''
+
+''ECS 150 - Operating Systems'': An interesting class if you're into this kind of thing, and goes over scheduling processes, semaphores, memory, page tables, etc.  This is an easy class if you take it with Wu.  He's a nice guy, knows his stuff, and will tell the occasional story/joke plus the occasional slip (blahblahblah where I met my first wife, I mean, ONLY wife, ONLY wife, heh...).  His tests however are multiple choice and each question is worth about 2% of your grade.  Also, the little boxes on just about each slide of his slide presentations make absolutely no sense until he explains them.  And if you don't take notes, the little boxes will make absolutely no sense to you again when you take your printouts to the tests. The best TA ever was Sophie.  
+
+''ECS 152A - Computer Networks'': An introduction to the lower levels of computer networking. Starting with signaling techniques at the physical layer, and then discussing error correcting techniques and protocols at the link layer, all of the good stuff about TCP/IP is left for ECS 152B.
+
+''ECS 153 - Computer Security'': An interesting class if you're into that kind of thing.  Contrary to what most people might think, this class does not teach you how to hack (sorry).  The vulnerabilities used as examples should have been fixed long ago (at least we'd expect so).  With an academic view of security, it goes over different security models, spotting bad coding habits, legal issues, Sun Tzu, encryption, authenticating messages, viruses, worms, etc.  
+
+''ECS 154A - Computer Architecture'': An introduction to computer architecture at the logic-gate level. Learn to build flip-flops out of logic gates, and use those flip-flops to build things like registers and ALUs. Content can vary by professor.
+
+''ECS 154B - Computer Architecture'': Computer Architecture on a more macroscopic level than 154A. Use some of the big parts you designed in 154A (registers, ALUs, multiplexers...) to build even bigger things, like simple CPUs. Then pipeline them. It's good fun.
+
+''ECS 160 - Introduction to Software Engineering'': We spent the first half of the quarter learning how to mathematically specify our programs in a language called Z (Zed), which nobody seems to use. Thereafter, we learned about testing software, formal verification, and symbolic execution as techniques for testing programs and ensuring reliability. We had a rather painful software engineering project specifying and writing a package delivery system (Fall 2004), which required us to learn several technologies (like SQL databases) on our own that are covered in other classes, but those classes aren't required as prerequisites.
+
+''ECS 163 - Information Interfaces'': The GUI class, a breath of fresh air for those sick of making console programs. This is starting to sound a bit more like the general principles of human computer interaction, rather than a "how to" class for those who want to be prepared to go out into industry. '''This class will be offered Spring 2005 for the first time in years. When someone has taken it, we'll fill more info in.'''
+
+''ECS 175 - Introduction to Computer Graphics'': The gateway to UC Davis' somewhat extensive selection of Graphics Courses, consisting of the 17x series in the undergraduate level and the 27x series on the graduate level. Content varies a LOT by professor. Depending on who's teaching, the workload can be a step above even the most difficult ECS40/110 class, but the rewards are far greater, because pretty stuff shows up on the computer screen. 175 can be a real eye-opening experience for a student who's traveled through the ECS30/40/110 track and is sick of being reintroduced to bubble sort.  175 is a classic recruitment class, do well, and you have a good shot at an undergraduate research position.
+
+''ECS 177 - Introduction to Visualization'': Basics of Volume Data visulazation (3d data like CT scans, or fluid simulations).  Typically students learn about an implement all of the standard methods: a slicer, an isosurfacer, a direct volume renderer, and some sort of vector field visualizer.
+
+''ECS 178 - Introduction to Geometric Modeling'': This class is about Non-Uniform Rational B-Spline Surfaces (NURBS).  This class is math heavy.  It takes the whole quarter, but you eventually learn all the mathematical under pinnings and implement the basics of NURBS.  Heavy programming load.  Good class for those who want to work on CAD systems or modelling packages.
+
+''ECS 188 - Ethics and the Information Age'': CS and CSE require a "Professional Responsibilities/Ethics" class. This is it. This deals with philosophy of ethics and the ethical issues that may be involved in Computer Science applications. You may want to take ENG 190 instead. Don't take it with Barr.  If he knows your name, he'll pick on you. He also doesn't seem to have much clue about how to organize the class,
+
+=== Other Classes required for the major ===
+
+''ENG 190 - Professional Responsibilities of Engineers'': Described [http://mae.ucdavis.edu/classes/classes_desc.htm here]. This may be ECS 188's more useful and practical twin.
+
+=== Other Classes that may be of interest to Computer Science majors ===
+''["Linguistics" LIN 177] - Computational Linguistics'': Can give you GE credit while programming.

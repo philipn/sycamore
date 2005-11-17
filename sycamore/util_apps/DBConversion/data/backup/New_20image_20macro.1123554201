@@ -1,0 +1,35 @@
+{{{[[Image(filename, caption, size, alignment, thumb, noborder, border)]]}}}
+
+
+filename -- name of the file, an image.
+  '''required''' -- should provide error message if not present
+
+size -- the size of the image.  if size is supplied this implies it's a thumbnail. Can be either width or height depending on whichever is larger in source image. The size supplied is the desired scaled size.
+
+alignment -- left/right.  if it's a thumbnail then it gives it a usual float:left or float:right.  if it's not  a thumbnail then you need to wrap the image in a div that sends it left or right (i'm not sure it even needs to float..)
+
+thumb -- this is just the string "thumb" or "thumbnail" that tells us it's a thumbnail. optional if size is supplied, if size not supplied defaults to (default size?). Should default size be a systemwide variable, or hard coded?
+
+noborder -- just the string "noborder" to tell us, for non-thumbnails, to not use the tiny black image border.  in the case it's a thumbnail, i suppose the best behavior would be to drop the caption and frame around the thumbnail (sort of consealing its thumbnail-ness)
+  could we still keep caption without border?
+
+border -- just for symmetry's sake.   this does nothing (borders are supplied by default)
+----
+
+The second part is a script that converts the various formats into the new format.  This means we supply a string to the script:
+
+{{{
+attachment:image.jpg --> [[Image(image.jpg)]]
+
+borderless:image.jpg --> [[Image(image.jpg, noborder)]]
+
+[[Thumbnail(image.jpg)]] --> [[Image(image.jpg, thumbnail)]]
+
+[[Thumbnail(image.jpg, 300, right)]] --> [[Image(image.jpg, thumbnail, 300, right)]]
+
+[[Thumbnail(image.jpg, "hi there!")]] --> [[Image(image.jpg, 300, thumbnail, "hi there!")]]
+}}}
+
+where did the script pick up 300 in the last example? Is 300 going to be the new default size?
+
+long range hooks to consider would be the ability to display a gallery of pictures in an orderly fashion that may not all share the same aspect ratio.

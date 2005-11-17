@@ -1,0 +1,34 @@
+These are the people who make Davis Wiki work:
+
+==Creators==
+ * ["MikeIvanov" Mike Ivanov] - early development, domain registration
+ * ["PaulIvanov" Paul Ivanov] - concept
+ * ["PhilipNeustrom" Philip Neustrom] - concept, early development, hosting
+
+==Programming==
+ * ["MikeIvanov" Mike Ivanov] - core development, ["Davis Map"], ["Recent Changes"]
+ * ["PaulIvanov" Paul Ivanov] - misc features
+ * ["PhilipNeustrom" Philip Neustrom] - core development, search, ["Events Board"]
+
+==Look and feel==
+ * ["MikeIvanov" Mike Ivanov] - theme, logos
+ * ["PhilipNeustrom" Philip Neustrom] - buttons, logos
+
+
+=Background=
+
+We started the site using [http://moinmoin.wikiwikiweb.de/ MoinMoin], a popular wiki engine.  However, we have throughly hacked the [http://moinmoin.wikiwikiweb.de/ MoinMoin] code in nearly every respect.  We will eventually release the code to components useable to others.
+
+For our site-search we are using the [http://xapian.org Xapian API].  It's an indexing and querying system that seems to work well.  We will likely eventually move to a database driven page storage system.
+
+More can be found in ["Wiki History"].
+
+=Help wanted=
+Got a special talent?  Put it to good use by volunteering to help us!
+
+ * '''Graphics''':  All of the graphics are currently done by the programmers.  We would ideally like to have one or more dedicated graphics artists to help develop a consistent look throughout the interface as well as design new ["Wiki Logo" logos] and ["Wiki Flyer" flyers].
+ * '''CSS''':  If you have extensive experience with CSS, you can help us streamline our design and make it easier to maintain.
+ * '''Programming''':  We are looking for people with experience in the following: Python, C++, Java, XML, database programming.  Depending on your availability and experience, the work may range from bug fixes and small features to full-scale overhauls as we strive for scalability and efficiency.
+ * '''System Administrators''':  We would like to set up a dedicated server running Debian once we find colocation hosting.  We can do most things ourselves, but an extremely experienced system administrator who can help us install packages and solve problems quickly would be ideal.
+
+If you would like to help please contact ["PhilipNeustrom"] or ["MikeIvanov"].  Soon we will have a public CVS or Subversion server so that you can hack more easily.

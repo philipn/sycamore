@@ -1,0 +1,34 @@
+= dev to-do =
+ * --XNeed to move map references to work locally (based off of config)X--
+ * --XRSS needs tag for "<whatever> Wiki Robot" instead of Davis Wiki RobotX--
+   * Should be 100% non-Davis specific now, all changable in the configuration file.
+ * --Xuserstats.xml error on commentX--
+ * kill search bug:  make deleted entries deleted from index (write app)--almmost!
+ * new cookie system
+ * finalize thumbnails
+ * test resulting css on different browsers
+ * Better bullets
+ * Make wanted and orphaned work better, add incoming links to info tab
+ * check out new linking code
+
+test
+
+= server to-do =
+ * so much to do..
+
+sdfsd
+sfd
+dsfjsdkljfhsdlkshf
+
+[[Stats(PhilipNeustrom)]]
+
+["a redirecting page"]
+
+["philip's test page"]
+
+[[Comments]]
+------
+''2005-01-22 22:01:54'' [[nbsp]] test --["PhilipNeustrom"]------
+''2005-01-22 22:02:01'' [[nbsp]] test --["PhilipNeustrom"]
+------
+''2005-01-22 22:09:44'' [[nbsp]] test --["PhilipNeustrom"]

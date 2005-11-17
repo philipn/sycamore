@@ -1,0 +1,29 @@
+= Overview =
+Choice Voting, also known as the ["Single Transferable Vote"], is an election system used to elect several candidates at a time, as in a ["City Council"] or multi-member legislative district.  In single-winner elections, the system goes by the name ["Instant Runoff Voting"].  Choice Voting ensures that the election outcome is an accurate cross-section of voters' preferences.
+
+Choice voting works on the principle that all voters have a right to be represented by someone they support.  To vote, voters rank the candidates in order of preference.  If your top choice loses or wins with votes to spare, your vote goes to your next choice.  After a choice voting election, each elected candidate represents a distinct equal-sized group of like-minded voters.
+
+= History =
+Choice Voting is being used by or explored in several countries, including Canada, New Zealand, Scotland, and some places in the United States.  Locally, UC Davis students use Choice Voting to elect the ["ASUCD"] ["Senate"] (and ["ASUCD President"]).
+
+ASUCD adopted Choice Voting on February 20, 2003 by a 67% student vote.  The constitutional amendment was placed on the ballot after the [http://ucdgreens.org Davis College Green Party] collected 2000 signatures in November of 2002.  At the time, the Choice Voting Amendment was endorsed by the ASUCD Controller; six ASUCD Senators, including the ASUCD Senate President Pro Tempore; several ASUCD Commission Chairs; the chair of UC Davis's ["CalPIRG"] chapter; and the general manager of ["KDVS"].
+
+= Future Plans =
+The city of Davis is interested in using Choice Voting for ["City Council"] elections.  The ["Davis City Council"] formed a 9-member [http://www.city.davis.ca.us/meetings/agenda.cfm?c=27 Davis Governance Task Force] to "study issues related to governance" for six months.  The Task Force is paying close attention to Choice Voting.  A group of concerned citizens calling themselves [http://davischoicevoting.org Davis Citizens for Representation] has formed to educate the city about the benefits of using Choice Voting.
+
+Within ["ASUCD"], the ["Friends Urging Campus Kindness"] and ["Jonathon Leathers"] are hoping to expand the ["Senate"] to gain even better representation from Choice Voting.
+
+= How it Works =
+Voters rank the candidates in order of preference: 1, 2, 3, and so on.  You can rank as many or as few as you want.  Ranking more choices cannot hurt your higher-ranked choices.
+
+Say we're electing 4 candidates.  Choice voting elections are tallied in the following way.  First, the winning threshold is calculated.  Take the total number of voters and divide by the number of seats plus one.  In our case, the winning threshold is 20% of the vote.
+
+Then the top choices are counted.  If no candidate reaches the winning threshold, the last place candidate is eliminated.  If your ballot went to that candidate, your vote transfers to your next choice.  All the ballots are then recounted.
+
+If some candidate does reach the threshold, that candidate is elected and their ''excess'' vote is transferred.  For example, if the threshold is 1000 and the candidate received 1500 votes, one third of their vote is excess.  If you voted for that candidate, one third of your vote transfers to your next choice listed.
+
+This process continues round by round until all seats are filled.  In the end, each elected candidate represents a distinct group of (in our example) 20% of the voters.  Go to the [https://elections.ucdavis.edu/ ASUCD Elections web site] to see an actual round-by-round tally of an ASUCD election.
+
+= More information =
+ * [http://en.wikipedia.org/wiki/Single_transferable_vote Wikipedia article]
+ * [http://davischoicevoting.org Davis-based Choice voting advocacy group]

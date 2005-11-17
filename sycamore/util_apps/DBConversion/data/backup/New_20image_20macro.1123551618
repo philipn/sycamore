@@ -1,0 +1,29 @@
+{{{[[Image(filename, caption, size, alignment, thumb, noborder, border)]]}}}
+
+
+filename -- name of the file, an image.
+
+size -- the size of the image.  if size is supplied this implies it's a thumbnail
+
+alignment -- left/right.  if it's a thumbnail then it gives it a usual float:left or float:right.  if it's not  a thumbnail then you need to wrap the image in a div that sends it left or right (i'm not sure it even needs to float..)
+
+thumb -- this is just the string "thumb" or "thumbnail" that tells us it's a thumbnail.
+
+noborder -- just the string "noborder" to tell us, for non-thumbnails, to not use the tiny black image border.  in the case it's a thumbnail, i suppose the best behavior would be to drop the caption and frame around the thumbnail (sort of consealing its thumbnail-ness)
+
+border -- just for symmetry's sake.   this does nothing (borders are supplied by default)
+----
+
+The second part is a script that converts the various formats into the new format.  This means we supply a string to the script:
+
+{{{
+attachment:image.jpg --> [[Image(image.jpg)]]
+
+borderless:image.jpg --> [[Image(image.jpg, noborder)]]
+
+[[Thumbnail(image.jpg)]] --> [[Image(image.jpg, thumbnail)]]
+
+[[Thumbnail(image.jpg, 300, right)]] --> [[Image(image.jpg, thumbnail, 300, right)]]
+
+[[Thumbnail(image.jpg, "hi there!")]] --> [[Image(image.jpg, 300, thumbnail, "hi there!")]]
+}}}

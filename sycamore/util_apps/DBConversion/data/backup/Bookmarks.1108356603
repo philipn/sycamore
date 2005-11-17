@@ -1,0 +1,7 @@
+#acl AdminGroup:read,write,delete,revert,admin All:read
+[[Bookmarks]]
+
+tst
+
+----
+'''Bolded''' items have been modified since you last viewed them.  Clicking ''diff'' will show you the differences between the version of the page you last saw and the current version, or will show the most recent difference (if only one change has been made since you last viewed the page).

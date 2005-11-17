@@ -1,0 +1,21 @@
+ * make sure you can't login using the encrypted password (with {SHA} in front..)..
+      * make sure the email-password thing (old) doesn't work and the (new) system does work.
+      * need better logout thinger?
+ * intuitive redirect labels (wikipedia)
+
+
+okay, here's some text here..fa la la la..
+
+more text.
+
+= bugs = 
+ * thumbnail macro doesn't have proper regexp for image captions with comas in them
+ * thumnail macro also needs to work perfectly in alignment with the syntax for {{{attachment:a%20%image%20with%20spaces__and__these__things}}}
+   * a particular one that it doesn't work with is {{{C__Documents%20and%20Settings_Leviathan_tercero.JPG}}}
+   * works with that image referenced ''as'' {{{C__Documents and Settings_Leviathan_tercero.JPG}}} -- isn't doing %20 stuff?
+
+= more general =
+ * set up subversion completely.  document the code setup!
+
+= speed fixes =
+ * ["Title Index"], etc should be fast or turned off.  Do per-day generation of Wanted Pages, Orphaned Pages, and Outgoing Links.

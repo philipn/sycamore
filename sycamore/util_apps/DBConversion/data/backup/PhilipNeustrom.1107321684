@@ -1,0 +1,49 @@
+So, this is my little home on the Wiki.
+
+borderless:mememe.png
+
+I'm a ["Mathematics"] major here at Davis.
+
+I have a ["LiveJournal"] which is at [http://livejournal.com/~codetoad].  I don't seem to update it as much as I should, though.
+
+My email address is philipn at the gmail daught comm.  My AOL Instant Messenger name is {{{CodeToad01}}}, and I'm on that fairly often if you want to chat.
+
+{{{
+The important thing is this: to be able at any moment to sacrifice what we are for what we could become.
+-- Charles Du Bos
+}}}
+
+
+= Some Favorite Pages =
+ * ["Night Time"] - Find out what's open late at night!  Literally the most important resource in Davis :P
+ * ["Davis Map"] - Too awesome to leave off this list.
+ * ["Cleanest Bathrooms"] - An idea whos time has come.
+ * ["Payphone Project"] - 2600 31337 factor.
+ * ["Wikivangelists"] - I was lost and now I have found the path.
+
+= What do I do on the Wiki? =
+I make a lot of edits.  What do I usually edit?  These are my most common edits:
+ * I link phrases and terms to pages in order to add more stucture.
+ * I remove comments and try to integrate them into the page's body if possible.
+ * I take differing viewpoints or arguments and attempt to find a common ground.  Nearly any argument or difference of opinion can be solved by merely expanding the writeup to be larger, more general, and less specific.  ["Students for an Orwellian Society"] is a great example (check out the revision history).
+
+I also have a ["PhilipNeustrom:To Do" To Do] page that you likely do not care about.
+
+[[Stats(PhilipNeustrom)]] 
+
+== Note to self ==
+''Davis from the Inside Out by William D. Diemer. National housing register, 216 F Street, PMB 17.  This is an interesting compilation of a ton of Davis related information that can be purchased for $15 at ["Newsbeat"].  I might buy it to help out with facts/info.''
+
+[[Comments]]
+------
+''2004-12-07 13:56:46'' [[nbsp]] Phillip always edits out the viciousness of my entries. He is the Jiminy Cricket on my Wiki shoulder. - ["RobRoy"]------
+''2004-12-08 21:33:01'' [[nbsp]] Thanks for the editing on the DCOC page...Now I know how to make images borderless.   - ["BevSykes"]------
+''2004-12-14 04:48:47'' [[nbsp]] We should do something to lock comments while a page is being edited.  It's annoying a lot of people when you get an edit conflict because someone used the comment box. - ["MikeIvanov"]------
+''2004-12-15 14:25:29'' [[nbsp]] I'll look into the Abandoned Pages macro soon. - ["MikeIvanov"]
+------
+''2005-01-26 02:07:08'' [[nbsp]] Wow, so much positive and constructive energy on the wiki today!  I haven't had time to check out so many of the edits, but looks like some of the drama has subsided and people are making great contributions.  I am finishing up some of the work on piXlogic, which will culminate in a meeting with Joe tomorrow night, but after that I'm totally on the dev stuff.  Cross my heart and hope to ["Abandoned Pages" die]. --["MikeIvanov"]------
+''2005-01-26 20:00:13'' [[nbsp]] i read you are from elsob. w3rd up homi3. --["RaynatoCastro"]------
+''2005-01-31 21:31:16'' [[nbsp]] In the interest of accessibility and ease of development, I think maybe we should do away with popups.  I love them to death, but I think ultimately they're too sloppy.  For example, when a thumbnail has a caption that contains links, we have to open them in the window underneath the popup, in which case the popup gets lost, etc.  Another issue is the image attachment popup, which right now works pretty well except in page info, but that can be fixed.  But we do need to decide how purist we want to be in terms of web standards. --["MikeIvanov"]------
+''2005-01-31 22:55:25'' [[nbsp]] I don't think wikipedia-style is good because it opens in the same window and it's not easy to read an article and see the pictures at the same time.  But on the other hand, that's why they invented the 'Back' button on browsers?  I think an easy solution is just to strip links in the popup'd window, and leave them in the thumnail view. I __really__ like the fact image attachment is done via a popup, and I think that just making the info work is fine. --["PhilipNeustrom"]
+------
+''2005-02-01 02:21:25'' [[nbsp]] Yeah, I like how it works for Image attachments, but in the case of thumbnails I'm not so sure having it in a popup outweighs having working captions, since presumably people might not think to click on a link until they view the detailed image.  I don't think there should be a ton of extra crap like on wikipedia, though.  I don't know, let's poll some users. --["MikeIvanov"]

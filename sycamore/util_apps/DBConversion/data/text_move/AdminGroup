@@ -1,0 +1,17 @@
+#acl AdminGroup:admin,read,write,revert,delete All:none
+ * PhilipNeustrom
+ * MikeIvanov
+ * PaulIvanov
+
+----
+If you ''really'' need to ban someone, add them to ["BannedGroup"].  Keep doing this if they keep making accounts.  If we have to we can ban their IP.  Really, this should only happen with spammers.  To ban by IP, add the IP (or range) to the deny area of the .htaccess file in the root of public_html.
+
+
+If something serious is going wrong, Philip's cell phone # is (530) 304-2712, and Mike's is (650) 224-3639
+----
+Here's some admin tools from moin:
+
+[[SystemAdmin]]
+== System Info ==
+[[SystemInfo]]
+

@@ -1,0 +1,1 @@
+#redirect Election Statement Controversy

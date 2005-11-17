@@ -1,0 +1,92 @@
+= About Me =
+
+
+Evan, well known as JabberWokky (I get postal mail addressed to JabberWokky).  Until I get a decent picture^1^, I can be identified thusly:  A rather large fellow of Scot-Irish ancestry.  Long red-brown hair (only visibly red in good sunlight), a full, usually well trimmed beard with a Zappa.  I always wear black jeans and either black shirts or colored dress shirts.  Often you can see a bronze Hand of Eris pendant around my neck.  In winter (and sometimes in summer), I wear a large black trench coat.  My laptop, betty, is a Toshiba with a blue cover.  I'm friendly, meaning I only bite if you're cute and ask nicely.
+
+I hang out at Pork Bagel (aka Posh Bagel), Roma-E and various events around town and on campus.  I'm usually the emcee at Campus Cinema events and the director of Further Indignities, the local Rocky Horror Picture Show Shadowcast.  Before I moved to Davis (a pretty recent event), I played guitar at a variety of venues, but have yet to really play here.
+
+Minor interesting facts:
+
+ * Last Macintosh was a II LC.  Last used Windows in 1998.
+ * Used to host a science fiction radio show, is thinking about starting again.
+ * Drinks iced coffee, having discovered that it is far more likely to be decent than tea.
+ * Has been looking for a good barbeque place ever since he moved to California.  
+   * Has discovered waiters give him a blank look when asked "what kind of barbeque is it?"
+     * His favorite is Carolina style, but a good Georgian, South Carolina or St. Louis is good too.  Texas BBQ is different.
+ * Has lots of interesting sites, a few servers, and a meese in a plastic mousecage.
+ * Probably scored lower on the purity test than you.
+ * Knows that when somebody asks you if you are a god, you say "yes".
+ * Is likely not the political faction you think he is.
+ * Filks, but not in public.
+ * Knows about that Society thing with the people in armor who go camping, but again, not locally ("Vivat Trimaris!")
+ * Is in Trekkies II, but is much more happy about the pretty good scene with ["SarahHillard" his SO] in an Orion Slave costume that he made (and she so excellently filled out).
+ * Enjoys building stage props and furnature.
+ * Can be considered goth for values of goth that include Edward Gorey, Poppy Z., Souxie and gargoyles.
+ * Can also be considered goth for values of goth that include Ostro and Visi.  "Ask me about my sack!"
+ * Is not generally considered goth.
+ * Has a near legendary stash of "stuff" in storage in Florida, including:
+   * Full size MAME cabinet capable of taking four JAMMA boards.
+   * More books and movies than you can shake a stick at - or fit in a 10' truck.
+   * Original RHPS shooting script, as used on set.
+   * Everything White Wolf put out for the World of Darkness up until 3rd edition started coming out.
+   * SubGenius devival gear.
+ * Knows many many languages of a code type, and has written a mail editor in Intercal, and won obsfucated C contests.  Prefers PHP as an interpreted language and likes Python.  Feels very much at home in C (and is suspicious of those Bjarne blasted concoctions that came after). 
+ * Likes Guinness.
+ * Has written a few homebrew RPG systems, and likes Marvel, Storyteller, Palladium and many many more.  Ranks AD&D in decending order as they have come out (First is 1st, etc).  Was ST for a large, full WoD game.
+ * Can make babies cry when he merely opens his violin case.
+ * Enjoys learning to home build homes.  Frame houses, wattle and daub and Mike Oehler turn him on.
+ * Can cook.  Before Food Network made it trendy to deglaze.
+
+   ...and lastly...
+
+ * Some people consider him a geek.
+
+''Often plays around with stuff (like the Wiki!) to break it.  Then drinks more iced coffee in triumph. THEN fixes it.'' -- ["TarZxf" tar zxf]
+
+ * ^1^ This means a picture that does not (unlike the ones posted here):
+   * Look like I'm choking someone.
+   * Occlude my face with a cameraphone.
+
+[[IncludePages(JabberWokky:Location)]]
+
+= Random Wiki Nonsense =
+ 
+== Five Random Links ==
+
+[[RandomPage(5)]]
+
+== Five Random People ==
+
+ * [[RandomQuote(People)]]
+ * [[RandomQuote(People)]]
+ * [[RandomQuote(People)]]
+ * [[RandomQuote(People)]]
+ * [[RandomQuote(People)]]
+
+[[Stats(JabberWokky)]]
+
+[[Comments()]]
+------
+''2004-12-14 07:01:32'' [[nbsp]] I fixed {{{[[RandomQuote]]}}} to work right.  Just so you know that's why it's displaying non-weirdly. - ["PhilipNeustrom"]
+------
+''2004-12-14 18:27:52'' [[nbsp]] Is your location updater using the Wireless internet at the place or do you have to do it by hand?  That's pretty sweet!  I can filter the updates to that page out of Recent Changes if you want (might be cool if you use it a lot?) - ["PhilipNeustrom"]------
+''2004-12-14 18:43:49'' [[nbsp]] It's a bash script that checks the SSID and uses that to determine location.  It can also be called with a set of keywords for other locations (to override the SSID detect).  I'm likely going to turn it into a nice library so it can be used to automatically update anything on the wiki (WAP interface for breaking news?  Who knows...)  - ["JabberWokky"]------
+''2004-12-15 11:27:03'' [[nbsp]] Thanks for the heads up.  I made it not dump an error but it still doesn't work just right.  Mike'll likely fix it because he knows the Recent Changes stuff better than I. - ["PhilipNeustrom"]
+------
+''2004-12-16 15:04:50'' [[nbsp]] hey, could you revert "The THE Controversy" to my version?  I think on pages with just discussion that a comment box ends up marginalizing the structure? - ["PhilipNeustrom"]------
+''2004-12-16 15:10:43'' [[nbsp]] The Location Updater is insanely great.  Can you do a writeup about what you did? - ["MikeIvanov"]------
+''2004-12-16 15:29:57'' [[nbsp]] Philip - I was editing the page when you saved yours, I believe.  I was trying to figure out what you had added (in terms of comments).  No problem - I'll revert the format and insert my comment. - ["JabberWokky"]------
+''2004-12-16 15:31:35'' [[nbsp]] MikeIvanov - No problem.  It's a bash script calling curl, which means you need OSX or Linux.  Once you have it, the only hard part is getting your MoinMoin key from your cookies. - ["JabberWokky"]------
+''2004-12-17 22:17:23'' [[nbsp]] Jabber, you should put a picture up! We know where you are at any minute of the day but we don't even know what you look like. - ["JackHaskel"]
+------
+''2004-12-28 00:49:50'' [[nbsp]] hey, thanks for hosting my song, "the power chord ballad of the turtle". i'm sure your server has crashed a million times already due to the web traffic it has caused. --["RaynatoCastro"]
+------
+''2005-01-12 09:23:02'' [[nbsp]] The GSA is a nation-wide organization, with chapters in high schools across the country. --["BevSykes"]------
+''2005-01-15 23:53:25'' [[nbsp]] It is possible that there's something wrong with the search, as I rebuilt the index this morning.  However, everything seemed to match up perfectly after the database was rebuilt (e.g. the number of pages indexed was the same as the number of pages in the wiki).  Let me know if there is a specific problem instance.  (I don't remember there being a Hing's page until today) --["PhilipNeustrom"]------
+''2005-01-21 13:33:43'' [[nbsp]] thanks for reverting "wiki ethics." You're my hero! --["CaptainRush"]------
+''2005-01-21 14:19:49'' [[nbsp]] "    Could very well be a lie too. Square brackets are a widely recognized way to delimit editorial comments made after the fact. Spelling corrections and simple rewordings can really help. Changing the meaning will likely engender resentment, mistrust and misunderstanding. When in doubt don't make the change."  If you are sure that a change will not change the meaning then I see fixing spelling and grammar as being courteous.  Changing the meaning is always bad.  --["PhilipNeustrom"]
+------
+''2005-01-21 17:03:24'' [[nbsp]] I was very very very wary of any changes to that particular page.  I also think that grammar and spelling mistakes carry information about the person you are speaking with.  If I see a very unlikely fact, I am much more inclined to believe the person who says "I am certain that is true; I witnessed it myself" versus "d00d! u r 5m0k1n!! Eye 5aw 1T HAPPENZEZEZ!!!1!11oneoneone".  This is only in cases where you are dealing directly with a tree of comments, otherwise, correct away.  Keep in mind, I reverted to a mistake of *mine*.  At any rate, I'm not rabid about this issue and I'm perfectly content to leave the re-reversion alone, but now you know my rationale. --["JabberWokky"]------
+''2005-01-21 18:16:25'' [[nbsp]] I see what you're saying.  It's not cut-and-dry, definitely.  But if the text is attributed and is an important part of the page then it only makes good readability-sense to have it spelled/grammarered properly. --["PhilipNeustrom"]------
+''2005-01-21 18:25:22'' [[nbsp]] Sorry if I edited a comment. Was it embeded in the text of a page? I purposely did not correct any misspelling I saw a name attatched to. --["AmeliaCarlson"]------
+''2005-01-24 13:50:27'' [[nbsp]] JabberWocky, I know that this isn't UCDavis only. My edit comment on ["Hotels"] was a reminder to the other contributers that this site doesn't just concern students. --["KenBloom"]

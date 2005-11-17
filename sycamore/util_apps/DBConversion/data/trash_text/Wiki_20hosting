@@ -1,0 +1,51 @@
+= New hosting needed =
+As you can learn in the discussion of our current setup below, we are very unhappy with our current hosting situation.  Besides the sporadic late-night outages, the service is terrible, our data gets moved without our consent, and much needed software has not been installed despite repeated requests.  This brings us to the conclusion: we need new hosting.
+
+The number one priority is reliable hosting with root access to the machine or personal contact with the server administrator.  Once in a while, we would like to install software to keep this site scalable, so we need to be able to get very hands-on.
+== Basic requirements ==
+ * Linux server (or other Unix-like OS)
+ * SSH access, python, gcc/g++
+ * 2 GB storage for now
+ * '''Lots''' of bandwidth
+== Possible server colocation ==
+Judging by the growth of the ["Donate" donations] from awesome people, we may soon be able to afford this option.  However, we would still need an actual server machine to place in the colo center.  Does anyone have hosting connections and can point us in the right direction?  A machine/spare parts we can use?
+
+= Current setup =
+We are currently using [http://penguinhost.net Penguin Host].  They're dirt cheap, which is nice.  It is 'virtual hosting', which means that about 50 other people are hosted from the same machine (hense the cheap aspect).  ["ArlenAbraham"] spoke of a possible dedicated hosting pitch-in project, but we were sort of drunk.
+
+= One possible idea: shared dedicated server pitch-in =
+["ArlenAbraham"] spoke of a possible dedicated hosting pitch-in project.  About 10 people would get together, each pitch in $100, and we'd have our own dedicated machine for a year.  ["ArlenAbraham" Arlen] said he is very interested in buying a dedicated server through [http://aplus.net].  He has a [http://servers.aplus.net/dedicatedservers/standard.html specific setup] in mind, and the costs would be split by 10.
+
+== Pros ==
+This would be a good thing because we'd have root access and be able to fix anything if it went wrong.  We'd have mod_python support and be able to do anything we'd want in the future (such as JSP, etc).  It'd be worlds more flexible.  These guys are based in San Diego and that would translate into better response times.
+
+== Cons ==
+The downside is that we'd have to commit to this for a year (It's $200 cheaper that way) and rely on the other members of the pitch-in scheme to behave themselves.  We're also not entirely sure the CPU power would be greater.  While now we're on a totally shared machine (I have no idea how many users are on it) -- but it ''is'' a 2 CPU machine.  However, a {{{top}}} shows that usually about 30% of each CPU is being used by other users.  On the dedicated machine we'd have a single processor but we'd usually have as much of that one processor as we want.  I don't know how the CPUs stack up or how much CPU power is really need.  We want to install some server things that would make the site faster, but our current hosting is preventing us from doing so.
+
+= Buying co-location space option=
+Co-location is when you pay someone some money to plug in your ''own'' computer and have a really fast connection.
+== Pros ==
+Really fast.  Totally flexible.
+== Cons ==
+Expensive.  We would need a server (a computer) to use.  Expensive.
+  * I can't find anywhere that offers 100GB/month+ transfer for $100/month or less --["PhilipNeustrom"]
+
+[[Comments]]
+------
+''2004-12-07 17:41:56'' [[nbsp]] I haven't really looked too deep into the daviswiki code or anything, but I would imagine that all this SQL hashing is more RAM/disk subsystem intensive than CPU intensive. If you guys can put together some more stats on the site's DB loads, I can make some possible suggestions for hosting options :) - ["KenNeville"]------
+''2004-12-07 18:01:59'' [[nbsp]] How much bandwidth is actually being used?  I might have agood line on a 768Kin/384K out spot... - ["TarZxf"]------
+''2004-12-07 20:04:48'' [[nbsp]] It's definitely more disk intensive, but it doesn't use SQL at all at this point.  The bandwidth is around 130 megs per day last I checked, probably a little higher now. - ["MikeIvanov"]------
+''2004-12-08 19:27:41'' [[nbsp]] You might talk with the folks down at Omsoft about co-location.  They colo your server for $55/mo with 5/GB traffic but maybe you can cut a deal being that the site is giving back to the community :) - ["CurtisBray"]
+------
+''2004-12-08 19:31:58'' [[nbsp]] I emailed the Omsoft folks about a month ago, and I'm not sure they would cut us a deal.  It would be terrific if they did.  We would likely go over that bandwidth limit, though (and increasingly so as the site grows). - ["PhilipNeustrom"]------
+''2004-12-10 04:10:16'' [[nbsp]] omsoft was willing to give me a deal a few months back -- $80 for 10gb/mo.  (Still expensive, I know, but they're small and local.  Bandwidth's expensive for everyone. - ["ChrisTakemura"]------
+''2004-12-10 04:18:46'' [[nbsp]] Yep, we would still go over that by probably next month. - ["MikeIvanov"]------
+''2004-12-10 06:47:36'' [[nbsp]] That's only surprising until I look at  some of the HTML this thing spits out.  I mean, it's not as bad as slashcode, but it's damn near.  Consider using mod_gzip.  Although, since this is a .org, you can probably just set this up in someone's office on campus without getting flak about it. - ["ChrisTakemura"]------
+''2004-12-10 14:44:11'' [[nbsp]] would DCN host a server for us? - ["ArlenAbraham"]
+------
+''2004-12-10 17:18:33'' [[nbsp]] DCN may be able to help.   Please contact me to discuss hosting and other cooperation. - ["RichardLowenberg"]
+------
+''2005-01-09 18:51:13'' [[nbsp]] We have purchased a dedicated server though [http://1and1.com these guys].  It's a 3Ghz PIII w/1000MB RAM 120GB HD and 500GB/month transfer -- and it's all ours.  Unfortunately it looks like it will be a week+ until they set it up.  But soon we'll have a really sweet setup. --["PhilipNeustrom"]
+------
+''2005-01-17 14:18:47'' [[nbsp]] You guys should check this auction deal $2.99 for hosting (if we assume it is per month, it is stil pretty cheap) Link is here:  http://cgi.ebay.com/ws/eBayISAPI.dll?ViewItem&category=194&item=5157305298&rd=1&ssPageName=WDVW --["RodolfoHam-Zhu"]------
+''2005-01-17 14:43:35'' [[nbsp]] We have already purchased dedicated server hosting, which is pretty expensive, and we're pretty much paying for it out-of-pocket.  Other than that, the $2.99 hosting sounds incredibly suspicious, so I wouldn't recommend that to anyone. --["MikeIvanov"]

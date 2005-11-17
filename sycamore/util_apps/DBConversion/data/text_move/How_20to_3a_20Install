@@ -1,0 +1,22 @@
+= Getting the software =
+Obviously, the first step is to download the software package.  This is painless.  The current stable release of the LocalWiki (whatever it's going to be called) software is located at ''here''.
+
+Alternatively, you can obtain a bleeding-edge version of the software by checking it out of our [http://subversion.tigris.org/ Subversion] server.  Just type...
+
+== Requirements ==
+In addition to the LocalWiki software, you will need the following:
+=== Things you likely already have installed on a standard Unix system ===
+ * [http://www.python.org/ Python] (2.2.3 is what we're using)
+ * A web server (apache)
+
+=== Things you're going to need to install ===
+ * [http://xapian.org/ Xapian API] - This is used for our search engine.  [http://xapian.org/download.php Download here].  If you don't have super-user privledges then you're going to have to do (if you're compiling the source) {{{./configure --prefix=somewhere local here}}}.
+ * [http://www.pythonware.com/products/pil/index.htm Python Imaging Library] - Used for images.  [http://www.pythonware.com/products/pil/index.htm Download here].
+   * To get this to install as a superuser I had to make sure my versions of tcl and tk were up-to-date. You can [http://www.tcl.tk/software/tcltk/downloadnow84.tml download here] the latest versions and compile them from source.  If you don't have superuser privledges and your versions of tcl/tk are slightly out of date (or not installed), then you're going to have to play with a combination of screwing with Setup.in (then doing {{{cp Setup.in Setup}}} and then try running {{{python setup.py build}}}.  You might even have to edit {{{setup.py}}}.  I had some problems with this package (but managed to get it to install) as a non-root user -- but as root it was cake. Please put any problems you're having installing it here, or any success stories..--["PhilipNeustrom"]
+
+= Setting it up =
+The first step is to unpack the software.  Do this by...
+
+then then
+
+then...

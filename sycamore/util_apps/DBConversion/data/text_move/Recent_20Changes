@@ -1,0 +1,12 @@
+#acl AdminGroup:admin,read,write,delete,revert All:read
+
+||<bgcolor='#ffffaa'>'''TIP''':  [[RandomQuote(Quick Wiki Tips)]]||
+[[BR]]
+[[RecentChanges]]
+[[BR]]
+
+||<:> [[Icon(diffrc)]] || marks older pages that have at least one backup version stored (click for an author ''diff''erence)||
+||<:> [[Icon(updated)]] || marks pages edited since you set your bookmark (click for a bookmark difference)||
+||<:> [[Icon(new)]] || marks pages created since you set your bookmark, and were not edited after creation||
+----
+This page contains a list of recent changes in this wiki of '''[[PageCount]] pages''' (more system information on ["System Info"] -- there are also ["User Statistics"]).

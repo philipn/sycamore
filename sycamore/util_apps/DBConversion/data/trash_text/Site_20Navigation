@@ -1,0 +1,24 @@
+##language:en
+["Site Navigation"] is a central place to explore this wiki.
+ * ["Recent Changes"]
+ * ["Title Index"]
+ * ["Word Index"]
+ * ["Wanted Pages"]
+ * ["Orphaned Pages"]
+ * ["Random Page"]
+
+Additionally, {{{[[TableOfContents]]}}} will generate a table of contents for the page based on the headlines in the page (play with it).
+
+So that means if I segment my page like this:
+
+= Headline 1 =
+blah blah.  blah blah.
+== Subheadline ==
+text here!
+= Headline 2 =
+more text
+
+then if I include {{{[[TableOfContents]]}}} I get:
+[[TableOfContents]]
+
+and those are links to those sections in the text.  Nifty!

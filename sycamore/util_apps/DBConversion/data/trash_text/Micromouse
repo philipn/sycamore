@@ -1,0 +1,15 @@
+attachment:Micromouse.jpg attachment:Micromouse_Maze.jpg
+
+The Micromouse design project, offered as EEC194ABC in the ["Electrical and Computer Engineering"] department, is an annual competition for teams of up to 5 students to design and build a small, autonomous, maze-solving robot. It is sponsored by [http://en.wikipedia.org/wiki/IEEE IEEE]. The goal is to solve a maze (whose layout is unknown) in the shortest amount of time. Complete rules for the mice and maze construction are available at the instructor, Dr Tak's, [http://www.drtak.org/teaches/UCD/ website].
+
+The course is 5 units, three quarters long and grading is deferred until the end of the year. The first quarter is dedicated to lectures about basic design and programming of the mouse. The second and first half of the third quarter are when the actual work begins and, hopefully, ends. After ["Picnic Day"], each team submits a report detailing their design successes and failures.
+
+There are two opportunities to compete (for prizes) against other UCD teams as well as teams from other schools: ["Picnic Day"] and the [http://ewh.ieee.org/reg/6/sac/micromouse.htm IEEE regional conference], both near the end of Spring quarter. Prize money is awarded to the fastest three teams at each competition. The winner of the regional competition also brings home a large trophy, currently located in the ["Kemper Hall"] lobby thanks to the efforts of ["AndrewChen" Andrew Chen's] team in 2004, until the following year's event.
+
+Micromouse is an excellent opportunity for both ["Electrical and Computer Engineering"] and ["Computer Science"] students to apply what they have learned in class. EEC172 is probably the most helpful course to take.
+
+[[Comments]]
+------
+''2005-01-23 14:13:04'' [[nbsp]] would this be a bad idea for non EE/CS majors? --["ArlenAbraham"]------
+''2005-01-23 14:57:50'' [[nbsp]] The practical aspects - the building and testing - don't really require much EE/CS knowledge (aside from basic circuits/programming). If you decide not to use Dr. Tak's basic hardware and algorithm, however, the design phase may be difficult if you don't have any experience in those areas. --["AndrewChen"]------
+''2005-01-23 18:02:34'' [[nbsp]] Tak says that tbe best groups usually have a bunch of CS people.  *shrugs* --["MarieHuynh"]

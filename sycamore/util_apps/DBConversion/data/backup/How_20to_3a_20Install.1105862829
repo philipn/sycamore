@@ -1,0 +1,11 @@
+= Getting the software =
+Obviously, the first step is to download the software package.  This is painless.  The current stable release of the LocalWiki (whatever it's going to be called) software is located at ''here''.
+
+Alternatively, you can obtain a bleeding-edge version of the software by checking it out of our [http://subversion.tigris.org/ Subversion] server.  Just type...
+
+= Setting it up =
+The first step is to unpack the software.  Do this by...
+
+then then
+
+then...

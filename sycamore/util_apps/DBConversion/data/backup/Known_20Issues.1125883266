@@ -1,0 +1,25 @@
+ * make sure you can't login using the encrypted password (with {SHA} in front..)..
+      * make sure the email-password thing (old) doesn't work and the (new) system does work.
+      * need better logout thinger?
+ * intuitive redirect labels (wikipedia)
+
+= bugs = 
+ * thumbnail macro doesn't have proper regexp for image captions with comas in them
+ * thumnail macro also needs to work perfectly in alignment with the syntax for {{{attachment:a%20%image%20with%20spaces__and__these__things}}}
+   * a particular one that it doesn't work with is {{{C__Documents%20and%20Settings_Leviathan_tercero.JPG}}}
+   * works with that image referenced ''as'' {{{C__Documents and Settings_Leviathan_tercero.JPG}}} -- isn't doing %20 stuff?
+ * Uploading from IE on windows can produce said ugly attachments. EW.
+ * Sub-pages.  In general need to fix simpleParse.
+ * Interwiki.
+ * User Statistics on www.bearvalleywiki.org just doesn't want to update with pages that I have created, nor the time of last edit. Go to my wiki and you'll see the User Stat is definitely behind what Recent Changes would indicate. Mike Ivanov looked at it for a while. Didn't see anything obvious. 
+    I would check to see if the file userstats.xml has the correct permissions.  It's in the util_apps directory.  You can just recreate it by making a text file containing:  {{{
+<?xml version="1.0" ?>
+<stats></stats>
+}}}
+    I won't have regularly net access until the 6th, so I can't help beyond that, sorry!
+             {{{ Hi Philip, userstats.xml is 644, same owner.group as the rest of the files. BTW, when I run 'python ./rebuildlastedited.py' in the LocalWiki directory, it gets into an infinite loop or blocks waiting for something. Trying to look into it a bit. }}}
+= more general =
+ * set up subversion completely.  document the code setup!
+
+= speed fixes =
+ * ["Title Index"], etc should be fast or turned off.  Do per-day generation of Wanted Pages, Orphaned Pages, and Outgoing Links.

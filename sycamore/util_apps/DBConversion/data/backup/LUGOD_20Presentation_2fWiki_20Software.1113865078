@@ -1,0 +1,12 @@
+= Finding wiki software =
+ * somewhat new concept
+ * few examples of successful projects
+   * software-wise:
+    * MediaWiki -- huge, used by wikipedia
+      * broke conventions (no CamelCase)
+    * MoinMoin -- used by many in open source community
+      * stuck to wiki traditions (CamelCase)
+        * CamelCase makes sense when you're talkingAboutObjects
+   * project-wise:
+    * wikipedia
+    * software documentation/open source community used wiki

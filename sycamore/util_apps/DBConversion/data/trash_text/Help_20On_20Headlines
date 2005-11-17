@@ -1,0 +1,45 @@
+##language:en
+#pragma section-numbers on
+
+== Section Headings ==
+You can create headings by starting and ending a line with up to five equal signs. The heading text is between those markers, separated by a single space.
+
+Headings can be automatically numbered, you can enable this by putting {{{#pragma section-numbers on}}} as the first line of the page.
+
+For more information on the possible markup, see ["Help On Editing"]. 
+
+=== Example ===
+{{{
+ = Heading =
+ == Subheading ==
+ === Level 3 ===
+ ==== Level 4 ====
+ ===== Level 5 =====
+}}} 
+
+=== Display ===
+ = Heading =
+ == Subheading ==
+ === Level 3 ===
+ ==== Level 4 ====
+ ===== Level 5 =====
+
+Note that proper section numbering requires you to order sections according to a valid structure, i.e. correctly nested. Our sample doesn't do this, so you get a different numbering scheme than you might expect.
+
+You'll want to use the biggest header, {{{= Big one =}}}, for creating your initial sections then smaller headers for sub-sections, accordingly.
+
+To indent a headline just but a space (or multiple spaces) in front of it:
+
+{{{
+ == indented ==
+
+== not indented ==
+}}}
+
+displays as:
+
+ = indented =
+
+= not indented =
+
+This is useful for organizing headers.  The more spaces you put in front of a headline the more it's indented.

@@ -1,0 +1,26 @@
+##language:en
+#pragma section-numbers off
+## This page is for messing with the Front Page without actually messing with it!  Comments welcome here!
+
+||<width="130">borderless:welcomesign.png||Welcome to the brand new community wiki for Davis, California.  This project is an interconnected community effort to explore, discuss and compile anything and everything Davis -- especially the little, enjoyable things.[[BR]][[BR]]If you're new, check out our ["Introduction"].  Here's a random page: [[RandomPage]]||
+
+||<width="40%" align="left" valign="top" rowspan="2">[[IncludePages(Explore,2,sort=ascending,items=1)]]||<align="left" valign="top">[[IncludePages(Featured Page,2,sort=ascending,items=1)]]||
+||<align="left" valign="top">[[IncludePages(News,2,sort=ascending,items=1)]]||
+
+= Getting Started =
+First, check out the ["Davis Wiki Guide"].  This is the focal point for help and information on getting started with the wiki!
+
+A Wiki is a linked set of pages that ''anybody can edit and contribute to'' '''without knowing anything about websites'''.  [http://www.wikipedia.org Wikipedia] is the prime example of a successful wiki project.  Also, check out [http://c2.com/cgi/wiki?WhyWikiWorks Why Wiki Works] for some information on the philosophy of wiki.
+
+After reading that stuff, and playing around in the ["Wiki Sand Box"], check out our ["FAQ"].  We also have a ["Title Index"] with all the pages in the wiki.
+
+Feel free to make new pages -- just remember to link them.  Also, if you don't know where to start or don't have any ideas, check out ["To Do"].
+
+----------
+I'm not sure we should say "brand new community wiki" but I'm not sure what better language is. - ["PhilipNeustrom"]
+
+I want to add GSA (the Graduate Student Association) next to the ASUCD in the ["Explore"] page.  While smaller in scale, GSA and ASUCD really are equals in rank, since the ASUCD does not represent graduate students at all, and graduate student fees does not go towards ASUCD.  However, despite them being equals, I'm still not sure if it's appropriate to add GSA next to it. - ["PanSola"]
+
+ * I think that's a pretty good idea. - ["PhilipNeustrom"]
+ * I went ahead and added it. - ["MikeIvanov"]
+ * Thanks guys (-:  - ["PanSola"]
