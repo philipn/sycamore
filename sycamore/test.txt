@@ -1,1 +1,0 @@
-['Front Page', 'People', 'Recent Changes', 'AdminGroup', 'Bookmarks', 'Events Board', 'Events Board Syndication', 'Map', 'Orphaned Pages', 'Outgoing Links', 'Page Size', 'Quick Wiki Tips', 'Random Page', 'Site Organization', 'Title Index', 'User Preferences', 'User Statistics', 'Wanted Pages', 'Wiki Guide', 'Wiki Sand Box', 'Word Index']
