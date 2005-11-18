@@ -154,7 +154,10 @@ def insertImagesIntoDB(pagelist):
 	   db = wikidb.connect()
 	   cursor = db.cursor()
 	   cursor.execute("start transaction;")
-	   cursor.execute("INSERT into images set name=%s, image=%s, attached_to_pagename=%s, uploaded_time=FROM_UNIXTIME(%s), uploaded_by=%s, uploaded_by_ip=%s ;", (filename, filestring, pagename, uploaded_time, uploaded_by, uploaded_by_ip))
+	   if uploaded_time:
+	     cursor.execute("INSERT into images set name=%s, image=%s, attached_to_pagename=%s, uploaded_time=FROM_UNIXTIME(%s), uploaded_by=%s, uploaded_by_ip=%s ;", (filename, filestring, pagename, uploaded_time, uploaded_by, uploaded_by_ip))
+	   else:
+	     cursor.execute("INSERT into images set name=%s, image=%s, attached_to_pagename=%s, uploaded_by=%s, uploaded_by_ip=%s ;", (filename, filestring, pagename, uploaded_time, uploaded_by, uploaded_by_ip))
 	   cursor.execute("commit;")
 
 def getFieldValue(dict, key, item):
@@ -211,7 +214,10 @@ def insertUsersIntoDB():
 	sline = line.split('=')
 	attribute = sline[0] 
 	value = sline[1].strip()
-	if attribute == 'enc_password': value += value + '='
+	if attribute == 'enc_password':
+           value = value + '='
+	   if value.startswith("{SHA}"):
+             value = value[5:]
 	if not userdict.has_key(id): userdict[id] = [(attribute, value)]
 	else: userdict[id].append((attribute, value))
 
