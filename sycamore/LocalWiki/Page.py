@@ -126,7 +126,7 @@ class Page:
         """
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT text from curPages where name=%s", (self.page_name))
+	cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
 	result = cursor.fetchone()
 	cursor.close()
 	db.close()

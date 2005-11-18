@@ -218,8 +218,9 @@ class User:
 	result = cursor.fetchone()
 	cursor.close()
 	db.close()
-	if result:  return True
+	if result: return True
 	else:  return False
+        return False
 
     def load(self):
         """
@@ -686,18 +687,19 @@ class User:
         """
         Checks to see if pagename is in the favorites list, and if it is, it updates the timestamp.
         """
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
-	result = cursor.fetchone()
-	if result:
-        # we have it as a favorite
-	   cursor.execute("start transaction")
-	   cursor.execute("UPDATE userFavorites set viewTime=FROM_UNIXTIME(%s) where username=%s and page=%s", (time.time(), self.name, pagename)) 
-	   cursor.execute("commit")
+        if self.name:
+	  db = wikidb.connect()
+	  cursor = db.cursor()
+	  cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
+	  result = cursor.fetchone()
+	  if result:
+          # we have it as a favorite
+	     cursor.execute("start transaction")
+	     cursor.execute("UPDATE userFavorites set viewTime=FROM_UNIXTIME(%s) where username=%s and page=%s", (time.time(), self.name, pagename)) 
+	     cursor.execute("commit")
  	  
-	cursor.close()
-	db.close()
+	  cursor.close()
+	  db.close()
 
     def isFavoritedTo(self, pagename):
         """
