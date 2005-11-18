@@ -249,7 +249,7 @@ class User:
         # XXX UNICODE fix needed, we want to read utf-8 and decode to unicode
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved from users where id=%s", (self.id))
+	cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, UNIX_TIMESTAMP(last_saved) from users where id=%s", (self.id))
 	data = cursor.fetchone()
 	cursor.close()
 	db.close()
@@ -322,9 +322,9 @@ class User:
 	cursor = db.cursor()
 	cursor.execute("start transaction;")
 	if self.exists():	
-		cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.id))
+		cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=FROMT_UNIXTIME(%s) where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.id))
 	else:
-		cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, join_date=FROM_UNIXTIME(%s)", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time()))
+		cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=FROM_UNIXTIME(%s), join_date=FROM_UNIXTIME(%s)", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time()))
 	cursor.execute("commit;")
 	cursor.close()
 	db.close()

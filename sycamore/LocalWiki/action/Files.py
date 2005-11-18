@@ -527,8 +527,8 @@ def send_viewfile(pagename, request):
 
 	db = wikidb.connect()
         cursor = db.cursor()
-        if not version: cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), UNIX_TIMESTAMP(images.uploaded_time) from images left join users on attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by", (pagename,filename))
-	else: cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), UNIX_TIMESTAMP(images.uploaded_time) from images left join users on attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by and images.uploaded_time=%s", (pagename,filename,version))
+        if not version: cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), UNIX_TIMESTAMP(images.uploaded_time) from images, users where attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by", (pagename,filename))
+	else: cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), UNIX_TIMESTAMP(images.uploaded_time) from images, users where attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by and images.uploaded_time=%s", (pagename,filename,version))
         result = cursor.fetchone()
         cursor.close()
         db.close()
@@ -538,9 +538,10 @@ def send_viewfile(pagename, request):
 
 	if result:
 	# this means the image is 'active' and wasn't most recently deleted.
+        # let's get some image history, if it's around
    	   db = wikidb.connect()
            cursor = db.cursor()
-           cursor.execute("SELECT oldimages.name, oldimages.uploaded_time, users.name, oldimages.deleted_time, users2.name, UNIX_TIMESTAMP(oldimages.uploaded_time) from oldimages left join users on attached_to_pagename=%s and oldimages.name=%s and users.id=oldimages.uploaded_by left join users as users2 on users2.id=oldimages.deleted_by order by oldimages.uploaded_time desc;", (pagename, filename))
+           cursor.execute("SELECT oldimages.name, oldimages.uploaded_time, users.name, oldimages.deleted_time, users2.name, UNIX_TIMESTAMP(oldimages.uploaded_time) from oldimages, users, users as users2 where attached_to_pagename=%s and oldimages.name=%s and users.id=oldimages.uploaded_by and users2.id=oldimages.deleted_by order by oldimages.uploaded_time desc;", (pagename, filename))
            revisions_item = cursor.fetchone()
 	   while revisions_item:
    	     revisions.append((revisions_item[1], revisions_item[2], revisions_item[3], revisions_item[4], revisions_item[5]))
@@ -553,10 +554,10 @@ def send_viewfile(pagename, request):
            cursor = db.cursor()
 	   if not version:
 	   # grab the most recent version of the image
-             cursor.execute("SELECT oldimages.name, oldimages.uploaded_time, users.name, length(oldimages.image), oldimages.deleted_time, users2.name, UNIX_TIMESTAMP(oldimages.uploaded_time) from oldimages left join users on attached_to_pagename=%s and oldimages.name=%s and users.id=oldimages.uploaded_by left join users as users2 on users2.id=oldimages.deleted_by order by oldimages.uploaded_time desc;", (pagename,filename))
+             cursor.execute("SELECT oldimages.name, oldimages.uploaded_time, users.name, length(oldimages.image), oldimages.deleted_time, users2.name, UNIX_TIMESTAMP(oldimages.uploaded_time) from oldimages, users, users as users2 where attached_to_pagename=%s and oldimages.name=%s and users.id=oldimages.uploaded_by and users2.id=oldimages.deleted_by order by oldimages.uploaded_time desc;", (pagename,filename))
 	   else:
 	     # let's grab the proper version of the image
-	     cursor.execute("SELECT oldimages.name, oldimages.uploaded_time, users.name, length(oldimages.image), oldimages.deleted_time, users2.name, UNIX_TIMESTAMP(oldimages.uploaded_time) from oldimages left join users on attached_to_pagename=%s and oldimages.name=%s and users.id=oldimages.uploaded_by left join users as users2 on users2.id=oldimages.deleted_by and oldimages.uploaded_time=FROM_UNIXTIME(%s) order by oldimages.uploaded_time desc;", (pagename,filename, version))
+	     cursor.execute("SELECT oldimages.name, oldimages.uploaded_time, users.name, length(oldimages.image), oldimages.deleted_time, users2.name, UNIX_TIMESTAMP(oldimages.uploaded_time) from oldimages, users, users as users2 where attached_to_pagename=%s and oldimages.name=%s and users.id=oldimages.uploaded_by and users2.id=oldimages.deleted_by and oldimages.uploaded_time=FROM_UNIXTIME(%s) order by oldimages.uploaded_time desc;", (pagename,filename, version))
 	   revisions_and_latest = cursor.fetchall()
 	   if revisions_and_latest:
 	      result = revisions_and_latest[0]
@@ -642,7 +643,7 @@ def show_deleted_images(pagename, request):
     pagetitle = "Deleted images for \"%s\"" % (pagename)
     db = wikidb.connect()
     cursor = db.cursor()
-    cursor.execute("SELECT * from (SELECT oldimages.name as name, oldimages.deleted_time, users.name as user_name, UNIX_TIMESTAMP(oldimages.uploaded_time) from oldimages left join users on attached_to_pagename=%s and users.id=oldimages.deleted_by and (oldimages.name, oldimages.attached_to_pagename) not in (SELECT images.name, images.attached_to_pagename from images) order by deleted_time desc) as hack_table group by name order by deleted_time desc;", (pagename))
+    cursor.execute("SELECT * from (SELECT oldimages.name as name, oldimages.deleted_time, users.name as user_name, UNIX_TIMESTAMP(oldimages.uploaded_time) from oldimages, users where attached_to_pagename=%s and users.id=oldimages.deleted_by and (oldimages.name, oldimages.attached_to_pagename) not in (SELECT images.name, images.attached_to_pagename from images) order by deleted_time desc) as hack_table group by name order by deleted_time desc;", (pagename))
     result = cursor.fetchall()
     cursor.close()
     db.close()
