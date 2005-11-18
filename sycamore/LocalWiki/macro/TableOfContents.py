@@ -11,10 +11,10 @@
 # Imports
 import re, sha
 
-Dependencies = ["page"]
+Dependencies = []
 
 def execute(macro, args):
-    heading = re.compile(r"^\s*(?P<hmarker>=+)\s(.*)\s(?P=hmarker)")
+    heading = re.compile(r"^\s*(?P<hmarker>=+)\s*(.*)\s*(?P=hmarker)")
     result = []
     baseindent = 0
     indent = 0
