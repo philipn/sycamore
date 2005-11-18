@@ -107,7 +107,10 @@ def _info_header(request, pagename, in_images_list_area=True):
 def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename):
     text = '<div><h4>Image history</h4></div><ul>'
     for revision in revisions:
-      text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s&amp;">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, revision[4], baseurl, urlpagename, action, filename, revision[4], revision[0], Page(revision[1]).link_to(request), revision[2], Page(revision[3]).link_to(request))
+      if revision[1]:
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s&amp;">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, revision[4], baseurl, urlpagename, action, filename, revision[4], revision[0], Page(revision[1]).link_to(request), revision[2], Page(revision[3]).link_to(request))
+      else:
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s&amp;">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, revision[4], baseurl, urlpagename, action, filename, revision[4], revision[0], revision[2], Page(revision[3]).link_to(request))
     text += '</ul>'
     return text
 

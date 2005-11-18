@@ -555,7 +555,7 @@ def do_info(pagename, request):
 
 	links_to_page = page.getPageLinksTo(request)
         if links_to_page:
-            request.write('<p>', _('This following pages link to this page:'), '<br>')
+            request.write('<p>', _('The following pages link to this page:'), '<br>')
             for linkingpage in links_to_page:
                 request.write("%s%s " % (Page(linkingpage).link_to(request), ",."[linkingpage == links_to_page[-1]]))
             request.write("</p>")
