@@ -1,9 +1,10 @@
 # -*- coding: iso-8859-1 -*-
-from LocalWiki import wikiutil, wikiform, config
+from LocalWiki import wikiutil, wikiform, config, wikidb
 from LocalWiki.Page import Page
-import xml.dom.minidom
 
 def execute(macro, args):
-       dom = xml.dom.minidom.parse(config.app_dir + "/userstats.xml")
-       users = dom.getElementsByTagName("user")
-       return str(users.length)
+  db = wikidb.connect()
+  cursor = db.cursor()
+  cursor.execute("SELECT count(id) from users;")
+  result = cursor.fetchone()[0]
+  return str(result)
