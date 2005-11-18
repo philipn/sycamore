@@ -83,6 +83,7 @@ def findAllVersions(pagelist):
 
   # first, the backups!
   for backup in os.listdir(data_path + '/backup/'):
+    if backup[0] == '.': continue
     pagename = wikiutil.unquoteFilename(backup.split('.')[0])
     version = backup.split('.')[1]
     l.append((pagename, version))
@@ -156,6 +157,13 @@ def insertImagesIntoDB(pagelist):
 	   cursor.execute("INSERT into images set name=%s, image=%s, attached_to_pagename=%s, uploaded_time=FROM_UNIXTIME(%s), uploaded_by=%s, uploaded_by_ip=%s ;", (filename, filestring, pagename, uploaded_time, uploaded_by, uploaded_by_ip))
 	   cursor.execute("commit;")
 
+def getFieldValue(dict, key, item):
+ # utility function to grab the value of item from dict.  values associated with dict are lists, so we just look through the list and grab the item.  Should have used dict. in the first place for the value, but whatever
+ l = dict[key]  
+ for entry in l:
+   if entry[0] == item:
+     return entry[1]
+
 def insertUsersIntoDB():
   import xml.dom.minidom
 
@@ -193,6 +201,7 @@ def insertUsersIntoDB():
       file_count = ''
       last_page_edited = ''
       last_edit_date = ''
+      # rc bookmark comes from a different file
       rc_bookmark = ''
       rc_showcomments = ''
 
@@ -251,15 +260,47 @@ def insertUsersIntoDB():
     userdict[id].append(("last_edit_date",""))
     userdict[id].append(("last_page_edited",""))
 
+  # start filling the db with the user data
+  db = wikidb.connect()
+  cursor = db.cursor()
+  cursor.execute("start transaction;")
+  for user, fields in userdict.iteritems():
+    id = user
+    name = getFieldValue(userdict, user, "name") 
+    email = getFieldValue(userdict, user, "email") 
+    enc_password = getFieldValue(userdict, user, "enc_password") 
+    language = getFieldValue(userdict, user, "language") 
+    remember_me = getFieldValue(userdict, user, "remember_me") 
+    css_url = getFieldValue(userdict, user, "css_url") 
+    disabled = getFieldValue(userdict, user, "disabled") 
+    edit_cols = getFieldValue(userdict, user, "edit_cols") 
+    edit_rows = getFieldValue(userdict, user, "edit_rows") 
+    edit_on_doubleclick = getFieldValue(userdict, user, "edit_on_doubleclick") 
+    theme_name = getFieldValue(userdict, user, "theme_name") 
+    last_saved = getFieldValue(userdict, user, "last_saved") 
+    created_count = getFieldValue(userdict, user, "created_count") 
+    edit_count = getFieldValue(userdict, user, "edit_count") 
+    file_count = getFieldValue(userdict, user, "file_count") 
+    last_page_edited = getFieldValue(userdict, user, "last_page_edited") 
+
+    last_edit_date = getFieldValue(userdict, user, "last_edit_date") 
+    join_date = getFieldValue(userdict, user, "join_date") 
+    rc_bookmark = ''
+    rc_showcomments = getFieldValue(userdict, user, "rc_showcomments") 
+    cursor.execute("INSERT into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=FROM_UNIXTIME(%s), created_count=%s, edit_count=%s, file_count=%s, last_page_edited=%s, last_edit_date=%s, rc_bookmark=%s, rc_showcomments=%s, join_date=%s", ( id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, created_count, edit_count, file_count, last_page_edited, last_edit_date, rc_bookmark, rc_showcomments, join_date))
+  cursor.execute("commit;") 
+
+  
+
 
 d = {}
 filelist = os.listdir(data_path + '/pages/')
-dirlist = [ x for x in filelist if os.path.isdir(data_path + '/pages/' + x) ]
+dirlist = [ x for x in filelist if (os.path.isdir(data_path + '/pages/' + x) and x[0] != '.')]
 pagelist = [ wikiutil.unquoteFilename(x) for x in dirlist ]
 for pagename, version in findAllVersions(pagelist):
     if d.has_key(pagename): d[pagename].append(aPage(pagename, version))
     else: d[pagename] = [aPage(pagename, version)]
 
-#insertPagesIntoDB(d)
-#insertImagesIntoDB(pagelist)
+insertPagesIntoDB(d)
+insertImagesIntoDB(pagelist)
 insertUsersIntoDB()
