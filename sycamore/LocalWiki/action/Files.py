@@ -118,7 +118,7 @@ def info(pagename, request):
 
     db = wikidb.connect()
     cursor = db.cursor()
-    cursor.execute("SELECT count(name) from images")
+    cursor.execute("SELECT count(name) from images where attached_to_pagename=%s",(pagename))
     result = cursor.fetchone()
     cursor.close()
     db.close()
@@ -527,8 +527,13 @@ def send_viewfile(pagename, request):
 
 	db = wikidb.connect()
         cursor = db.cursor()
-        if not version: cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), UNIX_TIMESTAMP(images.uploaded_time) from images, users where attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by", (pagename,filename))
-	else: cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), UNIX_TIMESTAMP(images.uploaded_time) from images, users where attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by and images.uploaded_time=%s", (pagename,filename,version))
+        if not version:
+ 	  # in some rare cases the images were not uploaded by a user, so let's check to see if there's information on the upload-er
+	  cursor.execute("SELECT images.uploaded_by from images where name=%s and attached_to_pagename=%s", (pagename, filename))
+	  result = cursor.fetchone()
+ 	  cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), UNIX_TIMESTAMP(images.uploaded_time) from images, users where attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by", (pagename,filename))
+	else:
+          cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), UNIX_TIMESTAMP(images.uploaded_time) from images, users where attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by and images.uploaded_time=%s", (pagename,filename,version))
         result = cursor.fetchone()
         cursor.close()
         db.close()

@@ -46,7 +46,7 @@ def execute(macro, args):
        list = []
        db = wikidb.connect()
        cursor = db.cursor()
-       cursor.execute("SELECT name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users order by %s desc" % sort_by, (args))
+       cursor.execute("SELECT name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users where name!='' order by %s desc" % sort_by, (args))
        user_stats = cursor.fetchall()
        cursor.close()
        db.close()

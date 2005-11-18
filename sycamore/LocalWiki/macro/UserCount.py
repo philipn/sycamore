@@ -5,6 +5,6 @@ from LocalWiki.Page import Page
 def execute(macro, args):
   db = wikidb.connect()
   cursor = db.cursor()
-  cursor.execute("SELECT count(id) from users;")
+  cursor.execute("SELECT count(id) from users where id !='';")
   result = cursor.fetchone()[0]
   return str(result)
