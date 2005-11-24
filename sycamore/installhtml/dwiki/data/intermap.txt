@@ -1,0 +1,10 @@
+#format plain
+# Local Wikis:
+
+RocWiki http://rocwiki.org/index.cgi/
+DavisWiki http://daviswiki.org/
+
+# other important/cool wikis
+C2 http://c2.com/cgi/wiki?
+Wiki http://c2.com/cgi/wiki?
+WikiPedia http://en.wikipedia.org/wiki/
