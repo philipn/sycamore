@@ -174,9 +174,7 @@ class Parser:
             html_class = 'interwiki'
         text = self.highlight_text(text) # also cgi.escapes if necessary
 
-        icon = ''
-        if self.request.user.show_fancy_links:
-            icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}) 
+        icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}) 
         return self.formatter.url(href, icon + text,
             title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class)
 
