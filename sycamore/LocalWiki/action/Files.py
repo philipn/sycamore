@@ -234,7 +234,7 @@ def _get_filelist(request, pagename):
 def error_msg(pagename, request, msg):
     #Page(pagename).send_page(request, msg=msg)
     request.http_headers()
-    wikiutil.simple_send_title(request, pagename)
+    wikiutil.simple_send_title(request, pagename, msg)
     request.write('<div id="content">')
     send_uploadform(pagename, request)
     request.write('</div>')
@@ -400,17 +400,17 @@ def do_upload(pagename, request):
         error_msg(pagename, request, _("Filename of image not specified!"))
         return
 
+
     # RESTRICT FILE EXTENSIONS - EXPERIMENTAL
 
     if not string.upper(filename).endswith(".JPG") and not string.upper(filename).endswith(".JPEG") and not string.upper(filename).endswith(".PNG") and not string.upper(filename).endswith(".GIF"): 
         error_msg(pagename, request, _("You may only attach image files."))
         return
 
-    if string.find(filename, '<') or string.find(filename, '>') or string.find(filename, '&') or string.find(filename, '?') or string.find(filename, '"'):
+    if string.find(filename, '<') != -1 or string.find(filename, '>') != -1 or string.find(filename, '&') != -1 or string.find(filename, '?') != -1 or string.find(filename, '"') != -1:
         error_msg(pagename, request, _("The characters '<', '>', '&', '\"', and '?' are not allowed in file names."))
         return
 
-	
     # get file content
     filecontent = request.form['file'][0]
     
@@ -447,7 +447,6 @@ def do_upload(pagename, request):
       if result[0]:
         msg = _("Attachment '%(target)s' already exists.") % {
             'target': target}
-	cursor.close()
 	db.close()
     else:
 	uploaded_time = time.time()
@@ -455,6 +454,7 @@ def do_upload(pagename, request):
 	cursor.execute("start transaction;")
 	cursor.execute("INSERT into images set name=%s, image=%s, uploaded_time=FROM_UNIXTIME(%s), uploaded_by=%s, attached_to_pagename=%s, uploaded_by_ip=%s", (filename, filecontent, uploaded_time, uploaded_by, pagename, request.remote_addr))
 	cursor.execute("commit;")
+	db.close()
 
 	
         bytes = len(filecontent)
