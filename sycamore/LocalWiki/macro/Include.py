@@ -173,20 +173,23 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
         if config.relative_dir: add_on = '/'
         else: add_on = ''
 
-        if args.group('heading'):
-            heading = args.group('htext') or inc_page.split_title(macro.request)
-            level = 1
-            if args.group('level'):
-                level = int(args.group('level'))
-            if print_mode:
-                result.append(macro.formatter.heading(level, heading))
-            elif macro.request.user.may.edit(inc_name):
-               result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), inc_name, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
-               # result.append(macro.formatter.heading(level,
-               #     inc_page.link_to(macro.request, heading, css_class="include-heading-link"),
-               #     icons=edit_icon.replace('<img ', '<img align="right" ')))
-            else:
-                result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td></tr></table>' % (config.relative_dir, add_on, inc_name, inc_name))
+        heading = args.group('htext') or inc_page.split_title(macro.request)
+        level = 1
+        if args.group('level'):
+            level = int(args.group('level'))
+        if print_mode:
+            result.append(macro.formatter.heading(level, heading))
+        elif macro.request.user.may.edit(inc_name):
+           if heading:
+             result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), heading, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
+           else:
+             result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), inc_name, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
+
+           # result.append(macro.formatter.heading(level,
+           #     inc_page.link_to(macro.request, heading, css_class="include-heading-link"),
+           #     icons=edit_icon.replace('<img ', '<img align="right" ')))
+        else:
+            result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td></tr></table>' % (config.relative_dir, add_on, inc_name, inc_name))
 
         # set or increment include marker
         this_page._macroInclude_pagelist[inc_name] = \
@@ -209,14 +212,14 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
             del this_page._macroInclude_pagelist[inc_name]
 
         # if no heading and not in print mode, then output a helper link
-        if macro.request.user.may.edit(inc_name):
-           if not (level or print_mode):
-               result.extend([
-                   '<div class="include-link">',
-                   inc_page.link_to(macro.request, '[%s]' % (inc_name,), css_class="include-page-link"),
-                   
-                   '</div>',
-               ])
+        #if macro.request.user.may.edit(inc_name):
+        #   if not (level or print_mode):
+        #       result.extend([
+        #           '<div class="include-link">',
+        #           inc_page.link_to(macro.request, '[%s]' % (inc_name,), css_class="include-page-link"),
+        #           
+        #           '</div>',
+        #       ])
         #else:
         #   if not (level or print_mode):
         #       result.extend([
