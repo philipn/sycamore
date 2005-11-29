@@ -7,7 +7,7 @@ def execute(macro, args):
 
     body = ''
     numdict = {}
-    for pagename in wikiutil.getPageList(config.text_dir):
+    for pagename in wikiutil.getPageList():
         page = Page(pagename)
         links = page.getPageLinks(macro.request, False)
         numlinks = 0

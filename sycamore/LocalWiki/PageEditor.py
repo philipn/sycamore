@@ -792,7 +792,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         Builds the index with all the pages. . This should hopefully rarely be run.
         """
         forked_id = 0
-        pages = list(wikiutil.getPageList(config.text_dir))
+        pages = list(wikiutil.getPageList())
         for page in pages:
                 p = Page(page)
                 #add_to_index(wikiutil.quoteWikiname(p.page_name), p.get_raw_body())

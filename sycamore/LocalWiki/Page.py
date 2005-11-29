@@ -316,7 +316,9 @@ class Page:
         _ = request.getText
 
         # determine modes
-        print_mode = request.form.has_key('action') and request.form['action'][0] == 'print'
+        if request.form:
+	  print_mode = request.form.has_key('action') and request.form['action'][0] == 'print'
+	else: print_mode = False
         content_only = keywords.get('content_only', 0)
         content_id = keywords.get('content_id', 'content')
         self.hilite_re = keywords.get('hilite_re', None)
@@ -346,8 +348,8 @@ class Page:
         wikiform = None
 
         # check for XML content
-        if body and body[:5] == '<?xml':
-            pi_format = "xslt"
+        #if body and body[:5] == '<?xml':
+        #    pi_format = "xslt"
 
         # check processing instructions
         while body and body[0] == '#':
@@ -553,19 +555,22 @@ class Page:
 
             request.write(doc_trailer)
         
-        # let's save the pagelinks
-	# ------XXXXXXXXXXXXXXXXXXXXXX-------
-	# DBFIX -- KILL this and replace it with a lookup from the link table
         #if self.default_formatter and self.exists():
-        #    arena = "pagelinks"
-        #    key   = wikiutil.quoteFilename(self.page_name)
+        #    arena = "Page.py"
+        #    key   = self.page_name
         #    cache = caching.CacheEntry(arena, key)
-        #    if cache.needsUpdate(self.page_name):
+        #    if cache.needsUpdate():
 	#	#links is a list of strings
         #        links = self.formatter.pagelinks
-        #        # XXX UNICODE fix needed?? store as utf-8
-        #        cache.update('\n'.join(links))
-	# -XXXXXXXXXXXXXXXXXXXXXXXXX-------
+	#	db = wikidb.connect()
+	#	cursor = db.cursor()
+	#	cursor.execute("start transaction;")
+	#	cursor.execute("DELETE from links where source_pagename=%s", (key))
+	#	for link in links:
+	#	  cursor.execute("INSERT into links set source_pagename=%s, destination_pagename=%s", (key, link))
+	#	cursor.execute("commit;")
+	#	cursor.close()
+	#	db.close()
 
         request.clock.stop('send_page')
 
@@ -677,7 +682,7 @@ class Page:
   
         # look for template pages
         templates = filter(lambda page, u = wikiutil: u.isTemplatePage(page),
-            wikiutil.getPageList(config.text_dir))
+            wikiutil.getPageList())
         if templates:
             templates.sort()
 
@@ -720,7 +725,7 @@ class Page:
         """
         if not self.exists(): return []
 
-        arena = "pagelinks"
+        arena = "Page.py"
         key   = self.page_name
         cache = caching.CacheEntry(arena, key)
         if cache.needsUpdate() and docache:
@@ -737,13 +742,14 @@ class Page:
                 except:
                     import traceback
                     traceback.print_exc()
-                    cache.update('')
+                    cache.clear()
             finally:
                 request.mode_getpagelinks = 0
                 request.redirect()
                 if hasattr(request, '_fmt_hd_counters'):
                     del request._fmt_hd_counters
         # XXX UNICODE fix needed? decode from utf-8
+
 	# !!!! DB FIX DBFIX need to use LINK TABLE here
 	links = []
 	db = wikidb.connect()

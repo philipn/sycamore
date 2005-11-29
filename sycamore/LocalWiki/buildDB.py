@@ -115,13 +115,12 @@ def create_tables(cursor):
 
  cursor.execute("alter table userSessions add index expire_time (expire_time);")
 
- #Links can be re-created if corrupt.  No need to worry about integrity so we'll use MyISAM for speed.
  cursor.execute("""create table links
  (
  source_pagename varchar(255),
  destination_pagename varchar(255),
  primary key (source_pagename, destination_pagename)
- ) type=MyISAM;""")
+ ) type=InnoDB;""")
 
  cursor.execute("""create table events
  (
@@ -191,18 +190,22 @@ def create_views(cursor):
 def create_other_stuff(cursor):
  cursor.execute("INSERT into users set name='';")
 
+def insert_basic_pages(cursor):
+ cursor.execute("insert into curPages set name='Front Page', text='Edit me..This is the front page!', editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');")
+ cursor.execute("insert into allPages set name='Front Page', text='Edit me..This is the front page!', editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';")
+ cursor.execute("insert into curPages set name='User Preferences', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');", (userpref_text))
+ cursor.execute("insert into allPages set name='User Preferences', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';", (userpref_text))
+ 
+ cursor.execute("insert into curPages set name='Recent Changes', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');", (rc_text))
+ cursor.execute("insert into allPages set name='Recent Changes', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';", (rc_text))
+
+
 db = wikidb.connect()
 cursor = db.cursor()
 cursor.execute("start transaction;")
 create_tables(cursor)
 create_views(cursor)
 create_other_stuff(cursor)
-cursor.execute("insert into curPages set name='Front Page', text='Edit me..This is the front page!', editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');")
-cursor.execute("insert into allPages set name='Front Page', text='Edit me..This is the front page!', editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';")
-cursor.execute("insert into curPages set name='User Preferences', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');", (userpref_text))
-cursor.execute("insert into allPages set name='User Preferences', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';", (userpref_text))
-
-cursor.execute("insert into curPages set name='Recent Changes', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');", (rc_text))
-cursor.execute("insert into allPages set name='Recent Changes', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';", (rc_text))
+#insert_basic_pages(cursor)
 cursor.execute("commit;")
 db.close()

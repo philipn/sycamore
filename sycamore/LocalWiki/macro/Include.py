@@ -73,7 +73,7 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
         except re.error:
             pass # treat as plain page name
         else:
-            pagelist = wikiutil.getPageList(config.text_dir)
+            pagelist = wikiutil.getPageList()
             pagelist = filter(inc_match.match, pagelist)
 
     # sort and limit page list

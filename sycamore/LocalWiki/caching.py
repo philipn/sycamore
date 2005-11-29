@@ -37,6 +37,7 @@ class CacheEntry:
 	else: return 0
 
     def needsUpdate(self):
+        needs_update = True
         db = wikidb.connect()
         cursor = db.cursor()
         cursor.execute("SELECT editTime, cachedTime from curPages where name=%s", (self.key))
@@ -45,10 +46,10 @@ class CacheEntry:
         if result:
             if result[0][0]:
 		edit_time = result[0][0]
-            else: return 1
+            else: return True 
             if result[0][1]:
 		cached_time = result[0][1]
-            else: return 1
+            else: return True
 
         needsupdate = edit_time > cached_time
         
@@ -69,10 +70,9 @@ class CacheEntry:
         cursor = db.cursor()
 	cursor.execute("start transaction")
         cursor.execute("UPDATE curPages set cachedText=%s, cachedTime=%s where name=%s", (content, time.time(), self.key))
+	cursor.execute("DELETE from links where source_pagename=%s", (self.key))
 	for link in links:
-	  cursor.execute("SELECT destination_pagename from links where source_pagename=%s and destination_pagename=%s", (self.key, link))
-	  result = cursor.fetchone() 
-	  if not result: cursor.execute("INSERT into links values (%s, %s)", (self.key, link))
+	  cursor.execute("INSERT into links values (%s, %s)", (self.key, link))
 	cursor.execute("commit")
 	cursor.close()
 	db.close()
@@ -88,14 +88,10 @@ class CacheEntry:
 
     def clear(self):
         #clears the content of the cache regardless of whether or not the page needs an update
-	from LocalWiki.Page import Page
-	p = Page(self.key)
-	content = p.get_raw_body()
-	links = []
 	db = wikidb.connect()
         cursor = db.cursor()
-	cursor.execute("SELECT destination_pagename from links where source_pagename=%s", (self.key))
-	result = cursor.fetchall()
-	for entry in result:
-	  links.append(entry[0])
-	self.update(content, links)
+	cursor.execute("start transaction")
+	cursor.execute("UPDATE curPages set cachedText=NULL, cachedTime=NULL where name=%s", (self.key))
+	cursor.execute("commit")
+	cursor.close()
+	db.close()

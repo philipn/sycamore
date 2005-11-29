@@ -318,7 +318,7 @@ def do_titlesearch(pagename, request, fieldname='value'):
         needle_re = re.compile(needle, re.IGNORECASE)
     except re.error:
         needle_re = re.compile(re.escape(needle), re.IGNORECASE)
-    all_pages = wikiutil.getPageList(config.text_dir)
+    all_pages = wikiutil.getPageList()
     hits = filter(needle_re.search, all_pages)
     hits.sort()
 

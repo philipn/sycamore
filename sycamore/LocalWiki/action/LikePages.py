@@ -56,7 +56,7 @@ def findMatches(pagename, request,
     _ = request.getText
 
     # get page lists
-    pagelist = wikiutil.getPageList(config.text_dir)
+    pagelist = request.getPageList()
     lowerpages = [p.lower() for p in pagelist]
     similar = difflib.get_close_matches(pagename.lower(), lowerpages, 10) 
 

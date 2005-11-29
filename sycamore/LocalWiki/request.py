@@ -181,7 +181,7 @@ class RequestBase:
             Also, this list is always sorted.
         """
         if self._all_pages is None:
-            self._all_pages = wikiutil.getPageList(config.text_dir)
+            self._all_pages = wikiutil.getPageList()
             self._all_pages.sort()
 
         return self._all_pages

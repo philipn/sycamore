@@ -20,7 +20,7 @@ def execute(macro, args):
         links = 1
 
     # select the pages from the page list
-    all_pages = wikiutil.getPageList(config.text_dir)
+    all_pages = macro.request.getPageList()
     pages = []
     while len(pages) < links and all_pages:
         page = whrandom.choice(all_pages)

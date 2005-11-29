@@ -24,7 +24,7 @@ def execute(pagename, request):
 
     request.http_headers(["Content-Type: " + mimetype])
 
-    pages = list(wikiutil.getPageList(config.text_dir))
+    pages = list(wikiutil.getPageList())
     pages.sort()
 
     pages = filter(request.user.may.read, pages)

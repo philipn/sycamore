@@ -250,7 +250,7 @@ class GroupDict(DictDict):
         now = int(time.time()) # we dont want float!
         # check for new groups / dicts from time to time...
         if now - self.namespace_timestamp >= 60:
-            pagelist = wikiutil.getPageList(config.text_dir)
+            pagelist = wikiutil.getPageList()
             dictpages = filter(dict_re.search, pagelist)
             #print '%s -> %s' % (config.page_dict_regex, dictpages)
             for pagename in dictpages:

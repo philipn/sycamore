@@ -323,22 +323,13 @@ def isImageOnPage(pagename, filename):
 ### Page storage helpers
 #############################################################################
 
-def getPageList(text_dir):
+def getPageList():
     """
     List all pages, except for "CVS" directories,
     hidden files (leading '.') and temp files (leading '#')
     
-    @param text_dir: path to "text" directory
     @rtype: list
     @return: all (unquoted) wiki page names
-
-    pages = os.listdir(text_dir)
-    result = []
-    for file in pages:
-        if file[0] in ['.', '#'] or file in ['CVS']: continue
-        result.append(file)
-    return map(unquoteFilename, result)
-
 
     """
     db = wikidb.connect()

@@ -180,7 +180,7 @@ def print_abandoned(macro, args, **kw):
     d['q_page_name'] = wikiutil.quoteWikiname(pagename)
     msg = None
 
-    pages = wikiutil.getPageList(config.text_dir)
+    pages = request.getPageList()
     last_edits = []
     for page in pages:
         try:
