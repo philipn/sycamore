@@ -6,9 +6,9 @@
 # 3. Users
 # 4. Events
 
-import sys
+import sys, cStringIO
 sys.path.extend(['/usr/local/lib/python2.3/site-packages','/var/www/installhtml/dwiki'])
-from LocalWiki import wikiutil, config, wikidb
+from LocalWiki import wikiutil, config, wikidb, caching, request
 from LocalWiki.Page import Page
 from LocalWiki.logfile import editlog
 
@@ -122,6 +122,7 @@ def findUploadInfo(pagename, filename):
   return ('','','') 
 
 def insertPagesIntoDB(d):
+  print "Inserting pages into DB..."
   db = wikidb.connect()
   cursor = db.cursor()
   cursor.execute("start transaction;")
@@ -136,6 +137,7 @@ def insertPagesIntoDB(d):
   db.close()
 
 def insertImagesIntoDB(pagelist):
+  print "Inserting images into DB..."
   for pagename in pagelist:
    if hasImages(pagename):
      for filename in os.listdir(data_path + '/pages/' + wikiutil.quoteFilename(pagename) + '/attachments/'):
@@ -170,6 +172,7 @@ def getFieldValue(dict, key, item):
      return entry[1]
 
 def insertUsersIntoDB():
+  print "Inserting users into DB..."
   import xml.dom.minidom
 
   userdict = {}
@@ -300,7 +303,30 @@ def insertUsersIntoDB():
 
   
 
+def clearCaches():
+  print "Clearing page caches..."
+  plist = wikiutil.getPageList() 
+  arena = 'Page.py'
+  for pname in plist:
+    key = pname
+    cache = caching.CacheEntry(arena, key)
+    cache.clear()
 
+def buildCaches():
+  print "Building page caches...It is _normal_ for this to produce errors!"
+  # this is hackish, but it will work
+  # the idea is to view every page to build the cache
+  # we should actually refactor send_page()
+  req = request.RequestCGI()
+  req.redirect(cStringIO.StringIO())
+  for pname in wikiutil.getPageList():
+   Page(pname).getPageLinks(req, docache=True)
+  req.redirect()
+
+
+  
+    
+  
 d = {}
 filelist = os.listdir(data_path + '/pages/')
 dirlist = [ x for x in filelist if (os.path.isdir(data_path + '/pages/' + x) and x[0] != '.')]
@@ -312,3 +338,6 @@ for pagename, version in findAllVersions(pagelist):
 insertPagesIntoDB(d)
 insertImagesIntoDB(pagelist)
 insertUsersIntoDB()
+clearCaches()
+buildCaches()
+print "It went as planned!  The DB should be populated and usable now."
