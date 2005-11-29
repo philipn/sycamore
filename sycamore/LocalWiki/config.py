@@ -166,7 +166,7 @@ _cfg_defaults = {
     'theme_default': 'classic',
     'theme_force': False,
     'trail_size': 5,
-    'tz_offset': -7, # default time zone offset in hours from UTC
+    'tz_offset': -28800, # default time zone offset in unix time from UTC.  e.g. 3600 = 1 hour. 
     # a regex of HTTP_USER_AGENTS that should be excluded from logging,
     # and receive a FORBIDDEN for anything except viewing a page
     'ua_spiders': 'archiver|crawler|google|htdig|httrack|jeeves|larbin|leech|linkbot' +
@@ -183,7 +183,6 @@ _cfg_defaults = {
     'SecurityPolicy': None,
 }
 
-_cfg_defaults['tz_offset_unix'] = _cfg_defaults['tz_offset'] * (time.mktime((0,0,0,1,0,0,0,0,0)) - time.mktime((0,0,0,0,0,0,0,0,0)))
 
 
 smiley_defaults = {

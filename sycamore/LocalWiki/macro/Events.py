@@ -30,8 +30,8 @@ def execute(macro, args):
     cursor = db.cursor()
     cursor.execute("start transaction")
     # clear events that have passed
-    cursor.execute("DELETE from events where DATE(event_time)<DATE(FROM_UNIXTIME(%s))", (time.mktime(time.gmtime(wikiutil.wikiUnixTime(macro.request)))))
-    cursor.execute("SELECT uid, UNIX_TIMESTAMP(event_time), posted_by, text, location, event_name from events order by event_time")
+    cursor.execute("DELETE from events where DATE(FROM_UNIXTIME(event_time))<DATE(FROM_UNIXTIME(%s))", (time.mktime(time.gmtime(wikiutil.wikiUnixTime(macro.request)))))
+    cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events order by event_time")
     result = cursor.fetchone()
     while result:
       events.append(result) 

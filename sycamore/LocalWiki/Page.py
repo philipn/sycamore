@@ -93,7 +93,8 @@ class Page:
 	result = cursor.fetchone()
 	cursor.close()
 	db.close()
-	editTime = result[0]
+	editTimeUnix = result[0]
+	editTime = request.user.getFormattedDateTime(editTimeUnix)
 	userEditedID = result[1]
 	editUser = user.User(request, userEditedID)
 	editUser_text = Page(editUser.name).link_to(request)
@@ -169,9 +170,9 @@ class Page:
         db = wikidb.connect()
         cursor = db.cursor()
 	if not self.prev_date:
-          cursor.execute("SELECT UNIX_TIMESTAMP(editTime) from curPages where name=%s", (self.page_name))
+          cursor.execute("SELECT editTime from curPages where name=%s", (self.page_name))
         else:
-	  cursor.execute("SELECT UNIX_TIMESTAMP(editTime) from allPages where name=%s and UNIX_TIMESTAMP(editTime) <= %s order by editTime desc limit 1;", (self.page_name, self.prev_date))
+	  cursor.execute("SELECT editTime from allPages where name=%s and editTime <= %s order by editTime desc limit 1;", (self.page_name, self.prev_date))
         result = cursor.fetchone()
         cursor.close()
         db.close()	
@@ -211,15 +212,10 @@ class Page:
 			if result: text = result[0]
 			else: text = ''
 		else:
-			cursor.execute("SELECT text, UNIX_TIMESTAMP(editTime) from allPages where (name=%s and UNIX_TIMESTAMP(editTime)<=%s) order by editTime desc limit 1", (self.page_name, self.prev_date))
+			cursor.execute("SELECT text, editTime from allPages where (name=%s and editTime<=%s) order by editTime desc limit 1", (self.page_name, self.prev_date))
 			result = cursor.fetchone()
 			cursor.close()
 			db.close()
-			t = open('test.txt','w')
-			t.write(str(self.prev_date))
-			t.write('\n\n')
-			t.write(str(result))
-			t.close()
 			if result: text = result[0]
 			else: text = ''
 
@@ -304,53 +300,6 @@ class Page:
         else:
             kw['css_class'] = 'nonexistent'
             return wikiutil.link_tag(request, url, text, formatter=fmt, **kw) + attach_link
-
-
-#    def getSubscribers(self, request, **kw):
-#        """
-#        Get all subscribers of this page.
-#
-#        @param request: the request object
-#        @keyword include_self: if 1, include current user (default: 0)
-#        @keyword return_users: if 1, return user instances (default: 0)
-#        @rtype: dict
-#        @return: lists of subscribed email addresses in a dict by language key
-#        """
-#        include_self = kw.get('include_self', 0)
-#        return_users = kw.get('return_users', 0)
-#
-#        # extract categories of this page
-#        pageList = self.getCategories(request)
-#        
-#        # add current page name for list matching
-#        pageList.append(self.page_name)
-#
-#        if config.SecurityPolicy:
-#            UserPerms = config.SecurityPolicy
-#        else:
-#            from security import Default as UserPerms
-#
-#        # get email addresses of the all wiki user which have a profile stored;
-#        # add the address only if the user has subscribed to the page and
-#        # the user is not the current editor
-#        userlist = user.getUserList()
-#        emails = {}
-#        for uid in userlist:
-#            if uid == request.user.id and not include_self: continue # no self notification
-#            subscriber = user.User(request, uid)
-#            if not subscriber.email: continue # skip empty email address
-#
-#            if not UserPerms(subscriber).read(self.page_name): continue
-#
-#            if subscriber.isSubscribedTo(pageList):                
-#                lang = subscriber.language or 'en'
-#                if not emails.has_key(lang): emails[lang] = []
-#                if return_users:
-#                    emails[lang].append(subscriber)
-#                else:
-#                    emails[lang].append(subscriber.email) 
-#
-#        return emails
 
 
     def send_page(self, request, msg=None, **keywords):
@@ -650,9 +599,7 @@ class Page:
         cache = caching.CacheEntry(arena, key)
         code = None
 
-        if cache.needsUpdate(self.page_name,
-           wikiutil.getPagePath(self.page_name, 'attachments',
-                                check_create=0)):
+        if cache.needsUpdate():
             needsupdate = 1
 
         # load cache
@@ -776,7 +723,7 @@ class Page:
         arena = "pagelinks"
         key   = self.page_name
         cache = caching.CacheEntry(arena, key)
-        if cache.needsUpdate(self.page_name) and docache:
+        if cache.needsUpdate() and docache:
             # this is normally never called, but is here to fill the cache
             # in existing wikis; thus, we do a "null" send_page here, which
             # is not efficient, but reduces code duplication

@@ -73,7 +73,7 @@ def execute(macro, args, **kw):
     seen_list = []
     line_of_text = ''
     for pagename in local_favoriteList:
-          cursor.execute("SELECT name, UNIX_TIMESTAMP(editTime), userEdited, editType, comment from allPages where name=%s order by editTime desc limit 1;", (pagename))
+          cursor.execute("SELECT name, editTime, userEdited, editType, comment from allPages where name=%s order by editTime desc limit 1;", (pagename))
 	  result = cursor.fetchone()
 	  found = False
 	  if result:

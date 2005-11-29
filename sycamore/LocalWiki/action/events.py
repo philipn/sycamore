@@ -149,7 +149,7 @@ def doRSS(request, add_on):
 	db = wikidb.connect()
 	cursor = db.cursor()
 	print time.time()
-	cursor.execute("SELECT uid, UNIX_TIMESTAMP(event_time), posted_by, text, location, event_name from events where DATE(event_time)=DATE(FROM_UNIXTIME(%s))", time.mktime(time.gmtime(wikiutil.wikiUnixTime(request))))
+	cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where DATE(FROM_UNIXTIME(event_time))=DATE(FROM_UNIXTIME(%s))", time.mktime(time.gmtime(wikiutil.wikiUnixTime(request))))
 	result = cursor.fetchone()
 	while result:
 	  events.append(result)
@@ -316,7 +316,7 @@ def writeEvent(request, event_text, event_name, event_location, event_time_unix,
      if result[0]: max_id = result[0]
     id = max_id + 1
     posted_time = time.time()
-    cursor.execute("INSERT into events set uid=%s, event_time=FROM_UNIXTIME(%s), posted_by=%s, text=%s, location=%s, event_name=%s, posted_time=FROM_UNIXTIME(%s), posted_by_ip=%s", (id, event_time_unix, posted_by, event_text, event_location, event_name, posted_time, request.remote_addr))
+    cursor.execute("INSERT into events set uid=%s, event_time=%s, posted_by=%s, text=%s, location=%s, event_name=%s, posted_time=%s, posted_by_ip=%s", (id, event_time_unix, posted_by, event_text, event_location, event_name, posted_time, request.remote_addr))
     cursor.execute("commit")
 
     # Record the changes in the editlog

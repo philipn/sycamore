@@ -16,6 +16,19 @@ from LocalWiki.logfile import editlog
 from LocalWiki.PageEditor import PageEditor
 import time, os
 
+def copy_images(oldpagename, newpagename):
+  # copies images from oldpagename to newpagename
+  # keeps the images on oldpagename for manual deletion
+  # if there is an image on the page newpagename that has the same name as an image on oldpagename,
+  # then the image from newpagename superseeds the old image, and the old image is deleted (but kept
+  # as a deleted image as per usual delete images/is accessable via the info tab)
+  pass
+  db = wikidb.connect()
+  cursor = wikidb.cursor()
+
+  cursor.close()
+  wikidb.close()
+
 def execute(pagename, request):
     _ = request.getText
     actname = __name__.split('.')[-1]
@@ -52,6 +65,7 @@ def execute(pagename, request):
                 msg = _('Invalid pagename: Only the characters A-Z, a-z, 0-9, "$", "&", ",", ".", "!", "\'", ":", ";", " ", "/", "-", "(", ")" are allowed in page names.')
 		
             # we actually do a rename!
+
             else:
                 if renamecomment: renamecomment = " (" + renamecomment + ")"
                 replace_in_xml(pagename, newpagename)
@@ -63,13 +77,13 @@ def execute(pagename, request):
 
                 newpage.saveText(pagetext, '0', comment="Renamed from %s%s" % (pagename, renamecomment), action="RENAME")
 
-                if os.path.exists(config.data_dir + '/pages/' + wikiutil.quoteFilename(pagename) + '/attachments'):
-                    if os.path.exists(config.data_dir + '/pages/' + wikiutil.quoteFilename(newpagename) + '/attachments'):
-                        # --reply=no flag means when there are two files with the same name we just don't move it and let the user figure that out.
-                        # interesting fact:  we have to use bash here because the shell is the one that expands the '*'
-                        os.spawnlp(os.P_NOWAIT, 'bash', 'bash', '-c', 'cp --reply=no ' + config.data_dir + '/pages/' + wikiutil.quoteFilename(pagename) + '/attachments/* ' + config.data_dir + '/pages/' + wikiutil.quoteFilename(newpagename) + '/attachments/')
-                    else:
-                        os.spawnlp(os.P_NOWAIT, 'cp', 'cp', '-r', config.data_dir + '/pages/' + wikiutil.quoteFilename(pagename) + '/attachments', config.data_dir + '/pages/' + wikiutil.quoteFilename(newpagename) + '/')
+		# move images as well
+		move_images(pagename, newpagename)
+		# clear cache so images show up
+		arena = 'Page.py'
+		key = newpagename
+		cache = caching.CacheEntry(arena, key)
+		cache.clear()
 
                 msg = _('Page "%s" was successfully renamed to "%s"!') % (pagename,newpagename)
                 request.http_redirect('%s/%s' % ( 	# added by pi Fri Dec 24 05:43:13 EST 2004

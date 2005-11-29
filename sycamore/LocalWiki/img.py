@@ -64,7 +64,7 @@ def imgSend(request):
       # default behavior is to just grab the most recently deleted version of the image
       cursor.execute("SELECT image from oldimages where name=%s and attached_to_pagename=%s order by uploaded_time desc;", (filename, pagename))
     else:
-      cursor.execute("SELECT image from oldimages where name=%s and attached_to_pagename=%s and uploaded_time=FROM_UNIXTIME(%s)", (filename, pagename, version))
+      cursor.execute("SELECT image from oldimages where name=%s and attached_to_pagename=%s and uploaded_time=%s", (filename, pagename, version))
     result = cursor.fetchone()
     cursor.close()
     db.close()

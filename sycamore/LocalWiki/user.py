@@ -18,7 +18,6 @@ import xml.dom.minidom
 ### Helpers
 #############################################################################
 
-
 def getUserList():
     """
     Get a list of all (numerical) user IDs.
@@ -142,6 +141,7 @@ class User:
         self.language = ""
         self.favorited_pages = ""
         self.theme_name = config.theme_default
+	self.tz_offset = config.tz_offset
         # if an account is disabled, it may be used for looking up
         # id -> username for page info and recent changes, but it
         # is not usabled for the user any more:
@@ -250,7 +250,7 @@ class User:
         # XXX UNICODE fix needed, we want to read utf-8 and decode to unicode
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, UNIX_TIMESTAMP(last_saved) from users where id=%s", (self.id))
+	cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset from users where id=%s", (self.id))
 	data = cursor.fetchone()
 	cursor.close()
 	db.close()
@@ -269,6 +269,7 @@ class User:
 
 	user_data['theme_name'] = data[10]
 	user_data['last_saved'] = data[11]
+	user_data['tz_offset'] = data[12]
 
         if check_pass:
             # If we have no password set, we don't accept login with username
@@ -323,9 +324,9 @@ class User:
 	cursor = db.cursor()
 	cursor.execute("start transaction;")
 	if self.exists():	
-		cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=FROMT_UNIXTIME(%s) where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.id))
+		cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, tz_offset=%s where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.tz_offset, self.id))
 	else:
-		cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=FROM_UNIXTIME(%s), join_date=FROM_UNIXTIME(%s)", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time()))
+		cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, join_date=%s, tz_offset=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time()), self.tz_offset)
 	cursor.execute("commit;")
 	cursor.close()
 	db.close()
@@ -383,9 +384,9 @@ class User:
 	cursor = db.cursor()
 	cursor.execute("start transaction;")
 	# clear possibly old expired sessions
-	cursor.execute("DELETE from userSessions where user_id=%s and expire_time>=FROM_UNIXTIME(%s)", (self.id, time.time()))
+	cursor.execute("DELETE from userSessions where user_id=%s and expire_time>=%s", (self.id, time.time()))
 	# add our new session
-	cursor.execute("INSERT into userSessions set user_id=%s, session_id=%s, secret=%s, expire_time=FROM_UNIXTIME(%s)", (self.id, sessionid, hash(secret), expiretime))
+	cursor.execute("INSERT into userSessions set user_id=%s, session_id=%s, secret=%s, expire_time=%s", (self.id, sessionid, hash(secret), expiretime))
 	cursor.execute("commit")
 	cursor.close()
 	db.close()
@@ -405,7 +406,7 @@ class User:
 	secret = split_string[2]
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT secret from userSessions where user_id=%s and session_id=%s and expire_time>=FROM_UNIXTIME(%s)", (userid, sessionid, time.time()))
+	cursor.execute("SELECT secret from userSessions where user_id=%s and session_id=%s and expire_time>=%s", (userid, sessionid, time.time()))
 	result = cursor.fetchone()
 	cursor.close()
 	db.close()
@@ -436,15 +437,17 @@ class User:
                 request.saved_cookie = cookie_header
 
 
-    def getTime(self, tm):
+    def getTime(self, tm, global_time=False):
         """
         Get time in user's timezone.
         
         @param tm: time (UTC UNIX timestamp)
+	@param global_time:  if True we output the server's time in the server's default time zone
         @rtype: int
         @return: tm tuple adjusted for user's timezone
         """
-        return datetime.tmtuple(tm + config.tz_offset_unix)
+        if self.tz_offset and not global_time: return datetime.tmtuple(tm + self.tz_offset)
+	else: return datetime.tmtuple(tm + config.tz_offset)
 
 
     def getFormattedDate(self, tm):
@@ -460,7 +463,7 @@ class User:
     def getFormattedDateWords(self, tm):
         return time.strftime("%A, %B %d, %Y", self.getTime(tm))
 
-    def getFormattedDateTime(self, tm):
+    def getFormattedDateTime(self, tm, global_time=False):
         """
         Get formatted date and time adjusted for user's timezone.
 
@@ -469,7 +472,7 @@ class User:
         @return: formatted date and time, see config.datetime_fmt
         """
         datetime_fmt = config.datetime_fmt
-        return time.strftime(datetime_fmt, self.getTime(tm))
+        return time.strftime(datetime_fmt, self.getTime(tm, global_time))
 
 
     def setShowComments(self, hideshow):
@@ -522,34 +525,10 @@ class User:
 	    db = wikidb.connect()
 	    cursor = db.cursor()
 	    cursor.execute("start transaction;")
-	    cursor.execute("UPDATE users set rc_bookmark=FROM_UNIXTIME(%s) where id=%s", (str(tm), self.id))
+	    cursor.execute("UPDATE users set rc_bookmark=%s where id=%s", (str(tm), self.id))
 	    cursor.execute("commit;")
 	    cursor.close()
 	    db.close()
-
-    def setFavBookmark(self, pagename, tm = None):
-        """
-        Set Favorites bookmark timestamp.
-
-        @param tm: time (UTC UNIX timestamp), default: current time
-        """
-        if self.valid:
-            if not tm: tm = time.time()
-            import re
-            #bmfile = open(self.__filename() + ".favbookmark", "w")
-            #bmfile.write(str(tm)+"\n")
-            #bmfile.close()
-            #try:
-            #    os.chmod(self.__filename() + ".favbookmark", 0666 & config.umask)
-            #except OSError:
-            #    pass
-            #try:
-            #    os.utime(self.__filename() + ".favbookmark", (tm, tm))
-            #except OSError:
-            #    pass
-            from LocalWiki import wikiutil
-            self.favorited_pages = re.sub(r'(?i)%s\*[0-9]+\.[0-9]*\|' % wikiutil.quoteWikiname(pagename),r'%s*%s|' % (wikiutil.quoteWikiname(pagename),str(tm)),self.favorited_pages)
-            self.save()
 
 
     def getBookmark(self):
@@ -562,7 +541,7 @@ class User:
         if self.valid:
 	    db = wikidb.connect()
 	    cursor = db.cursor()
-	    cursor.execute("SELECT UNIX_TIMESTAMP(rc_bookmark) from users where id=%s", (self.id))
+	    cursor.execute("SELECT rc_bookmark from users where id=%s", (self.id))
 	    result = cursor.fetchone()
 	    cursor.close()
 	    db.close()
@@ -592,7 +571,7 @@ class User:
         #from LocalWiki import wikiutil
 	db = wikidb.connect()
         cursor = db.cursor()
-        cursor.execute("SELECT UNIX_TIMESTAMP(viewTime) from userFavorites where username=%s and page=%s", (self.name, pagename))
+        cursor.execute("SELECT viewTime from userFavorites where username=%s and page=%s", (self.name, pagename))
         result = cursor.fetchone()
         cursor.close()
         db.close()
@@ -695,7 +674,7 @@ class User:
 	  if result:
           # we have it as a favorite
 	     cursor.execute("start transaction")
-	     cursor.execute("UPDATE userFavorites set viewTime=FROM_UNIXTIME(%s) where username=%s and page=%s", (time.time(), self.name, pagename)) 
+	     cursor.execute("UPDATE userFavorites set viewTime=%s where username=%s and page=%s", (time.time(), self.name, pagename)) 
 	     cursor.execute("commit")
  	  
 	  cursor.close()
@@ -783,7 +762,7 @@ class User:
 	    db = wikidb.connect()
 	    cursor = db.cursor()
 	    cursor.execute("start transaction")
-	    cursor.execute("INSERT into userFavorites set page=%s, username=%s, viewTime=FROM_UNIXTIME(%s)", (pagename, self.name, time.time()))
+	    cursor.execute("INSERT into userFavorites set page=%s, username=%s, viewTime=%s", (pagename, self.name, time.time()))
 	    cursor.execute("commit")
 	    cursor.close()
 	    db.close()

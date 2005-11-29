@@ -8,7 +8,7 @@
 
 # Imports
 import string, time, re, Cookie
-from LocalWiki import config, user, util, wikiutil
+from LocalWiki import config, user, util, wikiutil, wikidb
 import LocalWiki.util.web
 import LocalWiki.util.mail
 import LocalWiki.util.datetime
@@ -37,23 +37,19 @@ class UserSettingsHandler:
         self._ = request.getText
 
     def removeSession(self, cookiestring):
-	import cPickle,os
 	# sane cookie check
 	string_split = cookiestring.split(',')
 	cookie_userid = string_split[0]
 	cookie_sessionid = string_split[1]
 	cookie_secret = string_split[2]
-	fileloc = config.data_dir + '/user/' + str(cookie_userid) + '.sessiondict.pickle'
-	if os.path.exists(fileloc):
-	    if os.path.getsize(fileloc) > 0:
-		sessionfile = open(fileloc, 'r')
-		sessiondict = cPickle.load(sessionfile)
-		if sessiondict.has_key(cookie_sessionid):
-			sessionfile = open(fileloc, 'w')	
-			del sessiondict[cookie_sessionid]
-			
-			cPickle.dump(sessiondict, sessionfile, 2)
-		sessionfile.close()
+	db = wikidb.connect()
+	cursor = db.cursor()
+	cursor.execute("start transaction;")
+	cursor.execute("DELETE from userSessions where user_id=%s and session_id=%s and secret=%s", (cookie_userid, cookie_sessionid, user.hash(cookie_secret)))
+	cursor.execute("commit;")
+	cursor.close()
+	db.close()
+
 
     def isValidCode(self, given_uid, given_code):
 	import cPickle, os
@@ -204,13 +200,16 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             except KeyError:
                 return _("Please enter a user name!")
     
+    	    if self.request.user.name and (self.request.user.name != theuser.name):
+	      # they are still logged on and are trying to make a new account
+	      return _("Please log out before creating an account.")
             # Is this an existing user trying to change password, or a new user?
-            newuser = 1
+            newuser = True
             if user.getUserId(theuser.name):
                 if theuser.name != self.request.user.name:
                     return _("User name already exists!")
                 else:
-                    newuser = 0
+                    newuser = False
 
             # try to get the password and pw repeat
             password = form.get('password', [''])[0]
@@ -232,7 +231,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             theuser.edit_cols = util.web.getIntegerInput(self.request, 'edit_cols', theuser.edit_cols, 30, 100)
     
             # time zone
-            #theuser.tz_offset = util.web.getIntegerInput(self.request, 'tz_offset', theuser.tz_offset, -84600, 84600)
+            theuser.tz_offset = util.web.getIntegerInput(self.request, 'tz_offset', theuser.tz_offset, -84600, 84600)
     
             # date format
             #try:
@@ -250,6 +249,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             #theuser.language = form.get('language', [''])[0]
 
             # checkbox options
+	    keys = []
             for key, label in user.User._checkbox_fields:
                 value = form.get(key, [0])[0]
                 try:
@@ -276,7 +276,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             # further, name is required to be a WikiName (CamelCase!)
             # we also must forbid the username to match page_group_regex
             # see also LocalWiki/scripts/moin_usercheck.py
-            if config.acl_enabled:
+            if config.acl_enabled and newuser:
                 theuser.name = theuser.name.replace(' ','') # strip spaces, we don't allow them anyway
                 if not re.match("(?:[%(u)s][%(l)s]+){2,}" % {'u': config.upperletters, 'l': config.lowerletters}, theuser.name):
                     return _("Please enter your name like that: FirstnameLastname")
@@ -330,7 +330,8 @@ class UserSettings:
 
     def _tz_select(self):
         """ Create time zone selection. """
-	tz = int(config.tz_offset_unix)
+	if self.request.user.tz_offset: tz = self.request.user.tz_offset
+	else: tz = config.tz_offset
 
         options = []
         now = time.time()
@@ -483,14 +484,14 @@ class UserSettings:
                     name="edit_rows", value=self.request.user.edit_rows),
             ])
 
-            #self.make_row(_('Time zone'), [
-            #    _('Your time is'), ' ',
-            #    self._tz_select(),
-            #    html.BR(),
-            #    _('Server time is'), ' ',
-            #    time.strftime(config.datetime_fmt, util.datetime.tmtuple()),
-            #    ' (UTC)',
-            #])
+            self.make_row(_('Time zone'), [
+                _('Your time is'), ' ',
+                self._tz_select(),
+                html.BR(),
+                _('Server time is'), ' ',
+                time.strftime(config.datetime_fmt, util.datetime.tmtuple()),
+                ' (UTC)',
+            ])
 
             #self.make_row(_('Date format'), [self._dtfmt_select()])
 

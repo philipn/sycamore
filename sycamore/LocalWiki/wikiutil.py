@@ -29,11 +29,6 @@ def baseScriptURL():
    else:
        return ''
 
-def wikiUnixTime(request):
-    # returns the time in unix format but adjusted for the tz_offset for the local wiki install
-    return config.tz_offset_unix + time.time()
-
-
 def simpleParse(request, text):
     # this needs to convert all the basic formatting to HTML
     # so the ''text'' stuff, along with [http://myurl.com url] -> a href, and the ["wiki link" link text] -> a href

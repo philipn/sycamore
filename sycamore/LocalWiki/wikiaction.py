@@ -394,30 +394,30 @@ def do_diff(pagename, request):
     try:
         diff1_date = request.form['date1'][0]
         try:
-            diff1_date = float(diff1_date)
+            diff1_date = diff1_date
         except StandardError:
-            diff1_date = 0
+            diff1_date = '0'
     except KeyError:
-        diff1_date = -1
+        diff1_date = '-1'
 
     try:
         diff2_date = request.form['date2'][0]
         try:
-            diff2_date = float(diff2_date)
+            diff2_date = diff2_date
         except StandardError:
-            diff2_date = 0
+            diff2_date = '0'
     except KeyError:
-        diff2_date = 0
+        diff2_date = '0'
 
-    if diff1_date == -1 and diff2_date == 0:
+    if diff1_date == '-1' and diff2_date == '0':
         try:
             diff1_date = request.form['date'][0]
             try:
-                diff1_date = float(diff1_date)
+                diff1_date = diff1_date
             except StandardError:
-                diff1_date = -1
+                diff1_date = '-1'
         except KeyError:
-            diff1_date = -1
+            diff1_date = '-1'
   
     # spacing flag?
     try:
@@ -430,8 +430,8 @@ def do_diff(pagename, request):
     request.http_headers()
     wikiutil.send_title(request, _('Diff for "%s"') % (pagename,), pagename=pagename)
   
-    if (diff1_date>0 and diff2_date>0 and diff1_date>diff2_date) or \
-       (diff1_date==0 and diff2_date>0):
+    if (float(diff1_date)>0 and float(diff2_date)>0 and float(diff1_date)>float(diff2_date)) or \
+       (float(diff1_date)==0 and float(diff2_date)>0):
         diff1_date,diff2_date = diff2_date,diff1_date
         
     olddate1,oldcount1 = None,0
@@ -442,11 +442,12 @@ def do_diff(pagename, request):
     olddate1 = diff1_date
     olddate2 = diff2_date
 
-    if diff1_date == -1:
+    if diff1_date == '-1':
         #first_oldpage = os.path.join(config.backup_dir, oldversions[0])
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT UNIX_TIMESTAMP(editTime) from allPages where name=%s order by editTime desc limit 2;", (pagename))
+	# we want editTime as a string for precision purposes
+	cursor.execute("SELECT editTime from allPages where name=%s order by editTime desc limit 2;", (pagename))
 	result = cursor.fetchall()
 	cursor.close()
 	cursor = db.cursor()
@@ -456,14 +457,14 @@ def do_diff(pagename, request):
 	else:
            first_olddate = 0
 	
-        oldpage = Page(pagename, date=str(int(first_olddate)))
+        oldpage = Page(pagename, date=first_olddate)
         oldcount1 = oldcount1 - 1
     elif diff1_date == 0:
         oldpage = Page(pagename)
         # oldcount1 is still on init value 0
     else:
         if olddate1:
-            oldpage = Page(pagename, date=str(int(olddate1)))
+            oldpage = Page(pagename, date=olddate1)
         else:
             oldpage = Page("$EmptyPage$") # XXX: ugly hack
             oldpage.set_raw_body("")    # avoid loading from db
@@ -473,7 +474,7 @@ def do_diff(pagename, request):
         # oldcount2 is still on init value 0
     else:
         if olddate2:
-            newpage = Page(pagename, date=str(int(olddate2)))
+            newpage = Page(pagename, date=olddate2)
         else:
             newpage = Page("$EmptyPage$") # XXX: ugly hack
             newpage.set_raw_body("")    # avoid loading from db
@@ -498,6 +499,7 @@ def do_diff(pagename, request):
 
 def do_info(pagename, request):
     page = Page(pagename)
+
     if not request.user.may.read(pagename):
         page.send_page(request)
         return
@@ -591,11 +593,11 @@ def do_info(pagename, request):
         may_revert = request.user.may.revert(pagename)
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT name, UNIX_TIMESTAMP(editTime), userEdited, editType, comment, userIP from allPages where name=%s order by editTime desc", pagename)
+	cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%s order by editTime desc", pagename)
 	result = cursor.fetchall()
 	cursor.close()
 	cursor = db.cursor()
-	cursor.execute("SELECT UNIX_TIMESTAMP(editTime) from curPages where name=%s", (pagename))
+	cursor.execute("SELECT editTime from curPages where name=%s", (pagename))
 	currentpage_editTime_result = cursor.fetchone()
 	if currentpage_editTime_result: currentpage_editTime = currentpage_editTime_result[0]
 	else: currentpage_editTime = 0
@@ -629,22 +631,22 @@ def do_info(pagename, request):
             else:
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('view'),
-                    querystr='action=recall&amp;date=%d' % mtime))
+                    querystr='action=recall&amp;date=%s' % repr(mtime)))
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('raw'),
-                    querystr='action=raw&amp;date=%d' % mtime))
+                    querystr='action=raw&amp;date=%s' % repr(mtime)))
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('print'),
-                    querystr='action=print&amp;date=%d' % mtime))
+                    querystr='action=print&amp;date=%s' % repr(mtime)))
                 if may_revert and editType != 'DELETE':
                     actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                         text=_('revert'),
-                        querystr='action=revert&amp;date=%d&amp;version=%d' % (mtime, this_version)))
+                        querystr='action=revert&amp;date=%s&amp;version=%s' % (repr(mtime), repr(this_version))))
                 if count==2:
                     checked=' checked="checked"'
                 else:
                     checked=""
-                diff = '<input type="radio" name="date1" value="%d"%s><input type="radio" name="date2" value="%d">' % (mtime,checked,mtime)
+                diff = '<input type="radio" name="date1" value="%s"%s><input type="radio" name="date2" value="%s">' % (repr(mtime),checked,repr(mtime))
   
             
             if editType.find('/REVERT') != -1:
@@ -970,24 +972,6 @@ def do_userform(pagename, request):
     savemsg = userform.savedata(request)
     Page(pagename).send_page(request, msg=savemsg)
 
-
-def do_favbookmark(pagename, request):
-    if request.form.has_key('time'):
-        if request.form['time']=='del':
-            tm=None
-        else:
-            try:
-                tm = int(request.form["time"][0])
-            except StandardError:
-                tm = time.time()
-    else:
-        tm = time.time()
-    
-    if tm is None:
-        request.user.delFavBookmark()
-    else:
-        request.user.setFavBookmark(tm)
-    Page(pagename).send_page(request)
 
 def do_bookmark(pagename, request):
     if request.form.has_key('time'):

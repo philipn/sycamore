@@ -506,12 +506,6 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	cursor.close()
 	db.close()
 
-        # delete pagelink
-        #arena = "pagelinks"
-        #key   = wikiutil.quoteFilename(self.page_name)
-        #cache = caching.CacheEntry(arena, key)
-        #cache.remove()
-
 	# remove entry from the search databases
 	os.spawnl(os.P_WAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', '%s' % wikiutil.quoteFilename(self.page_name))
 
@@ -715,10 +709,10 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	cursor = db.cursor()
 	if backuppage.exists():
 	   cursor.execute("start transaction;")
-	   cursor.execute("UPDATE curPages set text=%s, editTime=FROM_UNIXTIME(%s), userEdited=%s where name=%s", (intro+newtext, ourtime, self.request.user.name, backuppage.page_name))
+	   cursor.execute("UPDATE curPages set text=%s, editTime=%s, userEdited=%s where name=%s", (intro+newtext, ourtime, self.request.user.name, backuppage.page_name))
  	   cursor.execute("commit;")
 	else:
-	   cursor.execute("INSERT into curPages set name=%s, text=%s, editTime=FROM_UNIXTIME(%s), userEdited=%s", (backuppage.page_name, intro+newtext, ourtime, self.request.user.name))
+	   cursor.execute("INSERT into curPages set name=%s, text=%s, editTime=%s, userEdited=%s", (backuppage.page_name, intro+newtext, ourtime, self.request.user.name))
 
         return backuppage.url(self.request)
 
@@ -731,11 +725,11 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	cursor.execute("start transaction;")
 	ourtime = time.time()
 	if self.exists():
-		cursor.execute("UPDATE curPages set text=%s, editTime=FROM_UNIXTIME(%s), userEdited=%s where name=%s", (text, ourtime, self.request.user.id, self.page_name))
+		cursor.execute("UPDATE curPages set text=%s, editTime=%s, userEdited=%s where name=%s", (text, ourtime, self.request.user.id, self.page_name))
 	else:
-		cursor.execute("INSERT into curPages values (%s, %s, NULL, FROM_UNIXTIME(%s), NULL, %s)", (self.page_name, text, ourtime, self.request.user.id))	
+		cursor.execute("INSERT into curPages values (%s, %s, NULL, %s, NULL, %s)", (self.page_name, text, ourtime, self.request.user.id))	
 	# then we need to update the allPages table for Recent Changes and page-centric Info.
-	cursor.execute("INSERT into allPages set name=%s, text=%s, editTime=FROM_UNIXTIME(%s), userEdited=%s, editType=%s, comment=%s, userIP=%s", (self.page_name, text, ourtime, self.request.user.id, action, comment,ip))
+	cursor.execute("INSERT into allPages set name=%s, text=%s, editTime=%s, userEdited=%s, editType=%s, comment=%s, userIP=%s", (self.page_name, text, ourtime, self.request.user.id, action, comment,ip))
 	cursor.execute("commit;")
 	cursor.close()
 	db.close()
@@ -957,7 +951,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
        last_page_edited = pagename
        last_edit_date = time.time()
        cursor.execute("start transaction;")
-       cursor.execute("UPDATE users set created_count=%s, edit_count=%s, last_page_edited=%s, last_edit_date=FROM_UNIXTIME(%s) where name=%s", (created_count, edit_count, last_page_edited, last_edit_date, username))
+       cursor.execute("UPDATE users set created_count=%s, edit_count=%s, last_page_edited=%s, last_edit_date=%s where name=%s", (created_count, edit_count, last_page_edited, last_edit_date, username))
        cursor.execute("commit;")
        cursor.close()
        db.close()

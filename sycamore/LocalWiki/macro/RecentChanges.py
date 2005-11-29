@@ -296,15 +296,15 @@ def execute(macro, args, **kw):
     # so, let's compile all the different types of changes together!
     # note:  we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
     cursor.execute("""SELECT * from (
-     (SELECT name, UNIX_TIMESTAMP(changeTime) as changeTime, id, editType, comment, userIP from pageChanges where UNIX_TIMESTAMP(pageChanges.changeTime) >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from pageChanges where pageChanges.changeTime >= %s)
      UNION
-     (SELECT name, UNIX_TIMESTAMP(changeTime) as changeTime, id, editType, comment, userIP from currentImageChanges where UNIX_TIMESTAMP(currentImageChanges.changeTime) >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from currentImageChanges where currentImageChanges.changeTime >= %s)
      UNION
-     (SELECT name, UNIX_TIMESTAMP(changeTime) as changeTime, id, editType, comment, userIP from oldImageChanges where UNIX_TIMESTAMP(oldImageChanges.changeTime) >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from oldImageChanges where oldImageChanges.changeTime >= %s)
      UNION
-     (SELECT name, UNIX_TIMESTAMP(changeTime) as changeTime, id, editType, comment, userIP from deletedImageChanges where UNIX_TIMESTAMP(deletedImageChanges.changeTime) >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from deletedImageChanges where deletedImageChanges.changeTime >= %s)
      UNION
-     (SELECT name, UNIX_TIMESTAMP(changeTime) as changeTime, id, editType, comment, userIP from eventChanges where UNIX_TIMESTAMP(eventChanges.changeTime) >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from eventChanges where eventChanges.changeTime >= %s)
      order by changeTime desc
      ) as result;"""
       , (seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago))
