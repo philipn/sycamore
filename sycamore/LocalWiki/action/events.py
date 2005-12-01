@@ -58,7 +58,12 @@ def execute(pagename, request):
 	    db = wikidb.connect()
 	    cursor = db.cursor()
 	    cursor.execute("start transaction")
-	    cursor.execute("DELETE from events where uid=%s" % (uid))
+	    cursor.execute("SELECT event_name from events where uid=%s", (uid))
+	    test = open('test.txt','w')
+	    test.write(str(uid))
+	    test.close()
+	    name = cursor.fetchone()[0]
+	    cursor.execute("DELETE from events where uid=%s", (uid))
 	    cursor.execute("commit")
 	    cursor.close()
 	    db.close()
@@ -69,6 +74,8 @@ def execute(pagename, request):
 	    db = wikidb.connect()
 	    cursor = db.cursor()
 	    cursor.execute("start transaction")
+	    cursor.execute("SELECT event_name from events where uid=%s", (uid))
+	    name = cursor.fetchone()[0]
 	    cursor.execute("DELETE from events where uid=%s and posted_by=%s", (uid, request.user.name))
 	    cursor.execute("commit")
 	    cursor.close()
@@ -93,7 +100,7 @@ def execute(pagename, request):
            minute = int(request.form.get('minute')[0])
            year = int(request.form.get('year')[0])
            posted_by = request.user.name
-           now = request.user.getFormattedDateTime(wikiutil.wikiUnixTime(request))
+           now = request.user.getFormattedDateTime(time.time(), global_time=True)
            #formatted_event_text = event_text + " - " + request.user.name
            #newtext = oldtext + "------" + "\n" + "''" + ''.join(now) + "'' " + formatted_event_text + "------" + "\n" + ''.join(month) + "/" + ''.join(day) + " at " + ''.join(hour) + ":" + ''.join(minute)
            #PageEditor._write_file(page,newtext)
@@ -126,7 +133,7 @@ def doRSS(request, add_on):
     # Check to see if the event has already passed
     # The user has hard-coded time! This is ESSENTIAL for security.  ok, maybe not, but whatever.
     import string, re
-    current_time = request.user.getFormattedDateTime(wikiutil.wikiUnixTime(request))
+    current_time = request.user.getFormattedDateTime(time.time(), global_time=True)
     year_cut = string.split(current_time," ")[0]
     current_year = string.split(year_cut, "-")[0]
     month_cut = string.split(current_time," ")[0]
@@ -149,7 +156,7 @@ def doRSS(request, add_on):
 	db = wikidb.connect()
 	cursor = db.cursor()
 	print time.time()
-	cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where DATE(FROM_UNIXTIME(event_time))=DATE(FROM_UNIXTIME(%s))", time.mktime(time.gmtime(wikiutil.wikiUnixTime(request))))
+	cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where DATE(FROM_UNIXTIME(event_time))=DATE(FROM_UNIXTIME(%s))", time.time)
 	result = cursor.fetchone()
 	while result:
 	  events.append(result)
@@ -235,6 +242,7 @@ def doRSS(request, add_on):
 
 
 def isValid(event_text,event_name,event_location,month,day,hour,minute,year):
+    current_year = time.localtime(time.time())[0]
     bool = 1
     if not int(month) < 13:
         bool = bool - 1 
@@ -244,7 +252,7 @@ def isValid(event_text,event_name,event_location,month,day,hour,minute,year):
         bool = bool - 1
     if not int(minute) < 51:
         bool = bool - 1
-    if not (int(year) > 2003 and int(year) < 2006):
+    if not (int(year) >= current_year and int(year) <= current_year + 1):
         bool = bool -1
     if string.find(event_text,"<") >= 0 or string.find(event_name,"<") >= 0:
         bool = bool - 1
@@ -344,7 +352,7 @@ def doParse(text, request):
 
 def hasPassed(month,day,hour,minute,year,request):
     import string, re
-    current_time = request.user.getFormattedDateTime(wikiutil.wikiUnixTime(request))
+    current_time = request.user.getFormattedDateTime(time.time(), global_time=True)
     year_cut = string.split(current_time," ")[0]
     current_year = string.split(year_cut, "-")[0]
     month_cut = string.split(current_time," ")[0]

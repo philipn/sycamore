@@ -186,9 +186,9 @@ def _get_filelist(request, pagename):
 
     if files:
         str = str + _("<p>"
-            "To refer to images on a page, use <strong><tt>attachment:filename</tt></strong>, \n"
-            "as shown below in the list of files. \n"
-            "Do <strong>NOT</strong> use the URL of the image \n"
+            "To refer to images on a page, use <strong><tt>[[Image(filename)]]</tt></strong>, \n"
+            "where filename is one of the file names below. \n"
+            "Do <strong>NOT</strong> use the URL of the image directly \n"
             "since this is subject to change and can break easily.</p>"
         )
         str = str + "<ul>"
@@ -221,7 +221,7 @@ def _get_filelist(request, pagename):
             parmdict['del_link'] = del_link
             str = str + ('<li>[%(viewlink)s'
                 '%(del_link)s]'
-                ' attachment:<strong>%(file)s</strong></li>') % parmdict
+                ' <strong>%(file)s</strong></li>') % parmdict
         str = str + "</ul>"
     else:
         str = '%s<p>%s</p>' % (str, _("No images stored for %(pagename)s") % {'pagename': pagename})

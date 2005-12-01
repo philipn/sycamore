@@ -70,15 +70,10 @@ class Parser:
 (?P<pre>(\{\{\{ ?|\}\}\}))
 (?P<rule>-{4,})
 (?P<strike>(--X)|(X--))
-(?P<mdash>--(-){0,1})
-(?P<comment>^\#\#.*$)
-(?P<macro>\[\[(%(macronames)s)(?:\(.*?\))?\]\]))
+(?P<mdash>--(-){0,1}))
 (?P<li>^\s+\*)
 (?P<ol>%(ol_rule)s)
 (?P<dl>%(dl_rule)s)
-(?P<tableZ>\|\| $)
-(?P<table>(?:\|\|)+(?:<[^>]*?>)?(?=.))
-(?P<heading>^\s*(?P<hmarker>=+)(\s)*.*(\s)*(?P=hmarker)( )*$)
 (?P<url_bracket>\[((%(url)s)\:|#|\:)[^\s\]]+(\s[^\]]+)?\])
 (?P<url>%(url_rule)s)
 (?P<email>[-\w._+]+\@[\w-]+\.[\w.-]+)
@@ -178,82 +173,6 @@ class Parser:
         icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}) 
         return self.formatter.url(href, icon + text,
             title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class)
-
-
-    def attachment(self, url_and_text, **kw):
-        """ This gets called on attachment URLs.
-        """
-        import urllib
-        _ = self._
-        if len(url_and_text) == 1:
-            url = url_and_text[0]
-            text = None
-        else:
-            url, text = url_and_text
-
-	# did they write a stupid attachment name?
-	if string.find(url, 'attachment:http:') >= 0:
-		return '<b>!!-- \'%s\' doesn\'t make sense to me.  Either use \'attachment:name_of_image\' to upload the image to the wiki from your computer, or just use \'http://site.com/name_of_image\' to hot-link to the image from the external source. --!!</b>' % url
-		#return '<img src="%s">' % url[0:10]
-	elif string.find(url, 'borderless:http:') > 0:
-		url = url[0-10:]
-	else:
-        	inline = url[0] == 'i'
-        	drawing = url[0] == 'd'
-        	borderless = url[0] == 'b'
-		url = url.split(":", 1)[1]
-        	url = urllib.unquote(url)
-       	 	text = text or url
-
-        pagename = self.formatter.page.page_name
-        parts = url.split('/')
-        if len(parts) > 1:
-            # get attachment from other page
-            pagename = '/'.join(parts[:-1])
-            url = parts[-1]
-
-        import urllib
-        from LocalWiki.action import Files 
-	fname = url
-	
-        # check whether attachment exists, possibly point to upload form
-        if not wikiutil.isImageOnPage(pagename, fname):
-            linktext = _('Upload new image "%(filename)s"')
-            return wikiutil.attach_link_tag(self.request,
-                '%s?action=Files&amp;rename=%s%s' % (
-                    wikiutil.quoteWikiname(pagename),
-                    urllib.quote_plus(fname),
-                   ''),
-                linktext % {'filename': fname})
-
-        # check for image URL, and possibly return IMG tag
-        # (images are always inlined, just like for other URLs)
-        if not kw.get('pretty_url', 0) and wikiutil.isPicture(url):
-          if borderless:
-		return self.formatter.image(alt=url, html_class='borderless',
-                            src=Files.getAttachUrl(pagename, url, self.request, addts=1))
-          else:
-                        return self.formatter.image(alt=url,
-                            src=Files.getAttachUrl(pagename, url, self.request, addts=1))
-
-        # try to inline the attachment (we only accept a list
-        # of known extensions)
-        base, ext = os.path.splitext(url)
-        if inline and ext in ['.py']:
-            if ext == '.py':
-                import cStringIO
-                from LocalWiki.parser import python
-
-                buff = cStringIO.StringIO()
-                colorizer = python.Parser(open(fpath, 'r').read(), self.request, out = buff)
-                colorizer.format(self.formatter)
-                return self.formatter.preformatted(1) + \
-                    self.formatter.rawHTML(buff.getvalue()) + \
-                    self.formatter.preformatted(0)
-
-        return self.formatter.url(
-            Files.getAttachUrl(pagename, url, self.request),
-            text, pretty_url=kw.get('pretty_url', 0))
 
 
     def _u_repl(self, word):
@@ -696,68 +615,6 @@ class Parser:
         if msg: msg = '<strong class="highlight">%s</strong>' % msg
         #print attr
         return attr, msg
-
-    def _tableZ_repl(self, word):
-        """Handle table row end."""
-        if self.in_table:
-            return self.formatter.table_cell(0) + self.formatter.table_row(0)
-        else:
-            return word
-
-    def _table_repl(self, word):
-        """Handle table cell separator."""
-        if self.in_table:
-            # check for attributes
-            attrs, attrerr = self._getTableAttrs(word)
-
-            # start the table row?
-            if self.table_rowstart:
-                self.table_rowstart = 0
-                leader = self.formatter.table_row(1, attrs)
-            else:
-                leader = self.formatter.table_cell(0)
-
-            # check for adjacent cell markers
-            if word.count("|") > 2:
-                if not attrs.has_key('align'):
-                    attrs['align'] = '"center"'
-                if not attrs.has_key('colspan'):
-                    attrs['colspan'] = '"%d"' % (word.count("|")/2)
-
-            # return the complete cell markup           
-            return leader + self.formatter.table_cell(1, attrs) + attrerr
-        else:
-            return word
-
-
-    def _heading_repl(self, word):
-        """Handle section headings."""
-        import sha
-
-        self.inhibit_p = 1
-        icons = ''
-        #if self.request.user.show_topbottom:
-        #    bottom = self.request.theme.make_icon('bottom')
-        #    icons = icons + self.formatter.url("#bottom", bottom, unescaped=1)
-        #    top = self.request.theme.make_icon('top')
-        #    icons = icons + self.formatter.url("#top", top, unescaped=1)
-
-        h = word.strip()
-        level = 1
-        while h[level:level+1] == '=':
-            level = level+1
-        depth = min(5,level)
-
-        title_text = h[level:-level].strip()
-        self.titles.setdefault(title_text, 0)
-        self.titles[title_text] += 1
-
-        unique_id = ''
-        if self.titles[title_text] > 1:
-            unique_id = '-%d' % self.titles[title_text]
-
-        return self.formatter.heading(depth, self.highlight_text(title_text), icons=icons, id="head-"+sha.new(title_text).hexdigest()+unique_id)
-
 
     def _processor_repl(self, word):
         """Handle processed code displays."""

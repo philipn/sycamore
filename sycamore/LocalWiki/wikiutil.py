@@ -56,6 +56,21 @@ def simpleStrip(request, text):
     text = re.sub(r'\<[^\>]+\>', r'', text)
     return text
 
+def wikifyString(text, request):
+  import cStringIO
+  # Inefficient but easy to use way of turning wiki markup string into html
+  # only use this in macros, etc.
+  Parser = importPlugin("parser", "wiki_simple", "Parser")
+  from LocalWiki.formatter.text_html import Formatter
+  html_formatter = Formatter(request)
+  buffer = cStringIO.StringIO()
+  request.redirect(buffer)
+  html_parser = Parser(text, request)
+  html_parser.format(html_formatter)
+  request.redirect()
+  parsed_text = buffer.getvalue()
+  return parsed_text
+
 def getSmiley(text, formatter):
     """
     Get a graphical smiley for a text smiley

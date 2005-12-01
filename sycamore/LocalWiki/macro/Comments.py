@@ -3,7 +3,7 @@
 from LocalWiki import wikiutil, wikiform, config
 from LocalWiki.Page import Page
 
-#Dependencies = []
+Dependencies = []
 
 def execute(macro, args):
     text = []

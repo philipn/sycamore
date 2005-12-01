@@ -84,7 +84,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
            html_link = request.theme.make_icon('new', actionButton=True)
         else:
            img = request.theme.make_icon('new', actionButton=True)
-           html_link = wikiutil.link_tag(request,wikiutil.quoteWikiname(pagename) + "?action=diff", img, formatter=macro.formatter,pretty_url=1)
+           html_link = wikiutil.link_tag(request,wikiutil.quoteWikiname(pagename) + "?action=diff", img)
     elif hilite:
         # show "UPDATED" icon if page was edited after the user's bookmark
         img = request.theme.make_icon('updated', actionButton=True)
@@ -279,8 +279,10 @@ def execute(macro, args, **kw):
     request = macro.request
     _ = request.getText
     d = {}
-    pagename = macro.formatter.page.page_name
+    page_path = request.getScriptname() + request.getPathinfo()
+    pagename = request.getPathinfo()[1:]
     d['q_page_name'] = wikiutil.quoteWikiname(pagename)
+
 
     formatter = Formatter(request)
     #log = editlog.EditLog()
@@ -327,9 +329,9 @@ def execute(macro, args, **kw):
     d['show_comments'] = None
     d['show_comments'] = showComments
     if showComments == 1:
-        d['show_comments_html'] = '[' + wikiutil.link_tag(request, wikiutil.quoteWikiname(macro.formatter.page.page_name) + "?action=showcomments&hide=1", "Hide comments", formatter=macro.formatter) + ']'
+        d['show_comments_html'] = '[' + wikiutil.link_tag(request, pagename + "?action=showcomments&hide=1", "Hide comments") + ']'
     else:
-        d['show_comments_html'] = '[' + wikiutil.link_tag(request, wikiutil.quoteWikiname(macro.formatter.page.page_name) + "?action=showcomments", "Show comments", formatter=macro.formatter) + ']'
+        d['show_comments_html'] = '[' + wikiutil.link_tag(request, pagename + "?action=showcomments", "Show comments") + ']'
 
     # add bookmark link if valid user
     d['rc_curr_bookmark'] = None
@@ -340,18 +342,17 @@ def execute(macro, args, **kw):
             d['rc_curr_bookmark'] = _('(currently set to %s)') % (
                 request.user.getFormattedDateTime(bookmark),) + ' [' + wikiutil.link_tag(
                     request,
-                    wikiutil.quoteWikiname(macro.formatter.page.page_name)
+		    pagename
                     + "?action=bookmark&time=del",
-                    "%s" % _("Show all changes"),
-                    formatter=macro.formatter,
-                    attrs="onClick='return confirm(\"%s\");'" % (_('Really delete bookmark?'),)) + ']'
+                    "%s" % _("Show all changes")
+                    ) + ']'
 
         d['rc_update_bookmark'] = wikiutil.link_tag(
             request,
-            wikiutil.quoteWikiname(macro.formatter.page.page_name)
+	    pagename
                 + "?action=bookmark&time=%d" % (tnow,),
-            _("Clear observed changes"),
-            formatter=macro.formatter)
+            _("Clear observed changes")
+            )
     
     # set max size in days
     max_days = min(int(request.form.get('max_days', [0])[0]), _DAYS_SELECTION[-1])
@@ -409,10 +410,9 @@ def execute(macro, args, **kw):
             if request.user.valid:
                 d['bookmark_link_html'] = wikiutil.link_tag(
                     request,
-                    wikiutil.quoteWikiname(
-                        macro.formatter.page.page_name) + "?action=bookmark&time=%d" % (pages[0][0].ed_time,),
-                        _("set bookmark"),
-                        formatter=macro.formatter)
+                        pagename + "?action=bookmark&time=%d" % (pages[0][0].ed_time,),
+                        _("set bookmark")
+                        )
             d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)
             request.write(request.theme.recentchanges_daybreak(d))
             
@@ -454,10 +454,9 @@ def execute(macro, args, **kw):
             if request.user.valid:
                 d['bookmark_link_html'] = wikiutil.link_tag(
                     request,
-                    wikiutil.quoteWikiname(
-                        macro.formatter.page.page_name) + "?action=bookmark&time=%d" % (pages[0][0].ed_time,),
-                        _("set bookmark"),
-                        formatter=macro.formatter)
+                        pagename + "?action=bookmark&time=%d" % (pages[0][0].ed_time,),
+                        _("set bookmark")
+                        )
             d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)
             request.write(request.theme.recentchanges_daybreak(d))
             

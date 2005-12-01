@@ -145,7 +145,7 @@ def execute(macro, args):
     if re_obj is not None:
         caption = re_obj.group('caption')
 	caption = wikiutil.escape(caption)
-        caption = wikiutil.simpleParse(macro.request, caption)
+        caption = wikiutil.wikifyString(caption, macro.request)
     else:
         caption = ''
     re_obj = re.search('\,(\s)*?(?P<size>[0-9]+)(\s)*?(\,){0,1}', the_rest) 

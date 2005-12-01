@@ -5,6 +5,10 @@ from LocalWiki.Page import Page
 import xml.dom.minidom
 from cStringIO import StringIO
 
+def yearList():
+  current_year = time.localtime(time.time())[0]  
+  years_list = [str(current_year), str(current_year + 1)]
+  return years_list
 
 def getText(nodelist):
     rc = ""
@@ -30,7 +34,7 @@ def execute(macro, args):
     cursor = db.cursor()
     cursor.execute("start transaction")
     # clear events that have passed
-    cursor.execute("DELETE from events where DATE(FROM_UNIXTIME(event_time))<DATE(FROM_UNIXTIME(%s))", (time.mktime(time.gmtime(wikiutil.wikiUnixTime(macro.request)))))
+    cursor.execute("DELETE from events where DATE(FROM_UNIXTIME(event_time))<DATE(FROM_UNIXTIME(%s))", (time.time()))
     cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events order by event_time")
     result = cursor.fetchone()
     while result:
@@ -56,7 +60,7 @@ def execute(macro, args):
     for event in events:
 		event_name = event[5]
 	 	# we store it as a general time and we convert it to a local time..
-		event_time_unix = event[1] + config.tz_offset_unix
+		event_time_unix = event[1]
 		event_time_struct = time.gmtime(event_time_unix)
 		year = event_time_struct[0]
 		month = event_time_struct[1]
@@ -64,7 +68,7 @@ def execute(macro, args):
 		hour = event_time_struct[3]
 		minute = event_time_struct[4]
 		posted_by = event[2]
-                id = event[1]
+                id = event[0]
 		date = str(month) + " " +  str(day)
 
                 if int(hour) > 12 :
@@ -107,11 +111,11 @@ def execute(macro, args):
                         else:
                             string_day = datetoday(int(day),int(month),int(year))
                             old_date = date
-                            htmltext.append('<h2>%s, %s %s</h2>\n'
+                            htmltext.append('<h2>%s, %s %s, %s</h2>\n'
                                     '<ul><h4 id="head-%s">%s</h4>\n'
                                     '<a href="/%s%sEvents_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n'
                                     '<b>Location:</b> %s<br>\n'
-                                    '%s&nbsp;&nbsp;(Posted by <a href="/%s%s%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,id, processed_name,config.relative_dir,add_on, id,ptime,processed_location,processed_text,config.relative_dir,add_on,posted_by,posted_by))
+                                    '%s&nbsp;&nbsp;(Posted by <a href="/%s%s%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,year,id, processed_name,config.relative_dir,add_on, id,ptime,processed_location,processed_text,config.relative_dir,add_on,posted_by,posted_by))
                 elif do_mini:
                     event_unix_time = time.mktime((int(year), int(month), int(day), 0, 0, 0, 0, 0, 0))
                     unix_day = time.mktime((0, 0, 1, 0, 0, 0, 0, 0, 0)) - time.mktime((0,0,0,0,0,0,0,0,0))
@@ -162,7 +166,10 @@ def execute(macro, args):
        newdaystring = daystring.replace(">" + str(int(current_day)) + "<", " selected>" + str(int(current_day)) + "<")
        htmltext.append(newdaystring)
        
-       yearstring = '<select name="year">\n <option>2004</option>\n <option>2005</option>\n </select>\n' 
+       yearstring = '<select name="year">\n'
+       for year in yearList():
+          yearstring += '<option>%s</option>\n' % year
+       yearstring += '</select>'
        newyearstring = yearstring.replace(">" + current_year + "<", " selected>" + current_year + "<")
        htmltext.append(newyearstring)
    
