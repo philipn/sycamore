@@ -4,7 +4,6 @@ from LocalWiki import config, wikiutil, wikidb
 from LocalWiki.action import Files
 import sys, re, os, array
 
-Dependencies = []
 
 def touchThumbnail(pagename, image_name, maxsize=0):
     if not maxsize: maxsize = 192
@@ -163,60 +162,11 @@ def execute(macro, args):
     # let's generated the thumbnail or get the dimensions if it's already been generated
     x, y = touchThumbnail(macro.formatter.page.page_name, full_image_name, px_size)	
 
-      ## open the original image
-      #from PIL import Image
-      #im = Image.open(image_location + full_image_name)
-      #converted = 0
-      #if not im.palette is None:
-      #   if im.info.has_key('transparency'):
-      #     trans = im.info['transparency']
-      #     pal = []
-      #     ind = 0
-      #     numcols = len(im.palette.palette) / 3;
-      #     while ind < numcols:
-      #       if ind == trans:
-      #         pal.append( ord('\xff') )
-      #         pal.append(ord('\xff'))
-      #         pal.append( ord('\xff'))
-      #       else:
-      #         pal.append(ord(im.palette.palette[ind * 3]))
-      #         pal.append(ord(im.palette.palette[ind * 3 + 1]))
-      #         pal.append(ord(im.palette.palette[ind * 3 + 2]))
-      #       ind = ind + 1
-      #     im.putpalette(pal)
-      #   im = im.convert("RGB")
-      #   converted = 1
-      #if im.size[0] >= im.size[1]:
-      #   max = im.size[0]
-      #   min = im.size[1]
-      #   if px_size >= max:
-      #     shrunk_im = im
-      #     x, y = im.size
-      #   else:
-      #     x = px_size
-      #     y = int((min * px_size)/max)
-      #     shrunk_im = im.resize((x, y), Image.ANTIALIAS)
-      #else:
-      #   max = im.size[1]
-      #   min = im.size[0]
-      #   if px_size >= max:
-      #     shrunk_im = im
-      #     x, y = im.size
-      #   else:
-      #     x = int((min * px_size)/max)
-      #     y = px_size
-      #     shrunk_im = im.resize((x,y), Image.ANTIALIAS)
-      #if converted  == 1:
-      #  shrunk_im = shrunk_im.convert("P",dither=Image.NONE, palette=Image.ADAPTIVE)
-      #  image_extension = 'png'
-      ## save the image's thumbnail in the format image.thumbnail.192.23.jpg or image.thumbnail.60.26.png, where the number indicates the size
-      #shrunk_im.save(image_location + image_name + '.thumbnail.%s.%s.%s' % (x, y, image_extension), quality=90)
     captionJS = caption.replace('"', "\'")
     captionJS = captionJS.replace("'", "\\'")
     d = { 'right':'floatRight', 'left':'floatLeft', '':'noFloat' }
     floatSide = d[alignment]
 
-    # God damn, I am a perfectionist
     full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&do=view&target=" + full_image_name
     if caption:
       html.append('<div class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s"/></a><div>%s</div></div>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, full_image_name, macro.request, thumb=True, size=px_size),caption))
