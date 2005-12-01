@@ -45,6 +45,11 @@ div.thumb img {
   border: 1px solid #CBCBCB;
 }
 
+
+div.thumb img.borderless {
+  border: 0px;
+}
+
 div.thumb img:hover {
   cursor: pointer;
 }
