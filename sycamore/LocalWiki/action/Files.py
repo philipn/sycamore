@@ -639,7 +639,7 @@ def view_file(pagename, request):
     request.write(_info_header(request, pagename, in_images_list_area=False))
     send_viewfile(pagename, request)
     request.write('</div>\n') # end content div
-    #wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
+    wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 def show_deleted_images(pagename, request):
     _ = request.getText
