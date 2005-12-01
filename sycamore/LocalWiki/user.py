@@ -645,7 +645,7 @@ class User:
 
     def getFavoriteList(self):
         """
-        Get list of pages this user has marked as a favorite.
+        Get list of pages this user has marked as a favorite sorted in alphabetical order.
 
         @rtype: list
         @return: pages this user has marked as favorites.
@@ -653,7 +653,7 @@ class User:
 	favPages = []
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT page from userFavorites where username=%s", (self.name))
+	cursor.execute("SELECT page from userFavorites where username=%s order by page", (self.name))
 	page = cursor.fetchone()
 	while page:
 	   favPages.append(page[0])

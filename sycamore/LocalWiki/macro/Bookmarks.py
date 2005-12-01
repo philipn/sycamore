@@ -123,7 +123,6 @@ def execute(macro, args, **kw):
 
           seen_list.append((pagename, line_of_text))
 
-    seen_list.sort(lambda x, y: cmp(str.lower(x[0]), str.lower(y[0])))
     for pagename, line in seen_list:
         request.write(line)
 
