@@ -37,7 +37,6 @@ class Theme(ThemeBase):
         @rtype: string
         @return: banner html
         """
-        # 'banner_html': self.emit_custom_html('<div id="banner">\n<a id="bannertext" href="http://cwhipple.info">cwhipple.info</a>\n<p id="desctext">an evolving repository</p>\n</div>\n')
         if config.relative_dir: add_on = '/'
         else: add_on = ''
 
@@ -219,6 +218,12 @@ class Theme(ThemeBase):
         bookmarks_class = "tab"
         other_page_html = ""
 
+	# so our formatting here looks nicer :)
+        if config.relative_dir:
+            d['relative_dir'] = '/' + config.relative_dir
+        else:
+            d['relative_dir'] = ''
+
         if d['page_name']:
             if d['page_name'] == "Front Page":
               front_class += ' activeTab'
@@ -231,7 +236,7 @@ class Theme(ThemeBase):
             elif d['page_name'] == "Bookmarks" and self.request.user.valid:
               bookmarks_class += ' activeTab'
             else:
-              other_page_html = '<a class="tab activeTab">%s</a>' % d['page_name']
+              other_page_html = '<a href="%(relative_dir)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a>' % d
         
 
         dict = {
@@ -245,11 +250,7 @@ class Theme(ThemeBase):
         }
         dict.update(d)
         
-        # so our formatting here looks nicer :)
-        if config.relative_dir:
-            dict['relative_dir'] = '/' + config.relative_dir
-        else:
-            dict['relative_dir'] = ''
+        
         if self.request.user.valid:
             html = """
 <div class="tabArea">
