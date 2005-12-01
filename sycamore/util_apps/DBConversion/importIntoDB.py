@@ -90,7 +90,7 @@ def findAllVersions(pagelist):
     version = backup.split('.')[1]
     l.append((pagename, version))
 
-   # now, let's figure out the date of the current version of the page
+  # now, let's figure out the date of the current version of the page
   for pagename in pagelist:
      if os.path.exists(data_path + '/text/' + wikiutil.quoteFilename(pagename)):
       if os.path.exists(data_path + '/pages/' + wikiutil.quoteFilename(pagename) + '/editlog'):
@@ -99,6 +99,8 @@ def findAllVersions(pagelist):
 	lines = file.readlines()
 	lastline = lines[len(lines)-1]
 	l.append((pagename, lastline.split()[2]))
+      else:
+         l.append((pagename, '0'))
 
   return l
 
@@ -328,9 +330,9 @@ def buildCaches():
     
   
 d = {}
-filelist = os.listdir(data_path + '/pages/')
-dirlist = [ x for x in filelist if (os.path.isdir(data_path + '/pages/' + x) and x[0] != '.')]
-pagelist = [ wikiutil.unquoteFilename(x) for x in dirlist ]
+filelist = os.listdir(data_path + '/text/')
+better_filelist = [ x for x in filelist if x[0] != '.']
+pagelist = [ wikiutil.unquoteFilename(x) for x in better_filelist]
 for pagename, version in findAllVersions(pagelist):
     if d.has_key(pagename): d[pagename].append(aPage(pagename, version))
     else: d[pagename] = [aPage(pagename, version)]
