@@ -2,7 +2,7 @@
 #It's called from RequestBase.run() if the query string indicates we want an image
 
 from LocalWiki import wikiutil, wikidb
-import os, urllib, mimetypes, re
+import os, urllib, mimetypes, re, time
 from LocalWiki.macro import Thumbnail
 from LocalWiki import config
 
@@ -49,10 +49,9 @@ def imgSend(request):
     db = wikidb.connect()
     cursor = db.cursor()
     if not thumbnail:
-      cursor.execute("SELECT image from images where name=%s and attached_to_pagename=%s", (filename, pagename))
+      cursor.execute("SELECT image, uploaded_time from images where name=%s and attached_to_pagename=%s", (filename, pagename))
     else:
-      xsize, ysize = Thumbnail.touchThumbnail(pagename, filename, thumbnail_size)
-      cursor.execute("SELECT image from thumbnails where name=%s and attached_to_pagename=%s", (filename, pagename))
+      cursor.execute("SELECT image, last_modified from thumbnails where name=%s and attached_to_pagename=%s", (filename, pagename))
   
     result = cursor.fetchone()
     cursor.close()
@@ -62,9 +61,9 @@ def imgSend(request):
     cursor = db.cursor()
     if not version:
       # default behavior is to just grab the most recently deleted version of the image
-      cursor.execute("SELECT image from oldimages where name=%s and attached_to_pagename=%s order by uploaded_time desc;", (filename, pagename))
+      cursor.execute("SELECT image, uploaded_time from oldImages where name=%s and attached_to_pagename=%s order by uploaded_time desc;", (filename, pagename))
     else:
-      cursor.execute("SELECT image from oldimages where name=%s and attached_to_pagename=%s and uploaded_time=%s", (filename, pagename, version))
+      cursor.execute("SELECT image, uploaded_time from oldImages where name=%s and attached_to_pagename=%s and uploaded_time=%s", (filename, pagename, version))
     result = cursor.fetchone()
     cursor.close()
     db.close()
@@ -72,12 +71,14 @@ def imgSend(request):
   
   if result:
     image = result[0]
+    modified_time_unix = result[1]
   
     mimetype = mimetypes.guess_type(filename)[0]
     
     if mimetype:
       # we're good to go to output the image
-      header = "Content-type: %s\n\n" % mimetype
+      datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
+      header = "Content-type: %s\nLast-Modified: %s\n\n" % (mimetype, datestring)
       request.write(header)
       #output image
       request.write(image.tostring())

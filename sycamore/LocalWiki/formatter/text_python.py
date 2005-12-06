@@ -31,7 +31,7 @@ class Formatter:
             self.formatter = formatter
         else:
             from LocalWiki.formatter.text_html import Formatter
-            self.formatter = Formatter(request, store_pagelinks=1)
+            self.formatter = Formatter(request, store_pagelinks=1, preview=0)
         self.static = static
         self.code_fragments = []
         self.__formatter = "formatter"

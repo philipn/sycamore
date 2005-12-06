@@ -76,15 +76,15 @@ def create_tables(cursor):
   remember_me tinyint,
   css_url varchar(255),
   disabled tinyint,
-  edit_cols tinyint,
-  edit_rows tinyint,
+  edit_cols smallint,
+  edit_rows smallint,
   edit_on_doubleclick tinyint,
   theme_name char(40),
   last_saved double,
   join_date double,
-  created_count tinyint default 0,
-  edit_count tinyint default 0,
-  file_count tinyint default 0,
+  created_count int default 0,
+  edit_count int default 0,
+  file_count int default 0,
   last_page_edited varchar(255),
   last_edit_date double,
   rc_bookmark double,
@@ -147,13 +147,15 @@ def create_tables(cursor):
  uploaded_by char(19),
  attached_to_pagename  varchar(255),
  uploaded_by_ip char(16),
+ xsize smallint,
+ ysize smallint,
  primary key (name, attached_to_pagename)
  ) type=InnoDB;""")
  
  cursor.execute("alter table images add index uploaded_by (uploaded_by);")
  cursor.execute("alter table images add index uploaded_time (uploaded_time);")
  
- cursor.execute("""create table oldimages
+ cursor.execute("""create table oldImages
  (
  name varchar(255),
  image mediumblob,
@@ -167,23 +169,34 @@ def create_tables(cursor):
  primary key (name, attached_to_pagename, uploaded_time)
  ) type=InnoDB;""")
  
- cursor.execute("alter table oldimages add index deleted_time (deleted_time);")
+ cursor.execute("alter table oldImages add index deleted_time (deleted_time);")
  
  #throw-away and easily regenerated data
  cursor.execute("""create table thumbnails
  (              
- xsize tinyint,
- ysize tinyint,
+ xsize smallint,
+ ysize smallint,
  name varchar(255),
  attached_to_pagename varchar(255),
  image mediumblob,
+ last_modified double,
  primary key (name, attached_to_pagename)
  ) type=MyISAM;""")
 
+ cursor.execute("""create table imageCaptions
+ (
+  image_name varchar(255),
+  attached_to_pagename varchar(255),
+  linked_from_pagename varchar(255),
+  caption text,
+  primary key (image_name, attached_to_pagename, linked_from_pagename)
+ ) type=InnoDB;""")
+
+
 def create_views(cursor):
  cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
- cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldimages.attached_to_pagename as name, oldimages.deleted_time as changeTime, oldimages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldimages.deleted_by_ip as userIP from oldimages;")
- cursor.execute("CREATE VIEW oldImageChanges as SELECT oldimages.attached_to_pagename as name, oldimages.uploaded_time as changeTime, oldimages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldimages.uploaded_by_ip as userIP from oldimages;")
+ cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;")
+ cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
  cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;")
  cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP from allPages;")
 

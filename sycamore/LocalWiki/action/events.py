@@ -59,9 +59,6 @@ def execute(pagename, request):
 	    cursor = db.cursor()
 	    cursor.execute("start transaction")
 	    cursor.execute("SELECT event_name from events where uid=%s", (uid))
-	    test = open('test.txt','w')
-	    test.write(str(uid))
-	    test.close()
 	    name = cursor.fetchone()[0]
 	    cursor.execute("DELETE from events where uid=%s", (uid))
 	    cursor.execute("commit")

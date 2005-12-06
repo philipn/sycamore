@@ -31,9 +31,15 @@ class Formatter(FormatterBase):
         self._in_code = 0
         self._base_depth = 0
         self._show_section_numbers = None
+	self._preview = kw.get("preview", 0)
 
         if not hasattr(request, '_fmt_hd_counters'):
             request._fmt_hd_counters = []
+	   
+
+    def isPreview(self):
+        if self._preview: return True
+	else: return False
 
     def _langAttr(self):
         result = ''

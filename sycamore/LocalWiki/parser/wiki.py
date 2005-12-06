@@ -34,10 +34,8 @@ class Parser:
 
     # some common strings
     PARENT_PREFIX = wikiutil.PARENT_PREFIX
-    attachment_schemas = ["attachment", "inline", "drawing", "borderless"]
     punct_pattern = re.escape('''"\'}]|:,.)?!''')
     url_pattern = ('http|https|ftp|nntp|news|mailto|telnet|wiki|file|' +
-            '|'.join(attachment_schemas) + 
             (config.url_schemas and '|' + '|'.join(config.url_schemas) or ''))
 
     # some common rules
@@ -180,80 +178,80 @@ class Parser:
             title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class)
 
 
-    def attachment(self, url_and_text, **kw):
-        """ This gets called on attachment URLs.
-        """
-        import urllib
-        _ = self._
-        if len(url_and_text) == 1:
-            url = url_and_text[0]
-            text = None
-        else:
-            url, text = url_and_text
+    #def attachment(self, url_and_text, **kw):
+    #    """ This gets called on attachment URLs.
+    #    """
+    #    import urllib
+    #    _ = self._
+    #    if len(url_and_text) == 1:
+    #        url = url_and_text[0]
+    #        text = None
+    #    else:
+    #        url, text = url_and_text
 
-	# did they write a stupid attachment name?
-	if string.find(url, 'attachment:http:') >= 0:
-		return '<b>!!-- \'%s\' doesn\'t make sense to me.  Either use \'attachment:name_of_image\' to upload the image to the wiki from your computer, or just use \'http://site.com/name_of_image\' to hot-link to the image from the external source. --!!</b>' % url
-		#return '<img src="%s">' % url[0:10]
-	elif string.find(url, 'borderless:http:') > 0:
-		url = url[0-10:]
-	else:
-        	inline = url[0] == 'i'
-        	drawing = url[0] == 'd'
-        	borderless = url[0] == 'b'
-		url = url.split(":", 1)[1]
-        	url = urllib.unquote(url)
-       	 	text = text or url
+    #    # did they write a stupid attachment name?
+    #    if string.find(url, 'attachment:http:') >= 0:
+    #    	return '<b>!!-- \'%s\' doesn\'t make sense to me.  Either use \'attachment:name_of_image\' to upload the image to the wiki from your computer, or just use \'http://site.com/name_of_image\' to hot-link to the image from the external source. --!!</b>' % url
+    #    	#return '<img src="%s">' % url[0:10]
+    #    elif string.find(url, 'borderless:http:') > 0:
+    #    	url = url[0-10:]
+    #    else:
+    #    	inline = url[0] == 'i'
+    #    	drawing = url[0] == 'd'
+    #    	borderless = url[0] == 'b'
+    #    	url = url.split(":", 1)[1]
+    #    	url = urllib.unquote(url)
+    #   	 	text = text or url
 
-        pagename = self.formatter.page.page_name
-        parts = url.split('/')
-        if len(parts) > 1:
-            # get attachment from other page
-            pagename = '/'.join(parts[:-1])
-            url = parts[-1]
+    #    pagename = self.formatter.page.page_name
+    #    parts = url.split('/')
+    #    if len(parts) > 1:
+    #        # get attachment from other page
+    #        pagename = '/'.join(parts[:-1])
+    #        url = parts[-1]
 
-        import urllib
-        from LocalWiki.action import Files 
-	fname = url
-	
-        # check whether attachment exists, possibly point to upload form
-        if not wikiutil.isImageOnPage(pagename, fname):
-            linktext = _('Upload new image "%(filename)s"')
-            return wikiutil.attach_link_tag(self.request,
-                '%s?action=Files&amp;rename=%s%s' % (
-                    wikiutil.quoteWikiname(pagename),
-                    urllib.quote_plus(fname),
-                   ''),
-                linktext % {'filename': fname})
+    #    import urllib
+    #    from LocalWiki.action import Files 
+    #    fname = url
+    #    
+    #    # check whether attachment exists, possibly point to upload form
+    #    if not wikiutil.isImageOnPage(pagename, fname):
+    #        linktext = _('Upload new image "%(filename)s"')
+    #        return wikiutil.attach_link_tag(self.request,
+    #            '%s?action=Files&amp;rename=%s%s' % (
+    #                wikiutil.quoteWikiname(pagename),
+    #                urllib.quote_plus(fname),
+    #               ''),
+    #            linktext % {'filename': fname})
 
-        # check for image URL, and possibly return IMG tag
-        # (images are always inlined, just like for other URLs)
-        if not kw.get('pretty_url', 0) and wikiutil.isPicture(url):
-          if borderless:
-		return self.formatter.image(alt=url, html_class='borderless',
-                            src=Files.getAttachUrl(pagename, url, self.request, addts=1))
-          else:
-                        return self.formatter.image(alt=url,
-                            src=Files.getAttachUrl(pagename, url, self.request, addts=1))
+    #    # check for image URL, and possibly return IMG tag
+    #    # (images are always inlined, just like for other URLs)
+    #    if not kw.get('pretty_url', 0) and wikiutil.isPicture(url):
+    #      if borderless:
+    #    	return self.formatter.image(alt=url, html_class='borderless',
+    #                        src=Files.getAttachUrl(pagename, url, self.request, addts=1))
+    #      else:
+    #                    return self.formatter.image(alt=url,
+    #                        src=Files.getAttachUrl(pagename, url, self.request, addts=1))
 
-        # try to inline the attachment (we only accept a list
-        # of known extensions)
-        base, ext = os.path.splitext(url)
-        if inline and ext in ['.py']:
-            if ext == '.py':
-                import cStringIO
-                from LocalWiki.parser import python
+    #    # try to inline the attachment (we only accept a list
+    #    # of known extensions)
+    #    base, ext = os.path.splitext(url)
+    #    if inline and ext in ['.py']:
+    #        if ext == '.py':
+    #            import cStringIO
+    #            from LocalWiki.parser import python
 
-                buff = cStringIO.StringIO()
-                colorizer = python.Parser(open(fpath, 'r').read(), self.request, out = buff)
-                colorizer.format(self.formatter)
-                return self.formatter.preformatted(1) + \
-                    self.formatter.rawHTML(buff.getvalue()) + \
-                    self.formatter.preformatted(0)
+    #            buff = cStringIO.StringIO()
+    #            colorizer = python.Parser(open(fpath, 'r').read(), self.request, out = buff)
+    #            colorizer.format(self.formatter)
+    #            return self.formatter.preformatted(1) + \
+    #                self.formatter.rawHTML(buff.getvalue()) + \
+    #                self.formatter.preformatted(0)
 
-        return self.formatter.url(
-            Files.getAttachUrl(pagename, url, self.request),
-            text, pretty_url=kw.get('pretty_url', 0))
+    #    return self.formatter.url(
+    #        Files.getAttachUrl(pagename, url, self.request),
+    #        text, pretty_url=kw.get('pretty_url', 0))
 
 
     def _u_repl(self, word):
@@ -431,8 +429,8 @@ class Parser:
 
         scheme = words[0].split(":", 1)[0]
         if scheme == "wiki": return self.interwiki(words, pretty_url=1)
-        if scheme in self.attachment_schemas:
-            return self.attachment(words, pretty_url=1)
+        #if scheme in self.attachment_schemas:
+        #    return self.attachment(words, pretty_url=1)
 
         if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]) and (words[0] is words[1]):
             text = self.formatter.image(title=words[1], alt=words[1], src=words[0])

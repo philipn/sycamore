@@ -322,6 +322,7 @@ class Page:
         content_only = keywords.get('content_only', 0)
         content_id = keywords.get('content_id', 'content')
         self.hilite_re = keywords.get('hilite_re', None)
+	self.preview = keywords.get('preview', 0)
         if msg is None: msg = ""
 	polite_msg = ""
 
@@ -335,7 +336,7 @@ class Page:
         # if necessary, load the default formatter
         if self.default_formatter:
             from LocalWiki.formatter.text_html import Formatter
-            self.formatter = Formatter(request, store_pagelinks=1)
+            self.formatter = Formatter(request, store_pagelinks=1, preview=self.preview)
         self.formatter.setPage(self)
         request.formatter = self.formatter
 

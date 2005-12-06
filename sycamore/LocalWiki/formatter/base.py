@@ -28,6 +28,7 @@ class FormatterBase:
         self._ = request.getText
 
         self._store_pagelinks = kw.get('store_pagelinks', 0)
+	self._preview = kw.get('preview', 0)
         self.pagelinks = []
         self.in_p = 0
         self.in_pre = 0

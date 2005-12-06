@@ -554,6 +554,7 @@ def do_info(pagename, request):
             for linkedpage in links_from_page:
                 request.write("%s%s " % (Page(linkedpage).link_to(request), ",."[linkedpage == links_from_page[-1]]))
             request.write("</p>")
+	else: request.write('<p>This page links to <b>no</b> pages.</p>')
 
 	links_to_page = page.getPageLinksTo(request)
         if links_to_page:
@@ -561,6 +562,7 @@ def do_info(pagename, request):
             for linkingpage in links_to_page:
                 request.write("%s%s " % (Page(linkingpage).link_to(request), ",."[linkingpage == links_to_page[-1]]))
             request.write("</p>")
+	else: request.write('<p><b>No</b> pages link to this page.</p>')
 
         request.write('</div>\n') # end content div
 

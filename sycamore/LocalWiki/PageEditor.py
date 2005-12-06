@@ -147,7 +147,7 @@ class PageEditor(Page):
         emit_anchor = not kw.get('staytop', 0)
 
         from LocalWiki.formatter.text_html import Formatter
-        self.request.formatter = Formatter(self.request, store_pagelinks=1)
+        self.request.formatter = Formatter(self.request, store_pagelinks=1, preview=preview)
 
         base_uri = "%s?action=edit" % wikiutil.quoteWikiname(self.page_name)
         backto = form.get('backto', [None])[0]
@@ -455,7 +455,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 
         if preview is not None:
             self.request.write('<div id="preview">')
-            self.send_page(self.request, content_only=1, hilite_re=badwords_re)
+            self.send_page(self.request, content_only=1, hilite_re=badwords_re, preview=preview)
             self.request.write('</div>')
 
         self.request.write('</div>\n') # end content div
