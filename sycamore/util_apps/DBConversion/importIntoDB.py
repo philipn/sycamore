@@ -51,6 +51,9 @@ class aPage:
        self.edit_type = 'SAVE'
        self.edit_user = ''
 
+        
+
+
   def getText(self):
     text = ''
     if os.path.exists(data_path + '/backup/' + wikiutil.quoteFilename(self.pagename) + '.' + self.version):
@@ -71,6 +74,20 @@ class aPage:
 	 self.current = True
 
     return text
+
+def dethumb(aPage):
+    # converts old [[Thumbnail]], attachment: and borderless: syntax to new [[Image]] macro format.
+    file = open('pagetext.in','w')
+    file.write(aPage.text)
+    file.close()
+    os.spawnl(os.P_WAIT, 'dethumb.pl', 'dethumb.pl', 'pagetext.in', 'pagetext.out')
+    file = open('pagetext.out','r')
+    newtext  = ''
+    for line in file.readlines():
+      newtext += line
+    file.close()
+    aPage.text = newtext
+
 
 
 def hasImages(pagename):
@@ -132,6 +149,8 @@ def insertPagesIntoDB(d):
     for apage in pagelist: 
       cursor.execute("INSERT into allPages set name=%s, text=%s, editTime=%s, userEdited=%s, editType=%s, comment=%s, userIP=%s;", (apage.pagename, apage.text, apage.version, apage.edit_user, apage.edit_type, apage.edit_comment, apage.edit_user_ip))
       if apage.current:
+      	#we convert so it uses the new [[Image]]
+	dethumb(apage)
         cursor.execute("INSERT into curPages set name=%s, text=%s, editTime=%s, userEdited=%s;", (apage.pagename, apage.text, apage.version, apage.edit_user))
 
   cursor.execute("commit;")
@@ -139,6 +158,8 @@ def insertPagesIntoDB(d):
   db.close()
 
 def insertImagesIntoDB(pagelist):
+  import cStringIO
+  from PIL import Image
   print "Inserting images into DB..."
   for pagename in pagelist:
    if hasImages(pagename):
@@ -159,11 +180,14 @@ def insertImagesIntoDB(pagelist):
 	   uploaded_time, uploaded_by, uploaded_by_ip = findUploadInfo(pagename, filename)
 	   db = wikidb.connect()
 	   cursor = db.cursor()
+	   imagefile = cStringIO.StringIO(filestring)
+	   im = Image.open(imagefile)
+	   x, y = im.size
 	   cursor.execute("start transaction;")
 	   if uploaded_time:
-	     cursor.execute("INSERT into images set name=%s, image=%s, attached_to_pagename=%s, uploaded_time=%s, uploaded_by=%s, uploaded_by_ip=%s;", (filename, filestring, pagename, uploaded_time, uploaded_by, uploaded_by_ip))
+	     cursor.execute("INSERT into images set name=%s, image=%s, attached_to_pagename=%s, uploaded_time=%s, uploaded_by=%s, uploaded_by_ip=%s, xsize=%s, ysize=%s;", (filename, filestring, pagename, uploaded_time, uploaded_by, uploaded_by_ip, x, y))
 	   else:
-	     cursor.execute("INSERT into images set name=%s, image=%s, attached_to_pagename=%s, uploaded_by=%s, uploaded_by_ip=%s;", (filename, filestring, pagename, uploaded_by, uploaded_by_ip))
+	     cursor.execute("INSERT into images set name=%s, image=%s, attached_to_pagename=%s, uploaded_by=%s, uploaded_by_ip=%s, xsize=%s, ysize=%s;", (filename, filestring, pagename, uploaded_by, uploaded_by_ip, x, y,))
 	   cursor.execute("commit;")
 
 def getFieldValue(dict, key, item):
