@@ -99,6 +99,7 @@ def hasImages(pagename):
 def findAllVersions(pagelist):
   #returns a list of floats of the versions of the page that are on disk
   l = []
+  print "Finding all page versions..."
 
   # first, the backups!
   for backup in os.listdir(data_path + '/backup/'):
@@ -107,6 +108,7 @@ def findAllVersions(pagelist):
     version = backup.split('.')[1]
     l.append((pagename, version))
 
+  count = 0
   # now, let's figure out the date of the current version of the page
   for pagename in pagelist:
      if os.path.exists(data_path + '/text/' + wikiutil.quoteFilename(pagename)):
@@ -353,13 +355,20 @@ def buildCaches():
   
     
   
+print "Building page dictionary.."
 d = {}
 filelist = os.listdir(data_path + '/text/')
 better_filelist = [ x for x in filelist if x[0] != '.']
 pagelist = [ wikiutil.unquoteFilename(x) for x in better_filelist]
+count = 0
 for pagename, version in findAllVersions(pagelist):
-    if d.has_key(pagename): d[pagename].append(aPage(pagename, version))
-    else: d[pagename] = [aPage(pagename, version)]
+    count += 1
+    if d.has_key(pagename):
+       d[pagename].append(aPage(pagename, version))
+    else:
+       d[pagename] = [aPage(pagename, version)]
+    if count % 100 == 0:
+       print count, "page versions inserted into dictionary."
 
 insertPagesIntoDB(d)
 insertImagesIntoDB(pagelist)
