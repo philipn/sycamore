@@ -32,7 +32,7 @@ while ($wiki =~ /\{\{\{.*?\}\}\}/s) {
 while ($wiki =~ /attachment:/s  ) {
 	if ($wiki =~ s/attachment:(.*?)([\s|])/smurfette0/s) {
 		$foo = $1;  $bar = $2;  }
-	$foo = `python fiximagename.py $foo`;
+	$foo = `python fiximagename.py "$foo"`;
 	chop($foo);
 	$wiki =~ s/smurfette0/[[Image($foo)]]$bar/s;
 }
@@ -40,7 +40,7 @@ while ($wiki =~ /attachment:/s  ) {
 while ($wiki =~ /borderless:/s  ) {
 	if ($wiki =~ s/borderless:(.*?)([\s|])/smurfette0/s) {
 		$foo = $1;  $bar = $2;  }
-	$foo = `python fiximagename.py $foo`;
+	$foo = `python fiximagename.py "$foo"`;
 	chop($foo);
 	$wiki =~ s/smurfette0/[[Image($foo, noborder)]]$bar/s;
 }
@@ -65,7 +65,7 @@ while($wiki =~ /\[\[Thumbnail/    ) {
 	@thumbarg = undef;
 	# get remaining arguments
 	@thumbarg = split /,/, $thumbargs;
-	$imagefile = `python fiximagename.py $thumbarg[0]`;
+	$imagefile = `python fiximagename.py "$thumbarg[0]"`;
 	chop($imagefile);
 	$imagesize = $leftitude = undef;
 	for($k=1; $k <= $#thumbarg; $k++) {
