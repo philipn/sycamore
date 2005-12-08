@@ -207,7 +207,6 @@ def _get_filelist(request, pagename):
                 
         for file in files:
             urlfile = urllib.quote_plus(file)
-            file = urllib.quote(file)
             base, ext = os.path.splitext(file)
             get_url = getAttachUrl(pagename, file, request, escaped=1)
             parmdict = {'baseurl': baseurl, 'urlpagename': urlpagename, 'action': action,
