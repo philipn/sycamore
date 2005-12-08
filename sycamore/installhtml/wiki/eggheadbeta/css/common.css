@@ -50,6 +50,10 @@ a img {
 	border: 0;
 }
 
+a img.border {
+	border: 1px solid #000000;
+}
+
 img {
 	border: 1px solid #000000;
 }

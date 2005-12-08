@@ -50,10 +50,26 @@ div.thumb img.borderless {
   border: 0px;
 }
 
+div.thumb.noborder {
+  border: 0px;
+}
+
 div.thumb img:hover {
   cursor: pointer;
 }
 
+p.normalCaption {
+  margin: 1px;
+  text-align: center;
+  padding: 2px;
+  font-size: 10px;
+}
+
+p.bigCaption {
+  margin: 1px;
+  text-align: center;
+  padding: 2px;
+}
 
 div.enlarge {
   width: 100px;
@@ -74,7 +90,7 @@ div.enlarge {
 }
 
 a.tab.tab, a.tab:visited {
-   background: url("/installhtml/cornera.png") no-repeat top right;
+   background: url("../img/cornera.png") no-repeat top right;
   color: #000088;
  /* border-top: 1px solid #555555;
   border-left: 1px solid #555555;*/
@@ -84,12 +100,12 @@ a.tab.tab, a.tab:visited {
 }
 
 a.tab:hover {
-  background: url("/installhtml/cornerb.png") no-repeat top right;
+  background: url("../img/cornerb.png") no-repeat top right;
   color: #000088;
 }
 
 a.tab.activeTab, a.tab.activeTab:hover, a.tab.activeTab:visited {
-  background: url("/installhtml/cornerb.png") no-repeat top right;
+  background: url("../img/cornerb.png") no-repeat top right;
   border-left: 1px solid #AAAAAA;*/
   border-left: 1px solid #AAAAAA;
   border-bottom: .1em solid #ccddff;
@@ -263,7 +279,7 @@ hr {
         padding-top: 0px;
         padding-bottom: 0px;
         background-color: #000000;
-        background-image: url(/installhtml/floater.png);
+        background-image: url(../img/floater.png);
         background-repeat: no-repeat;
         background-position: 15px; 
 }
