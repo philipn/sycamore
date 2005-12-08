@@ -259,7 +259,7 @@ class Theme:
         page_params, title, icon = config.page_icons_table[which]
         d['title'] = title % d
         d['i18ntitle'] = self.request.getText(d['title'])
-        img_src = self.make_icon(icon, d, iconButton)
+        img_src = self.make_icon(icon, d, actionButton)
         return wikiutil.link_tag(self.request, page_params % d, img_src, attrs='title="%(i18ntitle)s"' % d)
 
     def iconbar(self, d):
