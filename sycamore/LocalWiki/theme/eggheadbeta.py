@@ -105,7 +105,7 @@ class Theme(ThemeBase):
         html = []
         if d['title_link']:
             if d['polite_msg']:
-                polite_html = '<div style="font-size: 10px; color: #404040;">\
+                polite_html = '<div style="font-size: 10px; color: #404040; clear:both;">\
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(%s)\
 </div>' % d['polite_msg']
             else:
