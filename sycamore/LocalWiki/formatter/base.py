@@ -58,8 +58,8 @@ class FormatterBase:
     
     def pagelink(self, pagename, text=None, **kw):
         if kw.get('generated', 0): return
-        if self._store_pagelinks and pagename not in self.pagelinks:
-            self.pagelinks.append(pagename)
+        if self._store_pagelinks and pagename.lower() not in self.pagelinks:
+            self.pagelinks.append(pagename.lower())
 
     def url(self, url, text=None, css=None, **kw):
         raise NotImplementedError

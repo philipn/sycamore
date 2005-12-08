@@ -15,6 +15,7 @@ def getText(nodelist):
     return rc
 
 def execute(macro, args):
+    request = macro.request
     if config.relative_dir:  add_on = '/'
     else:  add_on = ''
 
@@ -27,12 +28,23 @@ def execute(macro, args):
        result = cursor.fetchone()
        cursor.close()
        db.close()
+       join_date = result[0]
+       if not join_date: join_date = "<em>unknown</em>"
+       else: join_date = request.user.getFormattedDateTime(join_date)
+       created_count = result[1]
+       edit_count = result[2]
+       file_count = result[3]
+       last_page_edited = result[4]
+       last_edit_date = result[5]
+       if not last_edit_date: last_edit_date = "<em>unknown</em>"
+       else: last_edit_date = request.user.getFormattedDateTime(last_edit_date)
+
        if result: 
          htmltext.append('<p><h2>%s\'s Statistics</h2></p><table width=100%% border=0><tr><td><b>Edits&nbsp;&nbsp;</b></td><td><b>Pages Created&nbsp;&nbsp;</b></td><td><b>Images Contributed&nbsp;&nbsp;</b></td><td><b>Date Joined&nbsp;&nbsp;</b></td><td><b>Last Edit&nbsp;&nbsp;</b></td><td><b>Last Page Edited&nbsp;&nbsp;</b></td></tr>' % args)
 	 if result[4]:
-           htmltext.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><a href="/%s%s%s">%s</a></td></tr></table>' % (result[2],result[1],result[3],result[0],result[5],config.relative_dir,add_on,wikiutil.quoteWikiname(result[4]),result[4]))	     
+           htmltext.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><a href="/%s%s%s">%s</a></td></tr></table>' % (edit_count,created_count,file_count,join_date,last_edit_date,config.relative_dir,add_on,wikiutil.quoteWikiname(last_page_edited),last_page_edited))	     
 	 else:
-	   htmltext.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>&nbsp;</td></tr></table>' % (result[2],result[1],result[3],result[0],result[5]))
+	   htmltext.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>&nbsp;</td></tr></table>' % (edit_count,created_count,file_count,join_date,last_edit_date))
 
        else: htmltext.append("<p>No such user '%s'" % args)
 
@@ -57,11 +69,17 @@ def execute(macro, args):
           toggle = toggle*(-1)
 	  name = result[0]
 	  join_date = result[1]
+	  # older system sometimes didn't log this/hard to tell
+	  if not join_date: join_date = '<em>unknown</em>' 
+	  else: join_date = request.user.getFormattedDateTime(join_date)
 	  created_count = result[2]
 	  edit_count = result[3]
 	  file_count = result[4]
 	  last_page_edited = result[5]
 	  last_edit_date = result[6]
+	  if not last_edit_date: last_edit_date = '<em>unknown</em>' 
+	  else: last_edit_date = request.user.getFormattedDateTime(last_edit_date)
+
 	  if toggle < 0: 
 	     if last_page_edited:
                htmltext.append('<tr bgcolor="#E5E5E5"><td><a href="/%s%s%s">%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><a href="/%s%s%s">%s</a></td></tr>' % (config.relative_dir,add_on,wikiutil.quoteWikiname(name),name,edit_count,created_count,file_count,join_date,last_edit_date,config.relative_dir,add_on,wikiutil.quoteWikiname(last_page_edited),last_page_edited))

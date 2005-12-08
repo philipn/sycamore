@@ -263,8 +263,6 @@ def send_link_rel(request, pagename):
 def send_uploadform(pagename, request):
     """ Send the HTML code for the list of already stored attachments and
         the file upload form.
-	
- 	Currently, the upload form is a part of the 'info' interface.  This means that it contains links to the other info things, despite not being, code-wise, a part of the info set of actions.
     """
     _ = request.getText
     
@@ -285,7 +283,7 @@ def send_uploadform(pagename, request):
     request.write('<h2>' + _("New Image Attachment") + '</h2><p>' +
 _("""An upload will never overwrite an existing file. If there is a name
 conflict, you have to rename the file that you want to upload.
-Otherwise, if "Save as" is left blank, the original filename will be used (might be ugly) . You should give it a name!  Just name it whatever.jpg/png/gif (in "Save as"). Try to avoid spaces because they come out poorly.""") + '</p>')
+Otherwise, if "Save as" is left blank, the original filename will be used (might be ugly) . You should give it a name!  Just name it whatever.jpg/png/gif (in "Save as").""") + '</p>')
     request.write("""
 <form action="%(baseurl)s/%(pagename)s" method="POST" enctype="multipart/form-data">
 <dl>
@@ -311,7 +309,7 @@ Otherwise, if "Save as" is left blank, the original filename will be used (might
     'upload_button': _('Upload'),
 })
     request.write('<h3>' + _("How do I do this?") + '</h3>' +
-_("""Once you've selected a file on your hard disk, use "Save as" to name it whateveryouwant.png/jpg/gif.  Then click "Upload" to upload the file to the page.  But, <b>you have to tell the page where you want the image to go!</b>  So, just go into the page (edit it) and add the line <tt>attachment:whatyounamedyourimage</tt> where you want the image to appear.  That's it!<br><br>Next to each uploaded image is the line you need to put into the page to make the image appear, e.g. <tt>attachment:theimage.jpg</tt>"""))
+_("""Once you've selected a file on your hard disk, use "Save as" to name it whateveryouwant.png/jpg/gif.  Then click "Upload" to upload the file to the page.  But, <b>you have to tell the page where you want the image to go!</b>  So, just go into the page (edit it) and add the line <tt>[[Image(whatyounamedyourimage)]]</tt> where you want the image to appear.  That's it!</tt>"""))
 
 
 #############################################################################
@@ -385,13 +383,21 @@ def send_title(request, desc, pagename, msg, title=''):
     if msg :
       request.write('<div id="message"><p>%s</p></div>' % msg)
 
+def _fixFilename(filename, request):
+  # MSIE sends the entire path to us.  Mozilla doesn't.
+  if request.http_user_agent.find("MSIE") != -1:
+    # it's IE
+    filename_split = filename.split("\\")
+    filename = filename_split[len(filename_split)]
+  return filename
+
 def do_upload(pagename, request):
     _ = request.getText
 
     # make filename
     filename = None
     if request.form.has_key('file__filename__'):
-        filename = request.form['file__filename__']
+        filename = _fixFilename(request.form['file__filename__'], request)
     rename = None
     if request.form.has_key('rename'):
         rename = request.form['rename'][0].strip()

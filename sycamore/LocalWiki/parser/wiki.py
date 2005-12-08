@@ -384,8 +384,8 @@ class Parser:
         scheme = word.split(":", 1)[0]
 	if not (scheme == "http"):
         	if scheme == "wiki": return self.interwiki([word])
-        	if scheme in self.attachment_schemas:
-            		return self.attachment([word])
+        	#if scheme in self.attachment_schemas:
+            	#	return self.attachment([word])
         	return self.formatter.url(word, text=self.highlight_text(word))
 
 	elif scheme == "http":

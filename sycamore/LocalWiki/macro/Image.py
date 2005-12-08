@@ -98,8 +98,8 @@ def generateThumbnail(pagename, image_name, maxsize):
     cursor.execute("SELECT image from images where name=%s and attached_to_pagename=%s", (image_name, pagename))
     result = cursor.fetchone()
     	
-    imagefile = cStringIO.StringIO(result[0].tostring())
-    im = Image.open(imagefile)
+    open_imagefile = cStringIO.StringIO(result[0].tostring())
+    im = Image.open(open_imagefile)
     converted = 0
     if not im.palette is None:
        if im.info.has_key('transparency'):
@@ -143,27 +143,27 @@ def generateThumbnail(pagename, image_name, maxsize):
     if converted == 1:
       shrunk_im = shrunk_im.convert("P",dither=Image.NONE, palette=Image.ADAPTIVE)
 
-    imagefile.close()
     import mimetypes
     type = mimetypes.guess_type(image_name)[0][6:]
-    imagefile = cStringIO.StringIO()
-    shrunk_im.save(imagefile, type, quality=90)
+    save_imagefile = cStringIO.StringIO()
+    shrunk_im.save(save_imagefile, type, quality=90)
     cursor.execute("SELECT name from thumbnails where name=%s and attached_to_pagename=%s", (image_name, pagename))
     thumb_exists = cursor.fetchone()
     if thumb_exists:
-      image_value = imagefile.getvalue()
+      image_value = save_imagefile.getvalue()
       cursor.execute("start transaction;")
       cursor.execute("UPDATE thumbnails set xsize=%s, ysize=%s, image=%s, last_modified=%s where name=%s and attached_to_pagename=%s;", (x, y, image_value, time.time(), image_name, pagename))
     else:
       cursor.execute("start transaction;")
-      cursor.execute("INSERT into thumbnails set xsize=%s, ysize=%s, image=%s, name=%s, last_modified=%s, attached_to_pagename=%s;", (x, y, imagefile.getvalue(),image_name, time.time(), pagename))
+      cursor.execute("INSERT into thumbnails set xsize=%s, ysize=%s, image=%s, name=%s, last_modified=%s, attached_to_pagename=%s;", (x, y, save_imagefile.getvalue(),image_name, time.time(), pagename))
 
     cursor.execute("commit;")
     cursor.close()
     db.close()
+    save_imagefile.close()
+    open_imagefile.close()
     
     return x, y
-
 
 def getArguments(args, request):
     #filename stuff

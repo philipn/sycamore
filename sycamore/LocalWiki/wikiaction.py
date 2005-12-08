@@ -659,8 +659,9 @@ def do_info(pagename, request):
 	    elif editType == 'ATTDEL':
 		comment = "Attachment '%s' deleted." % comment
 	    elif editType == 'DELETE':
-	    	comment = "Page deleted: '%s'" % comment
-   
+	        if comment: comment = "Page deleted: '%s'" % comment
+		else: comment = "Page deleted (no comment)"
+	    	   
    	    
 	    if entry[2]:
 	    	editUser = user.User(request, entry[2])

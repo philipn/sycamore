@@ -50,7 +50,9 @@ def format_comment(request, line):
 	    return wikiutil.escape(comment)
 
     elif line.action == 'DELETE':
-	   comment = "Page deleted: '%s'" % (comment)
+           if comment: comment = "Page deleted: '%s'" % (comment)
+	   else: comment = "Page deleted (no comment)"
+
     elif line.action == 'NEWEVENT':
 	comment = "Event '%s' posted." % line.comment
 	return wikiutil.escape(comment)
