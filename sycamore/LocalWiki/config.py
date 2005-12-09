@@ -54,6 +54,11 @@ _cfg_defaults = {
     'allow_subpages': 1,
     'allow_numeric_entities': 1,
     'allowed_actions': [],
+    # extensions that are allowed in user uploads
+    'allowed_extensions': ['.jpg', '.jpeg', '.png', '.gif'],
+    # mimetypes allowed in uploads, this list will automagically have the 
+    # mimetype values corresponding to allowed extensions added to it.
+    'allowed_mimetypes': [],
     'allow_xslt': 0,
     'app_dir': '/home/dwiki',
     'attachments': None, # {'dir': path, 'url': url-prefix, 'img_script': name of the image getting script}

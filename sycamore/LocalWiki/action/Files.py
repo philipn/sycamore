@@ -383,12 +383,24 @@ def send_title(request, desc, pagename, msg, title=''):
     if msg :
       request.write('<div id="message"><p>%s</p></div>' % msg)
 
+def allowedExtension(filename):
+    ext = os.path.splitext(filename)[-1]
+    if ext.lower() in config.allowed_extensions:
+	return True
+    return False
+
+def allowedMime(mimetype):
+    allowed = config.allowed_mimetypes + [mimetypes.guess_type(e)[0] for e in config.allowed_extensions]
+    if mimetype in allowed:
+	return True
+    return False
+
 def _fixFilename(filename, request):
   # MSIE sends the entire path to us.  Mozilla doesn't.
   if request.http_user_agent.find("MSIE") != -1:
     # it's IE
     filename_split = filename.split("\\")
-    filename = filename_split[len(filename_split)]
+    filename = filename_split[-1]
   return filename
 
 def do_upload(pagename, request):
@@ -405,7 +417,7 @@ def do_upload(pagename, request):
     # if we use twisted, "rename" field is NOT optional, because we
     # can't access the client filename
     if rename:
-        filename = target = rename
+        target = rename
     elif filename:
         target = filename
     else:
@@ -415,9 +427,7 @@ def do_upload(pagename, request):
 
     # RESTRICT FILE EXTENSIONS - EXPERIMENTAL
 
-    if not string.upper(filename).endswith(".JPG") and not string.upper(filename).endswith(".JPEG") and not string.upper(filename).endswith(".PNG") and not string.upper(filename).endswith(".GIF"): 
-        error_msg(pagename, request, _("You may only attach image files."))
-        return
+#     if not string.upper(filename).endswith(".JPG") and not string.upper(filename).endswith(".JPEG") and not string.upper(filename).endswith(".PNG") and not string.upper(filename).endswith(".GIF"): 
 
     if string.find(filename, '<') != -1 or string.find(filename, '>') != -1 or string.find(filename, '&') != -1 or string.find(filename, '?') != -1 or string.find(filename, '"') != -1:
         error_msg(pagename, request, _("The characters '<', '>', '&', '\"', and '?' are not allowed in file names."))
@@ -436,23 +446,30 @@ def do_upload(pagename, request):
     # set mimetype from extension, or from given mimetype
     type, encoding = mimetypes.guess_type(target)
     if not type:
-        ext = None
-        if request.form.has_key('mime'):
-            ext = mimetypes.guess_extension(request.form['mime'][0])
+        ext = os.path.splitext(filename)[1]
         if not ext:
-            type, encoding = mimetypes.guess_type(filename)
-            if type:
-                ext = mimetypes.guess_extension(type)
+            if request.form.has_key('mime'):
+                ext = mimetypes.guess_extension(request.form['mime'][0])
+            if not ext:
+                type, encoding = mimetypes.guess_type(filename)
+                if type:
+                    ext = mimetypes.guess_extension(type)
             else:
                 ext = ''
+                
         target = target + ext
+
+    if not allowedExtension(target) and not allowedMime(type):
+        error_msg(pagename, request, _("You may only attach image files."))
+        return
+
     
     # get directory, and possibly create it
     #attach_dir = getAttachDir(pagename, create=1)
     # save file
     db = wikidb.connect()
     cursor = db.cursor()
-    cursor.execute("SELECT name from images where attached_to_pagename=%s and name=%s", (pagename, filename))
+    cursor.execute("SELECT name from images where attached_to_pagename=%s and name=%s", (pagename, target))
     result = cursor.fetchone()
 
     if result:
@@ -465,7 +482,7 @@ def do_upload(pagename, request):
 	uploaded_time = time.time()
 	uploaded_by = request.user.id
 	cursor.execute("start transaction;")
-	cursor.execute("INSERT into images set name=%s, image=%s, uploaded_time=%s, uploaded_by=%s, attached_to_pagename=%s, uploaded_by_ip=%s, xsize=%s, ysize=%s", (filename, filecontent, uploaded_time, uploaded_by, pagename, request.remote_addr, xsize, ysize))
+	cursor.execute("INSERT into images set name=%s, image=%s, uploaded_time=%s, uploaded_by=%s, attached_to_pagename=%s, uploaded_by_ip=%s, xsize=%s, ysize=%s", (target, filecontent, uploaded_time, uploaded_by, pagename, request.remote_addr, xsize, ysize))
 	cursor.execute("commit;")
 	db.close()
 
