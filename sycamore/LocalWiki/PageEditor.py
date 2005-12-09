@@ -111,14 +111,13 @@ class PageEditor(Page):
         @param page_name: name of the page
         @param request: the request object
         @keyword do_revision_backup: if 0, suppress making a page backup per revision
-        @keyword do_editor_backup: if 0, suppress making of HomePage/MoinEditorBackup per edit
         """
         self.request = request
         self._ = request.getText
         Page.__init__(self, page_name, **keywords)
 
         self.do_revision_backup = keywords.get('do_revision_backup', 1)
-        self.do_editor_backup = keywords.get('do_editor_backup', 1)
+        #self.do_editor_backup = keywords.get('do_editor_backup', 1)
 
         self.lock = PageLock(page_name, request)
 
@@ -687,7 +686,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         _ = self._
         # check for homepage
         pg = wikiutil.getHomePage(self.request)
-        if not pg or not self.do_editor_backup:
+        if not pg:
             return None
 
         if config.allow_subpages:
@@ -883,43 +882,8 @@ delete the changes of the other person, which is excessively rude!</em></p>
                 # we'll try to change the stats early-on
                 self.userStatAdd(self.request.user.name, action, self.page_name)
 
-		# write the editlog entry
-                log = editlog.EditLog()
-                log.add(self.request, self.page_name, None, mtime,
-                         kw.get('comment', ''), action=action)
-
-		# write the page-centric editlog entry
-		log = editlog.EditLog(config.data_dir + '/pages/' + wikiutil.quoteFilename(self.page_name) + '/editlog')
-		log.add(self.request, self.page_name, None, mtime,
-			kw.get('comment', ''), action=action)
-
-                # write last-edited file
-                lastedited = wikiutil.getPagePath(self.page_name, 'last-edited')
-                try:
-                         os.remove(lastedited)
-                except OSError:
-                        pass
-                log = editlog.EditLog(lastedited)
-                log.add(self.request, self.page_name, None, mtime,
-                    kw.get('comment', ''), action=action)
-		
-		# I do this log = 0 to call the destuctor of the log object -- we do os._exit(0) so we've gotta do this on our own
-		log = 0
-
-                # add event log entry
-                #eventlog.EventLog().add(self.request, 'SAVEPAGE',
-                #                    {'pagename': self.page_name})
-
                 # we quote the pagetext so we can pass it as a single argument and then have the process run without us paying it any attention
                 os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteWikiname(self.page_name), wikiutil.quoteWikiname(newtext))
-
-            # we only need to build the index like..once..
-                #self.build_index()
-
-                # send notification mails
-                #if config.mail_smarthost and kw.get('notify', 0):
-                 #msg = msg + self._notifySubscribers(kw.get('comment', ''))
-                #        self._notifySubscribers(kw.get('comment', ''))
 
 		# we do this so we don't return another copy of the page to the user!
                 os._exit(0)
