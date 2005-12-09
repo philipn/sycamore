@@ -92,15 +92,22 @@ def _info_header(request, pagename, in_images_list_area=True):
     """
     qpagename = wikiutil.quoteWikiname(pagename)
     historylink =  wikiutil.link_tag(request, '%s?action=info' % qpagename,
-        '%(title)s' % {'title': 'Page\'s Revision History'})
+        '%(title)s' % {'title': 'Revision History'})
     generallink =  wikiutil.link_tag(request, '%s?action=info&amp;general=1' % qpagename,
-        '%(title)s' % {'title': 'Page\'s General Info'})
-    imageslink = wikiutil.link_tag(request, '%s?action=Files' % qpagename, 'Page\'s Images')
+        '%(title)s' % {'title': 'General Info'})
+    imageslink = wikiutil.link_tag(request, '%s?action=Files' % qpagename, 'Images')
+    subscribelink = wikiutil.link_tag(request, '%s?action=favorite' % qpagename, 'Add to wiki bookmarks')
 
     if in_images_list_area:
-      header = "<p>[%s] [%s] [Page's Images]</p>" % (historylink, generallink)
+      if request.user.isFavoritedTo(pagename):
+        header = "<p>[%s] [%s] [Images]</p>" % (historylink, generallink)
+      else: 
+        header = "<p>[%s] [%s] [Images] [%s]</p>" % (historylink, generallink, subscribelink)
     else:
-      header = "<p>[%s] [%s] [%s]</p>" % (historylink, generallink, imageslink)
+      if request.user.isFavoritedTo(pagename):  
+        header = "<p>[%s] [%s] [%s]</p>" % (historylink, generallink, imageslink)
+      else: 
+        header = "<p>[%s] [%s] [%s] [%s]</p>" % (historylink, generallink, imageslink, subscribelink)
 
     return header
 
@@ -478,7 +485,12 @@ def do_upload(pagename, request):
             'target': target}
 	db.close()
     else:
-        xsize, ysize = _getImageSize(filecontent)
+        try:
+          xsize, ysize = _getImageSize(filecontent)
+	except IOError:
+          error_msg(pagename, request, _("You may only attach image files."))
+	  return
+	  
 	uploaded_time = time.time()
 	uploaded_by = request.user.id
 	cursor.execute("start transaction;")

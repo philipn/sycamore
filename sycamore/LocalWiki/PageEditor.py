@@ -332,9 +332,9 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         raw_body = self._normalize_text(raw_body)
 
         # make a preview backup?
-        if preview is not None:
-            # make backup on previews
-            self._make_backup(raw_body)
+        #if preview is not None:
+        #    # make backup on previews
+        #    self._make_backup(raw_body)
 
         # send datestamp (version) of the page our edit is based on
         self.request.write('<input type="hidden" name="datestamp" value="%d">' % (mtime,))
@@ -472,7 +472,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         @param datestamp: ...
         """
         _ = self._
-        self._make_backup(self._normalize_text(newtext))
+        #self._make_backup(self._normalize_text(newtext))
         self.lock.release()
 
         backto = self.request.form.get('backto', [None])[0]
@@ -673,47 +673,47 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         return newtext
 
 
-    def _make_backup(self, newtext, **kw):
-        """
-        Make a backup of text before saving and on previews, if user
-        has a homepage. Return URL to backup if one is made.
-        
-        @param newtext: new text of the page
-        @keyword ...:...
-        @rtype: string
-        @return: url of page backup
-        """
-        _ = self._
-        # check for homepage
-        pg = wikiutil.getHomePage(self.request)
-        if not pg:
-            return None
+    #def _make_backup(self, newtext, **kw):
+    #    """
+    #    Make a backup of text before saving and on previews, if user
+    #    has a homepage. Return URL to backup if one is made.
+    #    
+    #    @param newtext: new text of the page
+    #    @keyword ...:...
+    #    @rtype: string
+    #    @return: url of page backup
+    #    """
+    #    _ = self._
+    #    # check for homepage
+    #    pg = wikiutil.getHomePage(self.request)
+    #    if not pg:
+    #        return None
 
-        if config.allow_subpages:
-            delimiter = "/"
-        else:
-            delimiter = ""
-        backuppage = PageEditor(pg.page_name + delimiter + "MoinEditorBackup", self.request, do_revision_backup=0)
-        if config.acl_enabled:
-            intro = "#acl %s:read,write,delete\n" % self.request.user.name
-        else:
-            intro = ""
-        pagename = self.page_name
-	ourtime = time.time()
-        date = self.request.user.getFormattedDateTime(ourtime)
-        intro += _('## backup of page "%(pagename)s" submitted %(date)s') % {
-            'pagename': pagename, 'date': date,} + '\n'
+    #    if config.allow_subpages:
+    #        delimiter = "/"
+    #    else:
+    #        delimiter = ""
+    #    backuppage = PageEditor(pg.page_name + delimiter + "MoinEditorBackup", self.request, do_revision_backup=0)
+    #    if config.acl_enabled:
+    #        intro = "#acl %s:read,write,delete\n" % self.request.user.name
+    #    else:
+    #        intro = ""
+    #    pagename = self.page_name
+    #    ourtime = time.time()
+    #    date = self.request.user.getFormattedDateTime(ourtime)
+    #    intro += _('## backup of page "%(pagename)s" submitted %(date)s') % {
+    #        'pagename': pagename, 'date': date,} + '\n'
 
-       	db = wikidb.connect()
-	cursor = db.cursor()
-	if backuppage.exists():
-	   cursor.execute("start transaction;")
-	   cursor.execute("UPDATE curPages set text=%s, editTime=%s, userEdited=%s where name=%s", (intro+newtext, ourtime, self.request.user.name, backuppage.page_name))
- 	   cursor.execute("commit;")
-	else:
-	   cursor.execute("INSERT into curPages set name=%s, text=%s, editTime=%s, userEdited=%s", (backuppage.page_name, intro+newtext, ourtime, self.request.user.name))
+    #   	db = wikidb.connect()
+    #    cursor = db.cursor()
+    #    if backuppage.exists():
+    #       cursor.execute("start transaction;")
+    #       cursor.execute("UPDATE curPages set text=%s, editTime=%s, userEdited=%s where name=%s", (intro+newtext, ourtime, self.request.user.name, backuppage.page_name))
+    #       cursor.execute("commit;")
+    #    else:
+    #       cursor.execute("INSERT into curPages set name=%s, text=%s, editTime=%s, userEdited=%s", (backuppage.page_name, intro+newtext, ourtime, self.request.user.name))
 
-        return backuppage.url(self.request)
+    #    return backuppage.url(self.request)
 
     def _write_to_db(self, text, action, comment, ip):
 	"""
@@ -813,7 +813,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         """
         _ = self._
         newtext = self._normalize_text(newtext, **kw)
-        backup_url = self._make_backup(newtext, **kw)
+        #backup_url = self._make_backup(newtext, **kw)
 
         #!!! need to check if we still retain the lock here
         #!!! datestamp check is not enough since internal operations use "0"

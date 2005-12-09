@@ -707,12 +707,12 @@ def do_info(pagename, request):
     wikiutil.simple_send_title(request, pagename, strict_title='Info for "%s"' % pagename)
 
     historylink =  wikiutil.link_tag(request, '%s?action=info' % qpagename,
-        _('%(title)s') % {'title': _('Page\'s Revision History')})
+        _('%(title)s') % {'title': _('Revision History')})
     generallink =  wikiutil.link_tag(request, '%s?action=info&amp;general=1' % qpagename,
-        _('%(title)s') % {'title': _('Page\'s General Info')})
-    imageslink = wikiutil.link_tag(request, '%s?action=Files' % qpagename, 'Page\'s Images')
+        _('%(title)s') % {'title': _('General Info')})
+    imageslink = wikiutil.link_tag(request, '%s?action=Files' % qpagename, 'Images')
 
-    subscribelink = wikiutil.link_tag(request, '%s?action=favorite' % qpagename, _('Add this page to your wiki Bookmarks'))
+    subscribelink = wikiutil.link_tag(request, '%s?action=favorite' % qpagename, _('Add to wiki bookmarks'))
     
     request.write('<div id="content">\n') # start content div
 
@@ -720,17 +720,17 @@ def do_info(pagename, request):
     
     if request.user.isFavoritedTo(pagename) or not request.user.valid:
       if show_general:
-        request.write("<p>[%s] [Page's General Info] [%s]</p>" % (historylink, imageslink))
+        request.write("<p>[%s] [General Info] [%s]</p>" % (historylink, imageslink))
         general(page, pagename, request)
       else:
-        request.write("<p>[Page's Revision History] [%s] [%s]</p>" % (generallink, imageslink))
+        request.write("<p>[Revision History] [%s] [%s]</p>" % (generallink, imageslink))
         history(page, pagename, request)
     else:
         if show_general:
-          request.write("<p>[%s] [Page's General Info] [%s] [%s]</p>" % (historylink, imageslink, subscribelink))
+          request.write("<p>[%s] [General Info] [%s] [%s]</p>" % (historylink, imageslink, subscribelink))
           general(page, pagename, request)
         else:
-          request.write("<p>[Page's Revision History] [%s] [%s] [%s]</p>" % (generallink,imageslink,subscribelink))
+          request.write("<p>[Revision History] [%s] [%s] [%s]</p>" % (generallink,imageslink,subscribelink))
           history(page, pagename, request)
         
     request.write('</div>\n') # end content div
