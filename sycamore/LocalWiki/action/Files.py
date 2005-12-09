@@ -153,13 +153,6 @@ def info(pagename, request):
 #############################################################################
 ### Internal helpers
 #############################################################################
-def _getImageSize(imagecontent):
-    import cStringIO
-    from PIL import Image
-    imagefile = cStringIO.StringIO(imagecontent) 
-    im = Image.open(imagefile)
-    return im.size
-
 
 def _has_deleted_images(pagename):
     db = wikidb.connect()
@@ -390,13 +383,13 @@ def send_title(request, desc, pagename, msg, title=''):
     if msg :
       request.write('<div id="message"><p>%s</p></div>' % msg)
 
-def allowedExtension(filename):
-    ext = os.path.splitext(filename)[-1]
+def allowedExtension(ext):
     if ext.lower() in config.allowed_extensions:
 	return True
     return False
 
-def allowedMime(mimetype):
+def allowedMime(ext):
+    mimetype = mimetypes.guess_type(ext)[0]
     allowed = config.allowed_mimetypes + [mimetypes.guess_type(e)[0] for e in config.allowed_extensions]
     if mimetype in allowed:
 	return True
@@ -410,8 +403,35 @@ def _fixFilename(filename, request):
     filename = filename_split[-1]
   return filename
 
+def getExtension(request, target, filename):
+    def _extFromFileext(req, t, f):
+	return os.path.splitext(f)[-1]
+
+    def _extFromFormMime(req, t, f):
+	if req.form.has_key('mime'):
+	    return mimetypes.guess_extension(request.form['mime'][0])
+
+    def _extFromTarget(req, t, f):
+	return os.path.splitext(t)[-1]
+
+    extGuessers = (_extFromTarget, _extFromFileext, _extFromFormMime)
+
+    for eg in extGuessers:
+	ext = eg(request, target, filename)
+	if ext:
+	    break
+	
+    if not ext:
+	ext = ''
+
+    return ext
+
+
 def do_upload(pagename, request):
+    import cStringIO
+    from PIL import Image
     _ = request.getText
+    msg = ''
 
     # make filename
     filename = None
@@ -431,11 +451,6 @@ def do_upload(pagename, request):
         error_msg(pagename, request, _("Filename of image not specified!"))
         return
 
-
-    # RESTRICT FILE EXTENSIONS - EXPERIMENTAL
-
-#     if not string.upper(filename).endswith(".JPG") and not string.upper(filename).endswith(".JPEG") and not string.upper(filename).endswith(".PNG") and not string.upper(filename).endswith(".GIF"): 
-
     if string.find(filename, '<') != -1 or string.find(filename, '>') != -1 or string.find(filename, '&') != -1 or string.find(filename, '?') != -1 or string.find(filename, '"') != -1:
         error_msg(pagename, request, _("The characters '<', '>', '&', '\"', and '?' are not allowed in file names."))
         return
@@ -448,31 +463,30 @@ def do_upload(pagename, request):
         error_msg(pagename, request, _("Files must be 500Kb or smaller.")) 
         return
 
+    # open the image
+    try:
+	im = Image.open(cStringIO.StringIO(filecontent))
+    except IOError:
+	error_msg(pagename, request, _("You may only attach image files."))
+	return
+
     target = wikiutil.taintfilename(target)
 
-    # set mimetype from extension, or from given mimetype
-    type, encoding = mimetypes.guess_type(target)
-    if not type:
-        ext = os.path.splitext(filename)[1]
-        if not ext:
-            if request.form.has_key('mime'):
-                ext = mimetypes.guess_extension(request.form['mime'][0])
-            if not ext:
-                type, encoding = mimetypes.guess_type(filename)
-                if type:
-                    ext = mimetypes.guess_extension(type)
-            else:
-                ext = ''
-                
-        target = target + ext
+    ext = getExtension(request, target, filename)
 
-    if not allowedExtension(target) and not allowedMime(type):
+    f2e = {'PNG': '.png', 'JPEG': '.jpg', 'GIF': '.gif'}
+    imfe = f2e.get(im.format, '')
+
+    if imfe != ext:
+	msg += _("File extension %s did not match image format %s, changing extension to %s.<br />" % (ext, im.format, imfe))
+	ext = imfe
+
+    target = os.path.splitext(target)[0] + ext
+
+    if not allowedExtension(ext) and not allowedMime(ext):
         error_msg(pagename, request, _("You may only attach image files."))
         return
 
-    
-    # get directory, and possibly create it
-    #attach_dir = getAttachDir(pagename, create=1)
     # save file
     db = wikidb.connect()
     cursor = db.cursor()
@@ -480,17 +494,12 @@ def do_upload(pagename, request):
     result = cursor.fetchone()
 
     if result:
-      if result[0]:
-        msg = _("Attachment '%(target)s' already exists.") % {
-            'target': target}
-	db.close()
+	if result[0]:
+	    msg += _("Attachment '%(target)s' already exists.") % {
+		'target': target}
+	    db.close()
     else:
-        try:
-          xsize, ysize = _getImageSize(filecontent)
-	except IOError:
-          error_msg(pagename, request, _("You may only attach image files."))
-	  return
-	  
+        xsize, ysize = im.size
 	uploaded_time = time.time()
 	uploaded_by = request.user.id
 	cursor.execute("start transaction;")
@@ -500,9 +509,9 @@ def do_upload(pagename, request):
 
 	
         bytes = len(filecontent)
-        msg = _("Attachment '%(target)s'"
-                " with %(bytes)d bytes saved.") % {
-                'target': target, 'bytes': bytes}
+        msg += _("Attachment '%(target)s'"
+		 " with %(bytes)d bytes saved.") % {
+	         'target': target, 'bytes': bytes}
 
     # return attachment list
     upload_form(pagename, request, msg)
