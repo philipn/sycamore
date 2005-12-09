@@ -3,7 +3,6 @@
 
 from LocalWiki import wikiutil, wikidb
 import os, urllib, mimetypes, re, time
-from LocalWiki.macro import Thumbnail
 from LocalWiki import config
 
 # We get the pagename as a wikiutil.quoteWikiname()
@@ -45,28 +44,24 @@ def imgSend(request):
   
   filename = urllib.unquote_plus(filename_encoded)
   
+  db = wikidb.connect()
+  cursor = db.cursor()
   if not deleted:
-    db = wikidb.connect()
-    cursor = db.cursor()
     if not thumbnail:
       cursor.execute("SELECT image, uploaded_time from images where name=%s and attached_to_pagename=%s", (filename, pagename))
     else:
       cursor.execute("SELECT image, last_modified from thumbnails where name=%s and attached_to_pagename=%s", (filename, pagename))
   
     result = cursor.fetchone()
-    cursor.close()
-    db.close()
   else:
-    db = wikidb.connect()
-    cursor = db.cursor()
     if not version:
       # default behavior is to just grab the most recently deleted version of the image
       cursor.execute("SELECT image, uploaded_time from oldImages where name=%s and attached_to_pagename=%s order by uploaded_time desc;", (filename, pagename))
     else:
       cursor.execute("SELECT image, uploaded_time from oldImages where name=%s and attached_to_pagename=%s and uploaded_time=%s", (filename, pagename, version))
     result = cursor.fetchone()
-    cursor.close()
-    db.close()
+  cursor.close()
+  db.close()
   
   
   if result:
