@@ -22,8 +22,10 @@ def imgSend(request):
   if not allowed:
     # this should do a 'return' when incorporated into the LocalWiki code
     #return
-    pass
+    return
   
+  request.write("Content-type: text/html\n\n")
+  request.write("i'm here")
   deleted = False
   version = ''
   thumbnail = False
