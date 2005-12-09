@@ -568,6 +568,22 @@ def do_info(pagename, request):
 
 
     def history(page, pagename, request):
+	def printNextPrev(request, pagename, last_version, offset_given):
+	  #prints the next and previous links, if they're needed
+	  html = '<p>'
+	  if last_version != 1:
+	    html += '[<a href="%s/%s?action=info&offset=%s">previous</a> | ' % (request.getBaseURL(), pagename, offset_given+1)
+	  else:
+	    html += '[previous | '
+	  if offset_given:
+	    html += '<a href="%s/%s?action=info&offset=%s">next</a>]' % (request.getBaseURL(), pagename, offset_given-1) 
+	  else:
+	    html += 'next]'
+	  html += '</p>'
+	  request.write(html)
+
+
+
         # show history as default
         from stat import ST_MTIME, ST_SIZE
         _ = request.getText
@@ -592,10 +608,20 @@ def do_info(pagename, request):
             Column('action', label=_('Action')),
             ]
 
+	versions = 0
+	# offset is n . n*100 versions
+	offset_given = int(request.form.get('offset', [0])[0])
+	if not offset_given: offset = 0
+	else:
+	   # so they see a consistent version of the page between page forward/back
+	   offset = offset_given*100 - offset_given
         may_revert = request.user.may.revert(pagename)
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%s order by editTime desc", pagename)
+	cursor.execute("SELECT count(editTime) from allPages where name=%s", (pagename))
+	count_result = cursor.fetchone()
+	if count_result: versions = count_result[0]
+	cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%s order by editTime desc limit 100 offset %s", (pagename, offset))
 	result = cursor.fetchall()
 	cursor.close()
 	cursor = db.cursor()
@@ -605,12 +631,11 @@ def do_info(pagename, request):
 	else: currentpage_editTime = 0
 	db.close()
 	actions = ""
-	versions = len(result)
 	if result: has_history = True
 	count = 1
 	for entry in result:
 	    actions = ''
-	    this_version = 1 + versions - count
+	    this_version = 1 + versions - count - offset
             if not page.exists():
                 this_version -= 1
 
@@ -678,6 +703,7 @@ def do_info(pagename, request):
                 ))
 	    count +=1
 
+	last_version = this_version
 
         # print version history
         from LocalWiki.widget.browser import DataBrowserWidget
@@ -692,6 +718,7 @@ def do_info(pagename, request):
           history_table = DataBrowserWidget(request)
           history_table.setData(history)
           history_table.render()
+	  printNextPrev(request, pagename, last_version, offset_given)
           request.write('</div>')
           request.write('\n</form>\n')
           request.write('</div>\n') # end content div
