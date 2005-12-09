@@ -17,14 +17,14 @@ if (clientPC.indexOf('opera')!=-1) {
 if( window.top != window ) window.top.location = window.location;
 
 document.writeln("<div id='toolbar'>");
-addButton('/installhtml/buttons/bold.png','Bold text','\'\'\'','\'\'\'','Bold text'); 
-addButton('/installhtml/buttons/italic.png','Italic text','\'\'','\'\'','Italic text');
-addButton('/installhtml/buttons/extlink.png','External link','[',']','http://www.example.com');
-addButton('/installhtml/buttons/head.png','Headline','\n= ',' =\n','Headline text');
-addButton('/installhtml/buttons/hline.png','Horizontal line (use sparingly)','\n-----\n','','');
-addButton('/installhtml/buttons/center.png','Center','-->','<--','');
-addButton('/installhtml/buttons/image.png','Attached image','\nattachment:','\n','photo.jpg');
-addButton('/installhtml/buttons/plain.png','Ignore wiki formatting','{{{','}}}','Insert non-formatted text here');
+addButton('bold.png','Bold text','\'\'\'','\'\'\'','Bold text'); 
+addButton('italic.png','Italic text','\'\'','\'\'','Italic text');
+addButton('extlink.png','External link','[',']','http://www.example.com');
+addButton('head.png','Headline','\n= ',' =\n','Headline text');
+addButton('hline.png','Horizontal line (use sparingly)','\n-----\n','','');
+addButton('center.png','Center','-->','<--','');
+addButton('image.png','Attached image','\nattachment:','\n','photo.jpg');
+addButton('plain.png','Ignore wiki formatting','{{{','}}}','Insert non-formatted text here');
 addInfobox('Click a button to get an example text','Please enter the text you want to be formated.\\nIt will be shown in the info box for copy and pasting.\\nExample:\\n$1\\nwill become:\\n$2');
 document.writeln("</div>");
 
@@ -71,7 +71,7 @@ function addButton(imageFile, speedTip, tagOpen, tagClose, sampleText) {
 	document.write("<a href=\"javascript:insertTags");
 	document.write("('"+tagOpen+"','"+tagClose+"','"+sampleText+"');\">");
 
-        document.write("<img src=\""+imageFile+"\" border=\"0\" ALT=\""+speedTip+"\" TITLE=\""+speedTip+"\""+mouseOver+">");
+        document.write("<img src=\""+buttonRoot+"/"+imageFile+"\" border=\"0\" ALT=\""+speedTip+"\" TITLE=\""+speedTip+"\""+mouseOver+">");
 	document.write("</a>");
 	return;
 }

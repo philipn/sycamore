@@ -307,9 +307,13 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         self.request.write('</p>')
         
         # button toolbar
-	if config.web_dir: add_on = '/'
-	else: add_on = ''
+	if config.web_dir: 
+	    add_on = '/'
+	else: 
+	    config.web_dir = '/'
+	    add_on = ''
         self.request.write('<p>')
+	self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.user.theme_name, 'img', 'buttons')))
         self.request.write("<script type=\"text/javascript\" src=\"%s%sedit.js\"></script>" % (config.web_dir, add_on))
         # send form
         self.request.write('<form name="editform" method="post" action="%s/%s#preview">' % (
@@ -317,9 +321,6 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
             wikiutil.quoteWikiname(self.page_name),
             ))
 
-        #self.request.write("<script type='text/javascript'>\nfunction addButton(imageFile, speedTip, tagOpen, tagClose, sampleText) {speedTip=escapeQuotes(speedTip); tagOpen=escapeQuotes(tagOpen); tagClose=escapeQuotes(tagClose); sampleText=escapeQuotes(sampleText); var mouseOver=\"\";// we can't change the selection, so we show example texts // when moving the mouse instead, until the first button is clicked if(!document.selection && !is_gecko) { // filter backslashes so it can be shown in the infobox var re=new RegExp(\"\\\\\\\\n\",\"g\"); tagOpen=tagOpen.replace(re,\"\"); tagClose=tagClose.replace(re,\"\"); mouseOver = \"onMouseover=\\\"if(!noOverwrite){document.infoform.infobox.value='\"+tagOpen+sampleText+tagClose+\"'};\\\"\"; }document.write(\"<a href=\\\"javascript:insertTags\"); document.write(\"('\"+tagOpen+\"','\"+tagClose+\"','\"+sampleText+\"');\\\">\");document.write(\"<img width=\\\"23\\\" height=\\\"22\\\" src=\\\"\"+imageFile+\"\\\" border=\\\"0\\\" ALT=\\\"\"+speedTip+\"\\\" TITLE=\\\"\"+speedTip+\"\\\"\"+mouseOver+\">\"); document.write(\"</a>\"); return; }")
-        # turn it off for now
-        #self.request.write("<script type=\"text/javascript\">\n document.writeln(\"<div id='toolbar'>\");\n addButton('buttons/bold.png','Bold text','\\'\\'\\'','\\'\\'\\'','Bold text'); \n addButton('buttons/italic.png','Italic text','\\'\\'','\\'\\'','Italic text');\n addButton('buttons/extlink.png','External link','[',']','http://www.example.com');\n addButton('buttons/head.png','Headline','\n= ',' =\n','Headline text');\n addButton('buttons/hline.png','Horizontal line (use sparingly)','\n-----\n','','');\n addButton('buttons/center.png','Center','-->','<--','');\n addButton('buttons/image.png','Attached image','\nattachment:','\n','photo.jpg');\n addButton('buttons/plain.png','Ignore wiki formatting','{{{','}}}','Insert non-formatted text here');\n document.writeln(\"</div>\");\n </script>\n'"
         self.request.write(str(html.INPUT(type="hidden", name="action", value="savepage")))
         if backto:
             self.request.write(str(html.INPUT(type="hidden", name="backto", value=backto)))
