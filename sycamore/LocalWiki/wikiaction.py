@@ -391,23 +391,55 @@ def do_diff(pagename, request):
         Page(pagename).send_page(request)
         return
 
+    # version numbers
+    version1 = 0
+    version2 = 0
+    diff1_date = ''
+    diff2_date = ''
     try:
-        diff1_date = request.form['date1'][0]
+        version1 = request.form['version1'][0]
         try:
-            diff1_date = diff1_date
+            version1 = int(version1)
         except StandardError:
-            diff1_date = '0'
+            version1 = 0
     except KeyError:
-        diff1_date = '-1'
+        version1 = 0
 
     try:
-        diff2_date = request.form['date2'][0]
+        version2 = request.form['version2'][0]
         try:
-            diff2_date = diff2_date
+            version2 = int(version2)
         except StandardError:
-            diff2_date = '0'
+            version2 = 0
     except KeyError:
-        diff2_date = '0'
+        version2 = 0
+
+    if version1:
+      diff1_date = str(Page(pagename).version_number_to_date(version1))
+    if version2:
+      diff2_date = str(Page(pagename).version_number_to_date(version2))
+    
+    # explicit dates
+    if not diff1_date:
+      try:
+          diff1_date = request.form['date1'][0]
+          try:
+              diff1_date = diff1_date
+          except StandardError:
+              diff1_date = '0'
+      except KeyError:
+          diff1_date = '-1'
+
+    if not diff2_date:
+      try:
+          diff2_date = request.form['date2'][0]
+          try:
+              diff2_date = diff2_date
+          except StandardError:
+              diff2_date = '0'
+      except KeyError:
+          diff2_date = '0'
+
 
     if diff1_date == '-1' and diff2_date == '0':
         try:
@@ -457,14 +489,14 @@ def do_diff(pagename, request):
 	else:
            first_olddate = 0
 	
-        oldpage = Page(pagename, date=first_olddate)
+        oldpage = Page(pagename, prev_date=first_olddate)
         oldcount1 = oldcount1 - 1
     elif diff1_date == 0:
         oldpage = Page(pagename)
         # oldcount1 is still on init value 0
     else:
         if olddate1:
-            oldpage = Page(pagename, date=olddate1)
+            oldpage = Page(pagename, prev_date=olddate1)
         else:
             oldpage = Page("$EmptyPage$") # XXX: ugly hack
             oldpage.set_raw_body("")    # avoid loading from db
@@ -474,7 +506,7 @@ def do_diff(pagename, request):
         # oldcount2 is still on init value 0
     else:
         if olddate2:
-            newpage = Page(pagename, date=olddate2)
+            newpage = Page(pagename, prev_date=olddate2)
         else:
             newpage = Page("$EmptyPage$") # XXX: ugly hack
             newpage.set_raw_body("")    # avoid loading from db
@@ -483,8 +515,8 @@ def do_diff(pagename, request):
 
     request.write('<div id="content">\n') # start content div
     request.write('<p><strong>')
-    request.write(_('Differences between versions dated %s and %s') % (
-        oldpage.mtime_printable(request), newpage.mtime_printable(request)))
+    request.write(_('Differences between versions %s (%s) and %s (%s)') % (
+        oldpage.get_version(), oldpage.mtime_printable(request), newpage.get_version(), newpage.mtime_printable(request)))
     if edit_count > 1:
         request.write(' ' + _('(spanning %d versions)') % (edit_count,))
     request.write('</strong></p>')
@@ -572,13 +604,13 @@ def do_info(pagename, request):
 	  #prints the next and previous links, if they're needed
 	  html = '<p>'
 	  if last_version != 1:
-	    html += '[<a href="%s/%s?action=info&offset=%s">previous</a> | ' % (request.getBaseURL(), pagename, offset_given+1)
+	    html += '[<a href="%s/%s?action=info&offset=%s">previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1)
 	  else:
-	    html += '[previous | '
+	    html += '[previous edits | '
 	  if offset_given:
-	    html += '<a href="%s/%s?action=info&offset=%s">next</a>]' % (request.getBaseURL(), pagename, offset_given-1) 
+	    html += '<a href="%s/%s?action=info&offset=%s">next edits</a>]' % (request.getBaseURL(), pagename, offset_given-1) 
 	  else:
-	    html += 'next]'
+	    html += 'next edits]'
 	  html += '</p>'
 	  request.write(html)
 
@@ -653,31 +685,35 @@ def do_info(pagename, request):
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('print'),
                     querystr='action=print'))
-                diff = '<input type="radio" name="date1" value="0"><input type="radio" name="date2" value="0" checked="checked">'
+                diff = '<input type="radio" name="version1" value="0"><input type="radio" name="version2" value="0" checked="checked">'
             else:
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('view'),
-                    querystr='action=recall&amp;date=%s' % repr(mtime)))
+                    querystr='action=recall&amp;version=%s' % this_version))
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('raw'),
-                    querystr='action=raw&amp;date=%s' % repr(mtime)))
+                    querystr='action=raw&amp;version=%s' % this_version))
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('print'),
-                    querystr='action=print&amp;date=%s' % repr(mtime)))
+                    querystr='action=print&amp;version=%s' % this_version))
                 if may_revert and editType != 'DELETE':
                     actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                         text=_('revert'),
-                        querystr='action=revert&amp;date=%s&amp;version=%s' % (repr(mtime), repr(this_version))))
+                        querystr='action=revert&amp;version=%s' % (this_version)))
                 if count==2:
                     checked=' checked="checked"'
                 else:
                     checked=""
-                diff = '<input type="radio" name="date1" value="%s"%s><input type="radio" name="date2" value="%s">' % (repr(mtime),checked,repr(mtime))
+                diff = '<input type="radio" name="version1" value="%s"%s><input type="radio" name="version2" value="%s">' % (this_version,checked,this_version)
   
             
             if editType.find('/REVERT') != -1:
-                datestamp = request.user.getFormattedDateTime(float(comment))
-                comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
+	        if comment[0] == 'v':
+		  # Given as version so let's display as version
+		  comment = "Revert to version %s" % comment[1:]
+		else:
+                  datestamp = request.user.getFormattedDateTime(float(comment))
+                  comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
 	    elif editType == 'ATTNEW':
 	    	comment = "Upload of attachment '%s.'" % comment
 	    elif editType == 'ATTDEL':
@@ -783,14 +819,18 @@ def do_recall(pagename, request):
         Page(pagename).send_page(request)
         return
     if request.form.has_key('date'):
-        Page(pagename, date=request.form['date'][0]).send_page(request)
+        Page(pagename, prev_date=request.form['date'][0]).send_page(request)
+    elif request.form.has_key('version'):
+    	Page(pagename, version=request.form['version'][0]).send_page(request)
     else:
         Page(pagename).send_page(request)
 
 
 def do_show(pagename, request):
     if request.form.has_key('date'):
-        Page(pagename, date=request.form['date'][0]).send_page(request, count_hit=1)
+        Page(pagename, prev_date=request.form['date'][0]).send_page(request, count_hit=1)
+    elif request.form.has_key('version'):
+    	Page(pagename, version=request.form['version'][0]).send_page(request, count_hit=1)
     else:
         Page(pagename).send_page(request, count_hit=1)
 
@@ -840,13 +880,24 @@ def do_revert(pagename, request):
         return Page(pagename).send_page(request,
             msg = _('You are not allowed to revert this page!'))
 
-    date = request.form['date'][0]
-    oldpg = Page(pagename, date=date)
+    if request.form.has_key('version'):
+      version = int(request.form['version'][0])
+      oldpg = Page(pagename, version=version)
+      date = oldpg.prev_date
+      comment = 'v' + str(version)
+    elif request.form.has_key('date'):
+      date = request.form['date'][0]
+      oldpg = Page(pagename, prev_date=date)
+      version = oldpg.date_to_version_number(date)
+      comment = date
+    else:
+      return
+      
     pg = PageEditor(pagename, request)
 
     try:
         savemsg = pg.saveText(oldpg.get_raw_body(), '0',
-            stripspaces=0, notify=1, comment=date, action="SAVE/REVERT")
+            stripspaces=0, notify=1, comment=comment, action="SAVE/REVERT")
     except pg.SaveError:
         savemsg = _("An error occurred while reverting the page.")
     request.reset()
@@ -913,7 +964,7 @@ def do_savepage(pagename, request):
         except pg.EditConflict, msg:
             allow_conflicts = 1
             from LocalWiki.util import diff3
-            original_text = Page(pg.page_name, date=datestamp).get_raw_body()
+            original_text = Page(pg.page_name, prev_date=datestamp).get_raw_body()
             saved_text = pg.get_raw_body()
             verynewtext = diff3.text_merge(original_text, saved_text, savetext,
                  allow_conflicts,
@@ -1078,9 +1129,12 @@ def do_raw(pagename, request):
     #request.write('<html><head><meta name="robots" content="noindex,nofollow"></head>')
 
     try:
-        page = Page(pagename, date=request.form['date'][0])
+        page = Page(pagename, version=request.form['version'][0])
     except KeyError:
-        page = Page(pagename)
+        try:
+	  page = Page(pagename, prev_date=request.form['date'][0])
+        except KeyError:
+          page = Page(pagename)
 
     request.write(page.get_raw_body())
     #request.write('</html>')

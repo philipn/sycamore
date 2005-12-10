@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+#date) -*- coding: iso-8859-1 -*-
 """
     LocalWiki - Wiki Utility Functions
 
@@ -1222,7 +1222,7 @@ def send_title(request, text, **keywords):
         'site_name': config.sitename,
         'page': page,             # necessary???
         'pagesize': pagename and page.size() or 0,
-        'last_edit_info': pagename and page._last_modified(request) or '',
+        'last_edit_info': pagename and page.last_modified_str(request) or '',
         'page_name': pagename or '',
         'page_find_page': page_find_page,
         'page_front_page': page_front_page,

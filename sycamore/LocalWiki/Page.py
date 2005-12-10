@@ -28,13 +28,26 @@ class Page:
         is loaded on demand. Thus, things like `Page(name).link_to()` are
         efficient.
 
-        @param page_name: WikiName of the page
-        @keyword date: date of older revision
+        @param page_name: Wiki name of the page
+        @keyword prev_date: date of older revision
+	@keyword revision: revision number of older revision
         @keyword formatter: formatter instance
         """
         self.page_name = page_name
-        self.prev_date = keywords.get('date')
-	if self.prev_date: self.prev_date = float(self.prev_date)
+
+        self.prev_date = keywords.get('prev_date')
+	if self.prev_date:
+	  self.prev_date = float(self.prev_date)
+	  self.version = self.date_to_version_number(self.prev_date)
+	  self.date = self.prev_date
+	else:
+	  # see if they gave revision info 
+	  self.version = keywords.get('version')
+	  if self.version:
+	    self.version = int(self.version)
+	    self.prev_date = self.version_number_to_date(self.version)
+	    self.date = self.prev_date
+
         self._raw_body = None
         self._raw_body_modified = 0
         self.hilite_re = None
@@ -44,6 +57,48 @@ class Page:
             self.default_formatter = 0
         else:
             self.default_formatter = 1
+
+    def get_date(self):
+      # returns date this page/verison was created
+      if not self.exists(): return None
+      if self.version and not self.date:
+        self.date = self.version_number_to_date(self.version)
+	return self.date
+      elif not self.date:
+        self.date = self._last_modified()[0]
+      return self.date
+
+    def get_version(self):
+      # returns date this page/verison was created
+      if not self.exists(): return None
+      if self.date and not self.version:
+        self.version = self.date_to_version_number(self.date)
+	return self.version
+      elif not self.version:
+        self.date = self._last_modified()[0]
+	self.version = self.date_to_version_number(self.date)
+      return self.version
+
+
+    def version_number_to_date(self, version_number):
+        # Returns the unix timestamp of the editTime of this version of the page.
+        db = wikidb.connect()
+        cursor = db.cursor()
+        cursor.execute("SELECT editTime from allPages where name=%s order by editTime asc limit 1 offset %s;", (self.page_name, version_number-1))
+        result = cursor.fetchone()
+	cursor.close()
+	db.close()
+        return result[0]
+
+    def date_to_version_number(self, date):
+        # Returns the version number of a given date of this page
+        db = wikidb.connect()
+        cursor = db.cursor()
+        cursor.execute("SELECT count(editTime) from allPages where name=%s and editTime<=%s;", (self.page_name, date))
+        result = cursor.fetchone()
+	cursor.close()
+	db.close()
+        return result[0]
 
     def split_title(self, request, force=0):
         """
@@ -75,7 +130,31 @@ class Page:
         return os.path.join(config.text_dir, ('#%s.%d#' % (wikiutil.quoteFilename(self.page_name), rnd)))
 
 
-    def _last_modified(self, request):
+
+    def _last_modified(self):
+        """
+        Return the last modified info.
+	Works for the current version of the page.
+	For a general modification value, call Page.date
+        
+        @param request: the request object
+        @rtype: string
+        @return: timestamp and editor id
+        """
+        if not self.exists():
+            return None
+	db = wikidb.connect()
+	cursor = db.cursor()
+	cursor.execute("SELECT editTime, userEdited from curPages where name=%s", (self.page_name))
+	result = cursor.fetchone()
+	cursor.close()
+	db.close()
+	editTimeUnix = result[0]
+	editUserID = result[1]
+	
+        return (editTimeUnix, editUserID)
+
+    def last_modified_str(self, request):
         """
         Return the last modified info.
         
@@ -86,21 +165,13 @@ class Page:
         if not self.exists():
             return None
 
-        _ = request.getText
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("SELECT editTime, userEdited from curPages where name=%s", (self.page_name))
-	result = cursor.fetchone()
-	cursor.close()
-	db.close()
-	editTimeUnix = result[0]
+	editTimeUnix, userEditedID = self._last_modified()
 	editTime = request.user.getFormattedDateTime(editTimeUnix)
-	userEditedID = result[1]
 	editUser = user.User(request, userEditedID)
 	editUser_text = Page(editUser.name).link_to(request)
 	
         
-        result = _("(last edited %(time)s by %(editor)s)") % {
+        result = "(last edited %(time)s by %(editor)s)" % {
                 'time': editTime,
                 'editor': editUser_text,
             }
@@ -476,8 +547,9 @@ class Page:
                 title = self.split_title(request)
                 if self.prev_date:
                     msg = "<strong>%s</strong><br>%s" % (
-                        _('Version as of %(date)s') % {'date':
-                            request.user.getFormattedDateTime(self.prev_date)  },
+                        _('Version %(version)s (%(date)s)') % {'version': self.get_version(),
+			'date': request.user.getFormattedDateTime(self.prev_date) },
+                            
                         msg)
                 
                 if request.form.has_key('redirect'):
