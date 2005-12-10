@@ -21,7 +21,7 @@
 
 # Imports
 import os, re, string, time, urllib
-from LocalWiki import config, util, wikiutil, wikidb
+from LocalWiki import config, util, wikiutil, wikidb, user
 from LocalWiki.Page import Page
 from LocalWiki.util import LocalWikiNoFooter, pysupport
 
@@ -593,7 +593,6 @@ def do_info(pagename, request):
 
         from LocalWiki.logfile import editlog
         from LocalWiki.util.dataset import TupleDataset, Column
-	from LocalWiki import user
 
 	has_history = False
 
@@ -733,33 +732,47 @@ def do_info(pagename, request):
 
     wikiutil.simple_send_title(request, pagename, strict_title='Info for "%s"' % pagename)
 
-    historylink =  wikiutil.link_tag(request, '%s?action=info' % qpagename,
-        _('%(title)s') % {'title': _('Revision History')})
-    generallink =  wikiutil.link_tag(request, '%s?action=info&amp;general=1' % qpagename,
-        _('%(title)s') % {'title': _('General Info')})
-    imageslink = wikiutil.link_tag(request, '%s?action=Files' % qpagename, 'Images')
+#     historylink =  wikiutil.link_tag(request, '%s?action=info' % qpagename,
+#         _('Revision History'))
+#     generallink =  wikiutil.link_tag(request, '%s?action=info&amp;general=1' % qpagename,
+#         _('General Info'))
+#     imageslink = wikiutil.link_tag(request, '%s?action=Files' % qpagename, _('Images'))
 
-    subscribelink = wikiutil.link_tag(request, '%s?action=favorite' % qpagename, _('Add to wiki bookmarks'))
+#     subscribelink = wikiutil.link_tag(request, '%s?action=favorite' % qpagename, _('Add to wiki bookmarks'))
     
+#     usereditlink = wikiutil.link_tag(request, '%s?action=useredits' % qpagename, _("User's Edits"))
+
+#     def displayUserLink():
+# 	if user.getUserId(pagename):
+# 	    return "[%s]" % usereditlink
+
     request.write('<div id="content">\n') # start content div
 
     show_general = int(request.form.get('general', [0])[0]) != 0
     
-    if request.user.isFavoritedTo(pagename) or not request.user.valid:
-      if show_general:
-        request.write("<p>[%s] [General Info] [%s]</p>" % (historylink, imageslink))
-        general(page, pagename, request)
-      else:
-        request.write("<p>[Revision History] [%s] [%s]</p>" % (generallink, imageslink))
-        history(page, pagename, request)
+#     if request.user.isFavoritedTo(pagename) or not request.user.valid:
+#       if show_general:
+#         request.write("<p>[%s] [General Info] [%s] %s</p>" % (historylink, imageslink, displayUserLink()))
+#         general(page, pagename, request)
+#       else:
+#         request.write("<p>[Revision History] [%s] [%s] %s</p>" % (generallink, imageslink, displayUserLink()))
+#         history(page, pagename, request)
+#     else:
+#         if show_general:
+#           request.write("<p>[%s] [General Info] [%s] [%s] %s</p>" % (historylink, imageslink, subscribelink, displayUserLink()))
+#           general(page, pagename, request)
+#         else:
+#           request.write("<p>[Revision History] [%s] [%s] [%s] %s</p>\n" % (generallink,imageslink,subscribelink, displayUserLink()))
+#           history(page, pagename, request)
+
+    from LocalWiki.widget.infobar import InfoBar
+    InfoBar(request, pagename).render()
+
+    if show_general:
+	general(page, pagename, request)
     else:
-        if show_general:
-          request.write("<p>[%s] [General Info] [%s] [%s]</p>" % (historylink, imageslink, subscribelink))
-          general(page, pagename, request)
-        else:
-          request.write("<p>[Revision History] [%s] [%s] [%s]</p>" % (generallink,imageslink,subscribelink))
-          history(page, pagename, request)
-        
+	history(page, pagename, request)
+
     request.write('</div>\n') # end content div
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 

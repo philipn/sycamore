@@ -24,6 +24,7 @@ import os, mimetypes, time, urllib, string
 from LocalWiki import config, user, util, wikiutil, wikidb
 from LocalWiki.Page import Page
 from LocalWiki.util import LocalWikiNoFooter, filesys
+from LocalWiki.widget.infobar import InfoBar
 import xml.dom.minidom
 
 action_name = __name__.split('.')[-1]
@@ -271,7 +272,7 @@ def send_uploadform(pagename, request):
         return
 
     #request.write('<h2>' + _("Attached Images") + '</h2>')
-    request.write(_info_header(request, pagename))
+    InfoBar(request, pagename).render()
 
     request.write(_get_filelist(request, pagename))
 
@@ -706,7 +707,9 @@ def view_file(pagename, request):
 
     # send body
     request.write('<div id="content">\n') # start content div
-    request.write(_info_header(request, pagename, in_images_list_area=False))
+
+    InfoBar(request, pagename).render()
+
     send_viewfile(pagename, request)
     request.write('</div>\n') # end content div
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
@@ -737,7 +740,9 @@ def show_deleted_images(pagename, request):
 
     # send body
     request.write('<div id="content">\n') # start content div
-    request.write(_info_header(request, pagename, in_images_list_area=False))
+
+    InfoBar(request, pagename).render()
+
     request.write('<p>These images have been <b>deleted</b> from the original page, which means they can\'t be included in the wiki anymore and are possibly (in some cases) subject to permanent deletion:</p>')
     request.write(text_list)
     request.write('</div>\n') # end content div
