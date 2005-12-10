@@ -57,8 +57,13 @@ def format_comment(request, line):
 	comment = "Event '%s' posted." % line.comment
 	return wikiutil.escape(comment)
     elif line.action.find('/REVERT') != -1:
-        datestamp = request.user.getFormattedDateTime(float(comment))
-        comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
+        if comment[0] == 'v':
+	  # Given as a version
+	  version = comment[1:]
+          comment = _("Revert to version %(number)s.") % {'number': version}
+	else:
+          datestamp = request.user.getFormattedDateTime(float(comment))
+          comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
 	return wikiutil.escape(comment)
     return wikiutil.escape(comment)
 
