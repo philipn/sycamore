@@ -88,7 +88,7 @@ class Page:
         result = cursor.fetchone()
 	cursor.close()
 	db.close()
-        return repr(result[0])
+        return result[0]
 
     def date_to_version_number(self, date):
         # Returns the version number of a given date of this page

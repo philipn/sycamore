@@ -415,9 +415,9 @@ def do_diff(pagename, request):
         version2 = 0
 
     if version1:
-      diff1_date = str(Page(pagename).version_number_to_date(version1))
+      diff1_date = repr(Page(pagename).version_number_to_date(version1))
     if version2:
-      diff2_date = str(Page(pagename).version_number_to_date(version2))
+      diff2_date = repr(Page(pagename).version_number_to_date(version2))
     
     # explicit dates
     if not diff1_date:
