@@ -88,13 +88,13 @@ class Page:
         result = cursor.fetchone()
 	cursor.close()
 	db.close()
-        return result[0]
+        return repr(result[0])
 
     def date_to_version_number(self, date):
         # Returns the version number of a given date of this page
         db = wikidb.connect()
         cursor = db.cursor()
-        cursor.execute("SELECT count(editTime) from allPages where name=%s and editTime<=%s;", (self.page_name, date))
+        cursor.execute("SELECT count(editTime) from allPages where name=%s and editTime<=%s;", (self.page_name, repr(date)))
         result = cursor.fetchone()
 	cursor.close()
 	db.close()

@@ -685,7 +685,7 @@ def do_info(pagename, request):
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('print'),
                     querystr='action=print'))
-                diff = '<input type="radio" name="version1" value="0"><input type="radio" name="version2" value="0" checked="checked">'
+                diff = '<input type="radio" name="version1" value="%s"><input type="radio" name="version2" value="%s" checked="checked">' % (this_version, this_version)
             else:
                 actions = '%s&nbsp;%s' % (actions, page.link_to(request,
                     text=_('view'),
