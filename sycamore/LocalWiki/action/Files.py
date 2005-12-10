@@ -496,7 +496,7 @@ def do_upload(pagename, request):
 
     if result:
 	if result[0]:
-	    msg += _("Attachment '%(target)s' already exists.") % {
+	    msg += _("Image '%(target)s' already exists.") % {
 		'target': target}
 	    db.close()
     else:
@@ -510,7 +510,7 @@ def do_upload(pagename, request):
 
 	
         bytes = len(filecontent)
-        msg += _("Attachment '%(target)s'"
+        msg += _("Image '%(target)s'"
 		 " with %(bytes)d bytes saved.") % {
 	         'target': target, 'bytes': bytes}
 
