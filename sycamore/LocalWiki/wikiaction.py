@@ -174,7 +174,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
         data_line = (t.readline()).strip('\n')
         j = 0
         while (len(title_hits) != twith+1 and percent_line and data_line):
-                if request.user.may.read(data_line) and page_exists_slut(data_line):
+                if request.user.may.read(data_line) and Page(data_line).exists():
                         title_hits.append(data_line)
                 else:
                         tcount = tcount + 1
@@ -199,7 +199,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
     readable = 0
     while (len(full_hits) != pwith+1 and percent_line and pagename_line and data_line):
         name = pagename_line.strip('\n')
-        if request.user.may.read(wikiutil.unquoteWikiname(name)) and page_exists_slut(wikiutil.unquoteWikiname(name)):
+        if request.user.may.read(wikiutil.unquoteWikiname(name)) and Page(wikiutil.unquoteWikiname(name)).exists():
                 full_hits.append((name,int(string.replace(percent_line, "%", " ").strip()), data_line))
         else:
                 count = count + 1
