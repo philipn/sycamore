@@ -787,16 +787,16 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         filesys.rename(tmp_filename, page_filename)
         return os.path.getmtime(page_filename)
 
-    def build_index(self):
-        """
-        Builds the index with all the pages. . This should hopefully rarely be run.
-        """
-        forked_id = 0
-        pages = list(wikiutil.getPageList())
-        for page in pages:
-                p = Page(page)
-                #add_to_index(wikiutil.quoteWikiname(p.page_name), p.get_raw_body())
-                os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', '%s' % wikiutil.quoteWikiname(p.page_name), '%s' % wikiutil.quoteFilename(p.get_raw_body()))
+    #def build_index(self):
+    #    """
+    #    Builds the index with all the pages. . This should hopefully rarely be run.
+    #    """
+    #    forked_id = 0
+    #    pages = list(wikiutil.getPageList())
+    #    for page in pages:
+    #            p = Page(page)
+    #            #add_to_index(wikiutil.quoteWikiname(p.page_name), p.get_raw_body())
+    #            os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', '%s' % wikiutil.quoteWikiname(p.page_name), '%s' % wikiutil.quoteWikiname(p.get_raw_body()))
 
 
     def saveText(self, newtext, datestamp, **kw):
@@ -875,25 +875,18 @@ delete the changes of the other person, which is excessively rude!</em></p>
             if self._acl_cache.has_key(self.page_name):
                 del self._acl_cache[self.page_name]
 
-            self.lock.release(force=not msg)
+            # we'll try to change the stats early-on
+            self.userStatAdd(self.request.user.name, action, self.page_name)
 
-	    ## DBFIX note that in our current version we do not fork..we use these helper apps..need to replace
-            i_am_parent = os.fork()
-            if not i_am_parent:
-                # we'll try to change the stats early-on
-                self.userStatAdd(self.request.user.name, action, self.page_name)
+            # we quote the pagetext so we can pass it as a single argument and then have the process run without us paying it any attention
+            os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteWikiname(self.page_name), wikiutil.quoteWikiname(newtext))
 
-                # we quote the pagetext so we can pass it as a single argument and then have the process run without us paying it any attention
-                os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteWikiname(self.page_name), wikiutil.quoteWikiname(newtext))
-
-		# we do this so we don't return another copy of the page to the user!
-                os._exit(0)
-            else:
+	    # we do this so we don't return another copy of the page to the user!
 
         # remove lock (forcibly if we were allowed to break it by the UI)
         # !!! this is a little fishy, since the lock owner might not notice
         # we broke his lock ==> but datestamp checking during preview will
-                return msg
+            return msg
 
     def notifySubscribers(self, **kw):
         msg = ''
