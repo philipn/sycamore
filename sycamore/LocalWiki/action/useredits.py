@@ -98,8 +98,13 @@ def display_edits(request, userpage):
                         querystr='action=revert&amp;date=%s&amp' % (repr(mtime))))
 
 	if editType.find('/REVERT') != -1:
-	    datestamp = request.user.getFormattedDateTime(float(comment))
-	    comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
+	    # check if it's in version format (default)
+	    if comment[0] == 'v':
+	      version = comment[1:]
+	      comment = _("Revert to version %(version)s.") % {'version': version}
+	    else:
+	      datestamp = request.user.getFormattedDateTime(float(comment))
+	      comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
 	elif editType == 'ATTNEW':
 	    comment = "Upload of attachment '%s.'" % comment
 	elif editType == 'ATTDEL':
