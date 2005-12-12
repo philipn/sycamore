@@ -7,7 +7,7 @@
 """
 
 # Imports
-from LocalWiki import config, user, wikiutil
+from LocalWiki import config, user, wikiutil, wikidb
 
 _guard = 0
 
@@ -22,37 +22,46 @@ def execute(macro, args):
 
     # delete all linked pages from a dict of all pages
     _guard = 1
-    pages = wikiutil.getPageDict()
-    # we do not look at pages we have no read rights on - this avoids
-    # having MoinEditorBackup showing up (except your very own one)
-    for key in pages.keys():
-        if wikiutil.isSystemPage(macro.request, pages[key].page_name):
-            del pages[key]
-    orphaned = {}
-    orphaned.update(pages)
-    for page in pages.values():
-        links = page.getPageLinks(macro.request)
-        for link in links:
-            if orphaned.has_key(link):
-                del orphaned[link]
+    db = wikidb.connect()
+    cursor = db.cursor()
+    cursor.execute("select curPages.name from curPages left join links on links.source_pagename=curPages.name where links.source_pagename is NULL;")
+    orphanednames_result = cursor.fetchall()
+    cursor.close()
+    db.close()
     _guard = 0
 
     # check for the extreme case
-    if not orphaned:
+    if not orphanednames_result:
         return "<p>%s</p>" % _("No orphaned pages in this wiki.")
 
     # return a list of page links
-    orphanednames = orphaned.keys()
-    orphanednames.sort()
-    result = []
-    result.append(macro.formatter.number_list(1))
-    for name in orphanednames:
-        if not name: continue
-        result.append(macro.formatter.listitem(1))
-        result.append(macro.formatter.pagelink(name, generated=1))
-        result.append(macro.formatter.listitem(0))
-    result.append(macro.formatter.number_list(0))
+    from LocalWiki.Page import Page
+    redirects = []
+    pages = []
+    for entry in orphanednames_result:
+    	name = entry[0]
+        page = Page(name)
+        is_redirect = False
+        #if not macro.request.user.may.read(name): continue
+        if page.isRedirect():
+	  redirects.append(page)
+	else:
+	  pages.append(page)
 
-    return ''.join(result)
 
-    #return "<p><b>This feature is disabled temporarily until we improve its performance.</b></p>"
+    macro.request.write(macro.formatter.heading(2, 'Orphans'))
+    macro.request.write(macro.formatter.bullet_list(1))
+    for page in pages:
+      macro.request.write(macro.formatter.listitem(1))
+      macro.request.write(page.link_to(macro.request, know_status=True, know_status_exists=False))
+      macro.request.write(macro.formatter.listitem(0))
+    macro.request.write(macro.formatter.bullet_list(0))
+
+    macro.request.write(macro.formatter.heading(2, 'Orphaned Redirects'))
+    macro.request.write(macro.formatter.bullet_list(1))
+    for page in pages:
+      macro.request.write(macro.formatter.listitem(1))
+      macro.request.write(page.link_to(macro.request, know_status=True, know_status_exists=False))
+      macro.request.write(macro.formatter.listitem(0))
+    macro.request.write(macro.formatter.bullet_list(0))
+    return ''

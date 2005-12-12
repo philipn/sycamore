@@ -1,40 +1,29 @@
 # -*- coding: iso-8859-1 -*-
 
-from LocalWiki import wikiutil, wikiform, config
+from LocalWiki import wikiutil, wikiform, config, wikidb
 from LocalWiki.Page import Page
 
 def execute(macro, args):
 
-    body = ''
-    numdict = {}
-    for pagename in wikiutil.getPageList():
-        page = Page(pagename)
-        links = page.getPageLinks(macro.request, False)
-        numlinks = 0
-        for link in links:
-            numlinks += 1
+    db = wikidb.connect()
+    cursor = db.cursor()
+    cursor.execute("SELECT c.name, count(c.source_pagename) as cnt from (SELECT curPages.name, links.source_pagename from curPages left join links on links.source_pagename=curPages.name) as c group by c.name order by cnt;")
+    results = cursor.fetchall()
+    cursor.close()
+    db.close()
+   
+    old_count = -1
+    for entry in results:
+      name = entry[0] 
+      new_count = entry[1]
+      page = Page(name)
+      if new_count == 0:
+       if page.isRedirect(): continue
 
-        if numdict.has_key(numlinks):
-            numdict[numlinks].append(pagename)
-        else:
-            numdict[numlinks] = [pagename]
+      if new_count != old_count:
+        old_count = new_count
+	macro.request.write(macro.formatter.heading(2, str(new_count)))
+      else: macro.request.write(", ")
+      macro.request.write(page.link_to(macro.request, know_status=True, know_status_exists=True))
 
-    dictkeys = numdict.keys()
-    dictkeys.sort()
-    if config.relative_dir:
-        add_on = '/'
-    else:
-        add_on = ''
-    for k in dictkeys:
-        body += "<h3>" + str(k) + "</h3>"
-        if k is 0:
-            for item in (numdict[k]):	
-                if (Page(item).get_raw_body()[0:9] == "#redirect") or (item.endswith('/MoinEditorBackup')):
-                    continue
-                body += '<a style="padding: 2px;" href=/' + config.relative_dir + add_on + wikiutil.quoteWikiname(item) + ">" + item + "</a>" + " "
-        else:
-            for item in (numdict[k]):
-                body += '<a style="padding: 2px;" href=/' + config.relative_dir + add_on + wikiutil.quoteWikiname(item) + ">" + item + "</a>" + " "
-
-
-    return macro.formatter.rawHTML(body)
+    return ''

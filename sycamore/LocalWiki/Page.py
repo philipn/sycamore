@@ -220,6 +220,14 @@ class Page:
             return len(body)
 	else: return 0
 
+    def isRedirect(self):
+        """
+        If the page is a redirect this returns True.  If not it returns False.
+        """
+        body = self.get_raw_body()
+        if body[0:9] == '#redirect': return True
+        return False
+
     def human_size(self):
 	"""
 	Human-readable (in 'words') size of the page.
@@ -326,7 +334,7 @@ class Page:
         return url
 
 
-    def link_to(self, request, text=None, querystr=None, anchor=None, **kw):
+    def link_to(self, request, text=None, querystr=None, anchor=None, know_status=False, know_status_exists=False, **kw):
         """
         Return HTML markup that links to this page.
         See wikiutil.link_tag() for possible keyword parameters.
@@ -337,22 +345,29 @@ class Page:
         @param anchor: if specified, make a link to this anchor
         @keyword attachment_indicator: if 1, add attachment indicator after link tag
         @keyword css_class: css class to use
+	@keyword know_status: for optimization.  if True that means we know whether the page exists or not
+	  @ keyword know_status exists: if True that means the page exists, if False that means it doesn't
         @rtype: string
         @return: formatted link
         """
+	if know_status_exists and know_status: know_exists = True
+	else: know_exists = False
         text = text or self.split_title(request)
         fmt = getattr(self, 'formatter', None)
-
-        if self.exists():
-		db = wikidb.connect()
-		cursor = db.cursor()
-		cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
-		result = cursor.fetchone()
-		cursor.close()
-		db.close()
-                url =   wikiutil.quoteWikiname(result[0])
-        else:
+        if not know_status:
+          if self.exists():
+		know_exists = True
+	  	db = wikidb.connect()
+	  	cursor = db.cursor()
+	  	cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
+	  	result = cursor.fetchone()
+	  	cursor.close()
+	  	db.close()
+                url = wikiutil.quoteWikiname(result[0])
+          else:
                 url = wikiutil.quoteWikiname(self.page_name)
+        else:
+	  url = wikiutil.quoteWikiname(self.page_name)
  
         if querystr:
             querystr = util.web.makeQueryString(querystr)
@@ -365,8 +380,7 @@ class Page:
             from LocalWiki.action import AttachFile
             attach_link = AttachFile.getIndicator(request, self.page_name)
 
-        
-        if self.exists():
+        if know_exists:
             return wikiutil.link_tag(request, url, text, formatter=fmt, **kw) + attach_link
         else:
             kw['css_class'] = 'nonexistent'
