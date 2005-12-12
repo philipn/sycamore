@@ -339,18 +339,19 @@ def isImageOnPage(pagename, filename):
 ### Page storage helpers
 #############################################################################
 
-def getPageList():
+def getPageList(alphabetize=False):
     """
     List all pages, except for "CVS" directories,
     hidden files (leading '.') and temp files (leading '#')
-    
+    @ param alphabetize: if True then, you know, alphabetize the list 
     @rtype: list
     @return: all (unquoted) wiki page names
 
     """
     db = wikidb.connect()
     cursor = db.cursor()
-    cursor.execute("SELECT name from curPages")
+    if not alphabetize: cursor.execute("SELECT name from curPages")
+    else: cursor.execute("SELECT name from curPages order by name")
     result = []
     p = cursor.fetchone()
     while p:

@@ -2,8 +2,9 @@ import sys
 sys.path.extend(['/usr/local/lib/python2.3/site-packages','/var/www/installhtml/dwiki'])
 from LocalWiki import wikidb
 
+basic_pages = {}
 # We do the basic database population here
-userpref_text = """#acl AdminGroup:admin,read,write,delete,revert All:read
+basic_pages["User Preferences"] =  """#acl AdminGroup:admin,read,write,delete,revert All:read
 ##language:en
 [[UserPreferences]]
 
@@ -28,7 +29,7 @@ If you '''forgot your password''', attempt to log in via the login box in the up
 = The Cookie =
 /!\ The "ID", shown in the response page, gets saved as a cookie in your browser for the system to temporarily recognize you. It will expire next midnight - except if you choose '''[[GetText(Remember login information forever)]]''' (after being logged in), then the cookie won't expire."""
 
-rc_text = """#acl AdminGroup:admin,read,write,delete,revert All:read
+basic_pages["Recent Changes"] = """#acl AdminGroup:admin,read,write,delete,revert All:read
 ||<bgcolor='#ffffaa'>'''TIP''':  [[RandomQuote(Quick Wiki Tips)]]||
 [[BR]]
 [[RecentChanges]]
@@ -39,6 +40,37 @@ rc_text = """#acl AdminGroup:admin,read,write,delete,revert All:read
 ||<:> [[Icon(new)]] || marks new pages||
 ----
 This page contains a list of recent changes in this wiki of '''[[PageCount]] pages''' (more system information on ["System Info"] -- there are also ["User Statistics"])."""
+
+basic_pages["Front Page"] = """Edit me..This is the Front Page!"""
+
+basic_pages["Orphaned Pages"] = """A list of pages no other page links to.  You cannot find these pages unless you ''search'' for them -- so let's link them from someplace!
+
+The dual to this page is ["Outgoing Links"] -- a list of pages based upon the number of links ''leaving'' each page.
+
+[[OrphanedPages]]"""
+
+basic_pages["Outgoing Links"] = """This is a list of all pages based upon the number of links on each page (links from the page to other pages). Pages with few links are 'dead ends': you have few choices once you're there!  (Note: redirect pages are filtered from this list.) The dual of this page is ["Orphaned Pages"] -- pages with no links to them.
+
+[[OutgoingLinks]]"""
+
+basic_pages["Wanted Pages"] = """We call a page "wanted" when there are links made to it but the page does not yet exist.  By creating a wanted page you're adding something that others had probably desired to see on the wiki.
+
+This list is only advisory: '''just because a page is listed here does not make it necessary.''' Look carefully at the pages that link to it and use your judgement.
+
+[[WantedPages]]"""
+
+basic_pages["Title Index"] = """This is an index of all pages in the Wiki.  
+
+See also ["Site Organization"] for other ways to check out pages in the wiki/keep it well organized.
+
+----
+[[TitleIndex]]"""
+
+basic_pages["Bookmarks"] = """#acl AdminGroup:read,write,delete,revert,admin All:read
+[[Bookmarks]]
+
+----
+'''Bolded''' items have been modified since you last viewed them.  Clicking ''diff'' will show you the differences between the version of the page you last saw and the current version, or will show the most recent difference (if only one change has been made since you last viewed the page)."""
 
 def create_tables(cursor):
  cursor.execute("""create table curPages
@@ -213,14 +245,9 @@ def create_other_stuff(cursor):
  cursor.execute("INSERT into users set name='';")
 
 def insert_basic_pages(cursor):
- cursor.execute("insert into curPages set name='Front Page', text='Edit me..This is the front page!', editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');")
- cursor.execute("insert into allPages set name='Front Page', text='Edit me..This is the front page!', editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';")
- cursor.execute("insert into curPages set name='User Preferences', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');", (userpref_text))
- cursor.execute("insert into allPages set name='User Preferences', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';", (userpref_text))
- 
- cursor.execute("insert into curPages set name='Recent Changes', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');", (rc_text))
- cursor.execute("insert into allPages set name='Recent Changes', text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';", (rc_text))
-
+ for pagename, pagetext in basic_pages.iteritems() 
+   cursor.execute("insert into curPages set name=%s, text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');", (pagename, pagetext))
+   cursor.execute("insert into allPages set name=%s, text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';")
 
 db = wikidb.connect()
 cursor = db.cursor()

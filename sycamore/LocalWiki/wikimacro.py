@@ -281,12 +281,11 @@ class Macro:
         html = []
         index_letters = []
         allpages = int(self.form.get('allpages', [0])[0]) != 0
-        pages = wikiutil.getPageList()
+        pages = wikiutil.getPageList(alphabetize=True)
         #list(wikiutil.getPageList(config.text_dir))
         # pages = filter(self.request.user.may.read, pages)
         #if not allpages:
         #    pages = [p for p in pages if not wikiutil.isSystemPage(self.request, p)]
-        pages.sort(lambda x, y: cmp(str.upper(x), str.upper(y)))
         current_letter = None
         #for name in pages:
         #    html.append(' %s ' % name)
@@ -295,40 +294,36 @@ class Macro:
             relative_dir = '/' + config.relative_dir
         for name in pages:
             if 1: #self.request.user.may.read(name):
-                if not wikiutil.isSystemPage(self.request, name):
-                    letter = name[0].upper()
-                    # XXX UNICODE - fix here, too?
-                    if wikiutil.isUnicodeName(letter):
-                        try:
-                            letter = wikiutil.getUnicodeIndexGroup(unicode(name, config.charset))
-                            if letter: letter = letter.encode(config.charset)
-                        except UnicodeError:
-                            letter = None
-                        if not letter: letter = "~"
-                    if letter not in index_letters:
-                        index_letters.append(letter)
-                    if letter <> current_letter:
-                        html.append('<a name="%s"><h3>%s</h3></a>' % (
-                            wikiutil.quoteWikiname(letter), letter.replace('~', 'Others')))
-                        current_letter = letter
-                    else:
-                        html.append('<br>')
-                    html.append('<a href="%s/%s">%s</a>\n' % (relative_dir, wikiutil.quoteWikiname(name), name))
+                letter = name[0].upper()
+                # XXX UNICODE - fix here, too?
+                if wikiutil.isUnicodeName(letter):
+                    try:
+                        letter = wikiutil.getUnicodeIndexGroup(unicode(name, config.charset))
+                        if letter: letter = letter.encode(config.charset)
+                    except UnicodeError:
+                        letter = None
+                    if not letter: letter = "~"
+                if letter not in index_letters:
+                    index_letters.append(letter)
+                if letter <> current_letter:
+                    html.append('<a name="%s"><h3>%s</h3></a>' % (
+                        wikiutil.quoteWikiname(letter), letter.replace('~', 'Others')))
+                    current_letter = letter
+                else:
+                    html.append('<br>')
+                html.append('<a href="%s/%s">%s</a>\n' % (relative_dir, wikiutil.quoteWikiname(name), name))
 #Page(name).link_to(self.request, attachment_indicator=1))
 
-        # add rss link
-        index = ''
-        if 0: # if wikixml.ok: # XXX currently switched off (not implemented)
-            from LocalWiki import wikixml
-            img = self.request.theme.make_icon("rss")
-            index = index + self.formatter.url(
-                wikiutil.quoteWikiname(self.formatter.page.page_name) + "?action=rss_ti",
-                img, unescaped=1)
-
+	index = ''
+        ## add rss link
+        #if 0: # if wikixml.ok: # XXX currently switched off (not implemented)
+        #    from LocalWiki import wikixml
+        #    img = self.request.theme.make_icon("rss")
+        #    index = index + self.formatter.url(
+        #        wikiutil.quoteWikiname(self.formatter.page.page_name) + "?action=rss_ti",
+        #        img, unescaped=1)
         qpagename = wikiutil.quoteWikiname(self.formatter.page.page_name)
-        index = index + _make_index_key(index_letters, '<br> <a href="%s?allpages=%d">%s</a>&nbsp;| <a href="%s?action=titleindex">%s</a>&nbsp;| <a href="%s?action=titleindex&amp;mimetype=text/xml">%s</a>'% (qpagename, not allpages, (_('Include system pages'), _('Exclude system pages'))[allpages],
-          qpagename, _('Plain title index'),
-          qpagename, _('XML title index')) )
+        index = index + _make_index_key(index_letters)
         return '%s%s' % (index, ''.join(html)) 
 #return 'Temporarily disabled.'
 

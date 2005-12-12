@@ -87,12 +87,12 @@ def execute(macro, args):
     <ol>""")
     for name, links, source_pagenames in wanted:
         macro.request.write('<li value="%s">' % links)
-	macro.request.write(Page(name).link_to(macro.request) + ": ")
+	macro.request.write(Page(name).link_to(macro.request, know_status=True, know_status_exists=False) + ": ")
 	macro.request.write(Page(source_pagenames[0]).link_to(macro.request))
 	if len(source_pagenames) > 1:
 	  for p in source_pagenames[1:-1]:
-            macro.request.write(", " + Page(p).link_to(macro.request))
-	  macro.request.write(", " + Page(source_pagenames[-1]).link_to(macro.request))
+            macro.request.write(", " + Page(p).link_to(macro.request, know_status=True, know_status_exists=True))
+	  macro.request.write(", " + Page(source_pagenames[-1]).link_to(macro.request, know_status=True, know_status_exists=True))
 	macro.request.write("</li>")
     macro.request.write("</ol>")
 
