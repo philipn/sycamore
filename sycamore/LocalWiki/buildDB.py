@@ -175,7 +175,7 @@ def create_tables(cursor):
  (
  name varchar(255),
  image mediumblob,
- uploaded_time double,
+ uploaded_time double not null,
  uploaded_by char(19),
  attached_to_pagename  varchar(255),
  uploaded_by_ip char(16),

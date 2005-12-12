@@ -581,7 +581,7 @@ def getCaptionsHTML(attached_to_pagename, image_name, request):
    html = ''
    for result in results:
      # right now, there will only be one of these, but the plural is for later when images can be refered to by multiple pages
-     html += '<div style="width: %spx;"><p class="bigCaption"><em>%s</em></p></div>' % (xsize, wikiutil.wikifyString(result[0], request))
+     html += '<div style="width: %spx;"><p class="bigCaption"><em>%s</em></p></div>' % (xsize, wikiutil.wikifyString(result[0], request, Page(attached_to_pagename)))
    return html
 
 def send_viewfile(pagename, request):

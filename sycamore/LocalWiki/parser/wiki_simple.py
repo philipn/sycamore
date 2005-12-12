@@ -793,8 +793,7 @@ class Parser:
 	else: self.is_a_page = False
 
         self.formatter = formatter
-        if self.is_a_page: self.hilite_re = self.formatter.page.hilite_re
-	else: self.hilite_re = ''
+	self.hilite_re = ''
 
         # prepare regex patterns
         rules = self.formatting_rules.replace('\n', '|')
