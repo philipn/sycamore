@@ -256,7 +256,7 @@ def execute(macro, args):
     if not macro.formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption)
     if caption:
       # parse the caption string
-      caption = wikiutil.wikifyString(caption, macro.request)
+      caption = wikiutil.wikifyString(caption, macro.request, macro.formatter.page)
 
     if thumbnail:
       # let's generated the thumbnail or get the dimensions if it's already been generated

@@ -26,7 +26,7 @@ def execute(macro, args):
         # store footnote and emit number
         idx = len(macro.request.footnotes)
         fn_id = "-%s-%s" % (sha.new(args).hexdigest(), idx)
-        macro.request.footnotes.append((wikiutil.wikifyString(args, macro.request), fn_id))
+        macro.request.footnotes.append((wikiutil.wikifyString(args, macro.request, macro.formatter.page), fn_id))
         return "%s%s%s" % (
             macro.formatter.sup(1),
             macro.formatter.anchorlink('fndef' + fn_id, str(idx+1), id = 'fnref' + fn_id),

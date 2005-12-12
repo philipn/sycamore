@@ -14,7 +14,7 @@ Dependencies = ["pages"]
 
 def execute(macro, args):
     # get list of pages and their objects
-    pages = wikiutil.getPageDict(config.text_dir)
+    pages = wikiutil.getPageDict()
 
     # get sizes and sort them
     sizes = []

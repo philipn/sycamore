@@ -664,6 +664,7 @@ def do_info(pagename, request):
 	actions = ""
 	if result: has_history = True
 	count = 1
+	this_version = 0
 	for entry in result:
 	    actions = ''
 	    this_version = 1 + versions - count - offset

@@ -192,6 +192,15 @@ def create_tables(cursor):
   primary key (image_name, attached_to_pagename, linked_from_pagename)
  ) type=InnoDB;""")
 
+ cursor.execute("""create table mapChanges
+ (
+   pagename varchar(255),
+   change_time double,
+   changed_by char(19),
+   changed_by_ip char(16),
+   primary key (change_time)
+ ) type=InnoDB;""")
+
 
 def create_views(cursor):
  cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")

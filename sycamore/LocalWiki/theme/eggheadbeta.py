@@ -240,7 +240,6 @@ class Theme(ThemeBase):
         
 
         dict = {
-            'edittext_html': self.edittexthead_link(d, editable=1),
             'frontpage_class': front_class,
             'davismap_class': map_class,
             'recent_class': recent_class,
@@ -265,7 +264,6 @@ class Theme(ThemeBase):
         else:
             html = """
 <div class="tabArea">
-%(edittext_html)s
 <a href="%(relative_dir)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
 <a href="%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
 <a href="%(relative_dir)s/People" class="%(people_class)s">People</a>
@@ -340,17 +338,17 @@ class Theme(ThemeBase):
 #   #        html.append('<hr id="pagetrail">\n')
     #    return ''.join(html)
 
-    def edittexthead_link(self, d, **keywords):
+    #def edittexthead_link(self, d, **keywords):
 
-        _ = self.request.getText
-        html = []
-        if keywords.get('editable', 1):
-                if d['page_name']:
-                    editable = self.request.user.may.edit(d['page_name']) and d['page'].isWritable()
-                    if editable:
-                      style = 'pageIcon'
-                      html.append("%s" % (wikiutil.link_tag_style(style, self.request, d['q_page_name']+'?action=edit', _('Edit'))))
-        return ''.join(html)
+    #    _ = self.request.getText
+    #    html = []
+    #    if keywords.get('editable', 1):
+    #            if d['page_name']:
+    #                editable = self.request.user.may.edit(d['page_name']) and d['page'].isWritable()
+    #                if editable:
+    #                  style = 'pageIcon'
+    #                  html.append("%s" % (wikiutil.link_tag_style(style, self.request, d['q_page_name']+'?action=edit', _('Edit'))))
+    #    return ''.join(html)
         
     def edittext_link(self, d, **keywords):
         """

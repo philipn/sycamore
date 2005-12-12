@@ -28,7 +28,7 @@ def execute(pagename, request):
         wikiutil.send_title(request, _('Full Link List for "%s"') % config.sitename)
         request.write('<pre>')
 
-    pages = wikiutil.getPageDict(config.text_dir)
+    pages = wikiutil.getPageDict()
 
     pagelist = pages.keys()
     pagelist.sort()

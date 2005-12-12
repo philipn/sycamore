@@ -22,7 +22,7 @@ def execute(macro, args):
 
     # delete all linked pages from a dict of all pages
     _guard = 1
-    pages = wikiutil.getPageDict(config.text_dir)
+    pages = wikiutil.getPageDict()
     # we do not look at pages we have no read rights on - this avoids
     # having MoinEditorBackup showing up (except your very own one)
     for key in pages.keys():

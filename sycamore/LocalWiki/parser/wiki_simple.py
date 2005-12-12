@@ -144,9 +144,9 @@ class Parser:
             else:
                 text = url
                 url = ""
-        elif config.allow_subpages and url[0] == wikiutil.CHILD_PREFIX:
-            # fancy link to subpage [wiki:/SubPage text]
-            return self._word_repl(url, text)
+        #elif config.allow_subpages and url[0] == wikiutil.CHILD_PREFIX:
+        #    # fancy link to subpage [wiki:/SubPage text]
+        #    return self._word_repl(url, text)
         elif Page(url).exists():
             # fancy link to local page [wiki:LocalPage text]
             return self._word_repl(url, text)
@@ -266,8 +266,28 @@ class Parser:
         # !!! should use wikiutil.AbsPageName here, but setting `text`
         # correctly prevents us from doing this for now
         if config.allow_subpages and word.startswith(self.PARENT_PREFIX):
-            if not text: text = word
-            word = '/'.join(filter(None, self.formatter.page.page_name.split('/')[:-1] + [word[3:]]))
+	    alt_text = True # for making error prettier
+	    if not text:
+	      text = word
+	      alt_text = False
+	    base_pagename = self.formatter.page.page_name
+	    split_base_pagename = base_pagename.split('/')
+	    split_pagename = word.split('/')
+            for entry in split_pagename:
+	      if entry == '..':
+	        try:
+	          split_base_pagename.pop()
+		except IndexError:
+		  # Their link makes no sense
+		  if alt_text: return '["%s" %s]' % (word, text)
+		  else: return '["%s"]' % word
+	      else:
+	        split_base_pagename.append(entry)
+	    if split_base_pagename:
+	      word = split_base_pagename[0]
+	      if len(word) > 1:
+                for entry in split_base_pagename[1:]:
+                  word += '/' + entry
 
         if not text:
 	    text = word

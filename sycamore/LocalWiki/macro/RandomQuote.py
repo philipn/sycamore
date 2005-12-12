@@ -45,7 +45,7 @@ def execute(macro, args):
                 macro.formatter.highlight(0))
                 
     quote = random.choice(quotes)
-    quote = wikiutil.wikifyString(quote, macro.request)
+    quote = wikiutil.wikifyString(quote, macro.request, macro.formatter.page)
     import re
     quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)
     

@@ -56,13 +56,14 @@ def simpleStrip(request, text):
     text = re.sub(r'\<[^\>]+\>', r'', text)
     return text
 
-def wikifyString(text, request):
+def wikifyString(text, request, page):
   import cStringIO
   # Inefficient but easy to use way of turning wiki markup string into html
   # only use this in macros, etc.
   Parser = importPlugin("parser", "wiki_simple", "Parser")
   from LocalWiki.formatter.text_html import Formatter
   html_formatter = Formatter(request)
+  html_formatter.setPage(page)
   buffer = cStringIO.StringIO()
   request.redirect(buffer)
   html_parser = Parser(text, request)
@@ -360,7 +361,7 @@ def getPageList():
 
     return result
 
-def getPageDict(text_dir):
+def getPageDict():
     """
     Return a dictionary of page objects for all pages,
     with the page name as the key.
@@ -371,7 +372,7 @@ def getPageDict(text_dir):
     """
     from LocalWiki.Page import Page
     pages = {}
-    pagenames = getPageList(text_dir)
+    pagenames = getPageList()
     for name in pagenames:
         pages[name] = Page(name)
     return pages
