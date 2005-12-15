@@ -476,14 +476,12 @@ def do_diff(pagename, request):
 
     if diff1_date == '-1':
         #first_oldpage = os.path.join(config.backup_dir, oldversions[0])
-	db = wikidb.connect()
-	cursor = db.cursor()
+	cursor = request.db.cursor()
 	# we want editTime as a string for precision purposes
 	cursor.execute("SELECT editTime from allPages where name=%s order by editTime desc limit 2;", (pagename))
 	result = cursor.fetchall()
 	cursor.close()
-	cursor = db.cursor()
-	db.close()
+	cursor = request.db.cursor()
 	if len(result) >= 2:
 	   first_olddate = result[1][0]
 	else:
@@ -647,20 +645,16 @@ def do_info(pagename, request):
 	   # so they see a consistent version of the page between page forward/back
 	   offset = offset_given*100 - offset_given
         may_revert = request.user.may.revert(pagename)
-	db = wikidb.connect()
-	cursor = db.cursor()
+	cursor = request.db.cursor()
 	cursor.execute("SELECT count(editTime) from allPages where name=%s", (pagename))
 	count_result = cursor.fetchone()
 	if count_result: versions = count_result[0]
 	cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%s order by editTime desc limit 100 offset %s", (pagename, offset))
 	result = cursor.fetchall()
-	cursor.close()
-	cursor = db.cursor()
 	cursor.execute("SELECT editTime from curPages where name=%s", (pagename))
 	currentpage_editTime_result = cursor.fetchone()
 	if currentpage_editTime_result: currentpage_editTime = currentpage_editTime_result[0]
 	else: currentpage_editTime = 0
-	db.close()
 	actions = ""
 	if result: has_history = True
 	count = 1

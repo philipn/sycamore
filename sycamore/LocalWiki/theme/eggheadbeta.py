@@ -469,7 +469,6 @@ SRC="%(web_dir)s/utils.js"></SCRIPT>
             'navbar_html': self.navbar(d),
             'iconbar_html': self.iconbar(d),
             'msg_html': self.msg(d),
-            'available_actions_html': self.availableactions(d),
             'search_form_html': self.searchform(d),
             'applet_html': apphtml,
         }

@@ -307,14 +307,9 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         self.request.write('</p>')
         
         # button toolbar
-	if config.web_dir: 
-	    add_on = '/'
-	else: 
-	    config.web_dir = '/'
-	    add_on = ''
         self.request.write('<p>')
 	self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.user.theme_name, 'img', 'buttons')))
-        self.request.write("<script type=\"text/javascript\" src=\"%s%sedit.js\"></script>" % (config.web_dir, add_on))
+        self.request.write("<script type=\"text/javascript\" src=\"%s/edit.js\"></script>" % (config.web_dir))
         # send form
         self.request.write('<form name="editform" method="post" action="%s/%s#preview">' % (
             self.request.getScriptname(),
@@ -724,7 +719,9 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	cursor = db.cursor()
 	cursor.execute("start transaction;")
 	ourtime = time.time()
-	if self.exists():
+	cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
+	exists = cursor.fetchone()
+	if exists:
 		cursor.execute("UPDATE curPages set text=%s, editTime=%s, userEdited=%s where name=%s", (text, ourtime, self.request.user.id, self.page_name))
 	else:
 		cursor.execute("INSERT into curPages values (%s, %s, NULL, %s, NULL, %s)", (self.page_name, text, ourtime, self.request.user.id))	
@@ -737,7 +734,6 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 
 	# set in-memory page text
 	self.set_raw_body(text)
-
 
 
     def _write_file(self, text):

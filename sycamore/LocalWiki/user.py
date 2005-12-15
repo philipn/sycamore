@@ -250,7 +250,7 @@ class User:
         # XXX UNICODE fix needed, we want to read utf-8 and decode to unicode
 	db = wikidb.connect()
 	cursor = db.cursor()
-	cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset from users where id=%s", (self.id))
+	cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark from users where id=%s", (self.id))
 	data = cursor.fetchone()
 	cursor.close()
 	db.close()
@@ -270,6 +270,7 @@ class User:
 	user_data['theme_name'] = data[10]
 	user_data['last_saved'] = data[11]
 	user_data['tz_offset'] = data[12]
+	user_data['rc_bookmark'] = data[13]
 
         if check_pass:
             # If we have no password set, we don't accept login with username
@@ -526,6 +527,7 @@ class User:
 	    cursor = db.cursor()
 	    cursor.execute("start transaction;")
 	    cursor.execute("UPDATE users set rc_bookmark=%s where id=%s", (str(tm), self.id))
+	    self.rc_bookmark = tm
 	    cursor.execute("commit;")
 	    cursor.close()
 	    db.close()
@@ -538,17 +540,7 @@ class User:
         @rtype: int
         @return: bookmark time (UTC UNIX timestamp) or None
         """
-        if self.valid:
-	    db = wikidb.connect()
-	    cursor = db.cursor()
-	    cursor.execute("SELECT rc_bookmark from users where id=%s", (self.id))
-	    result = cursor.fetchone()
-	    cursor.close()
-	    db.close()
-	    if not result: return None
-	    if not result[0]: return None
-	    return float(result[0])
-	
+        if self.valid: return self.rc_bookmark
         return None
 
 
@@ -591,6 +583,7 @@ class User:
 	   cursor = db.cursor()
 	   cursor.execute("start transaction;")
 	   cursor.execute("update users set rc_bookmark=NULL where id=%s", (self.id))
+	   self.rc_bookmark = 0
 	   cursor.execute("commit;")
 	   cursor.close()
 	   db.close()

@@ -453,10 +453,6 @@ def getHomePage(request, username=None):
         pg = Page(username)
         if pg.exists(): return pg
 
-        # try without spaces
-        pg = Page(''.join(username.split()))
-        if pg.exists(): return pg
-
     return None
 
 
@@ -1039,11 +1035,11 @@ def send_title(request, text, **keywords):
     page = Page(pagename)
 
     # get name of system pages
-    page_front_page = getSysPage(request, config.page_front_page).page_name
-    page_help_contents = getSysPage(request, 'Wiki Guide').page_name
-    page_title_index = getSysPage(request, 'Title Index').page_name
-    page_user_prefs = getSysPage(request, 'User Preferences').page_name
-    page_find_page = getSysPage(request, 'Search').page_name
+    #page_front_page = getSysPage(request, config.page_front_page).page_name
+    #page_help_contents = getSysPage(request, 'Wiki Guide').page_name
+    #page_title_index = getSysPage(request, 'Title Index').page_name
+    #page_user_prefs = getSysPage(request, 'User Preferences').page_name
+    #page_find_page = getSysPage(request, 'Search').page_name
 
     # parent page?
     page_parent_page = None
@@ -1100,12 +1096,12 @@ def send_title(request, text, **keywords):
 # later: <html xmlns=\"http://www.w3.org/1999/xhtml\">
 
     # Links
-    request.write('<link rel="Start" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_front_page)))
-    if pagename:
-        request.write('<link rel="Alternate" title="%s" href="%s/%s?action=raw">\n' % (
-            _('Wiki Markup'), request.getScriptname(), quoteWikiname(pagename),))
-        request.write('<link rel="Alternate" media="print" title="%s" href="%s/%s?action=print">\n' % (
-            _('Print View'), request.getScriptname(), quoteWikiname(pagename),))
+    #request.write('<link rel="Start" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_front_page)))
+    #if pagename:
+    #    request.write('<link rel="Alternate" title="%s" href="%s/%s?action=raw">\n' % (
+    #        _('Wiki Markup'), request.getScriptname(), quoteWikiname(pagename),))
+    #    request.write('<link rel="Alternate" media="print" title="%s" href="%s/%s?action=print">\n' % (
+    #        _('Print View'), request.getScriptname(), quoteWikiname(pagename),))
 
         # !!! currently disabled due to Mozilla link prefetching, see
         # http://www.mozilla.org/projects/netlib/Link_Prefetching_FAQ.html
@@ -1124,17 +1120,17 @@ def send_title(request, text, **keywords):
         #~             request.write('<link rel="Next" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(all_pages[pos+1])))
         #~         request.write('<link rel="Last" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(all_pages[-1])))
 
-        if page_parent_page:
-            request.write('<link rel="Up" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_parent_page)))
+     #   if page_parent_page:
+     #       request.write('<link rel="Up" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_parent_page)))
 
-        from LocalWiki.action import Files 
-        Files.send_link_rel(request, pagename)
+        #from LocalWiki.action import Files 
+        #Files.send_link_rel(request, pagename)
 
-    request.write(
-        '<link rel="Search" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_find_page)) +
-        '<link rel="Index" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_title_index)) +
-        '<link rel="Help" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_help_contents))
-    )
+    #request.write(
+    #    '<link rel="Search" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_find_page)) +
+    #    '<link rel="Index" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_title_index)) +
+    #    '<link rel="Help" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_help_contents))
+    #)
 
     request.write("</head>\n")
     request.flush()
@@ -1184,17 +1180,17 @@ def send_title(request, text, **keywords):
         page_home_page = None
 
     # list user actions that start with an uppercase letter
-    available_actions = []
-    if keywords.get('showactions', 1):
-        from LocalWiki.wikiaction import getPlugins
-        from LocalWiki.action import extension_actions
-        dummy, actions = getPlugins()
-        actions.extend(extension_actions)
-        actions.sort()
-         
-        for action in actions:
-            if action[0] != action[0].upper(): continue
-            available_actions.append(action)
+    #available_actions = []
+    #if keywords.get('showactions', 1):
+    #    from LocalWiki.wikiaction import getPlugins
+    #    from LocalWiki.action import extension_actions
+    #    dummy, actions = getPlugins()
+    #    actions.extend(extension_actions)
+    #    actions.sort()
+    #     
+    #    for action in actions:
+    #        if action[0] != action[0].upper(): continue
+    #        available_actions.append(action)
 
     form = keywords.get('form', None)
     icon = request.theme.get_icon('searchbutton')
@@ -1226,21 +1222,14 @@ def send_title(request, text, **keywords):
         'pagesize': pagename and page.size() or 0,
         'last_edit_info': pagename and page.last_modified_str(request) or '',
         'page_name': pagename or '',
-        'page_find_page': page_find_page,
-        'page_front_page': page_front_page,
-        'page_home_page': page_home_page,
-        'page_help_contents': page_help_contents,
-        'page_parent_page': page_parent_page,
-        'page_title_index': page_title_index,
-        'page_user_prefs': page_user_prefs,
+        'page_user_prefs': "User Preferences",
 	'polite_msg': keywords.get('polite_msg', ''),
         'user_name': request.user.name,
         'user_valid': request.user.valid,
-        'user_prefs': (page_user_prefs, request.user.name)[request.user.valid],
+        'user_prefs': ("User Preferences", request.user.name)[request.user.valid],
         'msg': keywords.get('msg', ''),
         'trail': keywords.get('trail', None),
         'navibar': navibar,
-        'available_actions': available_actions,
         'titlesearch': titlesearch,
         'textsearch': textsearch,
     }

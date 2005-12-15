@@ -135,24 +135,18 @@ _cfg_defaults = {
     # These icons will show in this order in the iconbar, unless they
     # are not relevant, e.g email icon when the wiki is not configured
     # for email.
-    'page_iconbar': ["up", "edit", "view", "diff", "info", "subscribe", "raw", "print", "home",],
+    'page_iconbar': ["edit", "view", "diff", "info", "raw", "print"],
 
     # Standard buttons in the iconbar
     'page_icons_table': {
         # key           last part of url, title, icon-key
-        'help':        ("%(q_page_help_contents)s", "%(page_help_contents)s", "help"),
-        'find':        ("%(q_page_find_page)s?value=%(q_page_name)s", "%(page_find_page)s", "find"),
         'diff':        ("%(q_page_name)s?action=diff", _("Diffs"), "diff"),
         'info':        ("%(q_page_name)s?action=info", _("Info"), "info"),
         'edit':        ("%(q_page_name)s?action=edit", _("Edit"), "edit"),
-        'unsubscribe': ("%(q_page_name)s?action=subscribe", _("UnSubscribe"), "unsubscribe"),
-        'subscribe':   ("%(q_page_name)s?action=subscribe", _("Subscribe"), "subscribe"),
         'raw':         ("%(q_page_name)s?action=raw", _("Raw"), "raw"),
         'xml':         ("%(q_page_name)s?action=format&amp;mimetype=text/xml", _("XML"), "xml"),
         'print':       ("%(q_page_name)s?action=print", _("Print"), "print"),
         'view':        ("%(q_page_name)s", _("View"), "view"),
-        'home':        ("%(q_page_home_page)s", _("Home"), "home"),
-        'up':          ("%(q_page_parent_page)s", _("Up"), "up"),
         },
     # this is for prevention of hotlinking.  leave blank if you don't care about people leeching images.
     # to match against any url from any subdomain of daviswiki we would write:

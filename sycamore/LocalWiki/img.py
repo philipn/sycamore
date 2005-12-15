@@ -44,8 +44,7 @@ def imgSend(request):
   
   filename = urllib.unquote_plus(filename_encoded)
   
-  db = wikidb.connect()
-  cursor = db.cursor()
+  cursor = request.db.cursor()
   if not deleted:
     if not thumbnail:
       cursor.execute("SELECT image, uploaded_time from images where name=%s and attached_to_pagename=%s", (filename, pagename))
@@ -61,7 +60,6 @@ def imgSend(request):
       cursor.execute("SELECT image, uploaded_time from oldImages where name=%s and attached_to_pagename=%s and uploaded_time=%s", (filename, pagename, version))
     result = cursor.fetchone()
   cursor.close()
-  db.close()
   
   
   if result:
@@ -73,15 +71,13 @@ def imgSend(request):
     if mimetype:
       # we're good to go to output the image
       datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
-      header = "Content-type: %s\nLast-Modified: %s\n\n" % (mimetype, datestring)
-      request.write(header)
+      request.http_headers(["Content-Type: " + mimetype, "Last-Modified: " + datestring])
       #output image
       request.write(image.tostring())
-      request.close()
     else:
-      request.write("Content-Type: text/html\n\n")
+      request.http_headers(["Content-Type: text/html"])
       request.write("No image..?")
   
   else:
-    request.write("Content-Type: text/html\n\n")
+    request.http_headers(["Content-Type: text/html"])
     request.write("No image..?")

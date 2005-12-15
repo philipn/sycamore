@@ -5,7 +5,13 @@
 
     Copyright Peter Åstrand <astrand@lysator.liu.se> 2001
 
-    Modified for LocalWiki by Oliver Graf <ograf@bitart.de> 2003
+    Modified for MoinMoin by Oliver Graf <ograf@bitart.de> 2003
+    
+    Added "external application" support, refactored code
+        by Alexander Schremmer <alex AT alexanderweb DOT de>
+
+    For code base see:
+    http://cvs.lysator.liu.se/viewcvs/viewcvs.cgi/webkom/thfcgi.py?cvsroot=webkom
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,8 +25,6 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-
-    $Id: thfcgi.py,v 1.1 2004/01/30 21:29:58 thomaswaldmann Exp $
 """
 
 # TODO:
@@ -37,7 +41,6 @@ import string
 import socket
 import errno
 import cgi
-import thread
 from cStringIO import StringIO
 import struct
 
@@ -87,6 +90,10 @@ FCGI_Record_header = "!BBHHBx"
 FCGI_UnknownTypeBody = "!B7x"
 FCGI_EndRequestBody = "!IB3x"
 
+class SocketErrorOnWrite:
+    """ Is raised if a write fails in the socket code."""
+    pass
+
 class Record:
     """Class representing FastCGI records"""
 
@@ -114,7 +121,7 @@ class Record:
         namelen = struct.unpack("!B", data[pos])[0]
         if namelen & 128:
             # 4-byte name length
-            namelen = struct.unpack("!I", data[pos:pos+4])[0]
+            namelen = struct.unpack("!I", data[pos:pos+4])[0] & 0x7fffffff
             pos += 4
         else:
             pos += 1
@@ -122,7 +129,7 @@ class Record:
         valuelen = struct.unpack("!B", data[pos])[0]
         if valuelen & 128:
             # 4-byte value length
-            valuelen = struct.unpack("!I", data[pos:pos+4])[0]
+            valuelen = struct.unpack("!I", data[pos:pos+4])[0] & 0x7fffffff
             pos += 4
         else:
             pos += 1
@@ -141,14 +148,14 @@ class Record:
             data = struct.pack("!B", namelen)
         else:
             # 4-byte name length
-            data = struct.pack("!I", namelen)
+            data = struct.pack("!I", namelen | 0x80000000L)
 
         valuelen = len(value)
         if valuelen < 128:
             data += struct.pack("!B", value)
         else:
             # 4-byte value length
-            data += struct.pack("!I", value)
+            data += struct.pack("!I", value | 0x80000000L)
 
         return data + name + value
         
@@ -218,10 +225,10 @@ class Record:
                           self.req_id, clen, padlen)
         
         try:
-            sock.send(hdr + content + padlen*"\x00")
+            sock.sendall(hdr + content + padlen*"\x00")
         except socket.error:
-            # Write error, probably broken pipe. Exit thread. 
-            thread.exit()
+            # Write error, probably broken pipe. Exit. 
+            raise SocketErrorOnWrite
 
 
 class Request:
@@ -255,8 +262,11 @@ class Request:
         """Read records for this request and handle them through the
         request handler."""
         while 1:
-            if self.conn.fileno() < 1:
-                # Connection lost
+            try:
+                if self.conn.fileno() < 1:
+                    # Connection lost
+                    raise Exception("Connection lost")
+            except:
                 return
 
             select.select([self.conn], [], [])
@@ -347,6 +357,7 @@ class Request:
         if not self.keep_conn:
             self.conn.close()
             if self.multi:
+                import thread
                 thread.exit()
     
     #
@@ -488,42 +499,50 @@ class Request:
         data = data[8192:]
         return chunk, data
 
-
-class THFCGI:
-    """Multi-threaded main loop to handle FastCGI Requests."""
+class FCGIbase:
+    """Base class for FCGI requests."""
     
-    def __init__(self, req_handler, fd=sys.stdin):
+    def __init__(self, req_handler, fd, port):
         """Initialize main loop and set request_handler."""
         self.req_handler = req_handler
         self.fd = fd
-        self.multi = 1
+        self.__port = port
         self._make_socket()
 
     def run(self):
-        """Wait & serve. Calls request_handler in new
-        thread on every request."""
-        self.sock.listen(5)
-        
-        while 1:
-            (conn, addr) = self.sock.accept()
-            thread.start_new_thread(self.accept_handler, (conn, addr))
+        raise NotImplementedError
 
     def accept_handler(self, conn, addr):
-        """Construct Request and run() it.
-        Executed from run in a new thread."""
+        """Construct Request and run() it."""
         self._check_good_addrs(addr)
-        req = Request(conn, self.req_handler, self.multi)
-        req.run()
+        try:
+            req = Request(conn, self.req_handler, self.multi)
+            req.run()
+        except SocketErrorOnWrite:
+            if self.multi:
+                import thread
+                thread.exit()
+            #else:
+            #    raise SystemExit
 
     def _make_socket(self):
         """Create socket and verify FCGI environment."""
         try:
-            s = socket.fromfd(self.fd.fileno(), socket.AF_INET,
-                              socket.SOCK_STREAM)
-            s.getpeername()
+            if self.__port:
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                #s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 0)
+                # bind to the localhost
+                s.bind(('127.0.0.1', self.__port))
+                s.listen(1)
+            else:
+                if hasattr(socket, 'fromfd'):
+                    s = socket.fromfd(self.fd.fileno(), socket.AF_INET, socket.SOCK_STREAM)
+                    s.getpeername()
+                else: # we do not run on posix, fire up an FCGI external process
+                    raise ValueError("FastCGI port is not setup correctly")
         except socket.error, (err, errmsg):
-            if err != errno.ENOTCONN: 
-                raise "No FastCGI environment"
+            if err != errno.ENOTCONN:
+                raise RuntimeError("No FastCGI environment: %s - %s" % (`err`, errmsg))
 
         self.sock = s
         
@@ -538,22 +557,39 @@ class THFCGI:
         
         # Check if the connection is from a legal address
         if good_addrs != None and addr not in good_addrs:
-            raise "Connection from invalid server!"
-        
+            raise RuntimeError("Connection from invalid server!")
 
-class unTHFCGI(THFCGI):
+class THFCGI(FCGIbase):
+    """Multi-threaded main loop to handle FastCGI Requests."""
+    
+    def __init__(self, req_handler, fd=sys.stdin, port=None):
+        """Initialize main loop and set request_handler."""
+        self.multi = 1
+        FCGIbase.__init__(self, req_handler, fd, port)
+
+    def run(self):
+        """Wait & serve. Calls request_handler in new
+        thread on every request."""
+        import thread
+        self.sock.listen(50)
+        
+        while 1:
+            (conn, addr) = self.sock.accept()
+            thread.start_new_thread(self.accept_handler, (conn, addr))
+
+class unTHFCGI(FCGIbase):
     """Single-threaded main loop to handle FastCGI Requests."""
 
-    def __init__(self, req_handler, fd=sys.stdin):
+    def __init__(self, req_handler, fd=sys.stdin, port=None):
         """Initialize main loop and set request_handler."""
-        THFCGI.__init__(self, req_handler, fd)
         self.multi = 0
+        FCGIbase.__init__(self, req_handler, fd, port)
     
     def run(self):
         """Wait & serve. Calls request handler for every request (blocking)."""
-        self.sock.listen(5)
+        self.sock.listen(50)
         
         while 1:
             (conn, addr) = self.sock.accept()
             self.accept_handler(conn, addr)
-
+   

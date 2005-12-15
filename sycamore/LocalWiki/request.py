@@ -56,7 +56,6 @@ class RequestBase:
 
     def __init__(self, properties={}):
         self.writestack = []
-        self.clock = Clock()
         # order is important here!
         from LocalWiki import user
         self.user = user.User(self)
@@ -314,7 +313,6 @@ class RequestBase:
 
         return result
 
-
     def getUserAgent(self):
         """ Get the user agent. """
         return self.http_user_agent
@@ -322,7 +320,6 @@ class RequestBase:
 
     def run(self):
         _ = self.getText
-        self.clock.start('run')
         self.open_logs()
         if self.isForbidden():
             self.http_headers([
@@ -332,12 +329,14 @@ class RequestBase:
             self.write('You are not allowed to access this!\n')
             return self.finish()
 
+	self.db = wikidb.connect()
+
         # Imports
         from LocalWiki.Page import Page
 	if self.query_string.startswith('img=true'):
 	  from LocalWiki.img import imgSend
 	  imgSend(self)
-	  return
+	  return self.finish()
 	   
 
         if self.query_string == 'action=xmlrpc':
@@ -390,14 +389,12 @@ class RequestBase:
 	    pagename_propercased = ''
 	    oldlink_propercased = ''
 	    if pagename: 
-	      db = wikidb.connect()
-	      cursor = db.cursor()
+	      cursor = self.db.cursor()
 	      cursor.execute("SELECT name from curPages where name=%s", (pagename))
 	      pagename_result = cursor.fetchone()
 	      cursor.execute("SELECT name from curPages where name=%s", (oldlink))
 	      oldlink_result = cursor.fetchone()
 	      cursor.close()
-	      db.close()
 	      if pagename_result: pagename_propercased = pagename_result[0]
 	      if oldlink_result: oldlink_propercased = oldlink_result[0]
 
@@ -411,11 +408,11 @@ class RequestBase:
             elif pagename and pagename_propercased:
                 pagename = pagename_propercased
 
-            if self.form.has_key('filepath') and self.form.has_key('noredirect'):
-                # looks like user wants to save a drawing
-                from LocalWiki.action.Files import execute
-                execute(pagename, self)
-                raise LocalWikiNoFooter
+            #if self.form.has_key('filepath') and self.form.has_key('noredirect'):
+            #    # looks like user wants to save a drawing
+            #    from LocalWiki.action.Files import execute
+            #    execute(pagename, self)
+            #    raise LocalWikiNoFooter
 
             if action:
                 handler = wikiaction.getHandler(action)
@@ -435,7 +432,7 @@ class RequestBase:
                         wikiutil.getSysPage(self, config.page_front_page).page_name
 
                 if config.allow_extended_names:
-                    Page(query).send_page(self, count_hit=1)
+                        Page(query).send_page(self, count_hit=1)
                 else:
                     from LocalWiki.parser.wiki import Parser
                     import re
@@ -451,16 +448,6 @@ class RequestBase:
             # (actions that do not want this footer use raise util.LocalWikiNoFooter to break out
             # of the default execution path, see the "except LocalWikiNoFooter" below)
 
-            self.clock.stop('run')
-            self.clock.stop('total')
-
-            if not self.no_closing_html_code:
-                if (config.show_timings and
-                    self.form.get('action', [None])[0] != 'print'):
-                    self.write('<ul id="timings">\n')
-                    for t in self.clock.dump():
-                        self.write('<li>%s</li>\n' % t)
-                    self.write('</ul>\n')
 
                 if 0: # temporarily disabled - do we need that?
                     import socket
@@ -571,6 +558,7 @@ class RequestCGI(RequestBase):
         
     def finish(self):
         # flush the output, ignore errors caused by the user closing the socket
+	self.db.close()
         try:
             sys.stdout.flush()
         except IOError, ex:
@@ -705,6 +693,7 @@ class RequestTwisted(RequestBase):
         pass # XXX is there a flush in twisted?
 
     def finish(self):
+    	self.db.close()
         #print "request.RequestTwisted.finish"
         self.reactor.callFromThread(self.twistd.finish)
 
@@ -811,6 +800,7 @@ class RequestCLI(RequestBase):
         sys.stdout.flush()
         
     def finish(self):
+    	self.db.close()
         # flush the output, ignore errors caused by the user closing the socket
         try:
             sys.stdout.flush()
@@ -981,6 +971,7 @@ class RequestStandAlone(RequestBase):
         self.wfile.flush()
         
     def finish(self):
+    	self.db.close()
         # flush the output, ignore errors caused by the user closing the socket
         try:
             self.wfile.flush()
@@ -1121,6 +1112,7 @@ class RequestModPy(RequestBase):
         pass
         
     def finish(self):
+    	self.db.close()
         """ Just return apache.OK. Status is set in req.status.
         """
         # is it possible that we need to return somethig else here?
@@ -1246,6 +1238,7 @@ class RequestFastCGI(RequestBase):
         self.fcgreq.flush_out()
 
     def finish(self):
+    	self.db.close()
         """ Call finish method of FastCGI request to finish handling
             of this request.
         """

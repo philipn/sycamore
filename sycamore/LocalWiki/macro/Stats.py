@@ -28,25 +28,25 @@ def execute(macro, args):
        result = cursor.fetchone()
        cursor.close()
        db.close()
-       join_date = result[0]
-       if not join_date: join_date = "<em>unknown</em>"
-       else: join_date = request.user.getFormattedDateTime(join_date)
-       created_count = result[1]
-       edit_count = result[2]
-       file_count = result[3]
-       last_page_edited = result[4]
-       last_edit_date = result[5]
-       if not last_edit_date: last_edit_date = "<em>unknown</em>"
-       else: last_edit_date = request.user.getFormattedDateTime(last_edit_date)
-
        if result: 
+         join_date = result[0]
+         if not join_date: join_date = "<em>unknown</em>"
+         else: join_date = request.user.getFormattedDateTime(join_date)
+         created_count = result[1]
+         edit_count = result[2]
+         file_count = result[3]
+         last_page_edited = result[4]
+         last_edit_date = result[5]
+         if not last_edit_date: last_edit_date = "<em>unknown</em>"
+         else: last_edit_date = request.user.getFormattedDateTime(last_edit_date)
+
          htmltext.append('<p><h2>%s\'s Statistics</h2></p><table width=100%% border=0><tr><td><b>Edits&nbsp;&nbsp;</b></td><td><b>Pages Created&nbsp;&nbsp;</b></td><td><b>Images Contributed&nbsp;&nbsp;</b></td><td><b>Date Joined&nbsp;&nbsp;</b></td><td><b>Last Edit&nbsp;&nbsp;</b></td><td><b>Last Page Edited&nbsp;&nbsp;</b></td></tr>' % args)
 	 if result[4]:
            htmltext.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td><a href="/%s%s%s">%s</a></td></tr></table>' % (edit_count,created_count,file_count,join_date,last_edit_date,config.relative_dir,add_on,wikiutil.quoteWikiname(last_page_edited),last_page_edited))	     
 	 else:
 	   htmltext.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>&nbsp;</td></tr></table>' % (edit_count,created_count,file_count,join_date,last_edit_date))
 
-       else: htmltext.append("<p>No such user '%s'" % args)
+       else: htmltext.append('<p>' + macro.formatter.highlight(1) + 'No such user "%s"' % args + macro.formatter.highlight(0) + '</p>')
 
     else:
        htmltext = []

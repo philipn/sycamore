@@ -202,8 +202,9 @@ class Page:
 	result = cursor.fetchone()
 	cursor.close()
 	db.close()
-
-        return result
+        if result:
+	  if result[0]: return True
+	return False
 
 
     def size(self):
@@ -333,6 +334,16 @@ class Page:
             url = "%s?%s" % (url, querystr)
         return url
 
+    def getName(self, request):
+       # gets the proper page name
+       db = request.db
+       cursor = db.cursor()
+       cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
+       result = cursor.fetchone()
+       cursor.close()
+       if result: return result[0]
+       else: return self.page_name
+
 
     def link_to(self, request, text=None, querystr=None, anchor=None, know_status=False, know_status_exists=False, **kw):
         """
@@ -356,14 +367,8 @@ class Page:
         fmt = getattr(self, 'formatter', None)
         if not know_status:
           if self.exists():
-		know_exists = True
-	  	db = wikidb.connect()
-	  	cursor = db.cursor()
-	  	cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
-	  	result = cursor.fetchone()
-	  	cursor.close()
-	  	db.close()
-                url = wikiutil.quoteWikiname(result[0])
+	  	know_exists = True
+                url = wikiutil.quoteWikiname(self.getName(request))
           else:
                 url = wikiutil.quoteWikiname(self.page_name)
         else:
@@ -397,7 +402,6 @@ class Page:
         @keyword count_hit: if 1, add an event to the log
         @keyword hilite_re: a regular expression for highlighting e.g. search results
         """
-        request.clock.start('send_page')
         _ = request.getText
 
         # determine modes
@@ -659,8 +663,6 @@ class Page:
 	#	cursor.close()
 	#	db.close()
 
-        request.clock.stop('send_page')
-
 
     def send_page_content(self, request, Parser, body, needsupdate=0):
         """
@@ -839,15 +841,13 @@ class Page:
 
 	# !!!! DB FIX DBFIX need to use LINK TABLE here
 	links = []
-	db = wikidb.connect()
-        cursor = db.cursor()
+        cursor = request.db.cursor()
         cursor.execute("SELECT destination_pagename from links where source_pagename=%s", (self.page_name))
         result = cursor.fetchone()
 	while result:
    	  links.append(result[0])
 	  result = cursor.fetchone()
         cursor.close()
-        db.close()
 	
 	return links
 
@@ -856,15 +856,13 @@ class Page:
 	Returns a list of page names of pages that link to this page.
 	"""
 	links = []
-	db = wikidb.connect()
-        cursor = db.cursor()
+        cursor = request.db.cursor()
         cursor.execute("SELECT source_pagename from links where destination_pagename=%s", (self.page_name))
         result = cursor.fetchone()
 	while result:
    	  links.append(result[0])
 	  result = cursor.fetchone()
         cursor.close()
-        db.close()
 
 	return links
 

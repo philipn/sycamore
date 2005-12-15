@@ -230,7 +230,11 @@ def execute(macro, args):
     # the number is the 'max' size (width or height) in pixels
 
     # parse the arguments
-    image_name, caption, thumbnail, px_size, alignment, border = getArguments(args, macro.request)
+    try:
+      image_name, caption, thumbnail, px_size, alignment, border = getArguments(args, macro.request)
+    except:
+      macro.request.write('[[Image(%s)]]' % args)
+      return ''
 
     #is the original image even on the page?
     db = wikidb.connect()

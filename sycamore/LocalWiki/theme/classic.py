@@ -38,8 +38,6 @@ class Theme:
         'xml':        ("XML",                    "moin-xml.png",    20, 13),
         'print':      ("Print",                  "moin-print.png",  16, 14),
         'view':       ("View",                   "moin-show.png",   12, 13),
-        'home':       ("Home",                   "moin-home.png",   13, 12),
-        'up':         ("Up",                     "moin-parent.png", 15, 13),
         # FileAttach (is this used?)
         'attach':     ("%(attach_count)s",       "moin-attach.png",  7, 15),
         # RecentChanges
@@ -275,18 +273,7 @@ class Theme:
             iconbar.append('<ul id="iconbar">\n')
             icons = config.page_iconbar[:]
             for icon in icons:
-                if icon == "up":
-                    if d['page_parent_page']:
-                        iconbar.append('<li>%s</li>\n' % self.make_iconlink(icon, d))
-                elif icon == "subscribe":
-                    #iconbar.append('<li>%s</li>\n' % self.make_iconlink(
-                    #     ["subscribe", "unsubscribe"][self.request.user.isSubscribedTo([d['page_name']])], d))
-		    pass
-                elif icon == "home":
-                    if d['page_home_page']:
-                        iconbar.append('<li>%s</li>\n' % self.make_iconlink(icon, d))
-                else:
-                    iconbar.append('<li>%s</li>\n' % self.make_iconlink(icon, d))
+                iconbar.append('<li>%s</li>\n' % self.make_iconlink(icon, d))
             iconbar.append('</ul>\n')
         return ''.join(iconbar)
 
@@ -558,7 +545,6 @@ class Theme:
             'showtext_html': self.showtext_link(d, **keywords),
             'edittext_html': self.edittext_link(d, **keywords),
             'search_form_html': self.searchform(d),
-            'available_actions_html': self.availableactions(d),
             'credits_html': self.emit_custom_html(config.page_credits),
             'version_html': self.showversion(d, **keywords),
             'footer_fragments_html': self.footer_fragments(d, **keywords),
@@ -575,7 +561,6 @@ class Theme:
 %(footer_fragments_html)s
 %(edittext_html)s
 %(search_form_html)s
-%(available_actions_html)s
 %(config_page_footer2_html)s
 </div>
 %(version_html)s
