@@ -9,7 +9,7 @@
 
 import os, time, sys
 from LocalWiki import config, wikiutil, wikidb
-from LocalWiki.util import LocalWikiNoFooter
+from LocalWiki.util import LocalWikiNoFooter, web
 import cPickle
 #############################################################################
 ### Timing
@@ -112,7 +112,16 @@ class RequestBase:
         self.path_info = env.get('PATH_INFO', '')
         self.query_string = env.get('QUERY_STRING', '')
         self.request_method = env.get('REQUEST_METHOD', None)
-        self.remote_addr = env.get('HTTP_X_FORWARDED_FOR', env.get('REMOTE_ADDR', ''))
+
+	self.remote_addr = env.get('REMOTE_ADDR')
+	self.proxy_addr = None
+
+        if env.has_key('HTTP_X_FORWARDED_FOR') and config.trust_x_forwarded_for:
+            xff = env.get('HTTP_X_FORWARDED_FOR')
+            if web.isIpAddress(xff):
+                self.remote_addr = env.get('HTTP_X_FORWARDED_FOR')
+                self.proxy_addr = env.get('REMOTE_ADDR')
+
         self.http_user_agent = env.get('HTTP_USER_AGENT', '')
         self.is_ssl = env.get('SSL_PROTOCOL', '') != '' \
             or env.get('SSL_PROTOCOL_VERSION', '') != '' \

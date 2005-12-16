@@ -10,6 +10,17 @@ from LocalWiki import config
 
 _ua_match = None
 
+def isIpAddress(addr):
+    try:
+	s_addr = map(int, addr.split('.'))
+	is_octet = True
+	for o in s_addr:
+	    is_octet = is_octet and 0 <= o and o <= 255
+
+	return len(s_addr) == 4 and is_octet
+    except ValueError:
+	return False
+
 def isSpiderAgent(**kw):
     """ Return True if user agent appears to be a spider.
     """

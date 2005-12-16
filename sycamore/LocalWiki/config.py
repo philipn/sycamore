@@ -165,6 +165,7 @@ _cfg_defaults = {
     'theme_default': 'classic',
     'theme_force': False,
     'trail_size': 5,
+    'trust_x_forwarded_for': True, # use X_FORWARDED_FOR for request.remote_addr if provided.
     'tz_offset': -28800, # default time zone offset in unix time from UTC.  e.g. 3600 = 1 hour. 
     # a regex of HTTP_USER_AGENTS that should be excluded from logging,
     # and receive a FORBIDDEN for anything except viewing a page
