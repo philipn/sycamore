@@ -5,6 +5,7 @@ from LocalWiki.Page import Page
 from LocalWiki.util.dataset import TupleDataset, Column
 from LocalWiki.widget.browser import DataBrowserWidget
 from LocalWiki.formatter.text_html import Formatter
+from LocalWiki.widget.comments import Comment
 
 action_name = __name__.split('.')[-1]
 
@@ -97,23 +98,7 @@ def display_edits(request, userpage):
 			text=_('revert'),
                         querystr='action=revert&amp;date=%s&amp' % (repr(mtime))))
 
-	if editType.find('/REVERT') != -1:
-	    # check if it's in version format (default)
-	    if comment[0] == 'v':
-	      version = comment[1:]
-	      comment = _("Revert to version %(version)s.") % {'version': version}
-	    else:
-	      datestamp = request.user.getFormattedDateTime(float(comment))
-	      comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
-	elif editType == 'ATTNEW':
-	    comment = "Upload of attachment '%s.'" % comment
-	elif editType == 'ATTDEL':
-	    comment = "Attachment '%s' deleted." % comment
-	elif editType == 'DELETE':
-	    if comment: 
-		comment = "Page deleted: '%s'" % comment
-	    else: 
-		comment = "Page deleted (no comment)"
+	comment = Comment(request, comment, editType).render()
 
 	edits.addRow((page.link_to(request),
 		      request.user.getFormattedDateTime(mtime),

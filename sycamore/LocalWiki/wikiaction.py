@@ -702,21 +702,22 @@ def do_info(pagename, request):
                 diff = '<input type="radio" name="version1" value="%s"%s><input type="radio" name="version2" value="%s">' % (this_version,checked,this_version)
   
             
-            if editType.find('/REVERT') != -1:
-	        if comment[0] == 'v':
-		  # Given as version so let's display as version
-		  comment = "Revert to version %s" % comment[1:]
-		else:
-                  datestamp = request.user.getFormattedDateTime(float(comment))
-                  comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
-	    elif editType == 'ATTNEW':
-	    	comment = "Upload of attachment '%s.'" % comment
-	    elif editType == 'ATTDEL':
-		comment = "Attachment '%s' deleted." % comment
-	    elif editType == 'DELETE':
-	        if comment: comment = "Page deleted: '%s'" % comment
-		else: comment = "Page deleted (no comment)"
-	    	   
+#             if editType.find('/REVERT') != -1:
+# 	        if comment[0] == 'v':
+# 		  # Given as version so let's display as version
+# 		  comment = "Revert to version %s" % comment[1:]
+# 		else:
+#                   datestamp = request.user.getFormattedDateTime(float(comment))
+#                   comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
+# 	    elif editType == 'ATTNEW':
+# 	    	comment = "Upload of attachment '%s.'" % comment
+# 	    elif editType == 'ATTDEL':
+# 		comment = "Attachment '%s' deleted." % comment
+# 	    elif editType == 'DELETE':
+# 	        if comment: comment = "Page deleted: '%s'" % comment
+# 		else: comment = "Page deleted (no comment)"
+	    from LocalWiki.widget.comments import Comment
+	    comment = Comment(request, comment, editType).render()
    	    
 	    if entry[2]:
 	    	editUser = user.User(request, entry[2])
@@ -728,7 +729,7 @@ def do_info(pagename, request):
                         request.user.getFormattedDateTime(mtime),
                         diff,
                         editUser_text,
-                        wikiutil.escape(comment) or '&nbsp;',
+                        comment or '&nbsp;',
                         actions,
                 ))
 	    count +=1

@@ -14,6 +14,7 @@ from LocalWiki import config, user, util, wikiutil, wikixml, wikidb
 from LocalWiki.Page import Page
 from LocalWiki.logfile import editlog
 from LocalWiki.formatter.text_html import Formatter
+from LocalWiki.widget.comments import Comment
 
 _DAYS_SELECTION = [1, 2, 3, 7]
 _MAX_DAYS = 2
@@ -162,8 +163,9 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
 
     comments = []
     for idx in range(len(lines)):
-        comment = format_comment(request, lines[idx])
-        comments.append(comment)
+        comment = Comment(request, lines[idx].comment,
+			  lines[idx].action).render()
+	comments.append(comment)
     
     d['changecount'] = len(lines)
     d['comments'] = comments

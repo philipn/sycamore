@@ -11,21 +11,21 @@ class Comment(base.Widget):
 
 	if self.type.find('/REVERT') != -1:
 	    # check if it's in version format (default)
-	    if comment[0] == 'v':
-	      version = comment[1:]
-	      comment = "Revert to version %(version)s." % {'version': version}
+	    if self.comment[0] == 'v':
+	      version = self.comment[1:]
+	      self.comment = "Revert to version %(version)s." % {'version': version}
 	    else:
-	      datestamp = request.user.getFormattedDateTime(float(comment))
-	      comment = "Revert to version dated %(datestamp)s." % {'datestamp': datestamp}
+	      datestamp = self.request.user.getFormattedDateTime(float(self.comment))
+	      self.comment = "Revert to version dated %(datestamp)s." % {'datestamp': datestamp}
 	elif self.type == 'ATTNEW':
-	    comment = "Upload of attachment '%s.'" % comment
+	    self.comment = "Upload of attachment '%s.'" % self.comment
 	elif self.type == 'ATTDEL':
-	    comment = "Attachment '%s' deleted." % comment
+	    self.comment = "Attachment '%s' deleted." % self.comment
 	elif self.type == 'DELETE':
-	    if comment: 
-		comment = "Page deleted: '%s'" % comment
+	    if self.comment: 
+		self.comment = "Page deleted: '%s'" % self.comment
 	    else: 
-		comment = "Page deleted (no comment)"
+		self.comment = "Page deleted (no comment)"
 	elif self.type == 'NEWEVENT':
-	    comment = "Event '%s' posted." % comment
-	return _(comment)
+	    self.comment = "Event '%s' posted." % self.comment
+	return _(self.comment)
