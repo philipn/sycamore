@@ -1,12 +1,12 @@
 from LocalWiki import wikidb, wikiutil
 
 class Edit(object):
-    def __init__(self, pagename=None, pagetext=None, editor=None, type=None, comment=None, remote_addr=None, proxy_addr=None):
+    def __init__(self, pagename=None, time, editor=None, type=None, comment=None, remote_addr=None, proxy_addr=None):
         self.pagename = pagename
-        self.pagetext = pagetext
+        self.time = time
         self.editor = editor
         self.type = type
-        self.comment = wikiutil.escape(comment)
+        self.comment = comment
         self.remote_addr = remote_addr
         self.proxy_addr = proxy_addr
 
@@ -28,4 +28,7 @@ class Changes(object):
         pass
 
     def next(self):
-        return Edit(self.cursor.fetchone())
+        row = self.cursor.fetchone()
+        if not row:
+            raise StopIteration
+        return Edit(*row)
