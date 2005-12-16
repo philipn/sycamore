@@ -92,7 +92,6 @@ def create_tables(cursor):
    editType enum('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE'),
    comment varchar(81),
    userIP char(16),
-   proxyIP char(16),
    primary key(name, editTime)
    ) type=InnoDB;""")
 

@@ -711,7 +711,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 
     #    return backuppage.url(self.request)
 
-    def _write_to_db(self, text, action, comment, ip, proxy_ip):
+    def _write_to_db(self, text, action, comment, ip):
 	"""
 	Write the text to the page tables in the database.
 	"""
@@ -726,7 +726,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	else:
 		cursor.execute("INSERT into curPages values (%s, %s, NULL, %s, NULL, %s)", (self.page_name, text, ourtime, self.request.user.id))	
 	# then we need to update the allPages table for Recent Changes and page-centric Info.
-	cursor.execute("INSERT into allPages set name=%s, text=%s, editTime=%s, userEdited=%s, editType=%s, comment=%s, userIP=%s, proxyIP=%s", (self.page_name, text, ourtime, self.request.user.id, action, comment,ip,proxy_ip))
+	cursor.execute("INSERT into allPages set name=%s, text=%s, editTime=%s, userEdited=%s, editType=%s, comment=%s, userIP=%s", (self.page_name, text, ourtime, self.request.user.id, action, comment,ip))
 	cursor.execute("commit;")
 	cursor.close()
 	db.close()

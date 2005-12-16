@@ -47,7 +47,7 @@ def format_comment(request, line):
 	    return comment
         elif line.action == 'ATTDRW':
             comment = _("Drawing '%(filename)s' saved.") % {'filename': filename}
-	    return comment
+	    return wikiutil.escape(comment)
 
     elif line.action == 'DELETE':
            if comment: comment = "Page deleted: '%s'" % (comment)
@@ -55,7 +55,7 @@ def format_comment(request, line):
 
     elif line.action == 'NEWEVENT':
 	comment = "Event '%s' posted." % line.comment
-	return comment
+	return wikiutil.escape(comment)
     elif line.action.find('/REVERT') != -1:
         if comment[0] == 'v':
 	  # Given as a version
@@ -64,8 +64,8 @@ def format_comment(request, line):
 	else:
           datestamp = request.user.getFormattedDateTime(float(comment))
           comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
-	return comment
-    return comment
+	return wikiutil.escape(comment)
+    return wikiutil.escape(comment)
 
 def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     request = macro.request
@@ -139,21 +139,25 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
             d['time_html'] = time.strftime("at %I:%M %p", line.time_tuple)
     
     # print editor name or IP
-    d['editors'] = []
+    d['editors'] = None
     if config.show_hosts:
         if len(lines) > 1:
             counters = {}
             editorlist = [] 
             for idx in range(len(lines)):
-                name = lines[idx].getEditorb(request)
+                name = lines[idx].getEditor(request)
 		ip = lines[idx].host
-                d['editors'].append((name,ip))
+                editorlist.append((name,ip))
                 #if not counters.has_key(name): counters[name] = []
                 #counters[name].append(idx+1)
             #poslist = map(None,  counters.values(), counters.keys())
             #poslist.sort()
             ##request.write(repr(counters.items()))
+            d['editors'] = []
+            for name, ip in editorlist:
+                d['editors'].append((name, ip))
         else:
+            d['editors'] = []
             d['editors'].append((line.getEditor(request),line.host))
 
     comments = []
@@ -267,8 +271,7 @@ def execute(macro, args, **kw):
       self.action = edit_tuple[3]
       self.comment = edit_tuple[4]
       self.userid = edit_tuple[2]
-      self.ip = edit_tuple[5]
-      self.proxy_ip = edit_tuple[6]
+      self.host = edit_tuple[5]
 
      def getEditor(self, request):
 	 if self.userid:
@@ -302,15 +305,15 @@ def execute(macro, args, **kw):
     # so, let's compile all the different types of changes together!
     # note:  we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
     cursor.execute("""SELECT * from (
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP, proxyIP from pageChanges where pageChanges.changeTime >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from pageChanges where pageChanges.changeTime >= %s)
      UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP, proxyIP from currentImageChanges where currentImageChanges.changeTime >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from currentImageChanges where currentImageChanges.changeTime >= %s)
      UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP, proxyIP from oldImageChanges where oldImageChanges.changeTime >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from oldImageChanges where oldImageChanges.changeTime >= %s)
      UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP, proxyIP from deletedImageChanges where deletedImageChanges.changeTime >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from deletedImageChanges where deletedImageChanges.changeTime >= %s)
      UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP, proxyIP from eventChanges where eventChanges.changeTime >= %s)
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from eventChanges where eventChanges.changeTime >= %s)
      order by changeTime desc
      ) as result;"""
       , (seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago))
