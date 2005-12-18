@@ -475,10 +475,10 @@ def do_upload(pagename, request):
 
     ext = getExtension(request, target, filename)
 
-    f2e = {'PNG': '.png', 'JPEG': '.jpg', 'GIF': '.gif'}
+    f2e = {'PNG': ['.png'], 'JPEG': ['.jpg', '.jpeg'], 'GIF': ['.gif']}
     imfe = f2e.get(im.format, '')
 
-    if imfe != ext:
+    if ext.lower() not in imfe:
 	msg += _("File extension %s did not match image format %s, changing extension to %s.<br />" % (ext, im.format, imfe))
 	ext = imfe
 
