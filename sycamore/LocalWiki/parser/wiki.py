@@ -372,8 +372,7 @@ class Parser:
         if not text:
 	    text = word
         # if a simple, self-referencing link, emit it as plain text
-        if self.is_a_page:
-	  if word == self.formatter.page.page_name:
+	if word == self.formatter.page.page_name:
             return text 
         if config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
             word = self.formatter.page.page_name + word
@@ -930,13 +929,9 @@ class Parser:
         """ For each line, scan through looking for magic
             strings, outputting verbatim any intervening text.
         """
-	if formatter.__dict__.has_key('page'):
-	  self.is_a_page = True
-	else: self.is_a_page = False
 
         self.formatter = formatter
-        if self.is_a_page: self.hilite_re = self.formatter.page.hilite_re
-	else: self.hilite_re = ''
+        self.hilite_re = self.formatter.page.hilite_re
 
         # prepare regex patterns
         rules = self.formatting_rules.replace('\n', '|')

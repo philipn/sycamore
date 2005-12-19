@@ -116,9 +116,9 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename)
     text = '<div><h4>Image history</h4></div><ul>'
     for revision in revisions:
       if revision[1]:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s&amp;">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), Page(revision[1]).link_to(request), request.user.getFormattedDateTime(revision[2]), Page(revision[3]).link_to(request))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), Page(revision[1]).link_to(request), request.user.getFormattedDateTime(revision[2]), Page(revision[3]).link_to(request))
       else:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s&amp;">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), request.user.getFormattedDateTime(revision[2]), Page(revision[3]).link_to(request))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), request.user.getFormattedDateTime(revision[2]), Page(revision[3]).link_to(request))
     text += '</ul>'
     return text
 
@@ -543,7 +543,7 @@ def restore_image(pagename, request):
 
     db = wikidb.connect()
     cursor = db.cursor()
-    cursor.execute("SELECT name from images where name=%s and attached_to_pagename=%s", (filename, pagename))
+    cursor.execute("SELECT name, uploaded_time from images where name=%s and attached_to_pagename=%s", (filename, pagename))
     is_in_images = cursor.fetchone()
     if is_in_images:
 	# this means the image wasn't most recently deleted but the user still would like to revert to this version of the image
@@ -551,7 +551,7 @@ def restore_image(pagename, request):
 	#backup the current version of the image
 	cursor.execute("INSERT into oldImages set name=%s, attached_to_pagename=%s, image=(select image from images where name=%s and attached_to_pagename=%s), uploaded_by=(select uploaded_by from images where name=%s and attached_to_pagename=%s), uploaded_time=(select uploaded_time from images where name=%s and attached_to_pagename=%s), deleted_time=%s, deleted_by=%s;",(filename, pagename, filename, pagename, filename, pagename, filename, pagename, timenow, request.user.id))
 	#revert by putting their version as the current version
-	cursor.execute("UPDATE images set image=(select image from oldImages where name=%s and attached_to_pagename=%s and uploaded_time=%s), uploaded_by=%s, uploaded_time=%s", (filename, pagename, uploaded_time, request.user.id, timenow))
+	cursor.execute("UPDATE images set image=(select image from oldImages where name=%s and attached_to_pagename=%s and uploaded_time=%s), uploaded_by=%s, uploaded_time=%s where name=%s and attached_to_pagename=%s", (filename, pagename, uploaded_time, request.user.id, timenow, filename, pagename))
 	cursor.execute("commit;")
 
     else:
@@ -600,10 +600,12 @@ def send_viewfile(pagename, request):
 
 	db = wikidb.connect()
         cursor = db.cursor()
+	# does the image exist?
+	db = wikidb.connect()
+        cursor = db.cursor()
+
         if not version:
  	  # in some rare cases the images were not uploaded by a user, so let's check to see if there's information on the upload-er
-	  cursor.execute("SELECT images.uploaded_by from images where name=%s and attached_to_pagename=%s", (pagename, filename))
-	  result = cursor.fetchone()
  	  cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), images.uploaded_time from images, users where attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by", (pagename,filename))
 	else:
           cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), images.uploaded_time from images, users where attached_to_pagename=%s and images.name=%s and users.id=images.uploaded_by and images.uploaded_time=%s", (pagename,filename,version))

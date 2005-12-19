@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['/usr/local/lib/python2.4/site-packages','/var/www/installhtml/dwiki'])
+sys.path.extend(['/usr/local/lib/python2.4/site-packages','/var/www/dwiki'])
 from LocalWiki import wikidb
 
 basic_pages = {}
@@ -176,7 +176,7 @@ def create_tables(cursor):
  name varchar(255),
  image mediumblob,
  uploaded_time double not null,
- uploaded_by char(19),
+ uploaded_by char(19) not null default "",
  attached_to_pagename  varchar(255),
  uploaded_by_ip char(16),
  xsize smallint,
@@ -192,7 +192,7 @@ def create_tables(cursor):
  name varchar(255),
  image mediumblob,
  uploaded_time double,
- uploaded_by char(19),
+ uploaded_by char(19) not null default "",
  attached_to_pagename varchar(255),
  deleted_time double,
  deleted_by char(19),
@@ -245,9 +245,9 @@ def create_other_stuff(cursor):
  cursor.execute("INSERT into users set name='';")
 
 def insert_basic_pages(cursor):
- for pagename, pagetext in basic_pages.iteritems() 
+ for pagename, pagetext in basic_pages.iteritems():
    cursor.execute("insert into curPages set name=%s, text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00');", (pagename, pagetext))
-   cursor.execute("insert into allPages set name=%s, text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';")
+   cursor.execute("insert into allPages set name=%s, text=%s, editTime=UNIX_TIMESTAMP('2005-11-09 14:44:00'), editType='SAVENEW', comment='System page';", (pagename, pagetext))
 
 db = wikidb.connect()
 cursor = db.cursor()
@@ -255,6 +255,6 @@ cursor.execute("start transaction;")
 create_tables(cursor)
 create_views(cursor)
 create_other_stuff(cursor)
-insert_basic_pages(cursor)
+#insert_basic_pages(cursor)
 cursor.execute("commit;")
 db.close()

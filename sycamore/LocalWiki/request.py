@@ -531,6 +531,7 @@ class RequestCGI(RequestBase):
         #    sys.stderr.write("    %s = '%s'\n" % (key, os.environ[key]))
         RequestBase.__init__(self, properties)
 
+	self.form = {}
         # force input/output to binary
         if sys.platform == "win32":
             import msvcrt
