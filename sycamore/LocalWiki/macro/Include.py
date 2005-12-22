@@ -14,7 +14,7 @@
 """
 
 import re, cStringIO
-from LocalWiki import config, wikiutil
+from LocalWiki import config, wikiutil, caching
 from LocalWiki.Page import Page
 
 _sysmsg = '<p><strong class="%s">%s</strong></p>'
@@ -43,10 +43,14 @@ def extract_titles(body):
         titles.append((title_text, level))
     return titles
 
-Dependencies = ["pages"] # included page
+Dependencies = []
 
-def execute(macro, text, args_re=re.compile(_args_re_pattern)):
+def execute(macro, text, args, formatter=None):
+    if not formatter:
+      if hasattr(macro.parser, 'formatter'): formatter = macro.parser.formatter
+      else: formatter = macro.formatter
     _ = macro.request.getText
+    args_re=re.compile(_args_re_pattern)
 
     # return immediately if getting links for the current page
     if macro.request.mode_getpagelinks:
@@ -60,7 +64,7 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
     # prepare including page
     result = []
     print_mode = macro.form.has_key('action') and macro.form['action'][0] == "print"
-    this_page = macro.formatter.page
+    this_page = formatter.page
     if not hasattr(this_page, '_macroInclude_pagelist'):
         this_page._macroInclude_pagelist = {}
 
@@ -100,7 +104,7 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
         if skipitems:
             skipitems -= 1
             continue
-        inc_page = Page(inc_name, formatter=macro.formatter.__class__(macro.request))
+        inc_page = Page(inc_name)
         inc_page._macroInclude_pagelist = this_page._macroInclude_pagelist
 
         # check for "from" and "to" arguments (allowing partial includes)
@@ -135,23 +139,23 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
             for title, level in extract_titles(body[from_pos:to_pos]):
                 if levelstack:
                     if level > levelstack[-1]:
-                        result.append(macro.formatter.bullet_list(1))
+                        result.append(formatter.bullet_list(0))
                         levelstack.append(level)
                     else:
                         while levelstack and level < levelstack[-1]:
-                            result.append(macro.formatter.bullet_list(0))
+                            result.append(formatter.bullet_list(0))
                             levelstack.pop()
                         if not levelstack or level != levelstack[-1]:
-                            result.append(macro.formatter.bullet_list(1))
+                            result.append(formatter.bullet_list(1))
                             levelstack.append(level)
                 else:
-                    result.append(macro.formatter.bullet_list(1))
+                    result.append(formatter.bullet_list(1))
                     levelstack.append(level)
-                result.append(macro.formatter.listitem(1))
+                result.append(formatter.listitem(1))
                 result.append(inc_page.link_to(title))
-                result.append(macro.formatter.listitem(0))
+                result.append(formatter.listitem(0))
             while levelstack:
-                result.append(macro.formatter.bullet_list(0))
+                result.append(formatter.bullet_list(0))
                 levelstack.pop()
             continue
 
@@ -178,7 +182,7 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
         if args.group('level'):
             level = int(args.group('level'))
         if print_mode:
-            result.append(macro.formatter.heading(level, heading))
+            result.append(formatter.heading(level, heading))
         elif macro.request.user.may.edit(inc_name):
            if heading:
              result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), heading, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
@@ -195,15 +199,24 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
         this_page._macroInclude_pagelist[inc_name] = \
             this_page._macroInclude_pagelist.get(inc_name, 0) + 1
 
-        # output the included page
-        strfile = cStringIO.StringIO()
-        macro.request.redirect(strfile)
-        try:
-            inc_page.send_page(macro.request, content_only=1, content_id="Include_%s" % wikiutil.quoteWikiname(inc_page.page_name) )
-            result.append(strfile.getvalue())
-        finally:
-            macro.request.redirect()
-
+        # format the included page
+        pi_format = config.default_markup or "wiki" 
+        Parser = wikiutil.importPlugin("parser", pi_format, "Parser")
+        raw_text = inc_page.get_raw_body()
+        parser = Parser(raw_text, formatter.request)
+        # note that our page now depends on the content of the included page
+        if not formatter.isPreview():
+          # this means we're in the caching formatter
+          caching.dependency(this_page.page_name, inc_name)
+        # output formatted
+        buffer = cStringIO.StringIO()
+        formatter.request.redirect(buffer)
+        parser.format(formatter)
+        formatter.request.redirect()
+        text = buffer.getvalue()
+        buffer.close()
+	result.append(text)
+                  
         # decrement or remove include marker
         if this_page._macroInclude_pagelist[inc_name] > 1:
             this_page._macroInclude_pagelist[inc_name] = \
@@ -231,5 +244,3 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
 
     # return include text
     return ''.join(result)
-
-# vim:ts=4:sw=4:et

@@ -17,7 +17,8 @@ def getText(nodelist):
             rc = rc + node.data
     return rc
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter=macro.formatter
     htmltext = []
     do_mini = False
     if args == 'mini': do_mini = True

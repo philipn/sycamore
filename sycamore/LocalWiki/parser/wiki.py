@@ -70,12 +70,12 @@ class Parser:
 (?P<strike>(--X)|(X--))
 (?P<mdash>--(-){0,1})
 (?P<comment>^\#\#.*$)
-(?P<macro>\[\[(%(macronames)s)(?:\(.*?\))?\]\]))
 (?P<li>^\s+\*)
 (?P<ol>%(ol_rule)s)
 (?P<dl>%(dl_rule)s)
 (?P<tableZ>\|\| $)
 (?P<table>(?:\|\|)+(?:<[^>]*?>)?(?=.))
+(?P<macro>\[\[(%(macronames)s)(?:\(.*?\))?\]\]))
 (?P<heading>^\s*(?P<hmarker>=+)(\s)*.*(\s)*(?P=hmarker)( )*$)
 (?P<url_bracket>\[((%(url)s)\:|#|\:)[^\s\]]+(\s[^\]]+)?\])
 (?P<url>%(url_rule)s)
@@ -1085,4 +1085,9 @@ class Parser:
         if self.formatter.in_p: self.request.write(self.formatter.paragraph(0))
         if self.in_table: self.request.write(self.formatter.table(0))
         self.request.write(self._undent())
+
+	# check for pending footnotes
+        if getattr(self.request, 'footnotes', None):
+          from LocalWiki.macro.FootNote import emit_footnotes
+          self.request.write(emit_footnotes(self.request, self.formatter))
 

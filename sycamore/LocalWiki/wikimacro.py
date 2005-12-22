@@ -95,15 +95,15 @@ class Macro:
         self.formatter = self.request.formatter
         self._ = self.request.getText
 
-    def execute(self, macro_name, args):
+    def execute(self, macro_name, args, formatter=None):
         macro = wikiutil.importPlugin('macro', macro_name)
         if macro:
-            return macro(self, args)
+            return macro(self, args, formatter)
 
         builtins = vars(self.__class__)
         # builtin macro
         if builtins.has_key('_macro_' + macro_name):
-            return builtins['_macro_' + macro_name](self, args)
+            return builtins['_macro_' + macro_name](self, args, formatter)
 
         # language pseudo macro
         if i18n.languages.has_key(macro_name):
@@ -133,7 +133,8 @@ class Macro:
         else:
             return ["time"]
 
-    def _macro_TitleSearch(self, args):
+    def _macro_TitleSearch(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         return self._m_search("titlesearch")
 
     def _m_search(self, type):
@@ -157,13 +158,16 @@ class Macro:
             '<input type="submit" value="%s">'
             '%s</form>') % (type, wikiutil.escape(default, quote=1), _("Go"), boxes))
 
-    def _macro_GoTo(self, args):
+    def _macro_GoTo(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
+        
         _ = self._
         return self.formatter.rawHTML("""<form method="get"><input name="goto" size="30">
         <input type="submit" value="%s">
         </form>""" % _("Go"))
 
-    def _macro_WordIndex(self, args):
+    def _macro_WordIndex(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         """
         index_letters = []
         s = ''
@@ -268,7 +272,8 @@ class Macro:
 	#return 'Temporarily disabled.'
  
     
-    def _macro_TitleIndex(self, args):
+    def _macro_TitleIndex(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         """
         import hotshot, hotshot.stats 
         prof = hotshot.Profile("/var/www/html/profile.output")
@@ -328,7 +333,8 @@ class Macro:
 #return 'Temporarily disabled.'
 
 
-    def _macro_InterWiki(self, args):
+    def _macro_InterWiki(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         from cStringIO import StringIO
 
         # load interwiki list
@@ -412,15 +418,18 @@ class Macro:
 	return self.formatter.rawHTML('<i>System Info macro is turned off.  It uses too much CPU to be actively used, so if you\'re an admin and want to use it for a minute, then edit wikimacro.py and turn it on.  Otherwise, leave it off! :)</i>')
 
 
-    def _macro_PageCount(self, args):
-        return self.formatter.text("%d" % (len(wikiutil.getPageList()),))
+    def _macro_PageCount(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
+        return formatter.text("%d" % (len(wikiutil.getPageList()),))
 
 
-    def _macro_Icon(self, args):
+    def _macro_Icon(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         icon = args.lower()
         return self.request.theme.make_icon(icon, actionButton=True)
 
-    def _macro_PageList(self, args):
+    def _macro_PageList(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         _ = self._
         try:
             needle_re = re.compile(args or '', re.IGNORECASE)
@@ -443,7 +452,8 @@ class Macro:
         return ''.join(result)
 
 
-    def __get_Date(self, args, format_date):
+    def __get_Date(self, args, format_date, formatter=None):
+        if not formatter: formatter = self.formatter
         _ = self._
         if not args:
             tm = time.time() # always UTC
@@ -476,21 +486,26 @@ class Macro:
                     _("Bad timestamp '%s'") % (args,), e)
         return format_date(tm)
 
-    def _macro_Date(self, args):
+    def _macro_Date(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         return self.__get_Date(args, self.request.user.getFormattedDate)
 
-    def _macro_DateTime(self, args):
+    def _macro_DateTime(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         return self.__get_Date(args, self.request.user.getFormattedDateTime)
 
 
-    def _macro_UserPreferences(self, args):
+    def _macro_UserPreferences(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         from LocalWiki import userform
-        return self.formatter.rawHTML(userform.getUserForm(self.request))
+        return formatter.rawHTML(userform.getUserForm(self.request))
 
-    def _macro_Anchor(self, args):
-        return self.formatter.anchordef(args or "anchor")
+    def _macro_Anchor(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
+        return formatter.anchordef(args or "anchor")
 
-    def _macro_MailTo(self, args):
+    def _macro_MailTo(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         from LocalWiki.util.mail import decodeSpamSafeEmail
 
         args = args or ''
@@ -505,26 +520,29 @@ class Macro:
         if self.request.user.valid:
             # decode address and generate mailto: link
             email = decodeSpamSafeEmail(email)
-            text = util.web.getLinkIcon(self.request, self.formatter, "mailto") + \
-                self.formatter.text(text or email)
-            result = self.formatter.url('mailto:' + email, text, 'external', pretty_url=1, unescaped=1)
+            text = util.web.getLinkIcon(self.request, formatter, "mailto") + \
+                formatter.text(text or email)
+            result = formatter.url('mailto:' + email, text, 'external', pretty_url=1, unescaped=1)
         else:
             # unknown user, maybe even a spambot, so
             # just return text as given in macro args
-            email = self.formatter.code(1) + \
-                self.formatter.text("<%s>" % email) + \
-                self.formatter.code(0)
+            email = formatter.code(1) + \
+                formatter.text("<%s>" % email) + \
+                formatter.code(0)
             if text:
-                result = self.formatter.text(text) + " " + email
+                result = formatter.text(text) + " " + email
             else:
                 result = email
 
         return result
 
 
-    def _macro_GetVal(self, args):
+    def _macro_GetVal(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
         page,key = args.split(',')
         d = self.request.dicts.dict(page)
         result = d.get(key,'')
-        return self.formatter.text(result)
+        return formatter.text(result)
 
+def prepareCached(text):
+  return 'request.write("' + text + '")'

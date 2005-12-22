@@ -5,7 +5,8 @@ from LocalWiki.Page import Page
 
 Dependencies = []
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
     text = []
     relative_dir = ''
     if config.relative_dir:
@@ -19,25 +20,9 @@ def execute(macro, args):
     else: text.append('<h3>%s</h3>\n'
                 '<form method="POST" action="%s/%s">\n'
                 '<input type="hidden" name="action" value="comments">\n'
-                '<input type="hidden" name="ticket" value="%s">\n'
                 '<input class="formfields" type="text" name="comment_text" size="75">\n'
                 '<input type="hidden" name="button" value="Add Comment">\n'
                 '<input class="formbutton" type="submit" name="button" value="Add Comment">\n'
-                '</form>' % (title, relative_dir, macro.formatter.page.page_name, createTicket()))
+                '</form>' % (title, relative_dir, macro.formatter.page.page_name))
 
-    return macro.formatter.rawHTML(''.join(text))
-
-def createTicket(tm = None):
-    """Create a ticket using a site-specific secret (the config)"""
-    import sha, time, types
-    ticket = tm or "%010x" % time.time()
-    digest = sha.new()
-    digest.update(ticket)
-
-    cfgvars = vars(config)
-    for var in cfgvars.values():
-        if type(var) is types.StringType:
-            digest.update(repr(var))
-
-    return "%s.%s" % (ticket, digest.hexdigest())
-
+    return formatter.rawHTML(''.join(text))

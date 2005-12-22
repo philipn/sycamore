@@ -5,7 +5,8 @@ from LocalWiki.Page import Page
 
 Dependencies = []
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
     text = []
     if args:
        if args == "begin" or args == "start":
@@ -15,4 +16,4 @@ def execute(macro, args):
     else:
        text.append('<b>You must supply the strike-through macro with either "begin" or "end": i.e. [[s(begin)]] my striked-through text [[s(end)]]')
 
-    return macro.formatter.rawHTML(''.join(text))
+    return formatter.rawHTML(''.join(text))

@@ -72,6 +72,21 @@ basic_pages["Bookmarks"] = """#acl AdminGroup:read,write,delete,revert,admin All
 ----
 '''Bolded''' items have been modified since you last viewed them.  Clicking ''diff'' will show you the differences between the version of the page you last saw and the current version, or will show the most recent difference (if only one change has been made since you last viewed the page)."""
 
+basic_pages["System Pages Group"] = """ * Front Page
+ * People
+ * Bookmarks
+ * Recent Changes
+ * User Statistics
+ * User Preferences
+ * Map"""
+
+basic_pages["User Statistics"] = """[[Stats]]
+
+There are '''[[UserCount]]''' people editing the wiki.
+
+----
+If you'd like personalized statistics on your page, simply insert the line {{{[[Stats(YourName)]]}}} into your page."""
+
 def create_tables(cursor):
  cursor.execute("""create table curPages
    (
@@ -224,15 +239,63 @@ def create_tables(cursor):
   primary key (image_name, attached_to_pagename, linked_from_pagename)
  ) type=InnoDB;""")
 
- cursor.execute("""create table mapChanges
+ cursor.execute("""create table mapCategoryDefinitions
+ (
+ id int,
+ img varchar(255),
+ name varchar(255),
+ primary key (id)
+ ) type=InnoDB;""")
+ 
+ cursor.execute("""create table mapPoints
  (
    pagename varchar(255),
-   change_time double,
-   changed_by char(19),
-   changed_by_ip char(16),
-   primary key (change_time)
+   x varchar(255),
+   y varchar(255),
+   created_time double,
+   created_by char(19),
+   created_by_ip char(16),
+   primary key (pagename, x, y)
+ ) type=InnoDB;""")
+ 
+ cursor.execute("""alter table mapPoints add index created_time (created_time);""")
+ 
+ cursor.execute("""create table oldMapPoints
+ (
+   pagename varchar(255),
+   x varchar(255),
+   y varchar(255),
+   created_time double,
+   created_by char(19),
+   created_by_ip char(16),
+   primary key (pagename, x, y, created_time)
+ ) type=InnoDB;""")
+ 
+ cursor.execute("""create table mapPointCategories
+ (
+   pagename varchar(255),
+   x varchar(255),
+   y varchar(255),
+   id int,
+   primary key (pagename, x, y)
+ ) type=InnoDB;""")
+ 
+ cursor.execute("""create table oldMapPointCategories
+ (
+   pagename varchar(255),
+   x varchar(255),
+   y varchar(255),
+   id int,
+   created_time double,
+   primary key (pagename, x, y, created_time)
  ) type=InnoDB;""")
 
+ cursor.execute("""create table pageDependencies
+ (
+   page_that_depends varchar(255),
+   source_page varchar(255),
+   primary key (page_that_depends, source_page)
+ ) type=InnoDB;""")
 
 def create_views(cursor):
  cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
@@ -243,6 +306,21 @@ def create_views(cursor):
 
 def create_other_stuff(cursor):
  cursor.execute("INSERT into users set name='';")
+ cursor.execute("""INSERT into mapCategoryDefinitions values (0, NULL, "Categories"),
+(1, "food.png", "Restaurants"),
+(2, "dollar.png", "Shopping"),
+(3, "hand.png", "Services"),
+(4, "run.png", "Parks & Recreaction"),
+(5, "people.png", "Community"),
+(6, "arts.png", "Art & Entertainment"),
+(7, "edu.png", "Education"),
+(9, "head.png", "People"),
+(10, "gov.png", "Government"),
+(11, "bike.png", "Bars & Night Life"),
+(12, "coffee.png", "Cafes"),
+(13, "house.png", "Housing"),
+(14, "wifi.png", "WiFi Hot Spots"),
+(99, NULL, "Other")""") 
 
 def insert_basic_pages(cursor):
  for pagename, pagetext in basic_pages.iteritems():
@@ -255,6 +333,6 @@ cursor.execute("start transaction;")
 create_tables(cursor)
 create_views(cursor)
 create_other_stuff(cursor)
-#insert_basic_pages(cursor)
+insert_basic_pages(cursor)
 cursor.execute("commit;")
 db.close()

@@ -373,18 +373,15 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 #            }, '</em></p>')
         
         #fixedName = re.sub("'","_27",self.page_name)
-        applet = 1
-        exclude = '"User Preferences" "Recent Changes" "Davis Map" "Front Page" "To Do"'
-        if string.find(exclude, '"' + self.page_name + '"') >= 0:
-          applet = 0
-        if applet and is_word_in_file(config.web_root + "/map.xml", '"' + self.page_name.replace("&", "&amp;") + '"') or on_same_line(config.web_root + "/points.xml", "category", '"' + self.page_name.replace("&", "&amp;") + '"'):
-          applet = 0
+        show_applet = True
+        if wikiutil.isSystemPage(self.request, self.page_name):
+          show_applet = False
         mapButton = ""
         mapHtml = ""
         relative_dir = ''
         if config.relative_dir:
           relative_dir = '/' + config.relative_dir
-        if applet:
+        if show_applet:
           mapButton = '<input id="show" class="formbutton" type="button" value="Edit Map" onclick="doshow();"/><input class="formbutton" id="hide" style="display: none;" type="button" value="Hide Map" onclick="dohide();"/>'
           mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/points.xml"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, config.web_dir, self.page_name, relative_dir)
         

@@ -1,3 +1,5 @@
+# This does the typical formatting for a comment field (as seen in the comments in recent changes, user's statistics, page revision history, etc)
+
 from LocalWiki.widget import base
 
 class Comment(base.Widget):

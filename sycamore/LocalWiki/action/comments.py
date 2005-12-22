@@ -33,45 +33,20 @@ def execute(pagename, request):
 
     # check whether the user clicked the delete button
     elif request.form.has_key('button') and \
-        request.form.has_key('comment_text') and request.form.has_key('ticket'):
+        request.form.has_key('comment_text'):
         # check whether this is a valid renaming request (make outside
         # attacks harder by requiring two full HTTP transactions)
-        if not _checkTicket(request.form['ticket'][0]):
-            msg = _('Please use the comment box on the page to add a comment!')
-        else:
-	   comment_text = request.form.get('comment_text')[0]
-	   if len(comment_text) > 1024:
-	         msg = _('Your comment is too long.  Please keep it to 1000 characters or less.')
-	   else: 
-                 now = time.time()
-	         now_formatted = request.user.getFormattedDateTime(now, global_time=True)
-	         formatted_comment_text = comment_text + " --" + '["' + request.user.name + '"]'
-	         newtext = oldtext + "------" + "\n" + "''" + ''.join(now_formatted) + "'' [[nbsp]] " + formatted_comment_text
-		 page.saveText(newtext, '0',
-            		comment="Comment added.", action="COMMENT_MACRO")
-		 msg = _('Your comment has been added.')
+	comment_text = request.form.get('comment_text')[0]
+	if len(comment_text) > 1024:
+	      msg = _('Your comment is too long.  Please keep it to 1000 characters or less.')
+	else: 
+              now = time.time()
+	      now_formatted = request.user.getFormattedDateTime(now, global_time=True)
+	      formatted_comment_text = comment_text + " --" + '["' + request.user.name + '"]'
+	      newtext = oldtext + "------" + "\n" + "''" + ''.join(now_formatted) + "'' [[nbsp]] " + formatted_comment_text
+	      page.saveText(newtext, '0',
+         		comment="Comment added.", action="COMMENT_MACRO")
+	      msg = _('Your comment has been added.')
 	
 
     return page.send_page(request, msg )
-
-def _createTicket(tm = None):
-    """Create a ticket using a site-specific secret (the config)"""
-    import sha, time, types
-    ticket = tm or "%010x" % time.time()
-    digest = sha.new()
-    digest.update(ticket)
-
-    cfgvars = vars(config)
-    for var in cfgvars.values():
-        if type(var) is types.StringType:
-            digest.update(repr(var))
-
-    return "%s.%s" % (ticket, digest.hexdigest())
-
-
-def _checkTicket(ticket):
-    """Check validity of a previously created ticket"""
-    timestamp = ticket.split('.')[0]
-    ourticket = _createTicket(timestamp)
-    return ticket == ourticket
-

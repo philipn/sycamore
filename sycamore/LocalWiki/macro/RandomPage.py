@@ -12,7 +12,8 @@ from LocalWiki import config, wikiutil
 
 Dependencies = ["time"]
 
-def execute(macro, args):
+def execute(macro, args, formatter):
+    if not formatter: formatter = macro.formatter
     # get number of wanted links        
     try:
         links = max(int(args), 1)

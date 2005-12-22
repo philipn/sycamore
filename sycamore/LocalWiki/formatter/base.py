@@ -161,7 +161,7 @@ class FormatterBase:
     
     def macro(self, macro_obj, name, args):
         # call the macro
-        return macro_obj.execute(name, args)    
+        return macro_obj.execute(name, args, formatter=self) 
 
     def processor(self, processor_name, lines):
         """ processor_name MUST be valid!
@@ -182,7 +182,7 @@ class FormatterBase:
             return content
         else:
             return ''
-
+	     
     # Other ##############################################################
     
     def rawHTML(self, markup):

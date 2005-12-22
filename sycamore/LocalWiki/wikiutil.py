@@ -56,21 +56,41 @@ def simpleStrip(request, text):
     text = re.sub(r'\<[^\>]+\>', r'', text)
     return text
 
-def wikifyString(text, request, page):
+def wikifyString(text, request, page, doCache=True, formatter=None):
   import cStringIO
   # Inefficient but easy to use way of turning wiki markup string into html
   # only use this in macros, etc.
   Parser = importPlugin("parser", "wiki_simple", "Parser")
   from LocalWiki.formatter.text_html import Formatter
   html_formatter = Formatter(request)
+  if not formatter or not hasattr(formatter, 'assemble_code'):
+    formatter = html_formatter
+    doCache = False
+
   html_formatter.setPage(page)
   buffer = cStringIO.StringIO()
   request.redirect(buffer)
   html_parser = Parser(text, request)
   html_parser.format(html_formatter)
   request.redirect()
-  parsed_text = buffer.getvalue()
-  return parsed_text
+  
+  if doCache:
+    from LocalWiki.formatter.text_python import Formatter
+    import marshal
+    py_formatter = formatter
+    buffer.close()
+    buffer = cStringIO.StringIO()
+    request.redirect(buffer)
+    parser = Parser(text, request)
+    parser.format(py_formatter)
+    request.redirect()
+    text = buffer.getvalue()
+    buffer.close()
+    return text
+  else:
+    text = buffer.getvalue()
+    buffer.close()
+    return text
 
 def getSmiley(text, formatter):
     """
@@ -268,13 +288,11 @@ def isSystemPage(request, pagename):
     @rtype: bool
     @return: true if page is a system page
     """
-    return (request.dicts.has_member('SystemPagesGroup', pagename) or
-        isTemplatePage(pagename) or isFormPage(pagename) or isEditorBackup(pagename))
+    return (request.dicts.has_member('System Pages Group', pagename) or
+        isTemplatePage(pagename) or isFormPage(pagename))
 
-def isEditorBackup(pagename):
-    return pagename.endswith('/MoinEditorBackup')
-
-
+#def isEditorBackup(pagename):
+#    return pagename.endswith('/MoinEditorBackup')
 
 def isTemplatePage(pagename):
     """

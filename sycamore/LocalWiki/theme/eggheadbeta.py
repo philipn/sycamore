@@ -451,8 +451,8 @@ SRC="%(web_dir)s/utils.js"></SCRIPT>
         @return: page header html
         """
         title_str = '"%s"' %  d['title_text']
-        if is_word_in_file(config.web_root + "/map.xml", title_str.replace("&", "&amp;")) or is_word_in_file(config.web_root +"/points.xml", title_str.replace("&", "&amp;")):
-           self.showapplet = 1
+	if d['page'].hasMapPoints():
+           self.showapplet = True
         apphtml = ""
         if self.showapplet:
            relative_dir = ''

@@ -14,7 +14,8 @@ def getText(nodelist):
             rc = rc + node.data
     return rc
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
     request = macro.request
     if config.relative_dir:  add_on = '/'
     else:  add_on = ''

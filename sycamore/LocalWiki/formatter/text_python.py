@@ -9,7 +9,7 @@
 # Imports
 import time
 from LocalWiki.formatter.base import FormatterBase
-from LocalWiki import wikiutil, config, i18n
+from LocalWiki import wikiutil, config, i18n, wikimacro
 from LocalWiki.Page import Page
 
 
@@ -32,6 +32,8 @@ class Formatter:
         else:
             from LocalWiki.formatter.text_html import Formatter
             self.formatter = Formatter(request, store_pagelinks=1, preview=0)
+
+	self._preview = kw.get('preview', 0)
         self.static = static
         self.code_fragments = []
         self.__formatter = "formatter"
@@ -44,6 +46,11 @@ class Formatter:
         self.__in_pre = 0
         self.text_cmd_begin = '\nrequest.write("""'
         self.text_cmd_end = '""")\n'
+
+
+    def isPreview(self):
+        if self._preview: return True
+	else: return False
 
     def assemble_code(self, text):
         """inserts the code into the generated text
@@ -119,6 +126,9 @@ if moincode_timestamp > %d: raise "CacheNeedsUpdate"
         return self.__insert_code('request.write(%s.pagelink(%r, %r, **%r))' %
                         (self.__formatter, pagename, text, kw))
 
+    def add_code(self, code_text):
+        return self.__insert_code(code_text)
+
     def heading(self, depth, title, **kw):        
         # check numbering, possibly changing the default
         if self._show_section_numbers is None:
@@ -141,7 +151,7 @@ if moincode_timestamp > %d: raise "CacheNeedsUpdate"
     def macro(self, macro_obj, name, args):
         # call the macro
         if self.__is_static(macro_obj.get_dependencies(name)):
-            return macro_obj.execute(name, args)
+            return macro_obj.execute(name, args, formatter=self)
         else:
             return self.__insert_code(
                 '%srequest.write(%s.macro(macro_obj, %r, %r))' %

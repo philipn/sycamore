@@ -263,7 +263,8 @@ def print_abandoned(macro, args, **kw):
     d['rc_msg'] = msg
     request.write(request.theme.recentchanges_footer(d))
     
-def execute(macro, args, **kw):
+def execute(macro, args, formatter=None, **kw):
+    if not formatter: formatter = macro.formatter
     
     # betta' with this line object so we can move away from array indexing
     class line:
@@ -293,7 +294,6 @@ def execute(macro, args, **kw):
     d['q_page_name'] = wikiutil.quoteWikiname(pagename)
 
 
-    formatter = Formatter(request)
     #log = editlog.EditLog()
     # we limit recent changes to display at most the last 7 days of edits.
     right_now  = time.gmtime()

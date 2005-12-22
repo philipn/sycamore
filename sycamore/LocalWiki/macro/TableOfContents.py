@@ -13,7 +13,9 @@ import re, sha
 
 Dependencies = []
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
+
     heading = re.compile(r"^\s*(?P<hmarker>=+)\s*(.*)\s*(?P=hmarker)")
     result = []
     baseindent = 0

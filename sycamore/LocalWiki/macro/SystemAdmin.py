@@ -15,7 +15,8 @@ from LocalWiki.action.AttachFile import do_admin_browser
 
 Dependencies = ["time"]
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
     _ = macro.request.getText
 
     # do not show system admin to not admin users

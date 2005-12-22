@@ -13,7 +13,8 @@
 
 Dependencies = ["language"]
 
-def execute(macro, args):
+def execute(macro, args, formatter):
+    if not formatter: formatter = macro.formatter
     return macro.formatter.text(
         macro.request.getText(args).replace('<br>', '\n')
     )

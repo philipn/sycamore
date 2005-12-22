@@ -22,9 +22,10 @@ _MAX_PAGENAME_LENGTH = 15 # 35
 ### Bookmarks Macro
 #############################################################################
 
+# let's not bother trying to cache this macro
 Dependencies = ["time"] # ["user", "pages", "pageparams", "bookmark"]
 
-def execute(macro, args, **kw):
+def execute(macro, args, formatter=None, **kw):
 
     class line:
      def __init__(self, edit_tuple):

@@ -54,7 +54,13 @@ _arg_sort = r'(,\s*sort=(?P<sort>(ascending|descending)))?'
 _arg_items = r'(,\s*items=(?P<items>\d+))?'
 _args_re_pattern = r'^(?P<pattern>[^,]+)((%s)?%s%s)?$' % (_arg_level,_arg_sort,_arg_items)
 
-def execute(macro, text, args_re=re.compile(_args_re_pattern)):
+def execute(macro, text, args,  formatter=None):
+    if not formatter:
+      if hasattr(macro.parser, 'formatter'): formatter = macro.parser.formatter
+      else:formatter = macro.formatter
+
+    _ = macro.request.getText
+    args_re=re.compile(_args_re_pattern)
     ret = ''
 
     # parse and check arguments
@@ -88,7 +94,7 @@ def execute(macro, text, args_re=re.compile(_args_re_pattern)):
 
     for inc_name in hits:
         params = '%s,"%s",%s' % (inc_name,inc_name, level)
-        ret = ret +"<p>"+ LocalWiki.macro.Include.execute(macro, params) +"\n"
+        ret = ret +"<p>"+ LocalWiki.macro.Include.execute(macro, params, formatter) +"\n"
 
     # return include text
     return ret

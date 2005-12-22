@@ -27,7 +27,8 @@ def comparey_alpha(x,y):
     else: return -1
 
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
     _ = macro.request.getText
 
     # prevent recursive calls

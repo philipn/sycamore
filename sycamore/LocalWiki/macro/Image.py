@@ -21,7 +21,7 @@ import sys, re, os, array
 
 
 # we want 'new' links to show up properly, and we want the image to change if deleted/reuploaded/etc.
-Dependencies = ["pages"]
+Dependencies = []
 
 default_px_size = 192
 
@@ -215,7 +215,9 @@ def getArguments(args, request):
     return (image_name, caption, thumbnail, px_size, alignment, border)
 
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
+
     baseurl = macro.request.getScriptname()
     action = 'Files' # name of the action that does the file stuff
     html = []
@@ -223,7 +225,7 @@ def execute(macro, args):
     urlpagename = wikiutil.quoteWikiname(pagename)
 
     if not args:
-        return macro.formatter.rawHTML('<b>Please supply at least an image name, e.g. [[Image(image.jpg)]], where image.jpg is an image that\'s been uploaded to this page.</b>')
+        return formatter.rawHTML('<b>Please supply at least an image name, e.g. [[Image(image.jpg)]], where image.jpg is an image that\'s been uploaded to this page.</b>')
 
     import urllib
     # image.jpg, "caption, here, yes", 20, right --- in any order (filename first)
@@ -233,8 +235,7 @@ def execute(macro, args):
     try:
       image_name, caption, thumbnail, px_size, alignment, border = getArguments(args, macro.request)
     except:
-      macro.request.write('[[Image(%s)]]' % args)
-      return ''
+      return formatter.rawHTML('[[Image(%s)]]' % wikiutil.escape(args))
 
     #is the original image even on the page?
     db = wikidb.connect()
@@ -257,10 +258,10 @@ def execute(macro, args):
 
     full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&do=view&target=" + image_name
     # put the caption in the db if it's new and if we're not in preview mode
-    if not macro.formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption)
+    if not formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption)
     if caption:
       # parse the caption string
-      caption = wikiutil.wikifyString(caption, macro.request, macro.formatter.page)
+      caption = wikiutil.wikifyString(caption, formatter.request, formatter.page, formatter=formatter)
 
     if thumbnail:
       # let's generated the thumbnail or get the dimensions if it's already been generated
@@ -288,6 +289,4 @@ def execute(macro, args):
 
       html.append(img_string)
       
-
-
     return ''.join(html)

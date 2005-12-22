@@ -124,9 +124,9 @@ _cfg_defaults = {
     'page_user_prefernces': 'User Preferences',
     'page_local_spelling_words': 'LocalSpellingWords',
     'page_category_regex': '^Category[A-Z]',
-    'page_dict_regex': '[a-z]Dict$',
+    'page_dict_regex': '[a-z]\s{0,1}Dict$',
     'page_form_regex': '[a-z]Form$',
-    'page_group_regex': '[a-z]Group$',
+    'page_group_regex': '[a-z]\s{0,1}Group$',
     'page_template_regex': 'Template$',
 
     'page_license_enabled': 0,

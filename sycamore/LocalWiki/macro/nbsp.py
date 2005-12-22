@@ -2,5 +2,6 @@ import re
 
 Dependencies = []
 
-def execute(macro, args):
-    return macro.formatter.rawHTML('&nbsp;')
+def execute(macro, args, formatter=None):
+    if not formatter: formatter=macro.formatter
+    return formatter.rawHTML('&nbsp;')

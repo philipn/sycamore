@@ -10,5 +10,6 @@
 
 Dependencies = []
 
-def execute(macro, args):
-    return macro.formatter.linebreak(0)
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
+    return formatter.linebreak(0)

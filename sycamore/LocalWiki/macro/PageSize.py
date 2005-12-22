@@ -12,7 +12,9 @@ from LocalWiki.Page import Page
 
 Dependencies = ["pages"]
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
+
     # get list of pages and their objects
     pages = wikiutil.getPageDict()
 

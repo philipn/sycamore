@@ -229,6 +229,9 @@ class Page:
         if body[0:9] == '#redirect': return True
         return False
 
+    def hasMapPoints(self):
+      return True
+
     def human_size(self):
 	"""
 	Human-readable (in 'words') size of the page.
@@ -357,6 +360,7 @@ class Page:
         @keyword attachment_indicator: if 1, add attachment indicator after link tag
         @keyword css_class: css class to use
 	@keyword know_status: for optimization.  if True that means we know whether the page exists or not
+	   (saves a query)
 	  @ keyword know_status exists: if True that means the page exists, if False that means it doesn't
         @rtype: string
         @return: formatted link
@@ -629,11 +633,7 @@ class Page:
             # parse the text and send the page content
             self.send_page_content(request, Parser, body)
 
-            # check for pending footnotes
-            if getattr(request, 'footnotes', None):
-                from LocalWiki.macro.FootNote import emit_footnotes
-                request.write(emit_footnotes(request, self.formatter))
-
+            
         # end wiki content div
         request.write('<div style="clear: both;"></div></div>\n')
         
@@ -723,13 +723,20 @@ class Page:
             buffer = cStringIO.StringIO()
             request.redirect(buffer)
             parser = Parser(body, request)
+	    # clear the page's dependencies
+	    caching.clear_dependencies(self.page_name)
             parser.format(formatter)
             request.redirect()
             text = buffer.getvalue()
             buffer.close()
             links = html_formatter.pagelinks
+	    # DEBUG XXXX
+	    test = open('test2.txt','w')
+	    test.write(text+'\n\n'+str(formatter.code_fragments))
+	    test.close()
+	    # XXXX
             src = formatter.assemble_code(text)
-            #request.write(src) # debug 
+	    #request.write(src) # debug 
             code = compile(src, self.page_name, 'exec')
             cache.update(marshal.dumps(code), links)
             

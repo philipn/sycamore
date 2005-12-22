@@ -22,7 +22,8 @@
 
 Dependencies = ["time"]
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
     _ = macro.request.getText
 
     from LocalWiki.Page import Page, wikiutil
@@ -90,7 +91,6 @@ def execute(macro, args):
         return (macro.formatter.highlight(1) +
                 _('No quotes on %(pagename)s.') % {'pagename': pagename} +
                 macro.formatter.highlight(0))
-                
     
     return ''.join(quote)
 

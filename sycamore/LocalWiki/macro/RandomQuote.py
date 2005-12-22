@@ -24,7 +24,8 @@ from LocalWiki.Page import Page, wikiutil
 
 Dependencies = ["time"]
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
     _ = macro.request.getText
 
     pagename = args or 'FortuneCookies'

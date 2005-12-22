@@ -3,7 +3,8 @@
 from LocalWiki import wikiutil, wikiform, config, wikidb
 from LocalWiki.Page import Page
 
-def execute(macro, args):
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
 
     db = wikidb.connect()
     cursor = db.cursor()

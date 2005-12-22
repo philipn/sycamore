@@ -5,7 +5,10 @@ Map Macro
 from LocalWiki import wikiutil, wikiform, config
 from LocalWiki.Page import Page
 
-def execute(macro, args):
+Dependencies = []
+
+def execute(macro, args, formatter=None):
+    if not formatter: formatter = macro.formatter
     highlight = "Davis Area"
     if args:
        highlight = args

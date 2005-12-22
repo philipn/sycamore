@@ -2,9 +2,9 @@
 """
     LocalWiki - FootNote Macro
 
-    Collect and emit footnotes. Note that currently footnote
-    text cannot contain wiki markup.
+    Collect and emit footnotes.
 
+    @copyright: 2005 by philip neustrom <philipn@gmail.com>
     @copyright: 2002 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -13,24 +13,27 @@
 import sha
 from LocalWiki import wikiutil
 
-Dependencies = ["time"] # footnote macro cannot be cached
+Dependencies = []
 
-def execute(macro, args):
+def execute(macro, args, formatter):
+    if not formatter: formatter = macro.formatter
+ 
     # create storage for footnotes
-    if not hasattr(macro.request, 'footnotes'):
-        macro.request.footnotes = []
+    if not hasattr(formatter.request, 'footnotes'):
+        formatter.request.footnotes = []
     
     if not args:
-        return emit_footnotes(macro.request, macro.formatter)
+        return emit_footnotes(formatter.request, formatter)
     else:
         # store footnote and emit number
-        idx = len(macro.request.footnotes)
+        idx = len(formatter.request.footnotes)
         fn_id = "-%s-%s" % (sha.new(args).hexdigest(), idx)
-        macro.request.footnotes.append((wikiutil.wikifyString(args, macro.request, macro.formatter.page), fn_id))
+    	args = wikiutil.wikifyString(args, formatter.request, formatter.page, formatter=formatter)
+        formatter.request.footnotes.append((args, fn_id))
         return "%s%s%s" % (
-            macro.formatter.sup(1),
-            macro.formatter.anchorlink('fndef' + fn_id, str(idx+1), id = 'fnref' + fn_id),
-            macro.formatter.sup(0),)
+            formatter.sup(1),
+            formatter.anchorlink('fndef' + fn_id, str(idx+1), id = 'fnref' + fn_id),
+            formatter.sup(0),)
 
     # nothing to do or emit
     return ''
