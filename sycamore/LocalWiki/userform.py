@@ -42,13 +42,7 @@ class UserSettingsHandler:
 	cookie_userid = string_split[0]
 	cookie_sessionid = string_split[1]
 	cookie_secret = string_split[2]
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("start transaction;")
-	cursor.execute("DELETE from userSessions where user_id=%s and session_id=%s and secret=%s", (cookie_userid, cookie_sessionid, user.hash(cookie_secret)))
-	cursor.execute("commit;")
-	cursor.close()
-	db.close()
+	self.request.cursor.execute("DELETE from userSessions where user_id=%s and session_id=%s and secret=%s", (cookie_userid, cookie_sessionid, user.hash(cookie_secret)))
 
 
     def isValidCode(self, given_uid, given_code):

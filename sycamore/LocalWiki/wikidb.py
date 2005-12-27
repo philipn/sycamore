@@ -27,7 +27,6 @@ class WikiDBCursor:
   def __init__(self, db_cursor):
     self.db_cursor = db_cursor 
 
-  
   def execute(self, query, args=None):
     if args: args = _fixArgs(args)
     self.db_cursor.execute(query, args) 

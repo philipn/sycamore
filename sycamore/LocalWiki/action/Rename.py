@@ -11,23 +11,29 @@
 """
 
 # Imports
-from LocalWiki import config, user, wikiutil, wikiaction
-from LocalWiki.logfile import editlog
+from LocalWiki import config, user, wikiutil, wikiaction, caching
 from LocalWiki.PageEditor import PageEditor
-import time, os
+import time, os, urllib
 
-def copy_images(oldpagename, newpagename):
+def copy_images(oldpagename, newpagename, request):
   # copies images from oldpagename to newpagename
   # keeps the images on oldpagename for manual deletion
   # if there is an image on the page newpagename that has the same name as an image on oldpagename,
   # then the image from newpagename superseeds the old image, and the old image is deleted (but kept
   # as a deleted image as per usual delete images/is accessable via the info tab)
-  pass
-  db = wikidb.connect()
-  cursor = wikidb.cursor()
+  from LocalWiki.action.Files import get_filelist
+  old_page_files = get_filelist(request, oldpagename)
+  new_page_files = get_filelist(request, newpagename)
+  for filename in old_page_files:
+    request.cursor.execute("SELECT image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize from images where name=%s and attached_to_pagename=%s", (filename, oldpagename))
+    result = request.cursor.fetchone()
+    if filename not in new_page_files:
+            request.cursor.execute("INSERT into images set name=%s, image=%s, uploaded_time=%s, uploaded_by=%s, uploaded_by_ip=%s, xsize=%s, ysize=%s, attached_to_pagename=%s", (filename, result[0], result[1], result[2], result[3], result[4], result[5], newpagename))
+    else:
+      request.cursor.execute("INSERT into oldImages set name=%s, image=(SELECT image from images where name=%s and attached_to_pagename=%s), uploaded_time=(SELECT uploaded_time from images where name=%s and attached_to_pagename=%s), uploaded_by=(SELECT uploaded_by from images where name=%s and attached_to_pagename=%s), uploaded_by_ip=(SELECT uploaded_by_ip from images where name=%s and attached_to_pagename=%s), xsize=(SELECT xsize from images where name=%s and attached_to_pagename=%s), ysize=(SELECT ysize from images where name=%s and attached_to_pagename=%s), attached_to_pagename=%s, deleted_by=%s, deleted_by_ip=%s, deleted_time=%s", (filename, filename, newpagename, filename, newpagename, filename, newpagename, filename, newpagename, filename, newpagename, filename, newpagename, newpagename, request.user.id, request.remote_addr, time.time()))
+      request.cursor.execute("REPLACE into images set name=%s, image=%s, uploaded_time=%s, uploaded_by=%s, uploaded_by_ip=%s, xsize=%s, ysize=%s, attached_to_pagename=%s", (filename, result[0], result[1], result[2], result[3], result[4], result[5], newpagename))
 
-  cursor.close()
-  wikidb.close()
+ 
 
 def execute(pagename, request):
     _ = request.getText
@@ -58,7 +64,7 @@ def execute(pagename, request):
             newpage = PageEditor(newpagename, request)
 
             # check whether a page with the new name already exists
-            if newpage.exists():
+            if newpage.exists() and not (newpagename.lower() == pagename.lower()):
                 msg = _('A page with the name "%s" already exists!') % (newpagename,)
 
             elif not wikiaction.isValidPageName(newpagename):        # pi Fri Dec 24 05:57:42 EST 2004
@@ -68,28 +74,33 @@ def execute(pagename, request):
 
             else:
                 if renamecomment: renamecomment = " (" + renamecomment + ")"
-                replace_in_xml(pagename, newpagename)
+                #replace_in_xml(pagename, newpagename)
                 if newpagename.lower() != pagename.lower(): 
                     page.saveText("#redirect %s" % newpagename, '0', comment='Renamed to "%s"' % newpagename, action='RENAME')
-                    os.spawnl(os.P_NOWAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', wikiutil.quoteFilename(pagename))
-                else:
-                    page.deletePage('Renamed to "%s"' % newpagename)
+		    # copy images over
+		    copy_images(pagename, newpagename, request)
 
+                os.spawnl(os.P_NOWAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', wikiutil.quoteFilename(pagename))
                 newpage.saveText(pagetext, '0', comment="Renamed from %s%s" % (pagename, renamecomment), action="RENAME")
 
-		# move images as well
-		move_images(pagename, newpagename)
 		# clear cache so images show up
-		arena = 'Page.py'
 		key = newpagename
-		cache = caching.CacheEntry(arena, key)
+		cache = caching.CacheEntry(key, request)
 		cache.clear()
 
                 msg = _('Page "%s" was successfully renamed to "%s"!') % (pagename,newpagename)
-                request.http_redirect('%s/%s' % ( 	# added by pi Fri Dec 24 05:43:13 EST 2004
-                    request.getScriptname(),		#
-                    wikiutil.quoteWikiname(pagename)))	#
-
+		if newpagename.lower() != pagename.lower():
+                  #request.http_redirect('%s/%s' % ( 		# added by pi Fri Dec 24 05:43:13 EST 2004
+                  #    request.getScriptname(),			#
+                  #    wikiutil.quoteWikiname(pagename)))	#
+		  request.http_redirect('%s/%s?action=show&redirect=%s' % (
+                    request.getScriptname(),
+                    wikiutil.quoteWikiname(newpagename),
+                    urllib.quote_plus(pagename, ''),))
+		
+		  return
+                else:
+		  return newpage.send_page(request, msg)
 
 
     else:
@@ -113,27 +124,6 @@ def execute(pagename, request):
 <p>Note that the old page name will re-direct to the new page. This means you don't <i>have</i> to update links to the new name, but you ought to. (Find links to change by doing a search for the old page name)</p>""" % locals()
 
     return page.send_page(request, msg)
-
-def replace_in_xml(old,new):
-    import re,os,string
-
-    #lock editlog
-    new_file = []
-    old = old.replace("&amp;", "&")
-    new = new.replace("&", "&amp;") 
-    l_file = open(config.web_root + config.web_dir + "/points.xml","r")
-    line = l_file.readline()
-    while line:
-       line = line.replace('"%s"' % old, '"%s"' % new)
-       new_file.append(line)
-       line = l_file.readline()
-    
-    l_file.close()
-    new_xml = open(config.web_root + config.web_dir + "/points.xml","w")
-    for l in new_file:
-       new_xml.write(l)
-    new_xml.close()
-     
 
 def _createTicket(tm = None):
     """Create a ticket using a site-specific secret (the config)"""

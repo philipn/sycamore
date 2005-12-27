@@ -149,7 +149,7 @@ class User:
         # is handled by checkbox now.
         
         # attrs not saved to profile
-        self._request = request
+        self.request = request
         self._trail = []
 
         # create checkbox fields (with default 0)
@@ -181,12 +181,6 @@ class User:
                 self.trusted = 1
         elif self.name:
             self.load()
-        else:
-            #!!! this should probably be a hash of REMOTE_ADDR, HTTP_USER_AGENT
-            # and some other things identifying remote users, then we could also
-            # use it reliably in edit locking
-            from random import randint
-            self.id = "%s.%d" % (str(time.time()), randint(0,65535))
             
         # "may" so we can say "if user.may.edit(pagename):"
         if config.SecurityPolicy:
@@ -212,12 +206,8 @@ class User:
         @rtype: bool
         @return: true, if we have a user account
         """
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("SELECT id from users where id=%s", (self.id))
-	result = cursor.fetchone()
-	cursor.close()
-	db.close()
+	self.request.cursor.execute("SELECT id from users where id=%s", (self.id))
+	result = self.request.cursor.fetchone()
 	if result: return True
 	else:  return False
         return False
@@ -248,12 +238,8 @@ class User:
         if not self.exists(): return
 
         # XXX UNICODE fix needed, we want to read utf-8 and decode to unicode
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark from users where id=%s", (self.id))
-	data = cursor.fetchone()
-	cursor.close()
-	db.close()
+	self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark from users where id=%s", (self.id))
+	data = self.request.cursor.fetchone()
 
         user_data = {'enc_password': ''}
         user_data['name'] = data[0] 
@@ -321,16 +307,10 @@ class User:
 
         self.last_saved = str(time.time())
 
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("start transaction;")
 	if self.exists():	
-		cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, tz_offset=%s where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.tz_offset, self.id))
+		self.request.cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, tz_offset=%s where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.tz_offset, self.id))
 	else:
-		cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, join_date=%s, tz_offset=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time(), self.tz_offset))
-	cursor.execute("commit;")
-	cursor.close()
-	db.close()
+		self.request.cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, join_date=%s, tz_offset=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time(), self.tz_offset))
 
 
     def makeCookieHeader(self):
@@ -382,15 +362,10 @@ class User:
 	
 	sessionid = hash(str(time.time()) + str(self.id))
 	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("start transaction;")
 	# clear possibly old expired sessions
-	cursor.execute("DELETE from userSessions where user_id=%s and expire_time>=%s", (self.id, time.time()))
+	self.request.cursor.execute("DELETE from userSessions where user_id=%s and expire_time>=%s", (self.id, time.time()))
 	# add our new session
-	cursor.execute("INSERT into userSessions set user_id=%s, session_id=%s, secret=%s, expire_time=%s", (self.id, sessionid, hash(secret), expiretime))
-	cursor.execute("commit")
-	cursor.close()
-	db.close()
+	self.request.cursor.execute("INSERT into userSessions set user_id=%s, session_id=%s, secret=%s, expire_time=%s", (self.id, sessionid, hash(secret), expiretime))
 
 	return (sessionid, secret)
     
@@ -405,12 +380,8 @@ class User:
 	userid = split_string[0]
 	sessionid = split_string[1]
 	secret = split_string[2]
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("SELECT secret from userSessions where user_id=%s and session_id=%s and expire_time>=%s", (userid, sessionid, time.time()))
-	result = cursor.fetchone()
-	cursor.close()
-	db.close()
+	self.request.cursor.execute("SELECT secret from userSessions where user_id=%s and session_id=%s and expire_time>=%s", (userid, sessionid, time.time()))
+	result = self.request.cursor.fetchone()
 	if result:
 	  if hash(secret) == result[0]: return True
 	else: return False
@@ -486,13 +457,7 @@ class User:
 	    bool_show= '1'
 	    if hideshow == 'showcomments' : bool_show= '1'
 	    elif hideshow == 'hidecomments' : bool_show= '0'
-	    db = wikidb.connect()
-	    cursor = db.cursor()
-	    cursor.execute("start transaction;")
-	    cursor.execute("update users set rc_showcomments=%s where id=%s", (bool_show, self.id))
-	    cursor.execute("commit;")
-	    cursor.close()
-	    db.close()
+	    self.request.cursor.execute("UPDATE users set rc_showcomments=%s where id=%s", (bool_show, self.id))
 
     def getShowComments(self):
         """
@@ -502,12 +467,8 @@ class User:
         @return: bookmark time (UTC UNIX timestamp) or None
         """
         if self.valid and self.exists():
- 	    db = wikidb.connect()
-	    cursor = db.cursor()
-	    cursor.execute("SELECT rc_showcomments from users where id=%s", (self.id))
-	    result = cursor.fetchone()
-	    cursor.close()
-	    db.close()
+	    self.request.cursor.execute("SELECT rc_showcomments from users where id=%s", (self.id))
+	    result = self.request.cursor.fetchone()
 	    # just in case..
 	    if not result:  return 1
 	    if result[0] == 1: return 1
@@ -523,14 +484,8 @@ class User:
         """
         if self.valid:
             if not tm: tm = time.time()
-	    db = wikidb.connect()
-	    cursor = db.cursor()
-	    cursor.execute("start transaction;")
-	    cursor.execute("UPDATE users set rc_bookmark=%s where id=%s", (str(tm), self.id))
+	    self.request.cursor.execute("UPDATE users set rc_bookmark=%s where id=%s", (str(tm), self.id))
 	    self.rc_bookmark = tm
-	    cursor.execute("commit;")
-	    cursor.close()
-	    db.close()
 
 
     def getBookmark(self):
@@ -561,12 +516,8 @@ class User:
         #return int(self.favorited_pages[index + len(pagename + "*"):index + 10 + len(pagename + "*")])
         #import re
         #from LocalWiki import wikiutil
-	db = wikidb.connect()
-        cursor = db.cursor()
-        cursor.execute("SELECT viewTime from userFavorites where username=%s and page=%s", (self.name, pagename))
-        result = cursor.fetchone()
-        cursor.close()
-        db.close()
+        self.request.cursor.execute("SELECT viewTime from userFavorites where username=%s and page=%s", (self.name, pagename))
+        result = self.request.cursor.fetchone()
 	if result: return result[0]
 	else: return None
 
@@ -579,14 +530,8 @@ class User:
         @return: 0 on success, 1 on failure
         """
         if self.valid:
-	   db = wikidb.connect()
-	   cursor = db.cursor()
-	   cursor.execute("start transaction;")
-	   cursor.execute("update users set rc_bookmark=NULL where id=%s", (self.id))
+	   self.request.cursor.execute("UPDATE users set rc_bookmark=NULL where id=%s", (self.id))
 	   self.rc_bookmark = 0
-	   cursor.execute("commit;")
-	   cursor.close()
-	   db.close()
 	   return 0
 	    
         return 1
@@ -644,15 +589,11 @@ class User:
         @return: pages this user has marked as favorites.
         """
 	favPages = []
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("SELECT page from userFavorites where username=%s order by page", (self.name))
-	page = cursor.fetchone()
+	self.request.cursor.execute("SELECT page from userFavorites where username=%s order by page", (self.name))
+	page = self.request.cursor.fetchone()
 	while page:
 	   favPages.append(page[0])
-	   page=cursor.fetchone()
-	cursor.close()
-	db.close()
+	   page=self.request.cursor.fetchone()
 	return favPages
 
     def checkFavorites(self, pagename):
@@ -660,18 +601,12 @@ class User:
         Checks to see if pagename is in the favorites list, and if it is, it updates the timestamp.
         """
         if self.name:
-	  db = wikidb.connect()
-	  cursor = db.cursor()
-	  cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
-	  result = cursor.fetchone()
+	  self.request.cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
+	  result = self.request.cursor.fetchone()
 	  if result:
           # we have it as a favorite
-	     cursor.execute("start transaction")
-	     cursor.execute("UPDATE userFavorites set viewTime=%s where username=%s and page=%s", (time.time(), self.name, pagename)) 
-	     cursor.execute("commit")
+	     self.request.cursor.execute("UPDATE userFavorites set viewTime=%s where username=%s and page=%s", (time.time(), self.name, pagename)) 
  	  
-	  cursor.close()
-	  db.close()
 
     def isFavoritedTo(self, pagename):
         """
@@ -683,12 +618,8 @@ class User:
                  0, if not
         """
         if self.valid:
-	    db = wikidb.connect()
-	    cursor = db.cursor()
-	    cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
-	    result = cursor.fetchone()
-	    cursor.close()
-	    db.close()
+	    self.request.cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
+	    result = self.request.cursor.fetchone()
 	    if result: return 1
 	    else: return 0
 
@@ -752,13 +683,7 @@ class User:
         @return: true, if page was NEWLY subscribed.
         """ 
 	if not self.isFavoritedTo(pagename):
-	    db = wikidb.connect()
-	    cursor = db.cursor()
-	    cursor.execute("start transaction")
-	    cursor.execute("INSERT into userFavorites set page=%s, username=%s, viewTime=%s", (pagename, self.name, time.time()))
-	    cursor.execute("commit")
-	    cursor.close()
-	    db.close()
+	    self.request.cursor.execute("INSERT into userFavorites set page=%s, username=%s, viewTime=%s", (pagename, self.name, time.time()))
 	    return 1
 
         return 0
@@ -766,13 +691,7 @@ class User:
 
     def delFavorite(self, pagename):
 	if self.isFavoritedTo(pagename):	
-	   db = wikidb.connect()
-	   cursor = db.cursor()
-	   cursor.execute("start transaction")
-	   cursor.execute("DELETE from userFavorites where page=%s and username=%s", (pagename, self.name))
-	   cursor.execute("commit")
-	   cursor.close()
-	   db.close()
+	   self.request.cursor.execute("DELETE from userFavorites where page=%s and username=%s", (pagename, self.name))
            return 1
 
         return 0

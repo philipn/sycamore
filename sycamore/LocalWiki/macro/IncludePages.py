@@ -1,12 +1,13 @@
 """
     LocalWiki - IncludePages macro
+    This macro is like Include but works on multiple pages via a regular expression
     
     Copyright (c) 2003 by Jun Hu <j.hu@tue.nl>
 
     Copyright (c) 2002 by Michael Reinsch <mr@uue.org>
     All rights reserved, see COPYING for details.
 
-    Code based on the LocalWiki PageList macro
+    Code based on the MoinMoin PageList macro
     Copyright (c) 2000, 2001, 2002 by J¨¹rgen Hermann <jh@web.de>
 
     This macro includes the formatted content of the given pages, following
@@ -53,6 +54,8 @@ _arg_level = r',\s*(?P<level>\d+)'
 _arg_sort = r'(,\s*sort=(?P<sort>(ascending|descending)))?'
 _arg_items = r'(,\s*items=(?P<items>\d+))?'
 _args_re_pattern = r'^(?P<pattern>[^,]+)((%s)?%s%s)?$' % (_arg_level,_arg_sort,_arg_items)
+
+Dependencies = []
 
 def execute(macro, text, args,  formatter=None):
     if not formatter:

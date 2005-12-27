@@ -50,13 +50,13 @@ def display_edits(request, userpage):
     userid = getUserId(userpage)
     db = wikidb.connect()
     cursor = db.cursor()
-    cursor.execute("SELECT count(editTime) from allPages where userEdited='%s'" % (userid,))
+    cursor.execute("SELECT count(editTime) from allPages where userEdited='%s'" % (userid))
     count_result = cursor.fetchone()
 
     if count_result: 
 	totalEdits = count_result[0]
 
-    cursor.execute("SELECT count(DISTINCT name) from allPages where userEdited='%s'" % (userid,))
+    cursor.execute("SELECT count(DISTINCT name) from allPages where userEdited='%s'" % (userid))
     count_result = cursor.fetchone()
     
     if count_result:

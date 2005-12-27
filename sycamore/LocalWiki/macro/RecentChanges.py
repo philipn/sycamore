@@ -164,7 +164,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     comments = []
     for idx in range(len(lines)):
         comment = Comment(request, lines[idx].comment,
-			  lines[idx].action).render()
+			  lines[idx].action, page.page_name).render()
 	comments.append(comment)
     
     d['changecount'] = len(lines)
@@ -316,9 +316,15 @@ def execute(macro, args, formatter=None, **kw):
      (SELECT name, changeTime as changeTime, id, editType, comment, userIP from deletedImageChanges where deletedImageChanges.changeTime >= %s)
      UNION
      (SELECT name, changeTime as changeTime, id, editType, comment, userIP from eventChanges where eventChanges.changeTime >= %s)
+     UNION
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from currentMapChanges where currentMapChanges.changeTime >= %s)
+     UNION
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from oldMapChanges where oldMapChanges.changeTime >= %s)
+     UNION
+     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from deletedMapChanges where deletedMapChanges.changeTime >= %s)
      order by changeTime desc
      ) as result;"""
-      , (seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago))
+      , (seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago))
     
     edit = cursor.fetchone()
     while edit:

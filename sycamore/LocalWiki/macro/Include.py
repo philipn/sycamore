@@ -2,9 +2,7 @@
 """
     LocalWiki - Include macro
 
-    This macro includes the formatted content of the given page(s). See
-
-        http://purl.net/wiki/moinmaster/HelpOnMacros/Include
+    This macro includes the formatted content of the given page(s).
 
     for detailed docs.
     
@@ -18,7 +16,8 @@ from LocalWiki import config, wikiutil, caching
 from LocalWiki.Page import Page
 
 _sysmsg = '<p><strong class="%s">%s</strong></p>'
-_arg_heading = r'(?P<heading>,)\s*(|(?P<hquote>[\'"])(?P<htext>.+?)(?P=hquote))'
+_arg_heading = r'((?P<heading>,)\s*(|(?P<hquote>[\'"])(?P<htext>.+?)(?P=hquote))){0,1}'
+_arg_showtitle = r'(,\s*(?P<showtitle>title)){0,1}'
 _arg_level = r',\s*(?P<level>\d+)'
 _arg_from = r'(,\s*from=(?P<fquote>[\'"])(?P<from>.+?)(?P=fquote))?'
 _arg_to = r'(,\s*to=(?P<tquote>[\'"])(?P<to>.+?)(?P=tquote))?'
@@ -26,11 +25,11 @@ _arg_sort = r'(,\s*sort=(?P<sort>(ascending|descending)))?'
 _arg_items = r'(,\s*items=(?P<items>\d+))?'
 _arg_skipitems = r'(,\s*skipitems=(?P<skipitems>\d+))?'
 _arg_titlesonly = r'(,\s*(?P<titlesonly>titlesonly))?'
-_args_re_pattern = r'^(?P<name>[^,]+)(%s(%s)?%s%s%s%s%s%s)?$' % (
-    _arg_heading, _arg_level, _arg_from, _arg_to, _arg_sort, _arg_items,
+_args_re_pattern = r'^(?P<name>[^,]+)(%s%s(%s)?%s%s%s%s%s%s)?$' % (
+    _arg_heading, _arg_showtitle, _arg_level, _arg_from, _arg_to, _arg_sort, _arg_items,
     _arg_skipitems, _arg_titlesonly)
 
-TITLERE = re.compile("^(?P<heading>\s*(?P<hmarker>=+)\s.*\s(?P=hmarker))$", 
+TITLERE = re.compile("^(?P<heading>\s*(?P<hmarker>=+)\s.*\s(?P=hmarker))$",
                      re.M)
 def extract_titles(body):
     titles = []
@@ -65,181 +64,112 @@ def execute(macro, text, args, formatter=None):
     result = []
     print_mode = macro.form.has_key('action') and macro.form['action'][0] == "print"
     this_page = formatter.page
+    showtitle = args.group('showtitle')
+
     if not hasattr(this_page, '_macroInclude_pagelist'):
         this_page._macroInclude_pagelist = {}
 
-    # get list of pages to include
     inc_name = wikiutil.AbsPageName(this_page.page_name, args.group('name'))
-    pagelist = [inc_name]
-    if inc_name.startswith("^"):
+    if not macro.request.user.may.read(inc_name):
+        return ''
+    if this_page.page_name.lower() == inc_name.lower():
+        result.append('<p><strong class="error">Recursive include of "%s" forbidden</strong></p>' % (inc_name,))
+	return ''.join(result)
+    inc_page = Page(inc_name)
+
+    # check for "from" and "to" arguments (allowing partial includes)
+    body = inc_page.get_raw_body() + '\n'
+    from_pos = 0
+    to_pos = -1
+    from_re = args.group('from')
+    if from_re:
         try:
-            inc_match = re.compile(inc_name)
+            from_match = re.compile(from_re, re.M).search(body)
+        except re.error, e:
+            ##result.append("*** fe=%s ***" % e)
+            from_match = re.compile(re.escape(from_re), re.M).search(body)
+        if from_match:
+            from_pos = from_match.end()
+        else:
+            result.append(_sysmsg % ('warning', 'Include: ' + _('Nothing found for "%s"!')) % from_re)
+    to_re = args.group('to')
+    if to_re:
+        try:
+            to_match = re.compile(to_re, re.M).search(body, from_pos)
         except re.error:
-            pass # treat as plain page name
+            to_match = re.compile(re.escape(to_re), re.M).search(body, from_pos)
+        if to_match:
+            to_pos = to_match.start()
         else:
-            pagelist = wikiutil.getPageList()
-            pagelist = filter(inc_match.match, pagelist)
+            result.append(_sysmsg % ('warning', 'Include: ' + _('Nothing found for "%s"!')) % to_re)
 
-    # sort and limit page list
-    pagelist.sort()
-    sort_dir = args.group('sort')
-    if sort_dir == 'descending':
-        pagelist.reverse()
-    max_items = args.group('items')
-    if max_items:
-        pagelist = pagelist[:int(max_items)]
+    if from_pos or to_pos != -1:
+        inc_page.set_raw_body(body[from_pos:to_pos])
 
-    skipitems = 0
-    if args.group("skipitems"):
-        skipitems = int(args.group("skipitems"))
-    titlesonly = args.group('titlesonly')
+    edit_icon = ''
+    
+    # do headings
+    level = None
+    if config.relative_dir: add_on = '/'
+    else: add_on = ''
 
-    # iterate over pages
-    for inc_name in pagelist:
-        if not macro.request.user.may.read(inc_name):
-            continue
-        if this_page._macroInclude_pagelist.has_key(inc_name):
-            result.append('<p><strong class="error">Recursive include of "%s" forbidden</strong></p>' % (inc_name,))
-            continue
-        if skipitems:
-            skipitems -= 1
-            continue
-        inc_page = Page(inc_name)
-        inc_page._macroInclude_pagelist = this_page._macroInclude_pagelist
+    heading = args.group('htext') or inc_page.split_title()
+    level = 1
+    if args.group('level'):
+        level = int(args.group('level'))
+    if args.group('htext') or showtitle: 
+      if print_mode:
+        result.append(formatter.heading(level, heading))
+      elif macro.request.user.may.edit(inc_name):
+         result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), heading, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
 
-        # check for "from" and "to" arguments (allowing partial includes)
-        body = inc_page.get_raw_body() + '\n'
-        from_pos = 0
-        to_pos = -1
-        from_re = args.group('from')
-        if from_re:
-            try:
-                from_match = re.compile(from_re, re.M).search(body)
-            except re.error, e:
-                ##result.append("*** fe=%s ***" % e)
-                from_match = re.compile(re.escape(from_re), re.M).search(body)
-            if from_match:
-                from_pos = from_match.end()
-            else:
-                result.append(_sysmsg % ('warning', 'Include: ' + _('Nothing found for "%s"!')) % from_re)
-        to_re = args.group('to')
-        if to_re:
-            try:
-                to_match = re.compile(to_re, re.M).search(body, from_pos)
-            except re.error:
-                to_match = re.compile(re.escape(to_re), re.M).search(body, from_pos)
-            if to_match:
-                to_pos = to_match.start()
-            else:
-                result.append(_sysmsg % ('warning', 'Include: ' + _('Nothing found for "%s"!')) % to_re)
+    # set or increment include marker
+    this_page._macroInclude_pagelist[inc_name] = \
+        this_page._macroInclude_pagelist.get(inc_name, 0) + 1
 
-        if titlesonly:
-            newbody = []
-            levelstack = []
-            for title, level in extract_titles(body[from_pos:to_pos]):
-                if levelstack:
-                    if level > levelstack[-1]:
-                        result.append(formatter.bullet_list(0))
-                        levelstack.append(level)
-                    else:
-                        while levelstack and level < levelstack[-1]:
-                            result.append(formatter.bullet_list(0))
-                            levelstack.pop()
-                        if not levelstack or level != levelstack[-1]:
-                            result.append(formatter.bullet_list(1))
-                            levelstack.append(level)
-                else:
-                    result.append(formatter.bullet_list(1))
-                    levelstack.append(level)
-                result.append(formatter.listitem(1))
-                result.append(inc_page.link_to(title))
-                result.append(formatter.listitem(0))
-            while levelstack:
-                result.append(formatter.bullet_list(0))
-                levelstack.pop()
-            continue
-
-        if from_pos or to_pos != -1:
-            inc_page.set_raw_body(body[from_pos:to_pos])
-        ##result.append("*** f=%s t=%s ***" % (from_re, to_re))
-        ##result.append("*** f=%d t=%d ***" % (from_pos, to_pos))
-
-        # edit icon
-        #edit_icon = inc_page.link_to(macro.request,
-        #    macro.request.theme.make_icon("edit"),
-        #    css_class="include-edit-link",
-        #    querystr={'action': 'edit', 'backto': this_page.page_name})
-        #edit_icon = edit_icon.replace('&amp;','&')
-        edit_icon = ''
-        
-        # do headings
-        level = None
-        if config.relative_dir: add_on = '/'
-        else: add_on = ''
-
-        heading = args.group('htext') or inc_page.split_title(macro.request)
-        level = 1
-        if args.group('level'):
-            level = int(args.group('level'))
-        if print_mode:
-            result.append(formatter.heading(level, heading))
-        elif macro.request.user.may.edit(inc_name):
-           if heading:
-             result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), heading, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
-           else:
-             result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), inc_name, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
-
-           # result.append(macro.formatter.heading(level,
-           #     inc_page.link_to(macro.request, heading, css_class="include-heading-link"),
-           #     icons=edit_icon.replace('<img ', '<img align="right" ')))
-        else:
-            result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td></tr></table>' % (config.relative_dir, add_on, inc_name, inc_name))
-
-        # set or increment include marker
+    # format the included page
+    pi_format = config.default_markup or "wiki" 
+    Parser = wikiutil.importPlugin("parser", pi_format, "Parser")
+    raw_text = inc_page.get_raw_body()
+    formatter.page = inc_page
+    parser = Parser(raw_text, formatter.request)
+    # note that our page now depends on the content of the included page
+    if not formatter.isPreview():
+      # this means we're in the caching formatter
+      caching.dependency(this_page.page_name, inc_name, macro.request)
+    # output formatted
+    buffer = cStringIO.StringIO()
+    formatter.request.redirect(buffer)
+    parser.format(formatter)
+    formatter.page = this_page
+    formatter.request.redirect()
+    text = buffer.getvalue()
+    buffer.close()
+    result.append(text)
+              
+    # decrement or remove include marker
+    if this_page._macroInclude_pagelist[inc_name] > 1:
         this_page._macroInclude_pagelist[inc_name] = \
-            this_page._macroInclude_pagelist.get(inc_name, 0) + 1
+            this_page._macroInclude_pagelist[inc_name] - 1
+    else:
+        del this_page._macroInclude_pagelist[inc_name]
 
-        # format the included page
-        pi_format = config.default_markup or "wiki" 
-        Parser = wikiutil.importPlugin("parser", pi_format, "Parser")
-        raw_text = inc_page.get_raw_body()
-        parser = Parser(raw_text, formatter.request)
-        # note that our page now depends on the content of the included page
-        if not formatter.isPreview():
-          # this means we're in the caching formatter
-          caching.dependency(this_page.page_name, inc_name)
-        # output formatted
-        buffer = cStringIO.StringIO()
-        formatter.request.redirect(buffer)
-        parser.format(formatter)
-        formatter.request.redirect()
-        text = buffer.getvalue()
-        buffer.close()
-	result.append(text)
-                  
-        # decrement or remove include marker
-        if this_page._macroInclude_pagelist[inc_name] > 1:
-            this_page._macroInclude_pagelist[inc_name] = \
-                this_page._macroInclude_pagelist[inc_name] - 1
-        else:
-            del this_page._macroInclude_pagelist[inc_name]
-
-        # if no heading and not in print mode, then output a helper link
-        #if macro.request.user.may.edit(inc_name):
-        #   if not (level or print_mode):
-        #       result.extend([
-        #           '<div class="include-link">',
-        #           inc_page.link_to(macro.request, '[%s]' % (inc_name,), css_class="include-page-link"),
-        #           
-        #           '</div>',
-        #       ])
-        #else:
-        #   if not (level or print_mode):
-        #       result.extend([
-         #          '<div class="include-link">',
-         #          inc_page.link_to(macro.request, '[%s]' % (inc_name,), css_class="include-page-link"),
-         #          '</div>',
-         #      ])
+    # if no heading and not in print mode, then output a helper link
+    #if macro.request.user.may.edit(inc_name):
+    #   if not (level or print_mode):
+    #       result.extend([
+    #           '<div class="include-link">',
+    #           inc_page.link_to(macro.request, '[%s]' % (inc_name,), css_class="include-page-link"),
+    #           
+    #           '</div>',
+    #       ])
+    #else:
+    #   if not (level or print_mode):
+    #       result.extend([
+     #          '<div class="include-link">',
+     #          inc_page.link_to(macro.request, '[%s]' % (inc_name,), css_class="include-page-link"),
+     #          '</div>',
+     #      ])
 
 
     # return include text

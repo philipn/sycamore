@@ -31,19 +31,13 @@ def execute(macro, args, formatter=None):
     are_events_today = False
     old_date = ''
     events = []
-    db = wikidb.connect()
-    cursor = db.cursor()
-    cursor.execute("start transaction")
     # clear events that have passed
-    cursor.execute("DELETE from events where DATE(FROM_UNIXTIME(event_time))<DATE(FROM_UNIXTIME(%s))", (time.time()))
-    cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events order by event_time")
-    result = cursor.fetchone()
+    macro.request.cursor.execute("DELETE from events where DATE(FROM_UNIXTIME(event_time))<DATE(FROM_UNIXTIME(%s))", (time.time()))
+    macro.request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events order by event_time")
+    result = macro.request.cursor.fetchone()
     while result:
       events.append(result) 
-      result = cursor.fetchone()
-    cursor.execute("commit")
-    cursor.close()
-    db.close()
+      result = macro.request.cursor.fetchone()
 
     import string, re
     current_time = macro.request.user.getFormattedDateTime(time.time())

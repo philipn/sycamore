@@ -11,7 +11,6 @@ import cStringIO, os, re, urllib, os.path, random
 from LocalWiki import caching, config, user, util, wikiutil, wikidb 
 import cPickle
 #import LocalWiki.util.web
-from LocalWiki.logfile import eventlog
 
 class Page:
     """Page - Manage an (immutable) page associated with a WikiName.
@@ -32,8 +31,14 @@ class Page:
         @keyword prev_date: date of older revision
 	@keyword revision: revision number of older revision
         @keyword formatter: formatter instance
+	@keyword cursor: a db.cursor object -- useful for inner-transaction questions
         """
         self.page_name = page_name
+
+	if keywords.has_key('cursor'):
+	   self.cursor = keywords.get('cursor')
+	else:
+	   self.cursor = None
 
         self.prev_date = keywords.get('prev_date')
 	if self.prev_date:
@@ -58,9 +63,9 @@ class Page:
         else:
             self.default_formatter = 1
 
+	
     def get_date(self):
       # returns date this page/verison was created
-      if not self.exists(): return None
       if self.version and not self.date:
         self.date = self.version_number_to_date(self.version)
 	return self.date
@@ -70,7 +75,6 @@ class Page:
 
     def get_version(self):
       # returns date this page/verison was created
-      if not self.exists(): return None
       if self.date and not self.version:
         self.version = self.date_to_version_number(self.date)
 	return self.version
@@ -79,28 +83,41 @@ class Page:
 	self.version = self.date_to_version_number(self.date)
       return self.version
 
+    def _getCursor(self):
+      # gets a cursor if we don't have one for the page
+      # if we do have one, return that
+      if self.cursor:
+        return self.cursor
+      else:
+	self.temp_db = wikidb.connect()
+	self.temp_cursor = self.temp_db.cursor()
+	return self.temp_cursor
+
+    def _endCursor(self):
+      # If we were given a cursor, do nothing (transactions end at request closure)
+      # Else, we close the cursor we created so we don't leave empty db connections out there
+      if not self.cursor:
+        self.temp_cursor.close()
+	self.temp_db.close()
+        
 
     def version_number_to_date(self, version_number):
         # Returns the unix timestamp of the editTime of this version of the page.
-        db = wikidb.connect()
-        cursor = db.cursor()
+	cursor = self._getCursor()
         cursor.execute("SELECT editTime from allPages where name=%s order by editTime asc limit 1 offset %s;", (self.page_name, version_number-1))
         result = cursor.fetchone()
-	cursor.close()
-	db.close()
+	self._endCursor()
         return result[0]
 
     def date_to_version_number(self, date):
         # Returns the version number of a given date of this page
-        db = wikidb.connect()
-        cursor = db.cursor()
+        cursor = self._getCursor()
         cursor.execute("SELECT count(editTime) from allPages where name=%s and editTime<=%s;", (self.page_name, repr(date)))
         result = cursor.fetchone()
-	cursor.close()
-	db.close()
+	self._endCursor()
         return result[0]
 
-    def split_title(self, request, force=0):
+    def split_title(self, force=0):
         """
         Return a string with the page name split by spaces, if
         the user wants that.
@@ -143,12 +160,10 @@ class Page:
         """
         if not self.exists():
             return None
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("SELECT editTime, userEdited from curPages where name=%s", (self.page_name))
+	cursor = self._getCursor()
+	cursor.execute("SELECT editTime, userEdited from curPages where name=%s", (self.page_name,))
 	result = cursor.fetchone()
-	cursor.close()
-	db.close()
+	self._endCursor()
 	editTimeUnix = result[0]
 	editUserID = result[1]
 	
@@ -167,14 +182,20 @@ class Page:
 
 	editTimeUnix, userEditedID = self._last_modified()
 	editTime = request.user.getFormattedDateTime(editTimeUnix)
-	editUser = user.User(request, userEditedID)
-	editUser_text = Page(editUser.name).link_to(request)
-	
+	if userEditedID:
+	  editUser = user.User(request, userEditedID)
+	  editUser_text = Page(editUser.name).link_to(request)
         
-        result = "(last edited %(time)s by %(editor)s)" % {
+          result = "(last edited %(time)s by %(editor)s)" % {
                 'time': editTime,
                 'editor': editUser_text,
             }
+	else:
+	  result = "(last edited %(time)s)" % {
+                'time': editTime,
+            }
+
+
 
         return result
 
@@ -196,12 +217,10 @@ class Page:
         @rtype: bool
         @return: true, if page exists
         """
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
+	cursor = self._getCursor()
+	cursor.execute("SELECT name from curPages where name=%s", (self.page_name,))
 	result = cursor.fetchone()
-	cursor.close()
-	db.close()
+	self._endCursor()
         if result:
 	  if result[0]: return True
 	return False
@@ -230,7 +249,12 @@ class Page:
         return False
 
     def hasMapPoints(self):
-      return True
+      cursor = self._getCursor()
+      cursor.execute("SELECT pagename from mapPoints where pagename=%s", (self.page_name))
+      if cursor.fetchone():
+        return True
+      self._endCursor()
+      return False
 
     def human_size(self):
 	"""
@@ -250,18 +274,23 @@ class Page:
         @rtype: int
         @return: mtime of page (or 0 if page does not exist)
         """
-        db = wikidb.connect()
-        cursor = db.cursor()
+        cursor = self._getCursor()
 	if not self.prev_date:
           cursor.execute("SELECT editTime from curPages where name=%s", (self.page_name))
         else:
 	  cursor.execute("SELECT editTime from allPages where name=%s and editTime <= %s order by editTime desc limit 1;", (self.page_name, self.prev_date))
         result = cursor.fetchone()
-        cursor.close()
-        db.close()	
+	self._endCursor()
 	if result:
           if result[0]: return int(result[0])
 	else: return 0
+
+    def ctime(self, request):
+        """
+	Gets the cached time of the page.
+	"""
+	cache = caching.CacheEntry(self.page_name, request)
+	return cache.mtime()
 
     def mtime_printable(self, request):
         """
@@ -285,26 +314,23 @@ class Page:
         @return: raw page contents of this page
         """
         if self._raw_body is None:
-		db = wikidb.connect()
-		cursor = db.cursor()
+		cursor = self._getCursor()
 		if not self.prev_date:
 			cursor.execute("SELECT text from curPages where name=%s", (self.page_name))
 			result = cursor.fetchone()
-			cursor.close()
-			db.close()
 			if result: text = result[0]
 			else: text = ''
 		else:
 			cursor.execute("SELECT text, editTime from allPages where (name=%s and editTime<=%s) order by editTime desc limit 1", (self.page_name, self.prev_date))
 			result = cursor.fetchone()
-			cursor.close()
-			db.close()
 			if result: text = result[0]
 			else: text = ''
 
 		#if self.prev_date:  self.prev_date = result[1]
 		if not result:
 			return ""
+
+		self._endCursor()
         	self.set_raw_body(text)
 
         return self._raw_body
@@ -337,13 +363,12 @@ class Page:
             url = "%s?%s" % (url, querystr)
         return url
 
-    def getName(self, request):
+    def getName(self):
        # gets the proper page name
-       db = request.db
-       cursor = db.cursor()
-       cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
+       cursor = self._getCursor()
+       cursor.execute("SELECT name from curPages where name=%s", (self.page_name,))
        result = cursor.fetchone()
-       cursor.close()
+       self._endCursor()
        if result: return result[0]
        else: return self.page_name
 
@@ -367,12 +392,12 @@ class Page:
         """
 	if know_status_exists and know_status: know_exists = True
 	else: know_exists = False
-        text = text or self.split_title(request)
+        text = text
         fmt = getattr(self, 'formatter', None)
         if not know_status:
           if self.exists():
 	  	know_exists = True
-                url = wikiutil.quoteWikiname(self.getName(request))
+                url = wikiutil.quoteWikiname(self.getName())
           else:
                 url = wikiutil.quoteWikiname(self.page_name)
         else:
@@ -394,7 +419,6 @@ class Page:
         else:
             kw['css_class'] = 'nonexistent'
             return wikiutil.link_tag(request, url, text, formatter=fmt, **kw) + attach_link
-
 
     def send_page(self, request, msg=None, **keywords):
         """
@@ -566,7 +590,7 @@ class Page:
                     request.getScriptname(),
                     wikiutil.quoteWikiname(self.page_name),
                     urllib.quote_plus(page_needle, ''))
-                title = self.split_title(request)
+                title = self.page_name
                 if self.prev_date:
                     msg = "<strong>%s</strong><br>%s" % (
                         _('Version %(version)s (%(date)s)') % {'version': self.get_version(),
@@ -625,7 +649,7 @@ class Page:
         request.write('<div id="%s" %s>\n' % (content_id, lang_attr))
         
         # new page?
-        if not self.exists() and self.default_formatter and not content_only:
+        if not self.exists() and not content_only and not self.prev_date:
             self._emptyPageText(request)
         elif not request.user.may.read(self.page_name):
             request.write("<strong>%s</strong><br>" % _("You are not allowed to view this page."))
@@ -688,9 +712,8 @@ class Page:
         #try cache
         _ = request.getText
         from LocalWiki import wikimacro
-        arena = 'Page.py'
         key = self.page_name
-        cache = caching.CacheEntry(arena, key)
+        cache = caching.CacheEntry(key, request)
         code = None
 
         if cache.needsUpdate():
@@ -724,16 +747,16 @@ class Page:
             request.redirect(buffer)
             parser = Parser(body, request)
 	    # clear the page's dependencies
-	    caching.clear_dependencies(self.page_name)
+	    caching.clear_dependencies(self.page_name, request)
             parser.format(formatter)
             request.redirect()
             text = buffer.getvalue()
             buffer.close()
             links = html_formatter.pagelinks
 	    # DEBUG XXXX
-	    test = open('test2.txt','w')
-	    test.write(text+'\n\n'+str(formatter.code_fragments))
-	    test.close()
+	    #test = open('test2.txt','w')
+	    #test.write(text+'\n\n'+str(formatter.code_fragments))
+	    #test.close()
 	    # XXXX
             src = formatter.assemble_code(text)
 	    #request.write(src) # debug 
@@ -749,17 +772,8 @@ class Page:
             exec code
         except 'CacheNeedsUpdate': # if something goes wrong, try without caching
            self.send_page_content(request, Parser, body, needsupdate=1)
-           cache = caching.CacheEntry(arena, key)
+           cache = caching.CacheEntry(key, request)
             
-        refresh = wikiutil.link_tag(request,
-            wikiutil.quoteWikiname(self.page_name) +
-            "?action=refresh&amp;arena=%s&amp;key=%s" % (arena, key),
-            _("RefreshCache")
-        ) + ' %s<br>' % _('for this page (cached %(date)s)') % {
-                'date': self.formatter.request.user.getFormattedDateTime(cache.mtime())
-        }
-        self.formatter.request.add2footer('RefreshCache', refresh)
-
 
     def _emptyPageText(self, request):
         """
@@ -809,6 +823,32 @@ class Page:
                 _('The following pages with similar names already exist...') + '</p>')
             LikePages.showMatches(self.page_name, request, start, end, matches)
 
+    def buildCache(self, request):
+        """
+	builds the page's cache.
+	"""
+        # this is normally never called, but is here to fill the cache
+        # in existing wikis; thus, we do a "null" send_page here, which
+        # is not efficient, but reduces code duplication
+        # !!! it is also an evil hack, and needs to be removed
+        # !!! by refactoring Page to separate body parsing & send_page
+	buffer = cStringIO.StringIO()
+        request.redirect(buffer)
+        try:
+            try:
+                request.mode_getpagelinks = 1
+                Page(self.page_name).send_page(request, content_only=1)
+            except:
+                import traceback
+                traceback.print_exc()
+        	cache = caching.CacheEntry(self.page_name, request)
+                cache.clear()
+        finally:
+            request.mode_getpagelinks = 0
+            request.redirect()
+	    buffer.close()
+            if hasattr(request, '_fmt_hd_counters'):
+                del request._fmt_hd_counters
 
     def getPageLinks(self, request, docache=True):
         """
@@ -821,9 +861,8 @@ class Page:
         """
         if not self.exists(): return []
 
-        arena = "Page.py"
-        key   = self.page_name
-        cache = caching.CacheEntry(arena, key)
+        key = self.page_name
+        cache = caching.CacheEntry(key, request)
         if cache.needsUpdate() and docache:
             # this is normally never called, but is here to fill the cache
             # in existing wikis; thus, we do a "null" send_page here, which
@@ -848,33 +887,28 @@ class Page:
 
 	# !!!! DB FIX DBFIX need to use LINK TABLE here
 	links = []
-        cursor = request.db.cursor()
-        cursor.execute("SELECT destination_pagename from links where source_pagename=%s", (self.page_name))
-        result = cursor.fetchone()
+        request.cursor.execute("SELECT destination_pagename from links where source_pagename=%s", (self.page_name,))
+        result = request.cursor.fetchone()
 	while result:
    	  links.append(result[0])
-	  result = cursor.fetchone()
-        cursor.close()
+	  result = request.cursor.fetchone()
 	
 	return links
 
-    def getPageLinksTo(self, request):
+    def getPageLinksTo(self):
 	"""
 	Returns a list of page names of pages that link to this page.
 	"""
 	links = []
-        cursor = request.db.cursor()
-        cursor.execute("SELECT source_pagename from links where destination_pagename=%s", (self.page_name))
+	cursor = self._getCursor()
+        cursor.execute("SELECT source_pagename from links where destination_pagename=%s", (self.page_name,))
         result = cursor.fetchone()
 	while result:
    	  links.append(result[0])
 	  result = cursor.fetchone()
-        cursor.close()
+	self._endCursor()
 
 	return links
-
-	
-
 
     #def getCategories(self, request):
     #    """

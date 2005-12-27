@@ -58,14 +58,21 @@ def simpleStrip(request, text):
 
 def wikifyString(text, request, page, doCache=True, formatter=None):
   import cStringIO
-  # Inefficient but easy to use way of turning wiki markup string into html
+  # easy to turng wiki markup string into html
   # only use this in macros, etc.
-  Parser = importPlugin("parser", "wiki_simple", "Parser")
-  from LocalWiki.formatter.text_html import Formatter
-  html_formatter = Formatter(request)
-  if not formatter or not hasattr(formatter, 'assemble_code'):
-    formatter = html_formatter
+  
+  # find out what type of formatter we're using
+  if hasattr(formatter, 'assemble_code'):
+    from LocalWiki.formatter.text_html import Formatter
+    html_formatter = Formatter(request) 
+    py_formatter = formatter
+  else:
+    from LocalWiki.formatter.text_python import Formatter
+    html_formatter = formatter
     doCache = False
+    py_formatter = Formatter(request)
+
+  Parser = importPlugin("parser", "wiki_simple", "Parser")
 
   html_formatter.setPage(page)
   buffer = cStringIO.StringIO()
@@ -75,9 +82,7 @@ def wikifyString(text, request, page, doCache=True, formatter=None):
   request.redirect()
   
   if doCache:
-    from LocalWiki.formatter.text_python import Formatter
     import marshal
-    py_formatter = formatter
     buffer.close()
     buffer = cStringIO.StringIO()
     request.redirect(buffer)
@@ -152,10 +157,10 @@ def unquoteFilename(filename):
 
 # XXX UNICODE - see above
 def quoteWikiname(filename):
-    return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2f', '/')
+    return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2f', '/').replace('%3a', ':')
 
 def unquoteWikiname(filename):
-    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2f')))
+    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2f').replace('%3a',':')))
 
 
 def escape(s, quote=None):

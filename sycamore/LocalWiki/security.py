@@ -32,7 +32,7 @@ class Permissions:
         from LocalWiki.Page import Page
         self.Page = Page
         self.name = user.name
-        self.request = user._request
+        self.request = user.request
 
     def read(self, pagename, **kw):
         """ Check whether user may read this page.

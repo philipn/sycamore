@@ -20,7 +20,6 @@ import sys, re, os, array
 #  
 
 
-# we want 'new' links to show up properly, and we want the image to change if deleted/reuploaded/etc.
 Dependencies = []
 
 default_px_size = 192
@@ -40,11 +39,8 @@ def deleteCaption(pagename, linked_from_pagename, image_name, cursor):
    cursor.execute("DELETE from imageCaptions where attached_to_pagename=%s and image_name=%s and linked_from_pagename=%s", (pagename, image_name, linked_from_pagename))
 
 
-
-def getImageSize(pagename, image_name):
+def getImageSize(pagename, image_name, cursor):
     # gets the size of an image (not a thumbnail) in the DB
-    db = wikidb.connect()
-    cursor = db.cursor()
     cursor.execute("SELECT xsize, ysize from images where attached_to_pagename=%s and name=%s", (pagename, image_name))
     result = cursor.fetchone()
     if result:
@@ -52,12 +48,12 @@ def getImageSize(pagename, image_name):
     else:
       return (0, 0)
 
-def touchCaption(pagename, linked_from_pagename, image_name, caption):
+def deleteThumbnail(pagename, image_name, request):
+   request.cursor.execute("DELETE from thumbnails where name=%s and attached_to_pagename=%s", (image_name, pagename))
+
+def touchCaption(pagename, linked_from_pagename, image_name, caption, cursor):
     stale = True
     db_caption = ''
-    db = wikidb.connect()
-    cursor = db.cursor()
-    cursor.execute("start transaction;")
     cursor.execute("SELECT caption from imageCaptions where attached_to_pagename=%s and linked_from_pagename=%s and image_name=%s", (pagename, linked_from_pagename, image_name))
     result = cursor.fetchone()
     if result: db_caption = result[0] 
@@ -65,20 +61,12 @@ def touchCaption(pagename, linked_from_pagename, image_name, caption):
       recordCaption(pagename, linked_from_pagename, image_name, caption, cursor)
     if not caption:
       deleteCaption(pagename, linked_from_pagename, image_name, cursor)
-    cursor.execute("commit;") 
-    cursor.close()
-    db.close()
 
-
-def touchThumbnail(pagename, image_name, maxsize=0):
+def touchThumbnail(pagename, image_name, cursor, maxsize=0):
     if not maxsize: maxsize = default_px_size
-    db = wikidb.connect()
-    cursor = db.cursor()
     # first we see if the thumbnail is there with the proper size
     cursor.execute("SELECT xsize, ysize from thumbnails where name=%s and attached_to_pagename=%s", (image_name, pagename))
     result = cursor.fetchone()
-    cursor.close()
-    db.close()
     if result:
      if result[0] and result[1]:
       x = result[0]
@@ -87,14 +75,12 @@ def touchThumbnail(pagename, image_name, maxsize=0):
       	# this means the thumbnail is the right size
         return x, y
     # we need to generate a new thumbnail of the right size
-    return generateThumbnail(pagename, image_name, maxsize)
+    return generateThumbnail(pagename, image_name, maxsize, cursor)
 
-def generateThumbnail(pagename, image_name, maxsize):
+def generateThumbnail(pagename, image_name, maxsize, cursor):
     from PIL import Image
     import cStringIO,time
 
-    db = wikidb.connect()
-    cursor = db.cursor()
     cursor.execute("SELECT image from images where name=%s and attached_to_pagename=%s", (image_name, pagename))
     result = cursor.fetchone()
     	
@@ -151,15 +137,10 @@ def generateThumbnail(pagename, image_name, maxsize):
     thumb_exists = cursor.fetchone()
     if thumb_exists:
       image_value = save_imagefile.getvalue()
-      cursor.execute("start transaction;")
       cursor.execute("UPDATE thumbnails set xsize=%s, ysize=%s, image=%s, last_modified=%s where name=%s and attached_to_pagename=%s;", (x, y, image_value, time.time(), image_name, pagename))
     else:
-      cursor.execute("start transaction;")
       cursor.execute("INSERT into thumbnails set xsize=%s, ysize=%s, image=%s, name=%s, last_modified=%s, attached_to_pagename=%s;", (x, y, save_imagefile.getvalue(),image_name, time.time(), pagename))
 
-    cursor.execute("commit;")
-    cursor.close()
-    db.close()
     save_imagefile.close()
     open_imagefile.close()
     
@@ -221,7 +202,7 @@ def execute(macro, args, formatter=None):
     baseurl = macro.request.getScriptname()
     action = 'Files' # name of the action that does the file stuff
     html = []
-    pagename = macro.formatter.page.page_name
+    pagename = formatter.page.page_name
     urlpagename = wikiutil.quoteWikiname(pagename)
 
     if not args:
@@ -238,12 +219,8 @@ def execute(macro, args, formatter=None):
       return formatter.rawHTML('[[Image(%s)]]' % wikiutil.escape(args))
 
     #is the original image even on the page?
-    db = wikidb.connect()
-    cursor = db.cursor()
-    cursor.execute("SELECT name from images where name=%s and attached_to_pagename=%s", (image_name, pagename))
-    result = cursor.fetchone()
-    cursor.close()
-    db.close()
+    macro.request.cursor.execute("SELECT name from images where name=%s and attached_to_pagename=%s", (image_name, pagename))
+    result = macro.request.cursor.fetchone()
     image_exists = result
 
     if not image_exists:
@@ -258,14 +235,14 @@ def execute(macro, args, formatter=None):
 
     full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&do=view&target=" + image_name
     # put the caption in the db if it's new and if we're not in preview mode
-    if not formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption)
+    if not formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption, macro.request.cursor)
     if caption:
       # parse the caption string
       caption = wikiutil.wikifyString(caption, formatter.request, formatter.page, formatter=formatter)
 
     if thumbnail:
       # let's generated the thumbnail or get the dimensions if it's already been generated
-      x, y = touchThumbnail(pagename, image_name, px_size)	
+      x, y = touchThumbnail(pagename, image_name, macro.request.cursor, px_size)	
       d = { 'right':'floatRight', 'left':'floatLeft', '':'noFloat' }
       floatSide = d[alignment]
       if caption and border:
@@ -275,7 +252,7 @@ def execute(macro, args, formatter=None):
       elif caption and not border:
         html.append('<div class="%s thumb noborder" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s"/></a><div>%s</div></div>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size),caption))
     else:
-      x, y = getImageSize(pagename, image_name)
+      x, y = getImageSize(pagename, image_name, macro.request.cursor)
       if not border and not caption:
         img_string = '<a href="%s"><img class="borderless" src="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request))
       elif border and not caption:

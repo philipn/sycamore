@@ -55,28 +55,16 @@ def execute(pagename, request):
         if request.form.get('del')[0] == "1" and request.user.may.admin("Events Board"):
 	    # let's try and delete the event!
 	    uid = request.form.get('uid')[0]
-	    db = wikidb.connect()
-	    cursor = db.cursor()
-	    cursor.execute("start transaction")
-	    cursor.execute("SELECT event_name from events where uid=%s", (uid))
-	    name = cursor.fetchone()[0]
-	    cursor.execute("DELETE from events where uid=%s", (uid))
-	    cursor.execute("commit")
-	    cursor.close()
-	    db.close()
+	    request.cursor.execute("SELECT event_name from events where uid=%s", (uid))
+	    name = request.cursor.fetchone()[0]
+	    request.cursor.execute("DELETE from events where uid=%s", (uid))
             msg = 'Event "%s" <b>deleted</b>!' % name
 
         elif request.form.get('del')[0] == "1":
             uid = request.form.get('uid')[0]
-	    db = wikidb.connect()
-	    cursor = db.cursor()
-	    cursor.execute("start transaction")
-	    cursor.execute("SELECT event_name from events where uid=%s", (uid))
-	    name = cursor.fetchone()[0]
-	    cursor.execute("DELETE from events where uid=%s and posted_by=%s", (uid, request.user.name))
-	    cursor.execute("commit")
-	    cursor.close()
-	    db.close()
+	    request.cursor.execute("SELECT event_name from events where uid=%s", (uid))
+	    name = request.cursor.fetchone()[0]
+	    request.cursor.execute("DELETE from events where uid=%s and posted_by=%s", (uid, request.user.name))
             msg = 'Event "%s" <b>deleted</b>!' % name
 
 
@@ -128,7 +116,6 @@ def doRSS(request, add_on):
     channel = rss_dom.getElementsByTagName("channel")[0]
 
     # Check to see if the event has already passed
-    # The user has hard-coded time! This is ESSENTIAL for security.  ok, maybe not, but whatever.
     import string, re
     current_time = request.user.getFormattedDateTime(time.time(), global_time=True)
     year_cut = string.split(current_time," ")[0]
@@ -150,16 +137,12 @@ def doRSS(request, add_on):
     if not generated:        
         rss_text = []
 	events = []
-	db = wikidb.connect()
-	cursor = db.cursor()
 	print time.time()
-	cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where DATE(FROM_UNIXTIME(event_time))=DATE(FROM_UNIXTIME(%s))", time.time)
-	result = cursor.fetchone()
+	request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where DATE(FROM_UNIXTIME(event_time))=DATE(FROM_UNIXTIME(%s))", (time.time))
+	result = request.cursor.fetchone()
 	while result:
 	  events.append(result)
-	  result = cursor.fetchone()
-	cursor.close()
-	db.close()
+	  result = request.cursor.fetchone()
     
         for event in events:
 	    event_time_unix = event[1]
@@ -311,23 +294,15 @@ def writeEvent(request, event_text, event_name, event_location, event_time_unix,
     event_text = event_text.encode("ascii", "replace")
     event_location = event_location.encode("ascii", "replace")
     event_name = event_name.encode("ascii", "replace")
-    db = wikidb.connect()
-    cursor = db.cursor()
-    cursor.execute("start transaction")
-    cursor.execute("SELECT max(uid) from events")
+    request.cursor.execute("SELECT max(uid) from events")
     max_id = 0
-    result = cursor.fetchone()
+    result = request.cursor.fetchone()
     if result:
      if result[0]: max_id = result[0]
     id = max_id + 1
     posted_time = time.time()
-    cursor.execute("INSERT into events set uid=%s, event_time=%s, posted_by=%s, text=%s, location=%s, event_name=%s, posted_time=%s, posted_by_ip=%s", (id, event_time_unix, posted_by, event_text, event_location, event_name, posted_time, request.remote_addr))
-    cursor.execute("commit")
+    request.cursor.execute("INSERT into events set uid=%s, event_time=%s, posted_by=%s, text=%s, location=%s, event_name=%s, posted_time=%s, posted_by_ip=%s", (id, event_time_unix, posted_by, event_text, event_location, event_name, posted_time, request.remote_addr))
 
-    # Record the changes in the editlog
-    log = editlog.EditLog()
-    log.add(request, "Events Board", None, time.time(),('Event "%s" added' % event_name), 'NEWEVENT')
-    
      
 def doParse(text, request):
    #from LocalWiki.formatter.text_html import Formatter

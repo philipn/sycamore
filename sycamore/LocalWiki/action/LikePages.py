@@ -131,6 +131,6 @@ def _showMatchGroup(request, matches, keys, match, title):
                 request.write('<li><a href="%s/%s">%s</a>' % (
                     request.getScriptname(),
                     wikiutil.quoteWikiname(page.page_name),
-                    page.split_title(request)))
+                    page.split_title()))
         request.write("</ul>")
 

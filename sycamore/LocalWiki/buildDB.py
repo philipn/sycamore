@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['/usr/local/lib/python2.4/site-packages','/var/www/dwiki'])
+sys.path.extend(['/usr/local/lib/python2.4/site-packages','/Library/Webserver/Documents/installhtml/dwiki'])
 from LocalWiki import wikidb
 
 basic_pages = {}
@@ -104,7 +104,7 @@ def create_tables(cursor):
    text mediumtext,
    editTime double,
    userEdited char(19),
-   editType enum('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE'),
+   editType enum('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP'),
    comment varchar(81),
    userIP char(16),
    primary key(name, editTime)
@@ -188,11 +188,11 @@ def create_tables(cursor):
  
  cursor.execute("""create table images
  (
- name varchar(255),
- image mediumblob,
+ name varchar(255) not null,
+ image mediumblob not null,
  uploaded_time double not null,
  uploaded_by char(19) not null default "",
- attached_to_pagename  varchar(255),
+ attached_to_pagename varchar(255) not null,
  uploaded_by_ip char(16),
  xsize smallint,
  ysize smallint,
@@ -204,15 +204,17 @@ def create_tables(cursor):
  
  cursor.execute("""create table oldImages
  (
- name varchar(255),
- image mediumblob,
- uploaded_time double,
+ name varchar(255) not null,
+ image mediumblob not null,
+ uploaded_time double not null,
  uploaded_by char(19) not null default "",
- attached_to_pagename varchar(255),
+ attached_to_pagename varchar(255) not null,
  deleted_time double,
  deleted_by char(19),
  uploaded_by_ip char(16),
  deleted_by_ip char(16),
+ xsize smallint,
+ ysize smallint,
  primary key (name, attached_to_pagename, uploaded_time)
  ) type=InnoDB;""")
  
@@ -255,10 +257,12 @@ def create_tables(cursor):
    created_time double,
    created_by char(19),
    created_by_ip char(16),
+   id int,
    primary key (pagename, x, y)
  ) type=InnoDB;""")
  
  cursor.execute("""alter table mapPoints add index created_time (created_time);""")
+ cursor.execute("""alter table mapPoints add index id (id);""")
  
  cursor.execute("""create table oldMapPoints
  (
@@ -268,8 +272,13 @@ def create_tables(cursor):
    created_time double,
    created_by char(19),
    created_by_ip char(16),
-   primary key (pagename, x, y, created_time)
+   deleted_time double,
+   deleted_by char(19),
+   deleted_by_ip char(16),
+   primary key (pagename, x, y, deleted_time)
  ) type=InnoDB;""")
+
+ cursor.execute("alter table oldMapPoints add index deleted_time (deleted_time);")
  
  cursor.execute("""create table mapPointCategories
  (
@@ -277,7 +286,7 @@ def create_tables(cursor):
    x varchar(255),
    y varchar(255),
    id int,
-   primary key (pagename, x, y)
+   primary key (pagename, x, y, id)
  ) type=InnoDB;""")
  
  cursor.execute("""create table oldMapPointCategories
@@ -286,8 +295,8 @@ def create_tables(cursor):
    x varchar(255),
    y varchar(255),
    id int,
-   created_time double,
-   primary key (pagename, x, y, created_time)
+   deleted_time double,
+   primary key (pagename, x, y, id, deleted_time)
  ) type=InnoDB;""")
 
  cursor.execute("""create table pageDependencies
@@ -303,10 +312,13 @@ def create_views(cursor):
  cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
  cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;")
  cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP from allPages;")
+ cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, '' as comment, mapPoints.created_by_ip as userIP from mapPoints;")
+ cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
+ cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;"
 
 def create_other_stuff(cursor):
  cursor.execute("INSERT into users set name='';")
- cursor.execute("""INSERT into mapCategoryDefinitions values (0, NULL, "Categories"),
+ cursor.execute("""INSERT into mapCategoryDefinitions values 
 (1, "food.png", "Restaurants"),
 (2, "dollar.png", "Shopping"),
 (3, "hand.png", "Services"),

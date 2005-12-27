@@ -451,14 +451,14 @@ SRC="%(web_dir)s/utils.js"></SCRIPT>
         @return: page header html
         """
         title_str = '"%s"' %  d['title_text']
-	if d['page'].hasMapPoints():
+	if d['page_name'] and d['page'].hasMapPoints() and not self.isEdit(d):
            self.showapplet = True
         apphtml = ""
         if self.showapplet:
            relative_dir = ''
            if config.relative_dir:
                relative_dir = '/' + config.relative_dir
-           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/points.xml"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, config.web_dir, d['title_text'], relative_dir)
+           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, d['title_text'], relative_dir)
         dict = {
             'config_header1_html': self.emit_custom_html(config.page_header1),
             'config_header2_html': self.emit_custom_html(config.page_header2),

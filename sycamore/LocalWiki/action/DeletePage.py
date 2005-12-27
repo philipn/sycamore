@@ -43,7 +43,6 @@ def execute(pagename, request):
         # Delete the page
         page.deletePage(request.form.get('comment', [''])[0])
 
-        # Redirect to RecentChanges
         return page.send_page(request,
                 msg = _('Page "%s" was successfully deleted!') % (pagename,))
 

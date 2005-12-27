@@ -114,7 +114,7 @@ class PageEditor(Page):
         """
         self.request = request
         self._ = request.getText
-        Page.__init__(self, page_name, **keywords)
+        Page.__init__(self, page_name, cursor=request.cursor, **keywords)
 
         self.do_revision_backup = keywords.get('do_revision_backup', 1)
         #self.do_editor_backup = keywords.get('do_editor_backup', 1)
@@ -383,7 +383,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
           relative_dir = '/' + config.relative_dir
         if show_applet:
           mapButton = '<input id="show" class="formbutton" type="button" value="Edit Map" onclick="doshow();"/><input class="formbutton" id="hide" style="display: none;" type="button" value="Hide Map" onclick="dohide();"/>'
-          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/points.xml"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, config.web_dir, self.page_name, relative_dir)
+          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, self.page_name, relative_dir)
         
         self.request.write('''
 <p>
@@ -490,13 +490,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
             # XXXX Error handling
             pass
         # Then really delete it
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("start transaction")
-	cursor.execute("DELETE from curPages where name=%s", (self.page_name))
-	cursor.execute("commit")
-	cursor.close()
-	db.close()
+	self.request.cursor.execute("DELETE from curPages where name=%s", (self.page_name,))
 
 	# remove entry from the search databases
 	os.spawnl(os.P_WAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', '%s' % wikiutil.quoteFilename(self.page_name))
@@ -712,22 +706,15 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	"""
 	Write the text to the page tables in the database.
 	"""
-	db = wikidb.connect()
-	cursor = db.cursor()
-	cursor.execute("start transaction;")
 	ourtime = time.time()
-	cursor.execute("SELECT name from curPages where name=%s", (self.page_name))
-	exists = cursor.fetchone()
+	self.request.cursor.execute("SELECT name from curPages where name=%s", (self.page_name,))
+	exists = self.request.cursor.fetchone()
 	if exists:
-		cursor.execute("UPDATE curPages set text=%s, editTime=%s, userEdited=%s where name=%s", (text, ourtime, self.request.user.id, self.page_name))
+		self.request.cursor.execute("UPDATE curPages set name=%s, text=%s, editTime=%s, userEdited=%s where name=%s", (self.page_name, text, ourtime, self.request.user.id, self.page_name))
 	else:
-		cursor.execute("INSERT into curPages values (%s, %s, NULL, %s, NULL, %s)", (self.page_name, text, ourtime, self.request.user.id))	
+		self.request.cursor.execute("INSERT into curPages values (%s, %s, NULL, %s, NULL, %s)", (self.page_name, text, ourtime, self.request.user.id))
 	# then we need to update the allPages table for Recent Changes and page-centric Info.
-	cursor.execute("INSERT into allPages set name=%s, text=%s, editTime=%s, userEdited=%s, editType=%s, comment=%s, userIP=%s", (self.page_name, text, ourtime, self.request.user.id, action, wikiutil.escape(comment),ip))
-	cursor.execute("commit;")
-	cursor.close()
-	db.close()
-
+	self.request.cursor.execute("INSERT into allPages set name=%s, text=%s, editTime=%s, userEdited=%s, editType=%s, comment=%s, userIP=%s", (self.page_name, text, ourtime, self.request.user.id, action, wikiutil.escape(comment),ip))
 
 	# set in-memory page text
 	self.set_raw_body(text)
@@ -824,7 +811,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         elif not self.isWritable():
             msg = _('Page is immutable!')
             raise self.Immutable, msg
-        elif not newtext:
+        elif not newtext.strip():
             msg = _('You cannot save empty pages.')
             raise self.EmptyPage, msg
         elif datestamp != '0' and datestamp < self.mtime():
@@ -841,11 +828,12 @@ delete the changes of the other person, which is excessively rude!</em></p>
                 msg += "<p>%s</p>" % _(
                     'A backup of your changes is <a href="%(backup_url)s">here</a>.') % {'backup_url': backup_url}
             raise self.EditConflict, msg
-        elif newtext == self.get_raw_body():
+        elif newtext == self.get_raw_body() and not self._rename_lowercase_condition():
             msg = _('You did not change the page content, not saved!')
             raise self.Unchanged, msg
+	# check to see if they're renaming the page to the same thing (thus, no content change)
         elif config.acl_enabled:
-            from wikiacl import parseACL
+	    from wikiacl import parseACL
             acl = self.getACL()
             if not acl.may(self.request, self.request.user.name, "admin") \
                and parseACL(newtext) != acl:
@@ -881,6 +869,18 @@ delete the changes of the other person, which is excessively rude!</em></p>
         # we broke his lock ==> but datestamp checking during preview will
             return msg
 
+    def _rename_lowercase_condition(self):
+        given_name = self.page_name 
+	current_name = self.getName()
+	# implies existance
+	if current_name:
+	  if (current_name != given_name) and (current_name.lower() == given_name.lower()):
+	    return True
+
+	return False
+	  
+
+
     def notifySubscribers(self, **kw):
         msg = ''
         #if config.mail_smarthost and kw.get('notify', 0):
@@ -890,7 +890,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
     def userStatAdd(self, username, action, pagename):
        db = wikidb.connect()
        cursor = db.cursor()
-       cursor.execute("SELECT created_count, edit_count from users where name=%s", (username))
+       cursor.execute("SELECT created_count, edit_count from users where name=%s", (username,))
        result = cursor.fetchone()
        
        created_count = result[0]
@@ -901,11 +901,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
          created_count += 1
        last_page_edited = pagename
        last_edit_date = time.time()
-       cursor.execute("start transaction;")
-       cursor.execute("UPDATE users set created_count=%s, edit_count=%s, last_page_edited=%s, last_edit_date=%s where name=%s", (created_count, edit_count, last_page_edited, last_edit_date, username))
-       cursor.execute("commit;")
-       cursor.close()
-       db.close()
+       self.request.cursor.execute("UPDATE users set created_count=%s, edit_count=%s, last_page_edited=%s, last_edit_date=%s where name=%s", (created_count, edit_count, last_page_edited, last_edit_date, username))
 
 
 class PageLock:

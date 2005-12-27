@@ -476,12 +476,9 @@ def do_diff(pagename, request):
 
     if diff1_date == '-1':
         #first_oldpage = os.path.join(config.backup_dir, oldversions[0])
-	cursor = request.db.cursor()
 	# we want editTime as a string for precision purposes
-	cursor.execute("SELECT editTime from allPages where name=%s order by editTime desc limit 2;", (pagename))
-	result = cursor.fetchall()
-	cursor.close()
-	cursor = request.db.cursor()
+	request.cursor.execute("SELECT editTime from allPages where name=%s order by editTime desc limit 2;", (pagename))
+	result = request.cursor.fetchall()
 	if len(result) >= 2:
 	   first_olddate = result[1][0]
 	else:
@@ -584,15 +581,15 @@ def do_info(pagename, request):
             for linkedpage in links_from_page:
                 request.write("%s%s " % (Page(linkedpage).link_to(request), ",."[linkedpage == links_from_page[-1]]))
             request.write("</p>")
-	else: request.write('<p>This page links to <b>no</b> pages.</p>')
+	else: request.write('<p>This page links to <b>no pages</b>.</p>')
 
-	links_to_page = page.getPageLinksTo(request)
+	links_to_page = page.getPageLinksTo()
         if links_to_page:
             request.write('<p>', _('The following pages link to this page:'), '<br>')
             for linkingpage in links_to_page:
                 request.write("%s%s " % (Page(linkingpage).link_to(request), ",."[linkingpage == links_to_page[-1]]))
             request.write("</p>")
-	else: request.write('<p><b>No</b> pages link to this page.</p>')
+	else: request.write('<p><b>No pages</b> link to this page.</p>')
 
         request.write('</div>\n') # end content div
 
@@ -645,14 +642,13 @@ def do_info(pagename, request):
 	   # so they see a consistent version of the page between page forward/back
 	   offset = offset_given*100 - offset_given
         may_revert = request.user.may.revert(pagename)
-	cursor = request.db.cursor()
-	cursor.execute("SELECT count(editTime) from allPages where name=%s", (pagename))
-	count_result = cursor.fetchone()
+	request.cursor.execute("SELECT count(editTime) from allPages where name=%s", (pagename))
+	count_result = request.cursor.fetchone()
 	if count_result: versions = count_result[0]
-	cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%s order by editTime desc limit 100 offset %s", (pagename, offset))
-	result = cursor.fetchall()
-	cursor.execute("SELECT editTime from curPages where name=%s", (pagename))
-	currentpage_editTime_result = cursor.fetchone()
+	request.cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%s order by editTime desc limit 100 offset %s", (pagename, offset))
+	result = request.cursor.fetchall()
+	request.cursor.execute("SELECT editTime from curPages where name=%s", (pagename))
+	currentpage_editTime_result = request.cursor.fetchone()
 	if currentpage_editTime_result: currentpage_editTime = currentpage_editTime_result[0]
 	else: currentpage_editTime = 0
 	actions = ""
@@ -662,8 +658,6 @@ def do_info(pagename, request):
 	for entry in result:
 	    actions = ''
 	    this_version = 1 + versions - count - offset
-            if not page.exists():
-                this_version -= 1
 
 	    mtime = entry[1]
 	    comment = entry[4]
@@ -681,26 +675,30 @@ def do_info(pagename, request):
                     text=_('print'),
                     querystr='action=print'))
                 diff = '<input type="radio" name="version1" value="%s"><input type="radio" name="version2" value="%s" checked="checked">' % (this_version, this_version)
-            else:
-                actions = '%s&nbsp;%s' % (actions, page.link_to(request,
-                    text=_('view'),
-                    querystr='action=recall&amp;version=%s' % this_version))
-                actions = '%s&nbsp;%s' % (actions, page.link_to(request,
-                    text=_('raw'),
-                    querystr='action=raw&amp;version=%s' % this_version))
-                actions = '%s&nbsp;%s' % (actions, page.link_to(request,
-                    text=_('print'),
-                    querystr='action=print&amp;version=%s' % this_version))
-                if may_revert and editType != 'DELETE':
-                    actions = '%s&nbsp;%s' % (actions, page.link_to(request,
-                        text=_('revert'),
-                        querystr='action=revert&amp;version=%s' % (this_version)))
-                if count==2:
-                    checked=' checked="checked"'
-                else:
-                    checked=""
-                diff = '<input type="radio" name="version1" value="%s"%s><input type="radio" name="version2" value="%s">' % (this_version,checked,this_version)
-  
+	    else:
+	      if count==2:
+                checked=' checked="checked"'
+              else:
+                checked=""
+
+              if editType != 'DELETE':
+                  actions = '%s&nbsp;%s' % (actions, page.link_to(request,
+                      text=_('view'),
+                      querystr='action=recall&amp;version=%s' % this_version))
+                  actions = '%s&nbsp;%s' % (actions, page.link_to(request,
+                      text=_('raw'),
+                      querystr='action=raw&amp;version=%s' % this_version))
+                  actions = '%s&nbsp;%s' % (actions, page.link_to(request,
+                      text=_('print'),
+                      querystr='action=print&amp;version=%s' % this_version))
+                  if may_revert:
+                      actions = '%s&nbsp;%s' % (actions, page.link_to(request,
+                          text=_('revert'),
+                          querystr='action=revert&amp;version=%s' % (this_version)))
+                  diff = '<input type="radio" name="version1" value="%s"%s><input type="radio" name="version2" value="%s">' % (this_version,checked,this_version)
+	      else:
+                  diff = '<input type="radio" name="version1" value="%s"%s><input type="radio" name="version2" value="%s">' % (this_version,checked,this_version)
+
             
 #             if editType.find('/REVERT') != -1:
 # 	        if comment[0] == 'v':
@@ -717,7 +715,7 @@ def do_info(pagename, request):
 # 	        if comment: comment = "Page deleted: '%s'" % comment
 # 		else: comment = "Page deleted (no comment)"
 	    from LocalWiki.widget.comments import Comment
-	    comment = Comment(request, comment, editType).render()
+	    comment = Comment(request, comment, editType, pagename).render()
    	    
 	    if entry[2]:
 	    	editUser = user.User(request, entry[2])
@@ -752,9 +750,10 @@ def do_info(pagename, request):
 	  printNextPrev(request, pagename, last_version, offset_given)
           request.write('</div>')
           request.write('\n</form>\n')
-          request.write('</div>\n') # end content div
 	else:
 	  request.write('<p>This page has no revision history.  This is probably because the page was never created.</p>')
+
+	request.write('</div>') # end content div
 
 
     _ = request.getText
@@ -831,12 +830,12 @@ def do_show(pagename, request):
         Page(pagename).send_page(request, count_hit=1)
 
 
-def do_refresh(pagename, request):
-    if request.form.has_key('arena') and request.form.has_key('key'):
-        from LocalWiki import caching
-        cache = caching.CacheEntry(request.form["arena"][0], request.form["key"][0])
-        cache.remove()
-    do_show(pagename, request)
+#def do_refresh(pagename, request):
+#    if request.form.has_key('key'):
+#        from LocalWiki import caching
+#        cache = caching.CacheEntry(request.form["key"][0])
+#        cache.clear()
+#    do_show(pagename, request)
 
 
 def do_print(pagename, request):

@@ -58,7 +58,9 @@ class RequestBase:
         self.writestack = []
         # order is important here!
         from LocalWiki import user
+	self.db_connect()
         self.user = user.User(self)
+	self.db_disconnect()
         self.dicts = self.initdicts()
 
         from LocalWiki import i18n
@@ -189,9 +191,7 @@ class RequestBase:
             Also, this list is always sorted.
         """
         if self._all_pages is None:
-            self._all_pages = wikiutil.getPageList()
-            self._all_pages.sort()
-
+            self._all_pages = wikiutil.getPageList(alphabetize=True)
         return self._all_pages
 
     def redirect(self, file=None):
@@ -326,8 +326,21 @@ class RequestBase:
         """ Get the user agent. """
         return self.http_user_agent
 
+    def db_connect(self):
+      self.db = wikidb.connect()
+      self.cursor = self.db.cursor()
+      self.cursor.execute("start transaction")
+
+    def db_disconnect(self, had_error=False):
+      if not had_error:
+        self.cursor.execute("commit")
+      else:
+        self.cursor.execute("rollback")
+      self.cursor.close()
+      self.db.close()
 
     def run(self):
+        had_error = False
         _ = self.getText
         self.open_logs()
         if self.isForbidden():
@@ -338,12 +351,15 @@ class RequestBase:
             self.write('You are not allowed to access this!\n')
             return self.finish()
 
-	self.db = wikidb.connect()
-
+	self.db_connect()
+	
         # Imports
         from LocalWiki.Page import Page
 	if self.query_string.startswith('img=true'):
 	  from LocalWiki.img import imgSend
+	  self.args = self.setup_args()
+          self.form = self.args 
+
 	  imgSend(self)
 	  return self.finish()
 	   
@@ -398,12 +414,10 @@ class RequestBase:
 	    pagename_propercased = ''
 	    oldlink_propercased = ''
 	    if pagename: 
-	      cursor = self.db.cursor()
-	      cursor.execute("SELECT name from curPages where name=%s", (pagename))
-	      pagename_result = cursor.fetchone()
-	      cursor.execute("SELECT name from curPages where name=%s", (oldlink))
-	      oldlink_result = cursor.fetchone()
-	      cursor.close()
+	      self.cursor.execute("SELECT name from curPages where name=%s", (pagename,))
+	      pagename_result = self.cursor.fetchone()
+	      self.cursor.execute("SELECT name from curPages where name=%s", (oldlink,))
+	      oldlink_result = self.cursor.fetchone()
 	      if pagename_result: pagename_propercased = pagename_result[0]
 	      if oldlink_result: oldlink_propercased = oldlink_result[0]
 
@@ -471,6 +485,7 @@ class RequestBase:
             pass
 
         except: # catch and print any exception
+	    had_error = True
             saved_exc = sys.exc_info()
             self.reset_output()
             self.http_headers()
@@ -491,7 +506,7 @@ class RequestBase:
                     self.print_exception()
             del saved_exc
 
-        return self.finish()
+        return self.finish(had_error=had_error)
 
 
     def http_redirect(self, url):
@@ -566,9 +581,9 @@ class RequestCGI(RequestBase):
     def flush(self):
         sys.stdout.flush()
         
-    def finish(self):
+    def finish(self, had_error=False):
         # flush the output, ignore errors caused by the user closing the socket
-	self.db.close()
+	self.db_disconnect(had_error=had_error)
         try:
             sys.stdout.flush()
         except IOError, ex:
