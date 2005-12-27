@@ -8,7 +8,7 @@
 
 import sys, cStringIO
 sys.path.extend(['/usr/local/lib/python2.3/site-packages','/var/www/installhtml/dwiki'])
-from LocalWiki import wikiutil, config, wikidb, caching, request
+from LocalWiki import wikiutil, config, wikidb, caching, request, mapping
 from LocalWiki.Page import Page
 from LocalWiki.logfile import editlog
 
@@ -351,6 +351,22 @@ def buildCaches():
    Page(pname).getPageLinks(req, docache=True)
   req.redirect()
 
+def insertMapPoints():
+  dom = xml.dom.minidom.parse(config.web_root + "/points.xml")
+  mapPoints = mapping.convert_xml(dom)
+
+  db = wikidb.connect()
+  cursor = db.cursor()
+  id = 1
+  cursor.execute("start transaction")
+  for point in mapPoints:
+    cursor.execute("INSERT into mapPoints set pagename=%s, x=%s, y=%s, created_time=%s, id=%s", (point[1], point[2], point[3], 0, id))
+    id += 1
+    for category in point[4]:
+      cursor.execute("INSERT into mapPointCategories set pagename=%s, x=%s, y=%s, id=%s", (point[1], point[2], point[3], category))
+  cursor.execute("commit")
+  cursor.close()
+  db.close()
 
   
     
