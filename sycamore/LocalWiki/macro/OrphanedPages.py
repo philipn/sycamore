@@ -54,15 +54,15 @@ def execute(macro, args, formatter=None):
     macro.request.write(macro.formatter.bullet_list(1))
     for page in pages:
       macro.request.write(macro.formatter.listitem(1))
-      macro.request.write(page.link_to(macro.request, know_status=True, know_status_exists=False))
+      macro.request.write(page.link_to(macro.request, know_status=True, know_status_exists=True))
       macro.request.write(macro.formatter.listitem(0))
     macro.request.write(macro.formatter.bullet_list(0))
 
     macro.request.write(macro.formatter.heading(2, 'Orphaned Redirects'))
     macro.request.write(macro.formatter.bullet_list(1))
-    for page in pages:
+    for page in redirects:
       macro.request.write(macro.formatter.listitem(1))
-      macro.request.write(page.link_to(macro.request, know_status=True, know_status_exists=False))
+      macro.request.write(page.link_to(macro.request, know_status=True, know_status_exists=True))
       macro.request.write(macro.formatter.listitem(0))
     macro.request.write(macro.formatter.bullet_list(0))
     return ''

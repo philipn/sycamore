@@ -160,7 +160,7 @@ def quoteWikiname(filename):
     return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2f', '/').replace('%3a', ':')
 
 def unquoteWikiname(filename):
-    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2f').replace('%3a',':')))
+    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2f').replace(':', '%3a')))
 
 
 def escape(s, quote=None):

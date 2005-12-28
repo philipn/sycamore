@@ -402,6 +402,9 @@ class Page:
                 url = wikiutil.quoteWikiname(self.page_name)
         else:
 	  url = wikiutil.quoteWikiname(self.page_name)
+
+	if not text:
+	  text = wikiutil.unquoteWikiname(self.page_name)
  
         if querystr:
             querystr = util.web.makeQueryString(querystr)

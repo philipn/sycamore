@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['/usr/local/lib/python2.4/site-packages','/Library/Webserver/Documents/installhtml/dwiki'])
+sys.path.extend(['/usr/local/lib/python2.4/site-packages','/var/www/dwiki'])
 from LocalWiki import wikidb
 
 basic_pages = {}

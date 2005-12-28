@@ -82,9 +82,20 @@ class Theme(ThemeBase):
 	   '<img class="borderless" src="%s" hspace="8" width="24" height="24"/><p style="margin: 0; padding: 0;">Article</p>'
 	      % self.img_url('article.png')))
 	else:
-	  return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</a></td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-	   '<img class="borderless" src="%s" hspace="8" width="24" height="24"/><p style="margin: 0; padding: 0;">Talk</p>'
+	  talk_page = Page(d['page_name']+'/Talk')
+	  if talk_page.exists():
+	    return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</a></td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
+	     '<img class="borderless" src="%s" hspace="8" width="24" height="24"/><p style="margin: 0; padding: 0;">Talk</p>'
 	      % self.img_url('talk.png')))
+	  else:
+	    # if the viewer can't edit the talk page, let's spare them from looking at a useless link to an empty page:
+	    if not self.request.user.may.edit(talk_page):
+	      return ''
+	    return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</a></td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
+	     '<img class="borderless" src="%s" hspace="8" width="24" height="24"/><p style="margin: 0; padding: 0;">Talk</p>'
+	      % self.img_url('talk.png')))
+
+
 
     def mapicon(self, d):
       if self.showapplet:

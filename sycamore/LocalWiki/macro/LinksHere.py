@@ -6,9 +6,12 @@ from LocalWiki.Page import Page
 Dependencies = ["time"] # can't really be cached right now
 
 def execute(macro, args, formatter=None):
-    if not formatter: formatter = macro.formatter
-    page = macro.formatter.page
-    links_here = page.getPageLinksTo(macro.request)
+    formatter = macro.formatter
+    if not args:
+      page = macro.formatter.page
+    else:
+      page = Page(args)
+    links_here = page.getPageLinksTo()
     text = ''
     if links_here:
       text += formatter.bullet_list(1)
