@@ -295,6 +295,19 @@ class User:
         if not self.disabled:
             self.valid = 1
 
+    def _new_user_id(self):
+      # Generates a new and unique user id
+      from random import randint
+      id = "%s.%d" % (str(time.time()), randint(0,65535))
+      # check to make sure the id is unique (we could, after all, change our user id scheme at some point..)
+      self.request.cursor.execute("SELECT id from users where id=%s", (id))
+      result = self.request.cursor.fetchone()
+      while result:
+        # means it's not unique, so let's try another
+        id = "%s.%d" % (str(time.time()), randint(0,65535))
+	self.request.cursor.execute("SELECT id from users where id=%s", (id))
+        result = self.request.cursor.fetchone()
+      return id
 
     def save(self):
         """
@@ -303,16 +316,15 @@ class User:
         This saves all member variables, except "id" and "valid" and
         those starting with an underscore.
         """
-        if not self.id: return
-
         self.last_saved = str(time.time())
 
-	if self.exists():	
-		self.request.cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, tz_offset=%s where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.tz_offset, self.id))
+        if not self.id:
+	  self.id = self._new_user_id()
+	  # account doesn't exist yet
+	  self.request.cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, join_date=%s, tz_offset=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time(), self.tz_offset))
 	else:
-		self.request.cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, join_date=%s, tz_offset=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time(), self.tz_offset))
-
-
+	  self.request.cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, tz_offset=%s where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.tz_offset, self.id))
+		
     def makeCookieHeader(self):
         """
         Make the Set-Cookie header for this user
