@@ -314,7 +314,7 @@ def create_views(cursor):
  cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP from allPages;")
  cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, '' as comment, mapPoints.created_by_ip as userIP from mapPoints;")
  cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
- cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;"
+ cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;")
 
 def create_other_stuff(cursor):
  cursor.execute("INSERT into users set name='';")
