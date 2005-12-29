@@ -68,7 +68,11 @@ def wikifyString(text, request, page, doCache=True, formatter=None):
     py_formatter = formatter
   else:
     from LocalWiki.formatter.text_python import Formatter
-    html_formatter = formatter
+    if formatter:
+      html_formatter = formatter
+    else:
+      from LocalWiki.formatter.text_html import Formatter
+      html_formatter = Formatter(request)
     doCache = False
     py_formatter = Formatter(request)
 

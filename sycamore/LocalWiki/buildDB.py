@@ -82,7 +82,7 @@ basic_pages["System Pages Group"] = """ * Front Page
 
 basic_pages["User Statistics"] = """[[Stats]]
 
-There are '''[[UserCount]]''' people editing the wiki.
+There are '''[[UserCount]]''' registered accounts on the wiki.
 
 ----
 If you'd like personalized statistics on your page, simply insert the line {{{[[Stats(YourName)]]}}} into your page."""
