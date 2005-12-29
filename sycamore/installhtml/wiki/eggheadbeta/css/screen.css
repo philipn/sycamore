@@ -216,6 +216,7 @@ a.nonexistent, a.badinterwiki {
         border-bottom: 1px dashed #000088;
 }
 
+
 a.nonexistent:hover {
         border-bottom: 0px;
         cursor: pointer;
@@ -225,6 +226,18 @@ a.nonexistent:hover {
 a.nonexistent:visited {
         color: #000088;
 }
+
+a.tinyNonexistent {
+        text-decoration: none;
+        background-color: inherit;
+        color: gray;
+}
+
+a.tinyNonexistent:hover {
+        cursor: pointer;
+        color: green;
+}
+
 
 pre {
         border: 1px solid #CBCBCB;
