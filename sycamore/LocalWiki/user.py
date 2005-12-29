@@ -632,8 +632,8 @@ class User:
         if self.valid:
 	    self.request.cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
 	    result = self.request.cursor.fetchone()
-	    if result: return 1
-	    else: return 0
+	    if result: return True
+	return False
 
 #    def isSubscribedTo(self, pagelist):
 #        """

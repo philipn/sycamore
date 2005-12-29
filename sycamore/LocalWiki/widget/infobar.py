@@ -3,7 +3,7 @@ from LocalWiki.user import getUserId
 from LocalWiki import wikiutil
 
 def isSubscribed(request, pagename):
-    return request.user.isFavoritedTo(pagename) or not request.user.valid
+    return not request.user.isFavoritedTo(pagename) and request.user.valid
 
 def isUserPage(request, pagename):
     return getUserId(pagename)
