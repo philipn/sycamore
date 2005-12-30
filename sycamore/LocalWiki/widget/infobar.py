@@ -2,7 +2,7 @@ from LocalWiki.widget import base
 from LocalWiki.user import getUserId
 from LocalWiki import wikiutil
 
-def isSubscribed(request, pagename):
+def isNotSubscribed(request, pagename):
     return not request.user.isFavoritedTo(pagename) and request.user.valid
 
 def isUserPage(request, pagename):
@@ -14,7 +14,7 @@ class InfoBar(base.Widget):
 		['General Info', 'action=info&general=1', None],
 		['Images', 'action=Files', None],
 		["User's Edits", 'action=useredits', isUserPage],
-		['Add to wiki bookmarks', 'action=favorite', isSubscribed]]
+		['Add to wiki bookmarks', 'action=favorite', isNotSubscribed]]
 
     before, after = '[', ']'
     seperator = ' '
@@ -47,4 +47,3 @@ class InfoBar(base.Widget):
 	    self.request.write(self.seperator)
 	
 	self.request.write('</p>')
-	

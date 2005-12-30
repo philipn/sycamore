@@ -27,6 +27,11 @@ class Theme(ThemeBase):
         (name,  'iso-8859-1',   'screen',   'screen'),
         (name,  'iso-8859-1',   'print',    'print'),
         )
+    
+    def __init__(self, request):
+      ThemeBase.__init__(self, request)
+      self.icons['www'] = ("[WWW]", "localwiki-www.png", 14, 11)
+
 
     # Header stuff #######################################################
 

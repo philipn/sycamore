@@ -1,5 +1,5 @@
 import sys
-sys.path.extend(['/usr/local/lib/python2.4/site-packages','/var/www/dwiki'])
+sys.path.extend(['/usr/local/lib/python2.4/site-packages','/Library/Webserver/Documents/installhtml/dwiki'])
 from LocalWiki import wikidb
 
 basic_pages = {}
@@ -87,8 +87,12 @@ There are '''[[UserCount]]''' registered accounts on the wiki.
 ----
 If you'd like personalized statistics on your page, simply insert the line {{{[[Stats(YourName)]]}}} into your page."""
 
-def create_tables(cursor):
- cursor.execute("""create table curPages
+######################
+# Table definitions
+######################
+
+tables = {}
+tables["curPages"] = ["""create table curPages
    (
    name varchar(255) primary key,
    text mediumtext,
@@ -96,9 +100,9 @@ def create_tables(cursor):
    editTime double,
    cachedTime double,
    userEdited char(19)
-   ) type=InnoDB;""")
- cursor.execute("alter table curPages add index userEdited(userEdited);")
- cursor.execute("""create table allPages
+   ) type=InnoDB;"""]
+tables["curPages"].append("""alter table curPages add index userEdited(userEdited);""")
+tables["allPages"] = ["""create table allPages
    (
    name varchar(255),
    text mediumtext,
@@ -108,12 +112,10 @@ def create_tables(cursor):
    comment varchar(81),
    userIP char(16),
    primary key(name, editTime)
-   ) type=InnoDB;""")
-
- cursor.execute("alter table allPages add index userEdited(userEdited);")
- cursor.execute("alter table allPages add index userIP(userIP);")
-
- cursor.execute("""create table users
+   ) type=InnoDB;"""]
+tables["allPages"].append("""alter table allPages add index userEdited(userEdited);""")
+tables["allPages"].append("""alter table allPages add index userIP(userIP);""")
+tables["users"] = ["""create table users
   (
   id char(19) primary key,
   name varchar(255),
@@ -137,39 +139,31 @@ def create_tables(cursor):
   rc_bookmark double,
   rc_showcomments tinyint default 1,
   tz_offset int
-  ) type=InnoDB;""")
-
- cursor.execute("alter table users add index name(name);")
-
- cursor.execute("""create table userFavorites
+  ) type=InnoDB;"""]
+tables["users"].append("alter table users add index name(name);")
+tables["userFavorites"] = ["""create table userFavorites
   (
   username varchar(255),
   page varchar(255),
   viewTime double,
   primary key (username, page)
-  ) type=InnoDB;""")
-
- #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
- cursor.execute("""create table userSessions
- (
- user_id char(19),
- session_id char(30),
- secret char(30),
- expire_time double,
- primary key (user_id, session_id)
- )type=MyISAM;""")
-
-
- cursor.execute("alter table userSessions add index expire_time (expire_time);")
-
- cursor.execute("""create table links
+  ) type=InnoDB;"""]
+tables["userSessions"] = ["""create table userSessions
+(
+user_id char(19),
+session_id char(30),
+secret char(30),
+expire_time double,
+primary key (user_id, session_id)
+)type=MyISAM;"""]
+tables["userSessions"].append("alter table userSessions add index expire_time (expire_time);")
+tables["links"] = ["""create table links
  (
  source_pagename varchar(255),
  destination_pagename varchar(255),
  primary key (source_pagename, destination_pagename)
- ) type=InnoDB;""")
-
- cursor.execute("""create table events
+ ) type=InnoDB;"""]
+tables["events"] = ["""create table events
  (
  uid mediumint primary key,
  event_time double,
@@ -179,14 +173,12 @@ def create_tables(cursor):
  event_name mediumtext,
  posted_by_ip char(16),
  posted_time double 
- ) type=InnoDB;""")
- 
- cursor.execute("alter table events add index event_time (event_time);")
- cursor.execute("alter table events add index posted_by (posted_by);")
- cursor.execute("alter table events add index posted_by_ip (posted_by_ip);")
- cursor.execute("alter table events add index posted_time (posted_time);")
- 
- cursor.execute("""create table images
+ ) type=InnoDB;"""]
+tables["events"].append("alter table events add index event_time (event_time);")
+tables["events"].append("alter table events add index posted_by (posted_by);")
+tables["events"].append("alter table events add index posted_by_ip (posted_by_ip);")
+tables["events"].append("alter table events add index posted_time (posted_time);")
+tables["images"] = ["""create table images
  (
  name varchar(255) not null,
  image mediumblob not null,
@@ -197,12 +189,10 @@ def create_tables(cursor):
  xsize smallint,
  ysize smallint,
  primary key (name, attached_to_pagename)
- ) type=InnoDB;""")
- 
- cursor.execute("alter table images add index uploaded_by (uploaded_by);")
- cursor.execute("alter table images add index uploaded_time (uploaded_time);")
- 
- cursor.execute("""create table oldImages
+ ) type=InnoDB;"""]
+tables["images"].append("alter table images add index uploaded_by (uploaded_by);")
+tables["images"].append("alter table images add index uploaded_time (uploaded_time);")
+tables["oldImages"] = ["""create table oldImages
  (
  name varchar(255) not null,
  image mediumblob not null,
@@ -216,12 +206,9 @@ def create_tables(cursor):
  xsize smallint,
  ysize smallint,
  primary key (name, attached_to_pagename, uploaded_time)
- ) type=InnoDB;""")
- 
- cursor.execute("alter table oldImages add index deleted_time (deleted_time);")
- 
- #throw-away and easily regenerated data
- cursor.execute("""create table thumbnails
+ ) type=InnoDB;"""]
+tables["oldImages"].append("alter table oldImages add index deleted_time (deleted_time);")
+tables["thumbnails"] = ["""create table thumbnails
  (              
  xsize smallint,
  ysize smallint,
@@ -230,26 +217,24 @@ def create_tables(cursor):
  image mediumblob,
  last_modified double,
  primary key (name, attached_to_pagename)
- ) type=MyISAM;""")
-
- cursor.execute("""create table imageCaptions
+ ) type=MyISAM;"""]
+tables["imageCaptions"] = ["""create table imageCaptions
  (
   image_name varchar(255),
   attached_to_pagename varchar(255),
   linked_from_pagename varchar(255),
   caption text,
   primary key (image_name, attached_to_pagename, linked_from_pagename)
- ) type=InnoDB;""")
-
- cursor.execute("""create table mapCategoryDefinitions
+ ) type=InnoDB;"""]
+tables["mapCategoryDefinitions"] = ["""create table mapCategoryDefinitions
  (
  id int,
  img varchar(255),
  name varchar(255),
  primary key (id)
- ) type=InnoDB;""")
- 
- cursor.execute("""create table mapPoints
+ ) type=InnoDB;"""]
+
+tables["mapPoints"] = ["""create table mapPoints
  (
    pagename varchar(255),
    x varchar(255),
@@ -259,12 +244,10 @@ def create_tables(cursor):
    created_by_ip char(16),
    id int,
    primary key (pagename, x, y)
- ) type=InnoDB;""")
- 
- cursor.execute("""alter table mapPoints add index created_time (created_time);""")
- cursor.execute("""alter table mapPoints add index id (id);""")
- 
- cursor.execute("""create table oldMapPoints
+ ) type=InnoDB;"""]
+tables["mapPoints"].append("""alter table mapPoints add index created_time (created_time);""")
+tables["mapPoints"].append("""alter table mapPoints add index id (id);""")
+tables["oldMapPoints"] = ["""create table oldMapPoints
  (
    pagename varchar(255),
    x varchar(255),
@@ -276,20 +259,17 @@ def create_tables(cursor):
    deleted_by char(19),
    deleted_by_ip char(16),
    primary key (pagename, x, y, deleted_time)
- ) type=InnoDB;""")
-
- cursor.execute("alter table oldMapPoints add index deleted_time (deleted_time);")
- 
- cursor.execute("""create table mapPointCategories
+ ) type=InnoDB;"""]
+tables["oldMapPoints"].append("alter table oldMapPoints add index deleted_time (deleted_time);")
+tables["mapPointCategories"] = ["""create table mapPointCategories
  (
    pagename varchar(255),
    x varchar(255),
    y varchar(255),
    id int,
    primary key (pagename, x, y, id)
- ) type=InnoDB;""")
- 
- cursor.execute("""create table oldMapPointCategories
+ ) type=InnoDB;"""]
+tables["oldMapPointCategories"] = ["""create table oldMapPointCategories
  (
    pagename varchar(255),
    x varchar(255),
@@ -297,24 +277,42 @@ def create_tables(cursor):
    id int,
    deleted_time double,
    primary key (pagename, x, y, id, deleted_time)
- ) type=InnoDB;""")
+ ) type=InnoDB;"""]
 
- cursor.execute("""create table pageDependencies
+tables["pageDependencies"] = ["""create table pageDependencies
  (
    page_that_depends varchar(255),
    source_page varchar(255),
    primary key (page_that_depends, source_page)
- ) type=InnoDB;""")
+ ) type=InnoDB;"""]
+
+views = {}
+views["eventChanges"] = ["CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;"]
+views["deletedImageChanges"] = ["CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;"]
+views["oldImageChanges"] = ["CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;"]
+views["currentImageChanges"]  = ["CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;"]
+views["pageChanges"] = ["CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP from allPages;"]
+views["currentMapChanges"] = ["CREATE VIEW currentMapChanges as SELECT mapPoints.pagename name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, '' as comment, mapPoints.created_by_ip as userIP from mapPoints;"]
+views["oldMapChanges"] = ["CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;"]
+views["deletedMapChanges"] = ["CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;"]
+
+def clear_tables(cursor):
+  for tablename in tables:
+    cursor.execute("drop table if exists %s" % (tablename)) 
+
+def clear_views(cursor):
+  for viewname in views:
+    cursor.execute("drop view if exists %s" % (viewname))
+
+def create_tables(cursor):
+  for tablename, sql_statements in tables.iteritems():
+    for sql in sql_statements: 
+      cursor.execute(sql)
 
 def create_views(cursor):
- cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
- cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;")
- cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
- cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;")
- cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP from allPages;")
- cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, '' as comment, mapPoints.created_by_ip as userIP from mapPoints;")
- cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
- cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, '' as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;")
+  for viewname, sql_statements in views.iteritems():
+    for sql in sql_statements:
+      cursor.execute(sql)
 
 def create_other_stuff(cursor):
  cursor.execute("INSERT into users set name='';")
@@ -342,6 +340,8 @@ def insert_basic_pages(cursor):
 db = wikidb.connect()
 cursor = db.cursor()
 cursor.execute("start transaction;")
+clear_tables(cursor)
+clear_views(cursor)
 create_tables(cursor)
 create_views(cursor)
 create_other_stuff(cursor)
