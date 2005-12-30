@@ -1,0 +1,17 @@
+Index: wikiutil.py
+===================================================================
+--- wikiutil.py (revision 160)
++++ wikiutil.py (working copy)
+@@ -152,10 +152,10 @@
+ 
+ # XXX UNICODE - see above
+ def quoteWikiname(filename):
+-    return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2f', '/')
++    return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2f', '/').replace('%3a', ':')
+ 
+ def unquoteWikiname(filename):
+-    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2f')))
++    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2f').replace('%3a',':')))
+ 
+ 
+ def escape(s, quote=None):
