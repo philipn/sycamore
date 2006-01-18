@@ -273,6 +273,7 @@ def doRSS(request, add_on):
 
 def isValid(event_text,event_name,event_location,month,day,hour,minute,year):
     bool = 1
+    current_year = time.localtime(time.time())[0]
     if not int(month) < 13:
         bool = bool - 1 
     if not int(day) < 32:
@@ -281,7 +282,7 @@ def isValid(event_text,event_name,event_location,month,day,hour,minute,year):
         bool = bool - 1
     if not int(minute) < 51:
         bool = bool - 1
-    if not (int(year) > 2003 and int(year) < 2006):
+    if not (int(year) >= current_year and int(year) <= current_year + 1):
         bool = bool -1
     if string.find(event_text,"<") >= 0 or string.find(event_name,"<") >= 0:
         bool = bool - 1

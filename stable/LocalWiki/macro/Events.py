@@ -5,7 +5,10 @@ from LocalWiki.Page import Page
 import xml.dom.minidom
 from cStringIO import StringIO
 
-
+def yearList():
+  current_year = time.localtime(time.time())[0]  
+  years_list = [str(current_year), str(current_year + 1)]
+  return years_list
 
 
 def getText(nodelist):
@@ -58,21 +61,21 @@ def execute(macro, args):
 		# The user has hard-coded time! This is ESSENTIAL for security.
 		if int(year) < int(current_year) :
 			root.removeChild(event)
-			the_xml = dom.toprettyxml()
+			the_xml = dom.topxml()
 			xmlfile = open(config.app_dir + "/events.xml","w")
 			xmlfile.write(the_xml)
 			xmlfile.close()
 		elif int(year) == int(current_year):
 			if int(month) < int(current_month):
 		           root.removeChild(event)
-                           the_xml = dom.toprettyxml()
+                           the_xml = dom.toxml()
                            xmlfile = open(config.app_dir + "/events.xml","w")
                            xmlfile.write(the_xml)
                            xmlfile.close()
 			elif int(month) == int(current_month):
 			   if int(day) < int(current_day):
 			      root.removeChild(event)
-	                      the_xml = dom.toprettyxml()
+	                      the_xml = dom.toxml()
                               xmlfile = open(config.app_dir + "/events.xml","w")
                               xmlfile.write(the_xml)
                               xmlfile.close()
@@ -173,7 +176,10 @@ def execute(macro, args):
        newdaystring = daystring.replace(">" + str(int(current_day)) + "<", " selected>" + str(int(current_day)) + "<")
        htmltext.append(newdaystring)
        
-       yearstring = '<select name="year">\n <option>2004</option>\n <option>2005</option>\n </select>\n' 
+       yearstring = '<select name="year">\n'
+       for year in yearList():
+         yearstring += '<option>%s</option>\n' % year
+       yearstring += '</select>'
        newyearstring = yearstring.replace(">" + current_year + "<", " selected>" + current_year + "<")
        htmltext.append(newyearstring)
    
