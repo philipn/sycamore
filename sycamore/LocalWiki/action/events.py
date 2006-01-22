@@ -35,7 +35,7 @@ def execute(pagename, request):
       if request.form.get("rss")[0] == "1":
         request.http_headers()
         request.write(doRSS(request,add_on))
-        raise util.LocalWikiNoFooter
+        return
 
     # be extra paranoid
     elif actname in config.excluded_actions or \
