@@ -16,7 +16,7 @@ def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
 
     # get list of pages and their objects
-    pages = wikiutil.getPageDict()
+    pages = wikiutil.getPageDict(self.request.cursor)
 
     # get sizes and sort them
     sizes = []

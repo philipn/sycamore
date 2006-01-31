@@ -47,25 +47,21 @@ def display_edits(request, userpage):
     else:
 	offset = offset_given*100 - offset_given
 
-    userid = getUserId(userpage)
-    db = wikidb.connect()
-    cursor = db.cursor()
-    cursor.execute("SELECT count(editTime) from allPages where userEdited='%s'" % (userid))
-    count_result = cursor.fetchone()
+    userid = getUserId(userpage, request.cursor)
+    request.cursor.execute("SELECT count(editTime) from allPages where userEdited=%(userid)s", {'userid':userid})
+    count_result = request.cursor.fetchone()
 
     if count_result: 
 	totalEdits = count_result[0]
 
-    cursor.execute("SELECT count(DISTINCT name) from allPages where userEdited='%s'" % (userid))
-    count_result = cursor.fetchone()
+    request.cursor.execute("SELECT count(DISTINCT name) from allPages where userEdited=%(userid)s" , {'userid':userid})
+    count_result = request.cursor.fetchone()
     
     if count_result:
 	editedPages = count_result[0]
 
-    cursor.execute("SELECT name, editTime, userIP, editType, comment from allPages where userEdited='%s' order by editTime desc limit 100 offset %s" % (userid, offset))
-    results = cursor.fetchall()
-    cursor.close()
-    db.close()
+    request.cursor.execute("SELECT name, editTime, userIP, editType, comment from allPages where userEdited=%(userid)s order by editTime desc limit 100 offset %(offset)s", {'userid':userid, 'offset':offset})
+    results = request.cursor.fetchall()
 
     if results:
 	has_edits = True
@@ -80,7 +76,7 @@ def display_edits(request, userpage):
 	editType = edit[3]
 	comment = edit[4]
 
-	page = Page(pagename)
+	page = Page(pagename, request.cursor)
 
 	actions = ''
 

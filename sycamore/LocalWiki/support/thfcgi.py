@@ -43,6 +43,7 @@ import errno
 import cgi
 from cStringIO import StringIO
 import struct
+from LocalWiki import wikiutil
 
 # Maximum number of requests that can be handled
 FCGI_MAX_REQS = 50
@@ -235,7 +236,7 @@ class Request:
     """A request, corresponding to an accept():ed connection and
     a FCGI request."""
     
-    def __init__(self, conn, req_handler, multi=1):
+    def __init__(self, conn, req_handler, properties, multi=1):
         """Initialize Request container."""
         self.conn = conn
         self.req_handler = req_handler
@@ -243,6 +244,8 @@ class Request:
         
         self.keep_conn = 0
         self.req_id = None
+
+	self.properties = properties
 
         # Input
         self.env = {}
@@ -441,7 +444,7 @@ class Request:
             # req: The request.
             # env: The request environment
             # form: FieldStorage.
-            self.req_handler(self, self.env, self.getFieldStorage())
+            self.req_handler(self, self.env, self.getFieldStorage(), properties=self.properties)
 
     def _handle_begin_request(self, rec):
         """Handle begin request."""
@@ -512,11 +515,11 @@ class FCGIbase:
     def run(self):
         raise NotImplementedError
 
-    def accept_handler(self, conn, addr):
+    def accept_handler(self, conn, addr, properties):
         """Construct Request and run() it."""
         self._check_good_addrs(addr)
         try:
-            req = Request(conn, self.req_handler, self.multi)
+            req = Request(conn, self.req_handler, properties, multi=self.multi)
             req.run()
         except SocketErrorOnWrite:
             if self.multi:
@@ -570,12 +573,12 @@ class THFCGI(FCGIbase):
     def run(self):
         """Wait & serve. Calls request_handler in new
         thread on every request."""
-        import thread
+        import threading
         self.sock.listen(50)
-        
+        properties = wikiutil.prepareAllProperties()
         while 1:
             (conn, addr) = self.sock.accept()
-            thread.start_new_thread(self.accept_handler, (conn, addr))
+            threading.Thread(target=self.accept_handler, args=(conn, addr, properties)).start()
 
 class unTHFCGI(FCGIbase):
     """Single-threaded main loop to handle FastCGI Requests."""
@@ -588,8 +591,7 @@ class unTHFCGI(FCGIbase):
     def run(self):
         """Wait & serve. Calls request handler for every request (blocking)."""
         self.sock.listen(50)
-        
+        properties = wikiutil.prepareAllProperties()
         while 1:
             (conn, addr) = self.sock.accept()
-            self.accept_handler(conn, addr)
-   
+            self.accept_handler(conn, addr, properties)

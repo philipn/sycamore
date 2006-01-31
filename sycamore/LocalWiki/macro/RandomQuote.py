@@ -29,7 +29,7 @@ def execute(macro, args, formatter=None):
     _ = macro.request.getText
 
     pagename = args or 'FortuneCookies'
-    page = Page(pagename)
+    page = Page(pagename, macro.request.cursor)
     raw = page.get_raw_body()
     if not macro.request.user.may.read(pagename):
         raw = ""

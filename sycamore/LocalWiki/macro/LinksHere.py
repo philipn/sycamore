@@ -3,14 +3,14 @@
 from LocalWiki import wikiutil, wikiform, config
 from LocalWiki.Page import Page
 
-Dependencies = ["time"] # can't really be cached right now
+Dependencies = ["time"] # can't really be cached right now, maybe later (use memcache and might not matter)
 
 def execute(macro, args, formatter=None):
     formatter = macro.formatter
     if not args:
       page = macro.formatter.page
     else:
-      page = Page(args)
+      page = Page(args, macro.request.cursor)
     links_here = page.getPageLinksTo()
     text = ''
     if links_here:

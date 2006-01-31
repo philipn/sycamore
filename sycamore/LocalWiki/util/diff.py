@@ -23,7 +23,7 @@ def indent(line):
 
 
 # This code originally by Scott Moonen, used with permission.
-def diff(request, old, new):
+def diff(request, old, new, text_mode=False):
     """ Find changes between old and new and return
         HTML markup visualising them.
     """
@@ -42,7 +42,8 @@ def diff(request, old, new):
 
     lastmatch = (0, 0)
 
-    result = """
+    if not text_mode:
+      result = """
 <table class="diff">
 <tr>
 <td class="diff-removed">
@@ -57,6 +58,23 @@ def diff(request, old, new):
 </td>
 </tr>
 """ % (_('Deletions are marked like this.'), _('Additions are marked like this.'),)
+    else:
+      result = """
+<table>
+<tr>
+<td>
+<span>
+%s
+</span>
+</td>
+<td>
+<span>
+%s
+</span>
+</td>
+</tr>
+""" % (_('Deletions are marked with - .'), _('Additions are marked with +.'),)
+
 
     # Print all differences
     for match in linematch:
@@ -65,7 +83,8 @@ def diff(request, old, new):
             lastmatch = (match[0] + match[2], match[1] + match[2])
             continue
 
-        result += """
+        if not text_mode:
+	  result += """
 <tr class="diff-title">
 <td>
 %s %s:
@@ -76,6 +95,19 @@ def diff(request, old, new):
 </tr>
 """ % ( t_line, str(lastmatch[0] + 1),
         t_line, str(lastmatch[1] + 1),)
+        else:	
+          result += """
+<tr>
+<td>
+%s %s:
+</td>
+<td>
+%s %s:
+</td>
+</tr>
+""" % ( t_line, str(lastmatch[0] + 1),
+        t_line, str(lastmatch[1] + 1),)
+
         
         leftpane  = ''
         rightpane = ''
@@ -84,11 +116,13 @@ def diff(request, old, new):
             if line < match[0] - lastmatch[0]:
                 if line > 0:
                     leftpane += '\n'
-                leftpane += seq1[lastmatch[0] + line]
+                if not text_mode: leftpane += seq1[lastmatch[0] + line]
+		else: leftpane += "- %s" % seq1[lastmatch[0] + line]
             if line < match[1] - lastmatch[1]:
                 if line > 0:
                     rightpane += '\n'
-                rightpane += seq2[lastmatch[1] + line]
+                if not text_mode: rightpane += seq2[lastmatch[1] + line]
+		else: rightpane += "+ %s" % seq2[lastmatch[1] + line]
 
         charobj   = difflib.SequenceMatcher(None, leftpane, rightpane)
         charmatch = charobj.get_matching_blocks()
@@ -125,12 +159,24 @@ def diff(request, old, new):
         rightpane = '<br>\n'.join(map(indent, rightresult.splitlines()))
 
         # removed width="50%%"
-        result += """
+        if not text_mode:
+	  result += """
 <tr>
 <td class="diff-removed">
 %s
 </td>
 <td class="diff-added">
+%s
+</td>
+</tr>
+""" % (leftpane, rightpane)
+        else:
+	  result += """
+<tr>
+<td>
+%s
+</td>
+<td>
 %s
 </td>
 </tr>

@@ -13,7 +13,7 @@
 """
 
 import urllib
-from LocalWiki import config, i18n, wikiutil, version
+from LocalWiki import config, i18n, wikiutil
 from LocalWiki.Page import Page
 
 class Theme:
@@ -50,7 +50,7 @@ class Theme:
         # General
         'bottom':     ("[BOTTOM]",               "moin-bottom.png", 14, 10),
         'top':        ("[TOP]",                  "moin-top.png",    14, 10),
-        'www':        ("[WWW]",                  "moin-www.png",    11, 11),
+        'www':        ("[WWW]",                  "localwiki-www.png",    14, 11),
         'mailto':     ("[MAILTO]",               "moin-email.png",  14, 10),
         'news':       ("[NEWS]",                 "moin-news.png",   10, 11),
         'telnet':     ("[TELNET]",               "moin-telnet.png", 10, 11),
@@ -295,25 +295,25 @@ class Theme:
                     '<p>%(msg)s</p><p>%(clear_msg_link)s</p></div>') % d
         return html
     
-    def trail(self, d):
-        """
-        Assemble page trail
-        
-        @param d: parameter dictionary
-        @rtype: string
-        @return: trail html
-        """
-        html = []
-        if d['trail']:
-            pagetrail = d['trail']
-            html.append('<ul id="pagetrail">\n')
-            for p in pagetrail[:-1]:
-                html.append('<li><span>%s</span></li>\n' % (Page(p).link_to(self.request),))
-            html.append('<li><span>%s</span></li>\n' % wikiutil.escape(pagetrail[-1]))
-            html.append('</ul>\n')
-        else:
-            html.append('<hr id="pagetrail">\n')
-        return ''.join(html)
+    #def trail(self, d):
+    #    """
+    #    Assemble page trail
+    #    
+    #    @param d: parameter dictionary
+    #    @rtype: string
+    #    @return: trail html
+    #    """
+    #    html = []
+    #    if d['trail']:
+    #        pagetrail = d['trail']
+    #        html.append('<ul id="pagetrail">\n')
+    #        for p in pagetrail[:-1]:
+    #            html.append('<li><span>%s</span></li>\n' % (Page(p, self.request.cursor).link_to(self.request),))
+    #        html.append('<li><span>%s</span></li>\n' % wikiutil.escape(pagetrail[-1]))
+    #        html.append('</ul>\n')
+    #    else:
+    #        html.append('<hr id="pagetrail">\n')
+    #    return ''.join(html)
 
     def html_stylesheet_link(self, charset, media, href):
         return ('<link rel="stylesheet" type="text/css" charset="%s" '
@@ -739,4 +739,3 @@ def execute(request):
     @return: Theme object
     """
     return Theme(request)
-

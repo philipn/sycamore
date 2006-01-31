@@ -68,6 +68,7 @@ class Formatter:
         source = source + self.text_cmd_end
         self.code_fragments = [] # clear code fragments to make
                                  # this object reusable
+
         # Automatic invalidation due to moin code changes:
         # we are called from Page.py, so moincode_timestamp is
         # mtime of LocalWiki directory. If we detect, that the
@@ -77,12 +78,11 @@ class Formatter:
         # Hint: we don't check the mtime of the directories within
         # LocalWiki, so better do a touch if you only modified stuff
         # in a subdirectory.
-        waspcode_timestamp = int(time.time())
-        source = """
-moincode_timestamp = int(os.path.getmtime(os.path.dirname(__file__)))
-if moincode_timestamp > %d: raise "CacheNeedsUpdate"
-%s
-""" % (waspcode_timestamp, source)
+        #waspcode_timestamp = int(time.time())
+        #source = """localwikicode_timestamp = int(os.path.getmtime(os.path.dirname(__file__)))
+        #if localwikicode_timestamp > %d: raise "CacheNeedsUpdate"
+        #%s
+        #""" % (waspcode_timestamp, source)
         return source
 
     def __getattr__(self, name):

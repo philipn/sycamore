@@ -43,12 +43,12 @@ class Dict:
        is stripped from the member 
     """
 
-    def __init__(self, name, dict=1):
+    def __init__(self, name, cursor, dict=1):
         """Initialize a Dict, starting from <nothing>.
         """
         self.name = name
         self._dict = {}
-        p = Page.Page(name)
+        p = Page.Page(name, cursor)
         if dict: # used for dicts
             regex = r'^\s(?P<key>.*?)::\s(?P<val>.*?)(\s*)$' # 1st level definition list,
                                                # strip trailing blanks
@@ -85,10 +85,10 @@ class Group(Dict):
 
     """
 
-    def __init__(self, name):
+    def __init__(self, name, cursor):
         """Initialize a Group, starting from <nothing>.
         """
-        Dict.__init__(self, name, 0)
+        Dict.__init__(self, name, cursor, dict=0)
 
     def members(self):
         return self._dict.keys()
@@ -135,8 +135,9 @@ class DictDict:
                Default: ".*Dict$"  Defs$ Vars$ ???????????????????
     """
 
-    def __init__(self):
+    def __init__(self, cursor):
         self.reset()
+	self.cursor = cursor
 
     def reset(self):
         self.dictdict = {}
@@ -176,7 +177,7 @@ class DictDict:
 
     def adddict(self, dictname):
         """add a new dict (will be read from the wiki page)"""
-        self.dictdict[dictname] = Dict(dictname)
+        self.dictdict[dictname] = Dict(dictname, self.cursor)
 
     def has_dict(self, dictname):
         return self.dictdict.has_key(dictname)
@@ -197,6 +198,8 @@ class GroupDict(DictDict):
            config.page_group_regex
                Default: ".*Group$"
     """
+    def __init__(self, request):
+      self.request = request
 
     def has_member(self, groupname, member):
         group = self.dictdict.get(groupname)
@@ -250,7 +253,7 @@ class GroupDict(DictDict):
         now = int(time.time()) # we dont want float!
         # check for new groups / dicts from time to time...
         if now - self.namespace_timestamp >= 60:
-            pagelist = wikiutil.getPageList()
+            pagelist = wikiutil.getPageList(self.request.cursor)
             dictpages = filter(dict_re.search, pagelist)
             #print '%s -> %s' % (config.page_dict_regex, dictpages)
             for pagename in dictpages:
@@ -266,7 +269,7 @@ class GroupDict(DictDict):
 
         # check if groups / dicts have been modified on disk
         for pagename in self.dictdict:
-            if Page.Page(pagename).mtime() >= self.pageupdate_timestamp:
+            if Page.Page(pagename, self.request.cursor).mtime() >= self.pageupdate_timestamp:
                 if dict_re.search(pagename):
                     self.adddict(pagename)
                 elif group_re.search(pagename):

@@ -2,7 +2,7 @@
 """
     LocalWiki - User Accounts
 
-    @copyright: 2000-2004 by J?rgen Hermann <jh@web.de>
+    @copyright: 2000-2004 by J?rgen Hermann <jh@web.de>, 2005-2006 Philip Neustrom <philipn@gmail.com>
     @license: GNU GPL, see COPYING for details.
 """
 
@@ -12,13 +12,15 @@ from LocalWiki import config, wikiutil, wikidb
 from LocalWiki.util import datetime
 import xml.dom.minidom
 
+
+
 #import sys
 
 #############################################################################
 ### Helpers
 #############################################################################
 
-def getUserList():
+def getUserList(cursor):
     """
     Get a list of all (numerical) user IDs.
     
@@ -26,21 +28,17 @@ def getUserList():
     @return: all user IDs
     """
     all_ids = []
-    db = wikidb.connect()
-    cursor = db.cursor()
     cursor.execute("SELECT id from users")
     userid = cursor.fetchone()
     while userid:
       all_ids.append(userid[0])
       userid = cursor.fetchone()
-    cursor.close()
-    db.close()
     return all_ids
 
 
 _name2id = None
 
-def getUserId(searchName):
+def getUserId(searchName, request):
     """
     Get the user ID for a specific user NAME.
 
@@ -48,15 +46,23 @@ def getUserId(searchName):
     @rtype: string
     @return: the corresponding user ID or None
     """
-    db = wikidb.connect()
-    cursor = db.cursor()
-    cursor.execute("SELECT id from users where name=%s", (searchName))
-    result = cursor.fetchone()
-    cursor.close()
-    db.close()
-    if result:  id = result[0]
-    else: id = ''
+    if not searchName: return ''
 
+    cursor = request.cursor
+    id = ''
+    if request.req_cache['users_id'].has_key(searchName):
+      id = request.req_cache['users_id'][searchName]
+      return id
+    if not id and config.memcache:
+      id = request.mc.get('users_id:%s' % searchName)
+    if not id:
+      cursor.execute("SELECT id from users where name=%(username)s", {'username':searchName})
+      result = cursor.fetchone()
+      if result:
+        id = result[0]
+        if config.memcache: request.mc.add('users_id:%s' % searchName, id)
+
+    request.req_cache['users_id'][searchName] = id
     return id
 
 def getUserIdentification(request, username=None):
@@ -173,7 +179,7 @@ class User:
 
         # we got an already authenticated username:
         if not self.id and self.auth_username:
-            self.id = getUserId(self.auth_username)
+            self.id = getUserId(self.auth_username, self.request)
 
         if self.id:
             self.load_from_id()
@@ -206,11 +212,38 @@ class User:
         @rtype: bool
         @return: true, if we have a user account
         """
-	self.request.cursor.execute("SELECT id from users where id=%s", (self.id))
-	result = self.request.cursor.fetchone()
+	result = False
+	if self.request.req_cache['users'].has_key(self.id):
+	  result = self.request.req_cache['users'][self.id]
+	if not result:
+	  if config.memcache:
+	    result = self.request.mc.get('users:%s' % self.id)
+	  if not result:
+	    self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark from users where id=%(userid)s", {'userid':self.id})
+	    data = self.request.cursor.fetchone()
+	    if data:
+              user_data = {'enc_password': ''}
+              user_data['name'] = data[0] 
+	      user_data['email'] = data[1]
+	      user_data['enc_password'] = data[2]
+	      user_data['language'] = data[3]
+	      user_data['remember_me'] = data[4]
+	      user_data['css_url'] = data[5]
+	      user_data['disabled'] = data[6]
+	      user_data['edit_cols'] = data[7]
+	      user_data['edit_rows'] = data[8]
+	      user_data['edit_on_doubleclick'] = data[9]
+	      user_data['theme_name'] = data[10]
+	      user_data['last_saved'] = data[11]
+	      user_data['tz_offset'] = data[12]
+	      user_data['rc_bookmark'] = data[13]
+	      result = user_data
+	      if config.memcache: self.request.mc.add('users:%s' % self.id, result)
+
+          self.request.req_cache['users'][self.id] = result
+	  
 	if result: return True
-	else:  return False
-        return False
+	return False
 
     def load(self):
         """
@@ -218,7 +251,7 @@ class User:
 
         Can load user data if the user name is known, but only if the password is set correctly.
         """
-        self.id = getUserId(self.name)
+        self.id = getUserId(self.name, self.request)
         if self.id:
             self.load_from_id(1)
         #print >>sys.stderr, "self.id: %s, self.name: %s" % (self.id, self.name)
@@ -238,25 +271,35 @@ class User:
         if not self.exists(): return
 
         # XXX UNICODE fix needed, we want to read utf-8 and decode to unicode
-	self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark from users where id=%s", (self.id))
-	data = self.request.cursor.fetchone()
+	user_data = False
+	if self.request.req_cache['users'].has_key(self.id):
+	  user_data = self.request.req_cache['users'][self.id]
+	if not user_data:
+	  if config.memcache:
+	    user_data = self.request.mc.get('users:%s' % self.id)
+	  if not user_data:
+	    self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark from users where id=%(userid)s", {'userid':self.id})
+	    data = self.request.cursor.fetchone()
 
-        user_data = {'enc_password': ''}
-        user_data['name'] = data[0] 
-	user_data['email'] = data[1]
-	user_data['enc_password'] = data[2]
-	user_data['language'] = data[3]
-	user_data['remember_me'] = data[4]
-	user_data['css_url'] = data[5]
-	user_data['disabled'] = data[6]
-	user_data['edit_cols'] = data[7]
-	user_data['edit_rows'] = data[8]
-	user_data['edit_on_doubleclick'] = data[9]
+            user_data = {'enc_password': ''}
+            user_data['name'] = data[0] 
+	    user_data['email'] = data[1]
+	    user_data['enc_password'] = data[2]
+	    user_data['language'] = data[3]
+	    user_data['remember_me'] = data[4]
+	    user_data['css_url'] = data[5]
+	    user_data['disabled'] = data[6]
+	    user_data['edit_cols'] = data[7]
+	    user_data['edit_rows'] = data[8]
+	    user_data['edit_on_doubleclick'] = data[9]
+	    user_data['theme_name'] = data[10]
+	    user_data['last_saved'] = data[11]
+	    user_data['tz_offset'] = data[12]
+	    user_data['rc_bookmark'] = data[13]
 
-	user_data['theme_name'] = data[10]
-	user_data['last_saved'] = data[11]
-	user_data['tz_offset'] = data[12]
-	user_data['rc_bookmark'] = data[13]
+	    if config.memcache: self.request.mc.add('users:%s' % self.id, user_data)
+
+	  self.request.req_cache['users'][self.id] = user_data
 
         if check_pass:
             # If we have no password set, we don't accept login with username
@@ -272,7 +315,6 @@ class User:
         # Copy user data into user object
         for key, val in user_data.items():
             vars(self)[key] = val
-
 
         # old passwords are untrusted
         if hasattr(self, 'password'): del self.password
@@ -300,12 +342,12 @@ class User:
       from random import randint
       id = "%s.%d" % (str(time.time()), randint(0,65535))
       # check to make sure the id is unique (we could, after all, change our user id scheme at some point..)
-      self.request.cursor.execute("SELECT id from users where id=%s", (id))
+      self.request.cursor.execute("SELECT id from users where id=%(userid)s", {'userid':id})
       result = self.request.cursor.fetchone()
       while result:
         # means it's not unique, so let's try another
         id = "%s.%d" % (str(time.time()), randint(0,65535))
-	self.request.cursor.execute("SELECT id from users where id=%s", (id))
+	self.request.cursor.execute("SELECT id from users where id=%(userid)s", {'userid':id})
         result = self.request.cursor.fetchone()
       return id
 
@@ -318,12 +360,16 @@ class User:
         """
         self.last_saved = str(time.time())
 
+	userdict = {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz_offset':self.tz_offset}
+
         if not self.id:
 	  self.id = self._new_user_id()
-	  # account doesn't exist yet
-	  self.request.cursor.execute("insert into users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, join_date=%s, tz_offset=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, time.time(), self.tz_offset))
+ 	  # account doesn't exist yet
+	  userdict['join_date'] = time.time()
+	  userdict['id'] = self.id
+	  self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz_offset) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz_offset)s)", userdict)
 	else:
-	  self.request.cursor.execute("update users set id=%s, name=%s, email=%s, enc_password=%s, language=%s, remember_me=%s, css_url=%s, disabled=%s, edit_cols=%s, edit_rows=%s, edit_on_doubleclick=%s, theme_name=%s, last_saved=%s, tz_offset=%s where id=%s", (self.id, self.name, self.email, self.enc_password, self.language, str(self.remember_me), self.css_url, str(self.disabled), self.edit_cols, self.edit_rows, str(self.edit_on_doubleclick), self.theme_name, self.last_saved, self.tz_offset, self.id))
+	  self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz_offset=%(tz_offset)s where id=%(id)s", userdict)
 		
     def makeCookieHeader(self):
         """
@@ -334,8 +380,8 @@ class User:
             > 0   --> cookie will live for n hours (or forever when "remember_me")
             < 0   --> cookie will live for -n hours (forced, ignore "remember_me"!)
         """
+	forever = 10*365*24*3600 # 10 years, after this time the polar icecaps will have melted anyway
         lifetime = int(config.cookie_lifetime) * 3600
-        forever = 10*365*24*3600 # 10 years, after this time the polar icecaps will have melted anyway
         now = time.time()
         if not lifetime:
             expire = now + forever
@@ -353,14 +399,14 @@ class User:
         locale.setlocale(locale.LC_TIME, loc)
 
         cookie = Cookie.SimpleCookie()
-	sessionid, secret = self.cookieDough(expire)
+	sessionid, secret = self.cookieDough(expire, now)
         cookie[wikiutil.quoteFilename(config.sitename)+'ID'] = self.id + ',' + sessionid + ',' + secret
 	cookie_dir = config.web_dir
 	if not cookie_dir: cookie_dir = '/'
         return "%s expires=%s;host=%s;Path=%s" % (cookie.output(), expirestr, config.domain, cookie_dir)
 
 
-    def cookieDough(self, expiretime):
+    def cookieDough(self, expiretime, now):
 	"""
 	Creates a session-specific secret that is stored in the user's cookie.
 	Stores a hashed version of of this secret in a session dictionary.
@@ -371,13 +417,20 @@ class User:
 	"""
 	import random, cPickle
 	secret = hash(str(random.random()))
-	
+
 	sessionid = hash(str(time.time()) + str(self.id))
-	db = wikidb.connect()
 	# clear possibly old expired sessions
-	self.request.cursor.execute("DELETE from userSessions where user_id=%s and expire_time>=%s", (self.id, time.time()))
+	self.request.cursor.execute("DELETE from userSessions where user_id=%(id)s and expire_time>=%(timenow)s", {'id':self.id, 'timenow':time.time()})
 	# add our new session
-	self.request.cursor.execute("INSERT into userSessions set user_id=%s, session_id=%s, secret=%s, expire_time=%s", (self.id, sessionid, hash(secret), expiretime))
+	hash_secret = hash(secret)
+	self.request.cursor.execute("INSERT into userSessions (user_id, session_id, secret, expire_time) values (%(user_id)s, %(session_id)s, %(secret)s, %(expiretime)s)", {'user_id':self.id, 'session_id':sessionid, 'secret':hash_secret, 'expiretime':expiretime})
+	if config.memcache:
+	  key = "userSessions:%s,%s" % (self.id, sessionid)
+	  if self.remember_me:
+	    seconds_until_expire = 0
+	  else:
+	    seconds_until_expire = int(expiretime - now)
+	  self.request.mc.set(key, hash_secret, time=seconds_until_expire)
 
 	return (sessionid, secret)
     
@@ -388,16 +441,32 @@ class User:
 	return (cookiestring.split(','))[0]
 
     def isValidCookieDough(self, cookiestring):
+        stored_secret = False
 	split_string = cookiestring.split(',')
 	userid = split_string[0]
 	sessionid = split_string[1]
 	secret = split_string[2]
-	self.request.cursor.execute("SELECT secret from userSessions where user_id=%s and session_id=%s and expire_time>=%s", (userid, sessionid, time.time()))
-	result = self.request.cursor.fetchone()
-	if result:
-	  if hash(secret) == result[0]: return True
-	else: return False
+	if config.memcache:
+	  key = "userSessions:%s,%s" % (userid, sessionid)
+	  stored_secret = self.request.mc.get(key)
+	if not stored_secret:
+	  self.request.cursor.execute("SELECT secret, expire_time from userSessions where user_id=%(userid)s and session_id=%(sessionid)s and expire_time>=%(timenow)s", {'userid':userid, 'sessionid':sessionid, 'timenow':time.time()})
+	  result = self.request.cursor.fetchone()
+	  if result:
+	    stored_secret = result[0]
+	    stored_expiretime = result[1]
+	    if config.memcache:
+	      if self.remember_me:
+	        seconds_until_expire = 0
+	      else:
+	        seconds_until_expire = int(stored_expiretime - time.time())
 
+	      self.request.mc.add(key, stored_secret, time=seconds_until_expire)
+
+	if stored_secret and (stored_secret == hash(secret)):
+	  return True
+
+	return False
 	
     def sendCookie(self, request):
         """
@@ -469,7 +538,7 @@ class User:
 	    bool_show= '1'
 	    if hideshow == 'showcomments' : bool_show= '1'
 	    elif hideshow == 'hidecomments' : bool_show= '0'
-	    self.request.cursor.execute("UPDATE users set rc_showcomments=%s where id=%s", (bool_show, self.id))
+	    self.request.cursor.execute("UPDATE users set rc_showcomments=%(show_status)s where id=%(userid)s", {'show_status':bool_show, 'userid':self.id})
 
     def getShowComments(self):
         """
@@ -479,7 +548,7 @@ class User:
         @return: bookmark time (UTC UNIX timestamp) or None
         """
         if self.valid and self.exists():
-	    self.request.cursor.execute("SELECT rc_showcomments from users where id=%s", (self.id))
+	    self.request.cursor.execute("SELECT rc_showcomments from users where id=%(id)s", {'id':self.id})
 	    result = self.request.cursor.fetchone()
 	    # just in case..
 	    if not result:  return 1
@@ -496,7 +565,7 @@ class User:
         """
         if self.valid:
             if not tm: tm = time.time()
-	    self.request.cursor.execute("UPDATE users set rc_bookmark=%s where id=%s", (str(tm), self.id))
+	    self.request.cursor.execute("UPDATE users set rc_bookmark=%(timenow)s where id=%(userid)s", {'timenow':str(tm), 'userid':self.id})
 	    self.rc_bookmark = tm
 
 
@@ -528,7 +597,7 @@ class User:
         #return int(self.favorited_pages[index + len(pagename + "*"):index + 10 + len(pagename + "*")])
         #import re
         #from LocalWiki import wikiutil
-        self.request.cursor.execute("SELECT viewTime from userFavorites where username=%s and page=%s", (self.name, pagename))
+        self.request.cursor.execute("SELECT viewTime from userFavorites where username=%(name)s and page=%(pagename)s", {'name':self.name, 'pagename':pagename})
         result = self.request.cursor.fetchone()
 	if result: return result[0]
 	else: return None
@@ -542,7 +611,7 @@ class User:
         @return: 0 on success, 1 on failure
         """
         if self.valid:
-	   self.request.cursor.execute("UPDATE users set rc_bookmark=NULL where id=%s", (self.id))
+	   self.request.cursor.execute("UPDATE users set rc_bookmark=NULL where id=%(id)s", {'id':self.id})
 	   self.rc_bookmark = 0
 	   return 0
 	    
@@ -601,7 +670,7 @@ class User:
         @return: pages this user has marked as favorites.
         """
 	favPages = []
-	self.request.cursor.execute("SELECT page from userFavorites where username=%s order by page", (self.name))
+	self.request.cursor.execute("SELECT page from userFavorites where username=%(name)s order by page", {'name':self.name})
 	page = self.request.cursor.fetchone()
 	while page:
 	   favPages.append(page[0])
@@ -613,11 +682,11 @@ class User:
         Checks to see if pagename is in the favorites list, and if it is, it updates the timestamp.
         """
         if self.name:
-	  self.request.cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
+	  self.request.cursor.execute("SELECT page from userFavorites where username=%(name)s and page=%(pagename)s", {'name':self.name, 'pagename':pagename})
 	  result = self.request.cursor.fetchone()
 	  if result:
           # we have it as a favorite
-	     self.request.cursor.execute("UPDATE userFavorites set viewTime=%s where username=%s and page=%s", (time.time(), self.name, pagename)) 
+	     self.request.cursor.execute("UPDATE userFavorites set viewTime=%(timenow)s where username=%(name)s and page=%(pagename)s", {'timenow':time.time(), 'name':self.name, 'pagename':pagename}) 
  	  
 
     def isFavoritedTo(self, pagename):
@@ -630,7 +699,7 @@ class User:
                  0, if not
         """
         if self.valid:
-	    self.request.cursor.execute("SELECT page from userFavorites where username=%s and page=%s", (self.name, pagename))
+	    self.request.cursor.execute("SELECT page from userFavorites where username=%(name)s and page=%(pagename)s", {'name':self.name, 'pagename':pagename})
 	    result = self.request.cursor.fetchone()
 	    if result: return True
 	return False
@@ -695,7 +764,7 @@ class User:
         @return: true, if page was NEWLY subscribed.
         """ 
 	if not self.isFavoritedTo(pagename):
-	    self.request.cursor.execute("INSERT into userFavorites set page=%s, username=%s, viewTime=%s", (pagename, self.name, time.time()))
+	    self.request.cursor.execute("INSERT into userFavorites (page, username, viewTime) values (%(pagename)s, %(name)s, %(timenow)s)", {'pagename':pagename, 'name':self.name, 'timenow':time.time()})
 	    return 1
 
         return 0
@@ -703,7 +772,7 @@ class User:
 
     def delFavorite(self, pagename):
 	if self.isFavoritedTo(pagename):	
-	   self.request.cursor.execute("DELETE from userFavorites where page=%s and username=%s", (pagename, self.name))
+	   self.request.cursor.execute("DELETE from userFavorites where page=%(pagename)s and username=%(username)s", {'pagename':pagename, 'name':self.name})
            return 1
 
         return 0

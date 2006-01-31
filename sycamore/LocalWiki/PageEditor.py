@@ -114,7 +114,7 @@ class PageEditor(Page):
         """
         self.request = request
         self._ = request.getText
-        Page.__init__(self, page_name, cursor=request.cursor, **keywords)
+        Page.__init__(self, page_name, request.cursor, **keywords)
 
         self.do_revision_backup = keywords.get('do_revision_backup', 1)
         #self.do_editor_backup = keywords.get('do_editor_backup', 1)
@@ -250,8 +250,8 @@ class PageEditor(Page):
                 allow_conflicts = 1
                 from LocalWiki.util import diff3
                 savetext = self.get_raw_body()
-                original_text = Page(self.page_name, date=str(mtime)).get_raw_body()
-                saved_text = Page(self.page_name).get_raw_body()
+                original_text = Page(self.page_name, self.request, date=str(mtime)).get_raw_body()
+                saved_text = Page(self.page_name, self.request).get_raw_body()
                 verynewtext = diff3.text_merge(original_text, saved_text, savetext,
                                                allow_conflicts,
                                                '----- /!\ Edit conflict! Other version: -----\n',
@@ -283,7 +283,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         if form.has_key('template'):
             # "template" parameter contains the name of the template page
             template_page = wikiutil.unquoteWikiname(form['template'][0])
-            raw_body = Page(template_page).get_raw_body()
+            raw_body = Page(template_page, self.request).get_raw_body()
             if raw_body:
                 self.request.write(_("[Content of new page loaded from %s]") % (template_page,), '<br>')
             else:
@@ -469,7 +469,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         self.lock.release()
 
         backto = self.request.form.get('backto', [None])[0]
-        page = backto and Page(backto) or self
+        page = backto and Page(backto, self.request) or self
         page.send_page(self.request, msg=_('Edit was cancelled.'))
 
 
@@ -490,7 +490,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
             # XXXX Error handling
             pass
         # Then really delete it
-	self.request.cursor.execute("DELETE from curPages where name=%s", (self.page_name,))
+	self.request.cursor.execute("DELETE from curPages where name=%(page_name)s", {'page_name':self.page_name})
 
 	# remove entry from the search databases
 	os.spawnl(os.P_WAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', '%s' % wikiutil.quoteFilename(self.page_name))
@@ -592,7 +592,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         """
         username = self.request.user.name
         if username and config.allow_extended_names and \
-                username.count(' ') and Page(username).exists():
+                username.count(' ') and Page(username, self.request).exists():
             username = '["%s"]' % username
         return user.getUserIdentification(self.request, username)
 
@@ -707,14 +707,14 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	Write the text to the page tables in the database.
 	"""
 	ourtime = time.time()
-	self.request.cursor.execute("SELECT name from curPages where name=%s", (self.page_name,))
+	self.request.cursor.execute("SELECT name from curPages where name=%(page_name)s", {'page_name':self.page_name})
 	exists = self.request.cursor.fetchone()
 	if exists:
-		self.request.cursor.execute("UPDATE curPages set name=%s, text=%s, editTime=%s, userEdited=%s where name=%s", (self.page_name, text, ourtime, self.request.user.id, self.page_name))
+		self.request.cursor.execute("UPDATE curPages set name=%(page_name)s, text=%(text)s, editTime=%(ourtime)s, userEdited=%(id)s where name=%(page_name)s", {'page_name': self.page_name, 'text': text, 'ourtime': ourtime, 'id': self.request.user.id})
 	else:
-		self.request.cursor.execute("INSERT into curPages values (%s, %s, NULL, %s, NULL, %s)", (self.page_name, text, ourtime, self.request.user.id))
+		self.request.cursor.execute("INSERT into curPages values (%(page_name)s, %(text)s, NULL, %(ourtime)s, NULL, %(id)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id})
 	# then we need to update the allPages table for Recent Changes and page-centric Info.
-	self.request.cursor.execute("INSERT into allPages set name=%s, text=%s, editTime=%s, userEdited=%s, editType=%s, comment=%s, userIP=%s", (self.page_name, text, ourtime, self.request.user.id, action, wikiutil.escape(comment),ip))
+	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip})
 
 	# set in-memory page text
 	self.set_raw_body(text)
@@ -888,10 +888,8 @@ delete the changes of the other person, which is excessively rude!</em></p>
         return msg
 
     def userStatAdd(self, username, action, pagename):
-       db = wikidb.connect()
-       cursor = db.cursor()
-       cursor.execute("SELECT created_count, edit_count from users where name=%s", (username,))
-       result = cursor.fetchone()
+       self.request.cursor.execute("SELECT created_count, edit_count from users where name=%(username)s", {'username':username})
+       result = self.request.cursor.fetchone()
        
        created_count = result[0]
        edit_count = result[1]
@@ -901,7 +899,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
          created_count += 1
        last_page_edited = pagename
        last_edit_date = time.time()
-       self.request.cursor.execute("UPDATE users set created_count=%s, edit_count=%s, last_page_edited=%s, last_edit_date=%s where name=%s", (created_count, edit_count, last_page_edited, last_edit_date, username))
+       self.request.cursor.execute("UPDATE users set created_count=%(created_count)s, edit_count=%(edit_count)s, last_page_edited=%(last_page_edited)s, last_edit_date=%(last_edit_date)s where name=%(username)s", {'created_count':created_count, 'edit_count':edit_count, 'last_page_edited':last_page_edited, 'last_edit_date':last_edit_date, 'username':username})
 
 
 class PageLock:

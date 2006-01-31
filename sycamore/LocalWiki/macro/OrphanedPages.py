@@ -25,7 +25,7 @@ def execute(macro, args, formatter=None):
     _guard = 1
     db = wikidb.connect()
     cursor = db.cursor()
-    cursor.execute("select curPages.name from curPages left join links on links.source_pagename=curPages.name where links.source_pagename is NULL;")
+    cursor.execute("SELECT curPages.name from curPages left join links on links.source_pagename=curPages.name where links.source_pagename is NULL;")
     orphanednames_result = cursor.fetchall()
     cursor.close()
     db.close()
@@ -41,7 +41,7 @@ def execute(macro, args, formatter=None):
     pages = []
     for entry in orphanednames_result:
     	name = entry[0]
-        page = Page(name)
+        page = Page(name, macro.request.cursor)
         is_redirect = False
         #if not macro.request.user.may.read(name): continue
         if page.isRedirect():

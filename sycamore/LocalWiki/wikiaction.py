@@ -21,7 +21,7 @@
 
 # Imports
 import os, re, string, time, urllib
-from LocalWiki import config, util, wikiutil, wikidb, user
+from LocalWiki import config, util, wikiutil, user
 from LocalWiki.Page import Page
 from LocalWiki.util import LocalWikiNoFooter, pysupport
 
@@ -129,7 +129,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
 
     # check for sensible search term
     if len(needle) < 1 and not request.form.get('string'):
-      Page(pagename).send_page(request, msg=_("Please enter a search string"))
+      Page(pagename, request.cursor).send_page(request, msg=_("Please enter a search string"))
       return
     elif request.form.get('string'):
         needle = request.form.get('string')[0]
@@ -174,7 +174,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
         data_line = (t.readline()).strip('\n')
         j = 0
         while (len(title_hits) != twith+1 and percent_line and data_line):
-                if request.user.may.read(data_line) and Page(data_line).exists():
+                if request.user.may.read(data_line) and Page(data_line, request.cursor).exists():
                         title_hits.append(data_line)
                 else:
                         tcount = tcount + 1
@@ -199,7 +199,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
     readable = 0
     while (len(full_hits) != pwith+1 and percent_line and pagename_line and data_line):
         name = pagename_line.strip('\n')
-        if request.user.may.read(wikiutil.unquoteWikiname(name)) and Page(wikiutil.unquoteWikiname(name)).exists():
+        if request.user.may.read(wikiutil.unquoteWikiname(name)) and Page(wikiutil.unquoteWikiname(name), request.cursor).exists():
                 full_hits.append((name,int(string.replace(percent_line, "%", " ").strip()), data_line))
         else:
                 count = count + 1
@@ -233,14 +233,14 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
         request.write('<ul>')
         if len(title_hits) > twith:
                 for t_hit in title_hits[0:twith]:
-                        request.write('<li>%s</li>' % Page(wikiutil.unquoteWikiname(t_hit)).link_to(request))
+                        request.write('<li>%s</li>' % Page(wikiutil.unquoteWikiname(t_hit), request.cursor).link_to(request))
                 request.write('</ul>')
                 request.write('<p>(<a href="%s/?action=newsearch&string=%s&tstart=%s">next %s matches</a>)'
                         % (relative_dir, needle, tstart+twith+tcount, twith))
                 request.write('</div>\n') # end content div
         else:
                 for t_hit in title_hits:
-                        request.write('<li>%s</li>' % Page(wikiutil.unquoteWikiname(t_hit)).link_to(request))
+                        request.write('<li>%s</li>' % Page(wikiutil.unquoteWikiname(t_hit), request.cursor).link_to(request))
                 request.write('</ul>')
                 request.write('</div>\n') # end content div
     if len(full_hits) < 1:
@@ -256,7 +256,7 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
               elif percent > 32:
                 color = "#ffee55"
               request.write('<p><table><tr><td width="40" valign="middle"><table id="progbar" cellspacing="0" cellpadding="0"><tr><td height="7" width="%d" bgcolor="%s"></td><td width="%d" bgcolor="#eeeeee"></td></tr></table></td><td>' % (percent/3, color, 33 - percent/3))
-              request.write(Page(wikiutil.unquoteWikiname(page_name)).link_to(request, querystr=
+              request.write(Page(wikiutil.unquoteWikiname(page_name), request.cursor).link_to(request, querystr=
                   'action=highlight&amp;value=%s' % urllib.quote_plus(needle)))
               request.write('</td></tr></table>\n')
               if context:
@@ -308,7 +308,7 @@ def do_titlesearch(pagename, request, fieldname='value'):
 
     # check for sensible search term
     if len(needle) < 1:
-        Page(pagename).send_page(request,
+        Page(pagename, request.cursor).send_page(request,
              msg=_("Please use a more selective search term instead of '%(needle)s'!") % {'needle': needle})
         return
 
@@ -318,7 +318,7 @@ def do_titlesearch(pagename, request, fieldname='value'):
         needle_re = re.compile(needle, re.IGNORECASE)
     except re.error:
         needle_re = re.compile(re.escape(needle), re.IGNORECASE)
-    all_pages = wikiutil.getPageList()
+    all_pages = wikiutil.getPageList(request.cursor)
     hits = filter(needle_re.search, all_pages)
     hits.sort()
 
@@ -327,7 +327,7 @@ def do_titlesearch(pagename, request, fieldname='value'):
     request.write('<div id="content">\n') # start content div
     request.write('<ul>')
     for filename in hits:
-        request.write('<li>%s</li>' % Page(filename).link_to(request))
+        request.write('<li>%s</li>' % Page(filename, request.cursor).link_to(request))
     request.write('</ul>')
 
     print_search_stats(request, len(hits), len(all_pages), start)
@@ -375,29 +375,26 @@ def do_highlight(pagename, request):
         needle = re.escape(needle)
         needle_re = re.compile(needle, re.IGNORECASE)
 
-    Page(pagename).send_page(request, hilite_re=needle_re)
+    Page(pagename, request.cursor).send_page(request, hilite_re=needle_re)
 
 
 #############################################################################
 ### Misc Actions
 #############################################################################
 
-def do_diff(pagename, request):
+def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1=0, version2=0, diff1_date='', diff2_date=''):
     """ Handle "action=diff"
         checking for either a "date=backupdate" parameter
         or date1 and date2 parameters
     """
+    l = []
     if not request.user.may.read(pagename):
-        Page(pagename).send_page(request)
+        Page(pagename, request.cursor).send_page(request)
         return
 
     # version numbers
-    version1 = 0
-    version2 = 0
-    diff1_date = ''
-    diff2_date = ''
     try:
-        version1 = request.form['version1'][0]
+        if not version1: version1 = request.form['version1'][0]
         try:
             version1 = int(version1)
         except StandardError:
@@ -406,7 +403,7 @@ def do_diff(pagename, request):
         version1 = 0
 
     try:
-        version2 = request.form['version2'][0]
+        if not version2: version2 = request.form['version2'][0]
         try:
             version2 = int(version2)
         except StandardError:
@@ -415,10 +412,10 @@ def do_diff(pagename, request):
         version2 = 0
 
     if version1:
-      diff1_date = repr(Page(pagename).version_number_to_date(version1))
+      if not diff1_date: diff1_date = repr(Page(pagename, request.cursor).version_number_to_date(version1))
     if version2:
-      diff2_date = repr(Page(pagename).version_number_to_date(version2))
-    
+      if not diff2_date: diff2_date = repr(Page(pagename, request.cursor).version_number_to_date(version2))
+
     # explicit dates
     if not diff1_date:
       try:
@@ -440,7 +437,6 @@ def do_diff(pagename, request):
       except KeyError:
           diff2_date = '0'
 
-
     if diff1_date == '-1' and diff2_date == '0':
         try:
             diff1_date = request.form['date'][0]
@@ -459,8 +455,11 @@ def do_diff(pagename, request):
 
     _ = request.getText
     
-    request.http_headers()
-    wikiutil.send_title(request, _('Diff for "%s"') % (pagename,), pagename=pagename)
+    if in_wiki_interface:
+      request.http_headers()
+      wikiutil.send_title(request, _('Diff for "%s"') % (pagename,), pagename=pagename)
+    else:
+      l.append("Diff for %s" % (pagename))
   
     if (float(diff1_date)>0 and float(diff2_date)>0 and float(diff1_date)>float(diff2_date)) or \
        (float(diff1_date)==0 and float(diff2_date)>0):
@@ -475,57 +474,66 @@ def do_diff(pagename, request):
     olddate2 = diff2_date
 
     if diff1_date == '-1':
-        #first_oldpage = os.path.join(config.backup_dir, oldversions[0])
 	# we want editTime as a string for precision purposes
-	request.cursor.execute("SELECT editTime from allPages where name=%s order by editTime desc limit 2;", (pagename))
+	request.cursor.execute("SELECT editTime from allPages where name=%(pagename)s order by editTime desc limit 2", {'pagename':pagename})
 	result = request.cursor.fetchall()
 	if len(result) >= 2:
 	   first_olddate = result[1][0]
 	else:
            first_olddate = 0
 	
-        oldpage = Page(pagename, prev_date=first_olddate)
+        oldpage = Page(pagename, request.cursor, prev_date=first_olddate)
         oldcount1 = oldcount1 - 1
     elif diff1_date == 0:
-        oldpage = Page(pagename)
+        oldpage = Page(pagename, request.cursor)
         # oldcount1 is still on init value 0
     else:
         if olddate1:
-            oldpage = Page(pagename, prev_date=olddate1)
+            oldpage = Page(pagename, request.cursor, prev_date=olddate1)
         else:
-            oldpage = Page("$EmptyPage$") # XXX: ugly hack
+            oldpage = Page("$EmptyPage$", request.cursor) # XXX: ugly hack
             oldpage.set_raw_body("")    # avoid loading from db
             
     if diff2_date == 0:
-        newpage = Page(pagename)
+        newpage = Page(pagename, request.cursor)
         # oldcount2 is still on init value 0
     else:
         if olddate2:
-            newpage = Page(pagename, prev_date=olddate2)
+            newpage = Page(pagename, request.cursor, prev_date=olddate2)
         else:
-            newpage = Page("$EmptyPage$") # XXX: ugly hack
+            newpage = Page("$EmptyPage$", request.cursor) # XXX: ugly hack
             newpage.set_raw_body("")    # avoid loading from db
 
     edit_count = abs(oldcount1 - oldcount2)
 
-    request.write('<div id="content">\n') # start content div
-    request.write('<p><strong>')
-    request.write(_('Differences between versions %s (%s) and %s (%s)') % (
+    l.append('<div id="content">\n') # start content div
+    l.append('<p><strong>')
+    if version1:
+      l.append(_('Differences between versions %s (%s) and %s (%s)') % (
         oldpage.get_version(), oldpage.mtime_printable(request), newpage.get_version(), newpage.mtime_printable(request)))
+    else:
+      l.append(_('Differences between versions 0 and versions %s (%s)') % (1, newpage.mtime_printable(request)))
+  
     if edit_count > 1:
-        request.write(' ' + _('(spanning %d versions)') % (edit_count,))
-    request.write('</strong></p>')
+        l.append(' ' + _('(spanning %d versions)') % (edit_count,))
+    l.append('</strong></p>')
   
     from LocalWiki.util.diff import diff
-    request.write(diff(request, oldpage.get_raw_body(), newpage.get_raw_body()))
-    newpage.send_page(request, count_hit=0, content_only=1, content_id="content-under-diff")
+    if version1: l.append(diff(request, oldpage.get_raw_body(), newpage.get_raw_body(), text_mode=text_mode))
+    else: l.append(diff(request, '', newpage.get_raw_body(), text_mode=text_mode))
 
-    request.write('</div>\n') # end content div
-    wikiutil.send_footer(request, pagename, showpage=1)
+    if in_wiki_interface:
+      request.write(''.join(l))
+      newpage.send_page(request, count_hit=0, content_only=1, content_id="content-under-diff")
+      request.write('</div>\n') # end content div
+      wikiutil.send_footer(request, pagename, showpage=1)
+    else:
+      l.append('</div>\n') #end content div
+      return ''.join(l)
 
 
 def do_info(pagename, request):
-    page = Page(pagename)
+    page = Page(pagename, request.cursor)
 
     if not request.user.may.read(pagename):
         page.send_page(request)
@@ -534,7 +542,6 @@ def do_info(pagename, request):
     def general(page, pagename, request):
         _ = request.getText
 
-        request.write('<div id="content">\n') # start content div
         request.write('<h2>%s</h2>\n' % _('General Information'))
         
         # show page size
@@ -579,7 +586,7 @@ def do_info(pagename, request):
         if links_from_page:
             request.write('<p>', _('This page links to the following pages:'), '<br>')
             for linkedpage in links_from_page:
-                request.write("%s%s " % (Page(linkedpage).link_to(request), ",."[linkedpage == links_from_page[-1]]))
+                request.write("%s%s " % (Page(linkedpage, request.cursor).link_to(request), ",."[linkedpage == links_from_page[-1]]))
             request.write("</p>")
 	else: request.write('<p>This page links to <b>no pages</b>.</p>')
 
@@ -587,11 +594,9 @@ def do_info(pagename, request):
         if links_to_page:
             request.write('<p>', _('The following pages link to this page:'), '<br>')
             for linkingpage in links_to_page:
-                request.write("%s%s " % (Page(linkingpage).link_to(request), ",."[linkingpage == links_to_page[-1]]))
+                request.write("%s%s " % (Page(linkingpage, request.cursor).link_to(request), ",."[linkingpage == links_to_page[-1]]))
             request.write("</p>")
 	else: request.write('<p><b>No pages</b> link to this page.</p>')
-
-        request.write('</div>\n') # end content div
 
 
     def history(page, pagename, request):
@@ -615,7 +620,6 @@ def do_info(pagename, request):
         from stat import ST_MTIME, ST_SIZE
         _ = request.getText
 
-        request.write('<div id="content">\n') # start content div
         request.write('<h2>%s</h2>\n' % _('Revision History'))
 
         from LocalWiki.logfile import editlog
@@ -642,12 +646,12 @@ def do_info(pagename, request):
 	   # so they see a consistent version of the page between page forward/back
 	   offset = offset_given*100 - offset_given
         may_revert = request.user.may.revert(pagename)
-	request.cursor.execute("SELECT count(editTime) from allPages where name=%s", (pagename))
+	request.cursor.execute("SELECT count(editTime) from allPages where name=%(pagename)s", {'pagename':pagename})
 	count_result = request.cursor.fetchone()
 	if count_result: versions = count_result[0]
-	request.cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%s order by editTime desc limit 100 offset %s", (pagename, offset))
+	request.cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%(pagename)s order by editTime desc limit 100 offset %(offset)s", {'pagename':pagename, 'offset':offset})
 	result = request.cursor.fetchall()
-	request.cursor.execute("SELECT editTime from curPages where name=%s", (pagename))
+	request.cursor.execute("SELECT editTime from curPages where name=%(pagename)s", {'pagename':pagename})
 	currentpage_editTime_result = request.cursor.fetchone()
 	if currentpage_editTime_result: currentpage_editTime = currentpage_editTime_result[0]
 	else: currentpage_editTime = 0
@@ -719,7 +723,7 @@ def do_info(pagename, request):
    	    
 	    if entry[2]:
 	    	editUser = user.User(request, entry[2])
-            	editUser_text = Page(editUser.name).link_to(request)
+            	editUser_text = Page(editUser.name, request.cursor).link_to(request)
 		editUser_text = '<span title="%s">' % userIP + editUser_text + '</span>'
 	    else: editUser_text = '<i>none</i>'
             history.addRow((
@@ -753,8 +757,6 @@ def do_info(pagename, request):
 	else:
 	  request.write('<p>This page has no revision history.  This is probably because the page was never created.</p>')
 
-	request.write('</div>') # end content div
-
 
     _ = request.getText
     qpagename = wikiutil.quoteWikiname(pagename)
@@ -782,23 +784,23 @@ def do_info(pagename, request):
 def do_recall(pagename, request):
     # We must check if the current page has different ACLs.
     if not request.user.may.read(pagename):
-        Page(pagename).send_page(request)
+        Page(pagename, request.cursor).send_page(request)
         return
     if request.form.has_key('date'):
-        Page(pagename, prev_date=request.form['date'][0]).send_page(request)
+        Page(pagename, request.cursor, prev_date=request.form['date'][0]).send_page(request)
     elif request.form.has_key('version'):
-    	Page(pagename, version=request.form['version'][0]).send_page(request)
+    	Page(pagename, request.cursor, version=request.form['version'][0]).send_page(request)
     else:
-        Page(pagename).send_page(request)
+        Page(pagename, request.cursor).send_page(request)
 
 
 def do_show(pagename, request):
     if request.form.has_key('date'):
-        Page(pagename, prev_date=request.form['date'][0]).send_page(request, count_hit=1)
+        Page(pagename, request.cursor, prev_date=request.form['date'][0]).send_page(request, count_hit=1)
     elif request.form.has_key('version'):
-    	Page(pagename, version=request.form['version'][0]).send_page(request, count_hit=1)
+    	Page(pagename, request.cursor, version=request.form['version'][0]).send_page(request, count_hit=1)
     else:
-        Page(pagename).send_page(request, count_hit=1)
+        Page(pagename, request.cursor).send_page(request, count_hit=1)
 
 
 #def do_refresh(pagename, request):
@@ -815,7 +817,7 @@ def do_print(pagename, request):
 
 def do_content(pagename, request):
     request.http_headers()
-    page = Page(pagename)
+    page = Page(pagename, request.cursor)
     request.write('<!-- Transclusion of %s -->' % request.getQualifiedURL(page.url(request)))
     page.send_page(request, count_hit=0, content_only=1)
     raise LocalWikiNoFooter
@@ -824,7 +826,7 @@ def do_content(pagename, request):
 def do_edit(pagename, request):
     if not request.user.may.edit(pagename):
         _ = request.getText
-        Page(pagename).send_page(request,
+        Page(pagename, request.cursor).send_page(request,
             msg = _('You are not allowed to edit this page.'))
         return
     from LocalWiki.PageEditor import PageEditor
@@ -832,7 +834,7 @@ def do_edit(pagename, request):
         PageEditor(pagename, request).sendEditor()
     else:
         _ = request.getText
-        Page(pagename).send_page(request, msg = _('Invalid pagename: Only the characters A-Z, a-z, 0-9, "$", "&", ",", ".", "!", "\'", ":", ";", " ", "/", "-", "(", ")" are allowed in page names.'))
+        Page(pagename, request.cursor).send_page(request, msg = _('Invalid pagename: Only the characters A-Z, a-z, 0-9, "$", "&", ",", ".", "!", "\'", ":", ";", " ", "/", "-", "(", ")" are allowed in page names.'))
 
 def isValidPageName(name):
     return not re.search('[^A-Za-z\-0-9 $&\.\,:;/\'\!\(\)]',name)
@@ -843,17 +845,17 @@ def do_revert(pagename, request):
     _ = request.getText
 
     if not request.user.may.revert(pagename):
-        return Page(pagename).send_page(request,
+        return Page(pagename, request.cursor).send_page(request,
             msg = _('You are not allowed to revert this page!'))
 
     if request.form.has_key('version'):
       version = int(request.form['version'][0])
-      oldpg = Page(pagename, version=version)
+      oldpg = Page(pagename, request.cursor, version=version)
       date = oldpg.prev_date
       comment = 'v' + str(version)
     elif request.form.has_key('date'):
       date = request.form['date'][0]
-      oldpg = Page(pagename, prev_date=date)
+      oldpg = Page(pagename, request.cursor, prev_date=date)
       version = oldpg.date_to_version_number(date)
       comment = date
     else:
@@ -876,7 +878,7 @@ def do_savepage(pagename, request):
     _ = request.getText
 
     if not request.user.may.edit(pagename):
-        Page(pagename).send_page(request,
+        Page(pagename, request.cursor).send_page(request,
             msg = _('You are not allowed to edit this page.'))
         return
 
@@ -930,7 +932,7 @@ def do_savepage(pagename, request):
         except pg.EditConflict, msg:
             allow_conflicts = 1
             from LocalWiki.util import diff3
-            original_text = Page(pg.page_name, prev_date=datestamp).get_raw_body()
+            original_text = Page(pg.page_name, request.cursor, prev_date=datestamp).get_raw_body()
             saved_text = pg.get_raw_body()
             verynewtext = diff3.text_merge(original_text, saved_text, savetext,
                  allow_conflicts,
@@ -953,7 +955,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         request.reset()
         backto = request.form.get('backto', [None])[0]
         if backto:
-            pg = Page(backto)
+            pg = Page(backto, request.cursor)
         pg.send_page(request, msg=savemsg)
         request.http_redirect(pg.url(request))
 
@@ -986,7 +988,7 @@ def do_favorite(pagename, request):
             request.user.save()
         msg = _('You have added this page to your wiki Bookmarks!')
               
-    Page(pagename).send_page(request, msg=msg)
+    Page(pagename, request.cursor).send_page(request, msg=msg)
 
 def do_subscribe(pagename, request):
     """ Add the current wiki page to the subscribed_page property in
@@ -1024,13 +1026,13 @@ def do_subscribe(pagename, request):
         msg = _('You have been subscribed to this page.') + \
               _('To unsubscribe, go to your profile and delete this page from the subscription list.')
 
-    Page(pagename).send_page(request, msg=msg)
+    Page(pagename, request.cursor).send_page(request, msg=msg)
 
 
 def do_userform(pagename, request):
     from LocalWiki import userform
     savemsg = userform.savedata(request)
-    Page(pagename).send_page(request, msg=savemsg)
+    Page(pagename, request.cursor).send_page(request, msg=savemsg)
 
 
 def do_bookmark(pagename, request):
@@ -1049,14 +1051,14 @@ def do_bookmark(pagename, request):
         request.user.delBookmark()
     else:
         request.user.setBookmark(tm)
-    Page(pagename).send_page(request)
+    Page(pagename, request.cursor).send_page(request)
 
 def do_showcomments(pagename, request):
     hideshow = 'showcomments'
     if request.form.has_key('hide'):
         hideshow = 'hidecomments'
     request.user.setShowComments(hideshow)
-    Page(pagename).send_page(request)
+    Page(pagename, request.cursor).send_page(request)
 
 def do_formtest(pagename, request):
     # test a user defined form
@@ -1088,19 +1090,19 @@ def do_formtest(pagename, request):
 
 def do_raw(pagename, request):
     if not request.user.may.read(pagename):
-        Page(pagename).send_page(request)
+        Page(pagename, request.cursor).send_page(request)
         return
 
     request.http_headers(["Content-type: text/plain;charset=%s" % config.charset])
     #request.write('<html><head><meta name="robots" content="noindex,nofollow"></head>')
 
     try:
-        page = Page(pagename, version=request.form['version'][0])
+        page = Page(pagename, request.cursor, version=request.form['version'][0])
     except KeyError:
         try:
-	  page = Page(pagename, prev_date=request.form['date'][0])
+	  page = Page(pagename, request.cursor, prev_date=request.form['date'][0])
         except KeyError:
-          page = Page(pagename)
+          page = Page(pagename, request.cursor)
 
     request.write(page.get_raw_body())
     #request.write('</html>')
@@ -1126,7 +1128,7 @@ def do_format(pagename, request):
     #request.http_headers(["Content-Type: " + mimetype])
     request.http_headers(["Content-Type: " + 'text/plain'])
 
-    Page(pagename, formatter = Formatter(request)).send_page(request)
+    Page(pagename, request.cursor, formatter = Formatter(request)).send_page(request)
     raise LocalWikiNoFooter
 
 

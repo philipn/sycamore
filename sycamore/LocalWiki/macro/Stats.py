@@ -25,7 +25,7 @@ def execute(macro, args, formatter=None):
        htmltext = []
        db = wikidb.connect()
        cursor = db.cursor()
-       cursor.execute("SELECT join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users where name=%s", (args))
+       cursor.execute("SELECT join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users where name=%(username)s", {'username':args})
        result = cursor.fetchone()
        cursor.close()
        db.close()
@@ -59,7 +59,7 @@ def execute(macro, args, formatter=None):
        list = []
        db = wikidb.connect()
        cursor = db.cursor()
-       cursor.execute("SELECT name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users where name!='' order by %s desc" % sort_by, (args))
+       cursor.execute("SELECT name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users where name!='' order by %s desc" % sort_by)
        user_stats = cursor.fetchall()
        cursor.close()
        db.close()

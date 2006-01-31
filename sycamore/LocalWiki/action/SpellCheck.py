@@ -127,7 +127,7 @@ def checkSpelling(page, request, own_form=1):
     wordsdict = _loadDict(request)
 
     localwords = {}
-    lsw_page = Page(config.page_local_spelling_words)
+    lsw_page = Page(config.page_local_spelling_words, request.cursor)
     if lsw_page.exists(): _loadWordsFile(request, localwords, lsw_page._text_filename())
 
     # init status vars & load page
@@ -205,7 +205,7 @@ def checkSpelling(page, request, own_form=1):
 
 def execute(pagename, request):
     _ = request.getText
-    page = Page(pagename)
+    page = Page(pagename, request.cursor)
     if request.user.may.read(pagename):
         badwords, badwords_re, msg = checkSpelling(page, request)
     else:

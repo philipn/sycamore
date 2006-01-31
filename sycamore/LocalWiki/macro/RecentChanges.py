@@ -4,7 +4,7 @@
 
     Parameter "ddiffs" by Ralf Zosel <ralf@zosel.com>, 04.12.2003.
 
-    @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>, 2005 Philip Neustrom
+    @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>, 2005-2006 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
 
@@ -80,7 +80,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     is_event = lines[-1].action == 'NEWEVENT'
     # check whether this page is newer than the user's bookmark
     hilite = line.ed_time > (bookmark or line.ed_time)
-    page = Page(line.pagename)
+    page = Page(line.pagename, request.cursor)
 
     html_link = ''
     if not page.exists():
@@ -266,21 +266,6 @@ def print_abandoned(macro, args, **kw):
 def execute(macro, args, formatter=None, **kw):
     if not formatter: formatter = macro.formatter
     
-    # betta' with this line object so we can move away from array indexing
-    class line:
-     def __init__(self, edit_tuple):
-      self.pagename = edit_tuple[0]
-      self.ed_time = edit_tuple[1]
-      self.action = edit_tuple[3]
-      self.comment = edit_tuple[4]
-      self.userid = edit_tuple[2]
-      self.host = edit_tuple[5]
-
-     def getEditor(self, request):
-	 if self.userid:
-           return formatter.pagelink(user.User(request, self.userid).name)
-	 else: return ''
-
     # handle abandoned keyword
     if kw.get('abandoned', 0):
         print_abandoned(macro, args, **kw)
@@ -293,46 +278,7 @@ def execute(macro, args, formatter=None, **kw):
     pagename = request.getPathinfo()[1:]
     d['q_page_name'] = wikiutil.quoteWikiname(pagename)
 
-
-    #log = editlog.EditLog()
-    # we limit recent changes to display at most the last 7 days of edits.
-    right_now  = time.gmtime()
-    oldest_displayed_time_tuple = (right_now[0], right_now[1], right_now[2]-7, 0, 0, 0, 0, 0, 0)
-    seven_days_ago = time.mktime(oldest_displayed_time_tuple)
-    
-    lines = []
-    db = wikidb.connect()
-    cursor = db.cursor()
-    # b/c oldest_time is the same until it's a new day, this statement caches well
-    # so, let's compile all the different types of changes together!
-    # note:  we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
-    cursor.execute("""SELECT * from (
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from pageChanges where pageChanges.changeTime >= %s)
-     UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from currentImageChanges where currentImageChanges.changeTime >= %s)
-     UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from oldImageChanges where oldImageChanges.changeTime >= %s)
-     UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from deletedImageChanges where deletedImageChanges.changeTime >= %s)
-     UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from eventChanges where eventChanges.changeTime >= %s)
-     UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from currentMapChanges where currentMapChanges.changeTime >= %s)
-     UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from oldMapChanges where oldMapChanges.changeTime >= %s)
-     UNION
-     (SELECT name, changeTime as changeTime, id, editType, comment, userIP from deletedMapChanges where deletedMapChanges.changeTime >= %s)
-     order by changeTime desc
-     ) as result;"""
-      , (seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago, seven_days_ago))
-    
-    edit = cursor.fetchone()
-    while edit:
-      lines.append(line(edit))
-      edit = cursor.fetchone()
-
-    cursor.close()
-    db.close()
+    lines = wikidb.getRecentChanges(request, max_days=7)
 
     tnow = time.time()
     msg = ""

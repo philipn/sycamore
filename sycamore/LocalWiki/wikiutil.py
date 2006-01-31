@@ -8,7 +8,7 @@
 
 # Imports
 import os, re, urllib, difflib, string
-from LocalWiki import config, util, version, wikidb
+from LocalWiki import config, util, wikidb
 from LocalWiki.util import filesys, pysupport
 import cPickle
 import time
@@ -21,6 +21,11 @@ CHILD_PREFIX = "/" # changing this will not really work
 _TEMPLATE_RE = None
 _FORM_RE = None
 _CATEGORY_RE = None
+
+def prepareAllProperties():
+  # sets up the consistent data between requests.  right now, this is just the db connection
+  d = {}
+  return d
 
 def baseScriptURL():
    # gives something like: '/installhtml/index.cgi' or '' or '/index.cgi'..
@@ -348,16 +353,12 @@ def filterCategoryPages(pagelist):
         _CATEGORY_RE = re.compile(config.page_category_regex)
     return filter(_CATEGORY_RE.search, pagelist)
 
-def isImageOnPage(pagename, filename):
+def isImageOnPage(pagename, filename, cursor):
     """
     Returns True if the image is on the page.  Returns false otherwise.
     """
-    db = wikidb.connect()
-    cursor = db.cursor()
-    cursor.execute("SELECT name from images where attached_to_pagename=%s and name=%s", (pagename, filename))
+    cursor.execute("SELECT name from images where attached_to_pagename=%(pagename)s and name=%(filename)s", {'pagename':pagename, 'filename':filename})
     result = cursor.fetchone()
-    cursor.close()
-    db.close()
     if result:  return True
     else:  return False
 
@@ -366,7 +367,7 @@ def isImageOnPage(pagename, filename):
 ### Page storage helpers
 #############################################################################
 
-def getPageList(alphabetize=False):
+def getPageList(cursor, alphabetize=False):
     """
     List all pages, except for "CVS" directories,
     hidden files (leading '.') and temp files (leading '#')
@@ -375,8 +376,6 @@ def getPageList(alphabetize=False):
     @return: all (unquoted) wiki page names
 
     """
-    db = wikidb.connect()
-    cursor = db.cursor()
     if not alphabetize: cursor.execute("SELECT name from curPages")
     else: cursor.execute("SELECT name from curPages order by name")
     result = []
@@ -384,12 +383,10 @@ def getPageList(alphabetize=False):
     while p:
     	result.append(p[0])
     	p = cursor.fetchone()
-    cursor.close()
-    db.close() 
 
     return result
 
-def getPageDict():
+def getPageDict(cursor):
     """
     Return a dictionary of page objects for all pages,
     with the page name as the key.
@@ -400,9 +397,9 @@ def getPageDict():
     """
     from LocalWiki.Page import Page
     pages = {}
-    pagenames = getPageList()
+    pagenames = getPageList(cursor)
     for name in pagenames:
-        pages[name] = Page(name)
+        pages[name] = Page(name, cursor)
     return pages
 
 
@@ -455,7 +452,7 @@ def getSysPage(request, pagename):
         i18n_page = Page(i18n_name)
         if i18n_page.exists():
             return i18n_page
-    return Page(pagename)
+    return Page(pagename, request.cursor)
 
 
 def getHomePage(request, username=None):
@@ -477,7 +474,7 @@ def getHomePage(request, username=None):
         from LocalWiki.Page import Page
 
         # plain homepage?
-        pg = Page(username)
+        pg = Page(username, request.cursor)
         if pg.exists(): return pg
 
     return None
@@ -523,79 +520,6 @@ def AbsPageName(context, pagename):
 
 
 #############################################################################
-### Searching
-#############################################################################
-
-def searchPages(needle, **kw):
-    """
-    Search the text of all pages for "needle".
-
-    @param needle: the expression we want to search for
-    @keyword literal: 0: try to treat "needle" as a regex
-                      1: "needle" is definitely NOT a regex
-    @keyword case: 1: case-sensitive search
-    @keyword context: if != 0: provide `context` chars of text on each side of a hit.
-    @rtype: tuple
-    @return: (number of pages, hits).
-        `hits` is a list of tuples containing the number of hits on a page
-        and the pagename. When context>0, a list of triples with the text of
-        the hit and the text on each side of it is added; otherwise, the
-        third element is None.
-    """
-    from LocalWiki.Page import Page
-
-    literal = kw.get('literal', 0)
-    context = int(kw.get('context', 0))
-    ignorecase = int(kw.get('case', 0)) == 0 and re.IGNORECASE or 0
-
-    if literal and context:
-        needle_re = re.compile(re.escape(needle), ignorecase)
-    elif literal:
-        if ignorecase:
-            needle = needle.lower()
-    else:
-        try:
-            needle_re = re.compile(needle, ignorecase)
-        except re.error:
-            needle_re = re.compile(re.escape(needle), ignorecase)
-
-    hits = []
-    all_pages = getPageList(config.text_dir)
-    for page_name in all_pages:
-        body = Page(page_name).get_raw_body()
-        if context:
-            pos = 0
-            fragments = []
-            while 1:
-                match = needle_re.search(body, pos)
-                if not match: break
-                pos = match.end()
-                fragments.append((
-                    body[match.start()-context:match.start()],
-                    body[match.start():match.end()],
-                    body[match.end():match.end()+context],
-                ))
-            if fragments:
-                hits.append((len(fragments), page_name, fragments))
-        else:
-            if literal:
-                if ignorecase:
-                    body = body.lower()
-                count = body.count(needle)
-            else:
-                count = len(needle_re.findall(body))
-            if count:
-                hits.append((count, page_name, None))
-
-    # we sort:
-    # 1. by descending number of hits
-    # 2. by ascending name of page
-    hits.sort( lambda x,y: cmp((y[0], x[1]), (x[0], y[1])) )
-
-    return (len(all_pages), hits)
-
-
-#############################################################################
 ### Plugins
 #############################################################################
 
@@ -613,7 +537,7 @@ def importPlugin(kind, name, function="execute"):
     """
     # First try data/plugins
     result = pysupport.importName("plugin." + kind + "." + name, function)
-    if result == None:
+    if not result:
         # then LocalWiki
         result = pysupport.importName("LocalWiki." + kind + "." + name, function)
     return result
@@ -1059,7 +983,7 @@ def send_title(request, text, **keywords):
 
     _ = request.getText
     pagename = keywords.get('pagename', None)
-    page = Page(pagename)
+    page = Page(pagename, request.cursor)
 
     # get name of system pages
     #page_front_page = getSysPage(request, config.page_front_page).page_name
@@ -1073,7 +997,7 @@ def send_title(request, text, **keywords):
     if pagename and config.allow_subpages:
         pos = pagename.rfind('/')
         if pos >= 0:
-            pp = Page(pagename[:pos])
+            pp = Page(pagename[:pos], request.cursor)
             if pp.exists():
                 page_parent_page = pp.page_name
 
@@ -1105,15 +1029,25 @@ def send_title(request, text, **keywords):
     if keywords.has_key('strict_title') and keywords['strict_title']: strict_title = keywords['strict_title']
     else: strict_title = text
 
-    request.write("""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+    # add the rss link for per-page rss
+    if config.relative_dir: add_on = '/'
+    else: add_on = ''
+    if pagename.lower() != 'recent changes':
+      rss_html = '<link rel=alternate type="application/rss+xml" href="/%s%s%s?action=rss_rc" title="Recent Changes RSS Feed">' % (config.relative_dir, add_on, quoteWikiname(pagename))
+    else:
+      rss_html = ''
+
+    request.write("""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
+%s
 %s
 %s
 %s
 """ % (
         user_head,
         keywords.get('html_head', ''),
+	rss_html,
         request.theme.html_head({
             'title': escape(strict_title),
             'sitename': escape(config.html_pagetitle or config.sitename),
@@ -1170,7 +1104,7 @@ def send_title(request, text, **keywords):
             and pagename and request.user.may.edit(pagename) \
             and request.user.edit_on_doubleclick:
         bodyattr += ''' ondblclick="location.href='%s'"''' % (
-            Page(pagename).url(request, "action=edit"))
+            Page(pagename, request.cursor).url(request, "action=edit"))
 
     # Set body to the user interface language and direction
     bodyattr += ' %s' % request.theme.ui_lang_attr()

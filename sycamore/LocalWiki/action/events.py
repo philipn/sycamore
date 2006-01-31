@@ -35,6 +35,7 @@ def execute(pagename, request):
       if request.form.get("rss")[0] == "1":
         request.http_headers()
         request.write(doRSS(request,add_on))
+	raise util.LocalWikiNoFooter
         return
 
     # be extra paranoid
@@ -55,16 +56,16 @@ def execute(pagename, request):
         if request.form.get('del')[0] == "1" and request.user.may.admin("Events Board"):
 	    # let's try and delete the event!
 	    uid = request.form.get('uid')[0]
-	    request.cursor.execute("SELECT event_name from events where uid=%s", (uid))
+	    request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
 	    name = request.cursor.fetchone()[0]
-	    request.cursor.execute("DELETE from events where uid=%s", (uid))
+	    request.cursor.execute("DELETE from events where uid=%(uid)s", {'uid':uid})
             msg = 'Event "%s" <b>deleted</b>!' % name
 
         elif request.form.get('del')[0] == "1":
             uid = request.form.get('uid')[0]
-	    request.cursor.execute("SELECT event_name from events where uid=%s", (uid))
+	    request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
 	    name = request.cursor.fetchone()[0]
-	    request.cursor.execute("DELETE from events where uid=%s and posted_by=%s", (uid, request.user.name))
+	    request.cursor.execute("DELETE from events where uid=%(uid)s and posted_by=%(username)s", {'uid':uid, 'username':request.user.name})
             msg = 'Event "%s" <b>deleted</b>!' % name
 
 
@@ -138,7 +139,7 @@ def doRSS(request, add_on):
         rss_text = []
 	events = []
 	print time.time()
-	request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where DATE(FROM_UNIXTIME(event_time))=DATE(FROM_UNIXTIME(%s))", (time.time))
+	request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where DATE(FROM_UNIXTIME(event_time))=DATE(FROM_UNIXTIME(%(timenow)s))", {'timenow':time.time()})
 	result = request.cursor.fetchone()
 	while result:
 	  events.append(result)
@@ -283,7 +284,7 @@ def datetoday(day, month, year):
    return days[dayofweek-1]
    
 def findMonth(month):
-    months = [ 'January', 'Februrary', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ]   
+    months = [ 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December' ]   
     return months[int(month)-1]
 
 def writeEvent(request, event_text, event_name, event_location, event_time_unix, posted_by):
@@ -301,7 +302,7 @@ def writeEvent(request, event_text, event_name, event_location, event_time_unix,
      if result[0]: max_id = result[0]
     id = max_id + 1
     posted_time = time.time()
-    request.cursor.execute("INSERT into events set uid=%s, event_time=%s, posted_by=%s, text=%s, location=%s, event_name=%s, posted_time=%s, posted_by_ip=%s", (id, event_time_unix, posted_by, event_text, event_location, event_name, posted_time, request.remote_addr))
+    request.cursor.execute("INSERT into events (uid, event_time, posted_by, text, location, event_name, posted_time, posted_by_ip) values (%(id)s, %(event_time_unix)s, %(posted_by)s, %(event_text)s, %(event_location)s, %(event_name)s, %(posted_time)s, %(userip)s)", {'id':id, 'event_time_unix':event_time_unix, 'posted_by':posted_by, 'event_text':event_text, 'event_location':event_location, 'event_name':event_name, 'posted_time':posted_time, 'userip':request.remote_addr})
 
      
 def doParse(text, request):

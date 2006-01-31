@@ -15,7 +15,7 @@
 # Imports
 import re, time
 from LocalWiki import action, config, macro, util
-from LocalWiki import version, wikiutil, wikiaction, i18n
+from LocalWiki import wikiutil, wikiaction, i18n
 from LocalWiki.Page import Page
 from LocalWiki.util import pysupport
 from LocalWiki.logfile import editlog, eventlog
@@ -223,7 +223,7 @@ class Macro:
         html = []
         index_letters = []
         allpages = int(self.form.get('allpages', [0])[0]) != 0
-        pages = wikiutil.getPageList()
+        pages = wikiutil.getPageList(self.request.cursor)
         #list(wikiutil.getPageList(config.text_dir))
         # pages = filter(self.request.user.may.read, pages)
         #if not allpages:
@@ -286,7 +286,7 @@ class Macro:
         html = []
         index_letters = []
         allpages = int(self.form.get('allpages', [0])[0]) != 0
-        pages = wikiutil.getPageList(alphabetize=True)
+        pages = wikiutil.getPageList(self.request.cursor, alphabetize=True)
         #list(wikiutil.getPageList(config.text_dir))
         # pages = filter(self.request.user.may.read, pages)
         #if not allpages:
@@ -420,7 +420,7 @@ class Macro:
 
     def _macro_PageCount(self, args, formatter=None):
         if not formatter: formatter = self.formatter
-        return formatter.text("%d" % (len(wikiutil.getPageList()),))
+        return formatter.text("%d" % (len(wikiutil.getPageList(self.request.cursor)),))
 
 
     def _macro_Icon(self, args, formatter=None):
@@ -437,7 +437,7 @@ class Macro:
             return "<strong>%s: %s</strong>" % (
                 _("ERROR in regex '%s'") % (args,), e)
 
-	all_pages = wikiutil.getPageList()
+	all_pages = wikiutil.getPageList(self.request.cursor)
         hits = filter(needle_re.search, all_pages)
         hits.sort()
         hits = filter(self.request.user.may.read, hits)

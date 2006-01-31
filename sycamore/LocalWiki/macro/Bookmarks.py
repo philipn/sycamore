@@ -13,6 +13,7 @@ import re, time, cStringIO, os
 from LocalWiki import config, user, util, wikiutil, wikixml, wikidb
 from LocalWiki.Page import Page
 from LocalWiki.logfile import editlog
+from LocalWiki.widget.comments import Comment
 
 _DAYS_SELECTION = [1, 2, 3, 7]
 _MAX_DAYS = 2
@@ -26,22 +27,11 @@ _MAX_PAGENAME_LENGTH = 15 # 35
 Dependencies = ["time"] # ["user", "pages", "pageparams", "bookmark"]
 
 def execute(macro, args, formatter=None, **kw):
-
-    class line:
-     def __init__(self, edit_tuple):
-      self.pagename = edit_tuple[0]
-      self.ed_time = edit_tuple[1]
-      self.action = edit_tuple[3]
-      self.comment = edit_tuple[4]
-      self.userid = edit_tuple[2]
-
-     def getEditor(self, request):
-         return formatter.pagelink(user.User(request, self.userid).name)
-
-
+    if not formatter: formatter = macro.formatter
     request = macro.request
     _ = request.getText
     pagename = macro.formatter.page.page_name
+    cursor = request.cursor
 
     tnow = time.time()
     msg = ""
@@ -52,48 +42,35 @@ def execute(macro, args, formatter=None, **kw):
     today = request.user.getTime(tnow)[0:3]
     this_day = today
     day_count = 0
+    local_favoriteList = []
+    
+    if not request.user.id:
+      # not logged in user
+      request.write('<p>You must be logged in to use the bookmarks functionality.  Bookmarks let you easily keep track of pages you think are interesting.</p>')
+      return ''
+    else:
+      local_favoriteList = wikidb.getRecentChanges(request, per_page_limit=1, userFavoritesFor=request.user.id)
 
-    local_favoriteList = request.user.getFavoriteList()
-    # make sure they can read the pages they add to the list
-    db = wikidb.connect()
-    cursor = db.cursor()
+      from LocalWiki.formatter.text_html import Formatter
+      from LocalWiki import user
+      formatter = Formatter(request)
+      find_month = { 1:"Jan.", 2:"Feb.", 3:"Mar.", 4:"Apr.", 5:"May", 6:"Jun.", 7:"Jul.", 8:"Aug.", 9:"Sept.", 10:"Oct.", 11:"Nov.", 12:"Dec." }   
 
-    from LocalWiki.formatter.text_html import Formatter
-    from LocalWiki import user
-    formatter = Formatter(request)
-    find_month = { 1:"Jan.", 2:"Feb.", 3:"Mar.", 4:"Apr.", 5:"May", 6:"Jun.", 7:"Jul.", 8:"Aug.", 9:"Sept.", 10:"Oct.", 11:"Nov.", 12:"Dec." }   
-
-    if config.relative_dir: add_on = '/'
-    else: add_on = ''
+      if config.relative_dir: add_on = '/'
+      else: add_on = ''
 
     request.write('<table>')
     if not local_favoriteList:
-        request.write('<p>Bookmarks let you easily keep track of pages you think are interesting.</p><p><i>You have no Bookmarks.  To add a page to your Bookmarks list, simply go to "Info" on the page you wish to add and click "Add this page to your wiki Bookmarks."</i></p>')
+      request.write('<p>Bookmarks let you easily keep track of pages you think are interesting.</p><p><i>You have no Bookmarks.  To add a page to your Bookmarks list, simply go to "Info" on the page you wish to add and click "Add this page to your wiki Bookmarks."</i></p>')
 
     showed_update = False
     seen_list = []
     line_of_text = ''
-    for pagename in local_favoriteList:
-          cursor.execute("SELECT name, editTime, userEdited, editType, comment from allPages where name=%s order by editTime desc limit 1;", (pagename))
-	  result = cursor.fetchone()
-	  found = False
-	  if result:
-             page_line = line(result)
-	     found = True
-	   # in case there's no editlog info :0
-	  if not found:
-		line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<font style="font-size: 10px;">[diff]</font> &nbsp;' + formatter.pagelink(pagename) + ' &nbsp;<span align="right" class="favtime"> no edit information found '
-		seen_list.append((pagename, line_of_text))
-		continue
-	    
+    for page_line in local_favoriteList:
+          page_line.comment = Comment(request, page_line.comment, page_line.action, page_line.pagename).render()
           bookmark = request.user.getFavBookmark(page_line.pagename)
+
 	  # in the case of uploads/deletes of images, etc we'd like to show a useful comment
-	  if page_line.action == 'ATTNEW':
-	     page_line.comment = "Upload of attachment '%s'." % page_line.comment
-	  elif page_line.action == 'ATTDEL':
-	     page_line.comment = "Attachment '%s' deleted." % page_line.comment
-
-
           page_line.time_tuple = request.user.getTime(page_line.ed_time)
           day = page_line.time_tuple[0:3]
 

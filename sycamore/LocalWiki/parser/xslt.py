@@ -91,7 +91,7 @@ class Parser:
                     """ Check whether uri is a valid pagename.
                     """
                     if uri.startswith(base_uri):
-                        page = Page.Page(uri[len(base_uri):].encode(config.charset))
+                        page = Page.Page(uri[len(base_uri):, self.request.cursor].encode(config.charset))
                         if page.exists():
                             return cStringIO.StringIO(page.get_raw_body())
                         else:

@@ -117,7 +117,7 @@ class XmlRpcBase:
         @rtype: list
         @return: a list of all pages. The result is a list of utf-8 strings.
         """
-        pagelist = wikiutil.getPageList(config.text_dir)
+        pagelist = wikiutil.getPageList(self.request.cursor)
         pagelist = filter(self.request.user.may.read, pagelist)
 
         return map(self._outstr, pagelist)
@@ -201,9 +201,9 @@ class XmlRpcBase:
             return xmlrpclib.Fault(1, "You are not allowed to read this page")
 
         if version != None:
-            page = Page(pn, date=version)
+            page = Page(pn, self.request.cursor, date=version)
         else:
-            page = Page(pn)
+            page = Page(pn, self.request.cursor)
         last_edit = page.last_edit(self.request)
         gmtuple = tuple(time.gmtime(last_edit['timestamp']))
         return { 'name': pagename,
@@ -233,9 +233,9 @@ class XmlRpcBase:
             return xmlrpclib.Fault(1, "You are not allowed to read this page")
 
         if version != None:
-            page = Page(pagename, date=version)
+            page = Page(pagename, self.request.cursor, date=version)
         else:
-            page = Page(pagename)
+            page = Page(pagename, self.request.cursor)
 
         if self.version == 2:
             return self._outstr(page.get_raw_body())
@@ -262,9 +262,9 @@ class XmlRpcBase:
 
         import cStringIO
         if version != None:
-            page = Page(pagename, date=version)
+            page = Page(pagename, self.request.cursor, date=version)
         else:
-            page = Page(pagename)
+            page = Page(pagename, self.request.cursor)
 
         out = cStringIO.StringIO()
         self.request.redirect(out)
@@ -292,7 +292,7 @@ class XmlRpcBase:
         if not self.request.user.may.read(pagename):
             return xmlrpclib.Fault(1, "You are not allowed to read this page")
 
-        page = Page(pagename)
+        page = Page(pagename, self.request.cursor)
 
         links_out = []
         for link in page.getPageLinks(self.request):

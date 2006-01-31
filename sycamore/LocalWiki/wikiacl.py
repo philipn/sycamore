@@ -189,7 +189,7 @@ class AccessControlList:
             that means that there is a valid user account present.
             works for subscription emails.
         """
-        if user.getUserId(name): # is a user with this name known?
+        if user.getUserId(name, request): # is a user with this name known?
             return rightsdict.get(dowhat)
         return None
 

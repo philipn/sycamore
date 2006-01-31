@@ -87,7 +87,7 @@ class Permissions:
         return self.getACL(pagename).may(self.request, self.name, "admin")
 
     def getACL(self, pagename, **kw):
-        return self.Page(pagename).getACL()
+        return self.Page(pagename, self.request.cursor).getACL()
 
 # make an alias for the default policy
 Default = Permissions

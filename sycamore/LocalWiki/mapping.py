@@ -35,7 +35,7 @@ def update_points(mapPoints, request, pagename=None):
   given_id_items_for_pagename = []
   if pagename:
     # we get all ids for the pagename so we know which ones to delete afterward
-    cursor.execute("SELECT id, x, y from mapPoints where pagename=%s", (pagename))
+    cursor.execute("SELECT id, x, y from mapPoints where pagename=%(page_name)s", {'page_name':pagename})
     all_id_items_result = cursor.fetchall()
     for pagename_id_item in all_id_items_result:
       all_id_items_for_pagename.append(pagename_id_item)
@@ -47,14 +47,14 @@ def update_points(mapPoints, request, pagename=None):
     y = point[3]
     categories = point[4]
     if id:
-      cursor.execute("SELECT created_time, created_by, created_by_ip, x, y from mapPoints where pagename=%s and id=%s", (name, id))
+      cursor.execute("SELECT created_time, created_by, created_by_ip, x, y from mapPoints where pagename=%(name)s and id=%(id)s", {'name':name, 'id':id})
       result = cursor.fetchone()
       created_time = result[0]
       created_by = result[1]
       created_by_ip = result[2]
       oldx = result[3]
       oldy = result[4]
-      cursor.execute("SELECT id from mapPointCategories where pagename=%s and x=%s and y=%s", (name, oldx, oldy))
+      cursor.execute("SELECT id from mapPointCategories where pagename=%(name)s and x=%(oldx)s and y=%(oldy)s", {'name':name, 'oldx':oldx, 'oldy':oldy})
       result = cursor.fetchall()
       old_categories = []
       for cat_id in result:
@@ -62,23 +62,28 @@ def update_points(mapPoints, request, pagename=None):
       given_id_items_for_pagename.append((id, x, y))
 
     if id:
-      cursor.execute("INSERT into oldMapPoints set pagename=%s, x=%s, y=%s, created_time=%s, created_by=%s, created_by_ip=%s, deleted_time=%s, deleted_by=%s, deleted_by_ip=%s", (name, oldx, oldy, created_time, created_by, created_by_ip, timenow, request.user.id, request.remote_addr))
-      cursor.execute("UPDATE mapPoints set pagename=%s, x=%s, y=%s, created_time=%s, created_by=%s, created_by_ip=%s where pagename=%s and id=%s and x=%s and y=%s", (name, x, y, timenow, request.user.id, request.remote_addr, name, id, oldx, oldy))
+      cursor.execute("INSERT into oldMapPoints set pagename=%(name)s, x=%(oldx)s, y=%(oldy)s, created_time=%(created_time)s, created_by=%(created_by)s, created_by_ip=%(created_by_ip)s, deleted_time=%(time_now)s, deleted_by=%(deleted_by_id)s, deleted_by_ip=%(deleted_by_ip)s", {'name':name, 'oldx':oldx, 'oldy':oldy, 'created_time':created_time, 'created_by':created_by, 'created_by_ip':created_by_ip, 'time_now':timenow, 'deleted_by_id':request.user.id, 'deleted_by_id':request.remote_addr})
+      cursor.execute("UPDATE mapPoints set pagename=%(name)s, x=%(x)s, y=%(y)s, created_time=%(time_now)s, created_by=%(created_by)s, created_by_ip=%(created_by_ip)s where pagename=%(name)s and id=%(id)s and x=%(oldx)s and y=%(oldy)s", {'name':name, 'x':x, 'y':y, 'time_now':timenow, 'created_by':request.user.id, 'created_by_ip':request.remote_addr, 'name':name, 'id:'id, 'oldx':oldx, 'oldy':oldy})
     else:
       cursor.execute("SELECT max(id) from mapPoints")
       result = cursor.fetchone()
       if result[0]:
         new_id = result[0] + 1
       else: new_id = 1
-      cursor.execute("INSERT into mapPoints set pagename=%s, x=%s, y=%s, created_time=%s, created_by=%s, created_by_ip=%s, id=%s", (name, x, y, timenow, request.user.id, request.remote_addr, new_id))
+      cursor.execute("INSERT into mapPoints set pagename=%(name)s, x=%(x)s, y=%(y)s, created_time=%(time_now)s, created_by=%(created_by)s, created_by_ip=%(created_by_ip)s, id=%(new_id)s", {'name':name, 'x':x, 'y':y, 'time_now':timenow, 'created_by':request.user.id, 'created_by_ip':request.remote_addr, 'new_id':new_id})
 
     if id:
       for old_category in old_categories:
-        cursor.execute("INSERT into oldMapPointCategories set pagename=%s, x=%s, y=%s, deleted_time=%s, id=%s", (name, x, y, timenow, old_category))
+        cursor.execute("INSERT into oldMapPointCategories set pagename=%(name)s, x=%(x)s, y=%(y)s, deleted_time=%(time_now)s, id=%(old_category)s", {'name':name, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category})
 
 
     for category in categories:
-      cursor.execute("REPLACE into mapPointCategories set pagename=%s, x=%s, y=%s, id=%s", (name, x, y, category))
+      cursor.execute("SELECT pagename from mapPointCategories where pagename=%(name)s and x=%(x)s and y=%(y)s and id=%(category)", {'name':name, 'x':x, 'y':y, 'category':category})
+      result = cursor.fetchone()
+      if result:
+        cursor.execute("UPDATE mapPointCategories set pagename=%(name)s, x=%(x)s, y=%(y)s, id=%(category)s", {'name':name, 'x':x, 'y':y, 'category':category})
+      else:
+        cursor.execute("INSERT into mapPointCategories (pagename, x, y, id) values (%(name)s, x=%(x)s, y=%(y)s, id=%(category)s)", {'name':name, 'x':x, 'y':y, 'category':category})
 
   # delete the points they didn't send us for pagename
   if pagename:
@@ -98,13 +103,13 @@ def update_points(mapPoints, request, pagename=None):
       x = id_item[1]
       y = id_item[2]
       old_categories = []
-      cursor.execute("SELECT id from mapPointCategories where pagename=%s and x=%s and y=%s", (pagename, x, y))
+      cursor.execute("SELECT id from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename, 'x':x, 'y':y}))
       result = cursor.fetchall()
       for cat_id in  result:
         old_categories.append(cat_id[0])
         
-      cursor.execute("INSERT into oldMapPoints set pagename=%s, x=%s, y=%s, created_time=(select created_time from mapPoints where pagename=%s and x=%s and y=%s), created_by=(select created_by from mapPoints where pagename=%s and x=%s and y=%s), created_by_ip=(select created_by_ip from mapPoints where pagename=%s and x=%s and y=%s), deleted_time=%s, deleted_by=%s, deleted_by_ip=%s", (pagename, x, y, pagename, x, y, pagename, x, y, pagename, x, y, timenow, request.user.id, request.remote_addr))
+      cursor.execute("INSERT into oldMapPoints set pagename=%(pagename)s, x=%(x)s, y=%(y)s, created_time=(select created_time from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s), created_by=(select created_by from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(pagename)s), created_by_ip=(select created_by_ip from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s), deleted_time=%(time_now)s, deleted_by=%(deleted_by)s, deleted_by_ip=%(deleted_by_ip)s", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr})
       cursor.execute("DELETE from mapPoints where pagename=%s and id=%s", (pagename, id))
       for old_category in old_categories:
-        cursor.execute("INSERT into oldMapPointCategories set pagename=%s, x=%s, y=%s, deleted_time=%s, id=%s", (pagename, x, y, timenow, old_category))
-      cursor.execute("DELETE from mapPointCategories where pagename=%s and x=%s and y=%s", (pagename, x, y))
+        cursor.execute("INSERT into oldMapPointCategories set pagename=%(pagename)s, x=%(x)s, y=%(y)s, deleted_time=%(time_now)s, id=%(old_category)s", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category})
+      cursor.execute("DELETE from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename, 'x':x, 'y':y})

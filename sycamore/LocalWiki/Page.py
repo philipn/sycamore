@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# coding: iso-8859-1 -*-
 """
     LocalWiki - Page class
 
@@ -19,7 +19,7 @@ class Page:
 
     _SPLIT_RE = re.compile('([%s])([%s])' % (config.lowerletters, config.upperletters))
 
-    def __init__(self, page_name, **keywords):
+    def __init__(self, page_name, cursor, **keywords):
         """
         Create page object.
 
@@ -28,17 +28,14 @@ class Page:
         efficient.
 
         @param page_name: Wiki name of the page
+	@param cursor: db cursor 
         @keyword prev_date: date of older revision
 	@keyword revision: revision number of older revision
         @keyword formatter: formatter instance
-	@keyword cursor: a db.cursor object -- useful for inner-transaction questions
+	@keyword req_cache: per-req cache of some information
         """
         self.page_name = page_name
-
-	if keywords.has_key('cursor'):
-	   self.cursor = keywords.get('cursor')
-	else:
-	   self.cursor = None
+        self.cursor = cursor
 
         self.prev_date = keywords.get('prev_date')
 	if self.prev_date:
@@ -63,7 +60,11 @@ class Page:
         else:
             self.default_formatter = 1
 
-	
+ 	if keywords.has_key('req_cache'):
+	  self.req_cache = keywords.get('req_cache')
+	else:
+	  self.req_cache = {}
+
     def get_date(self):
       # returns date this page/verison was created
       if self.version and not self.date:
@@ -83,38 +84,17 @@ class Page:
 	self.version = self.date_to_version_number(self.date)
       return self.version
 
-    def _getCursor(self):
-      # gets a cursor if we don't have one for the page
-      # if we do have one, return that
-      if self.cursor:
-        return self.cursor
-      else:
-	self.temp_db = wikidb.connect()
-	self.temp_cursor = self.temp_db.cursor()
-	return self.temp_cursor
-
-    def _endCursor(self):
-      # If we were given a cursor, do nothing (transactions end at request closure)
-      # Else, we close the cursor we created so we don't leave empty db connections out there
-      if not self.cursor:
-        self.temp_cursor.close()
-	self.temp_db.close()
-        
 
     def version_number_to_date(self, version_number):
         # Returns the unix timestamp of the editTime of this version of the page.
-	cursor = self._getCursor()
-        cursor.execute("SELECT editTime from allPages where name=%s order by editTime asc limit 1 offset %s;", (self.page_name, version_number-1))
-        result = cursor.fetchone()
-	self._endCursor()
+        self.cursor.execute("SELECT editTime from allPages where name=%(page_name)s order by editTime asc limit 1 offset %(version)s;", {'page_name':self.page_name, 'version':version_number-1})
+        result = self.cursor.fetchone()
         return result[0]
 
     def date_to_version_number(self, date):
         # Returns the version number of a given date of this page
-        cursor = self._getCursor()
-        cursor.execute("SELECT count(editTime) from allPages where name=%s and editTime<=%s;", (self.page_name, repr(date)))
-        result = cursor.fetchone()
-	self._endCursor()
+        self.cursor.execute("SELECT count(editTime) from allPages where name=%(page_name)s and editTime<=%(date)s;", {'page_name':self.page_name, 'date':repr(date)})
+        result = self.cursor.fetchone()
         return result[0]
 
     def split_title(self, force=0):
@@ -160,10 +140,8 @@ class Page:
         """
         if not self.exists():
             return None
-	cursor = self._getCursor()
-	cursor.execute("SELECT editTime, userEdited from curPages where name=%s", (self.page_name,))
-	result = cursor.fetchone()
-	self._endCursor()
+	self.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':self.page_name})
+	result = self.cursor.fetchone()
 	editTimeUnix = result[0]
 	editUserID = result[1]
 	
@@ -184,7 +162,7 @@ class Page:
 	editTime = request.user.getFormattedDateTime(editTimeUnix)
 	if userEditedID:
 	  editUser = user.User(request, userEditedID)
-	  editUser_text = Page(editUser.name).link_to(request)
+	  editUser_text = Page(editUser.name, request.cursor).link_to(request)
         
           result = "(last edited %(time)s by %(editor)s)" % {
                 'time': editTime,
@@ -194,8 +172,6 @@ class Page:
 	  result = "(last edited %(time)s)" % {
                 'time': editTime,
             }
-
-
 
         return result
 
@@ -217,13 +193,23 @@ class Page:
         @rtype: bool
         @return: true, if page exists
         """
-	cursor = self._getCursor()
-	cursor.execute("SELECT name from curPages where name=%s", (self.page_name,))
-	result = cursor.fetchone()
-	self._endCursor()
+	if self.req_cache: lower_pagename = self.page_name.lower()
+	if self.req_cache: 
+	  if self.req_cache.has_key('exists_dict'):
+	    if lower_pagename in self.req_cache['exists_dict']:
+	      return self.req_cache['exists_dict'][lower_page_name]
+
+	self.cursor.execute("SELECT name from curPages where name=%(page_name)s", {'page_name': self.page_name})
+	result = self.cursor.fetchone()
+	bool_exists = False
         if result:
-	  if result[0]: return True
-	return False
+	  if result[0]: bool_exists = True
+
+	if self.req_cache:
+	  if self.req_cache.has_key('exists_dict'):
+	    self.req_cache['exists_dict'][lower_pagename] = bool_exists
+
+	return bool_exists
 
 
     def size(self):
@@ -249,11 +235,9 @@ class Page:
         return False
 
     def hasMapPoints(self):
-      cursor = self._getCursor()
-      cursor.execute("SELECT pagename from mapPoints where pagename=%s", (self.page_name))
-      if cursor.fetchone():
+      self.cursor.execute("SELECT pagename from mapPoints where pagename=%(page_name)s", {'page_name':self.page_name})
+      if self.cursor.fetchone():
         return True
-      self._endCursor()
       return False
 
     def human_size(self):
@@ -274,13 +258,11 @@ class Page:
         @rtype: int
         @return: mtime of page (or 0 if page does not exist)
         """
-        cursor = self._getCursor()
 	if not self.prev_date:
-          cursor.execute("SELECT editTime from curPages where name=%s", (self.page_name))
+          self.cursor.execute("SELECT editTime from curPages where name=%(page_name)s", {'page_name': self.page_name})
         else:
-	  cursor.execute("SELECT editTime from allPages where name=%s and editTime <= %s order by editTime desc limit 1;", (self.page_name, self.prev_date))
-        result = cursor.fetchone()
-	self._endCursor()
+	  self.cursor.execute("SELECT editTime from allPages where name=%(page_name)s and editTime <= %(prev_date)s order by editTime desc limit 1;", {'page_name':self.page_name, 'prev_date':self.prev_date})
+        result = self.cursor.fetchone()
 	if result:
           if result[0]: return int(result[0])
 	else: return 0
@@ -314,23 +296,19 @@ class Page:
         @return: raw page contents of this page
         """
         if self._raw_body is None:
-		cursor = self._getCursor()
 		if not self.prev_date:
-			cursor.execute("SELECT text from curPages where name=%s", (self.page_name))
-			result = cursor.fetchone()
+			self.cursor.execute("SELECT text from curPages where name=%(page_name)s", {'page_name':self.page_name})
+			result = self.cursor.fetchone()
 			if result: text = result[0]
 			else: text = ''
 		else:
-			cursor.execute("SELECT text, editTime from allPages where (name=%s and editTime<=%s) order by editTime desc limit 1", (self.page_name, self.prev_date))
-			result = cursor.fetchone()
+			self.cursor.execute("SELECT text, editTime from allPages where (name=%(page_name)s and editTime<=%(prev_date)s) order by editTime desc limit 1", {'page_name':self.page_name, 'prev_date':self.prev_date})
+			result = self.cursor.fetchone()
 			if result: text = result[0]
 			else: text = ''
 
 		#if self.prev_date:  self.prev_date = result[1]
-		if not result:
-			return ""
 
-		self._endCursor()
         	self.set_raw_body(text)
 
         return self._raw_body
@@ -365,10 +343,8 @@ class Page:
 
     def getName(self):
        # gets the proper page name
-       cursor = self._getCursor()
-       cursor.execute("SELECT name from curPages where name=%s", (self.page_name,))
-       result = cursor.fetchone()
-       self._endCursor()
+       self.cursor.execute("SELECT name from curPages where name=%(page_name)s", {'page_name':self.page_name})
+       result = self.cursor.fetchone()
        if result: return result[0]
        else: return self.page_name
 
@@ -515,7 +491,7 @@ class Page:
                             elif targetallowed == 'external':
                                 url = target
                         else:
-                            url = Page(target).url(request)
+                            url = Page(target, request.cursor).url()
                         pi_refresh = {'delay': delay, 'url': url, }
                     except (ValueError,):
                         pi_refresh = None
@@ -544,7 +520,7 @@ class Page:
                 if oldversions:
                     oldfile = oldversions[0]
                     olddate = os.path.basename(oldfile)[len(wikiutil.quoteFilename(self.page_name))+1:]
-                    oldpage = Page(self.page_name, date=olddate)
+                    oldpage = Page(self.page_name, request, date=olddate)
                     body = body + oldpage.get_raw_body()
                     del oldfile
                     del olddate
@@ -728,6 +704,7 @@ class Page:
 		import marshal
                 code = marshal.loads(cache.content())
             except ValueError: #bad marshal data
+	    	print 'bad marshal'
                 needsupdate = 1
 
         # render page
@@ -764,7 +741,8 @@ class Page:
             src = formatter.assemble_code(text)
 	    #request.write(src) # debug 
             code = compile(src, self.page_name, 'exec')
-            cache.update(marshal.dumps(code), links)
+	    code_string = marshal.dumps(code)
+            cache.update(code_string, links)
             
         # send page
         formatter = self.formatter
@@ -795,7 +773,7 @@ class Page:
   
         # look for template pages
         templates = filter(lambda page, u = wikiutil: u.isTemplatePage(page),
-            wikiutil.getPageList())
+            wikiutil.getPageList(request.cursor))
         if templates:
             templates.sort()
 
@@ -840,7 +818,7 @@ class Page:
         try:
             try:
                 request.mode_getpagelinks = 1
-                Page(self.page_name).send_page(request, content_only=1)
+                Page(self.page_name, request.cursor).send_page(request, content_only=1)
             except:
                 import traceback
                 traceback.print_exc()
@@ -876,7 +854,7 @@ class Page:
             try:
                 try:
                     request.mode_getpagelinks = 1
-                    Page(self.page_name).send_page(request, content_only=1)
+                    Page(self.page_name, request.cursor).send_page(request, content_only=1)
                 except:
                     import traceback
                     traceback.print_exc()
@@ -890,7 +868,7 @@ class Page:
 
 	# !!!! DB FIX DBFIX need to use LINK TABLE here
 	links = []
-        request.cursor.execute("SELECT destination_pagename from links where source_pagename=%s", (self.page_name,))
+        request.cursor.execute("SELECT destination_pagename from links where source_pagename=%(page_name)s", {'page_name':self.page_name})
         result = request.cursor.fetchone()
 	while result:
    	  links.append(result[0])
@@ -903,13 +881,11 @@ class Page:
 	Returns a list of page names of pages that link to this page.
 	"""
 	links = []
-	cursor = self._getCursor()
-        cursor.execute("SELECT source_pagename from links where destination_pagename=%s", (self.page_name,))
-        result = cursor.fetchone()
+        self.cursor.execute("SELECT source_pagename from links where destination_pagename=%(page_name)s", {'page_name':self.page_name})
+        result = self.cursor.fetchone()
 	while result:
    	  links.append(result[0])
-	  result = cursor.fetchone()
-	self._endCursor()
+	  result = self.cursor.fetchone()
 
 	return links
 

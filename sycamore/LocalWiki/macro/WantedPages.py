@@ -40,7 +40,7 @@ def execute(macro, args, formatter=None):
     wanted = []
     db = wikidb.connect()
     cursor = db.cursor()
-    cursor.execute("SELECT destination_pagename, source_pagename from links left join curPages on (destination_pagename=curPages.name) where curPages.name is NULL order by destination_pagename;")
+    cursor.execute("SELECT destination_pagename, source_pagename from links left join curPages on (destination_pagename=curPages.name) where curPages.name is NULL order by destination_pagename")
     wanted_results = cursor.fetchall()
     cursor.close()
     db.close()
@@ -88,12 +88,12 @@ def execute(macro, args, formatter=None):
     <ol>""")
     for name, links, source_pagenames in wanted:
         macro.request.write('<li value="%s">' % links)
-	macro.request.write(Page(name).link_to(macro.request, know_status=True, know_status_exists=False) + ": ")
-	macro.request.write(Page(source_pagenames[0]).link_to(macro.request))
+	macro.request.write(Page(name, macro.request.cursor).link_to(macro.request, know_status=True, know_status_exists=False) + ": ")
+	macro.request.write(Page(source_pagenames[0], macro.request.cursor).link_to(macro.request))
 	if len(source_pagenames) > 1:
 	  for p in source_pagenames[1:-1]:
-            macro.request.write(", " + Page(p).link_to(macro.request, know_status=True, know_status_exists=True))
-	  macro.request.write(", " + Page(source_pagenames[-1]).link_to(macro.request, know_status=True, know_status_exists=True))
+            macro.request.write(", " + Page(p, macro.request.cursor).link_to(macro.request, know_status=True, know_status_exists=True))
+	  macro.request.write(", " + Page(source_pagenames[-1], macro.request.cursor).link_to(macro.request, know_status=True, know_status_exists=True))
 	macro.request.write("</li>")
     macro.request.write("</ol>")
 

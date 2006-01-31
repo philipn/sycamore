@@ -22,18 +22,18 @@ def execute(pagename, request):
 
     # error?
     if isinstance(matches, type('')):
-        Page(pagename).send_page(request, msg=matches)
+        Page(pagename, request.cursor).send_page(request, msg=matches)
         return
 
     # no matches :(
     if not matches:
-        Page(pagename).send_page(request,
+        Page(pagename, request.cursor).send_page(request,
             msg = _('No pages match "%s"!') % (pagename,))
         return
 
     # one match - display it
     if len(matches) == 1:
-        Page(matches.keys()[0]).send_page(request,
+        Page(matches.keys()[0], request.cursor).send_page(request,
             msg =  _('Exactly one matching page for "%s" found!') % (pagename,))
         return
 
@@ -127,7 +127,7 @@ def _showMatchGroup(request, matches, keys, match, title):
         request.write("<ul>")
         for key in keys:
             if matches[key] == match:
-                page = Page(key)
+                page = Page(key, request.cursor)
                 request.write('<li><a href="%s/%s">%s</a>' % (
                     request.getScriptname(),
                     wikiutil.quoteWikiname(page.page_name),

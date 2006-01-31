@@ -42,8 +42,13 @@ class UserSettingsHandler:
 	cookie_userid = string_split[0]
 	cookie_sessionid = string_split[1]
 	cookie_secret = string_split[2]
-	self.request.cursor.execute("DELETE from userSessions where user_id=%s and session_id=%s and secret=%s", (cookie_userid, cookie_sessionid, user.hash(cookie_secret)))
-
+	if config.memcache:
+	  key = "userSessions:%s,%s" % (cookie_userid,cookie_sessionid)
+	  stored_secret = self.request.mc.get(key)
+	  # make sure they aren't just getting lucky with a fake cookie
+	  if stored_secret and (stored_secret == user.hash(cookie_secret)):
+	    self.request.mc.delete(key)
+	self.request.cursor.execute("DELETE from userSessions where user_id=%(cookie_userid)s and session_id=%(cookie_sessionid)s and secret=%(cookie_secret)s", {'cookie_userid':cookie_userid, 'cookie_sessionid':cookie_sessionid, 'cookie_secret':user.hash(cookie_secret)})
 
     def isValidCode(self, given_uid, given_code):
 	import cPickle, os
@@ -86,7 +91,6 @@ class UserSettingsHandler:
 	cPickle.dump(dict, lostpasswdfile, 2)
 	lostpasswdfile.close()
 	return ourcode
-	
 
 
     def handleData(self):
@@ -126,7 +130,7 @@ class UserSettingsHandler:
                 return _("Please provide a valid email address!")
     
             text = ''
-            users = user.getUserList()
+            users = user.getUserList(self.request.cursor)
             for uid in users:
                 theuser = user.User(self.request, uid)
                 if theuser.valid and theuser.email.lower() == email:
@@ -199,7 +203,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
 	      return _("Please log out before creating an account.")
             # Is this an existing user trying to change password, or a new user?
             newuser = True
-            if user.getUserId(theuser.name):
+            if user.getUserId(theuser.name, self.request):
                 if theuser.name != self.request.user.name:
                     return _("User name already exists!")
                 else:
@@ -279,7 +283,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 if not theuser.email or not re.match(".+@.+\..{2,}", theuser.email):
                     return _("Please provide your email address - without that you could not "
                              "get your login data via email just in case you lose it.")
-                users = user.getUserList()
+                users = user.getUserList(self.request.cursor)
                 for uid in users:
                     if uid == theuser.id:
                         continue
@@ -571,10 +575,10 @@ def do_user_browser(request):
     ]
 
     # Iterate over users
-    for uid in user.getUserList():
+    for uid in user.getUserList(self.request.cursor):
         account = user.User(request, uid)
 
-        userhomepage = Page(account.name)
+        userhomepage = Page(account.name, self.request.cursor)
         if userhomepage.exists():
             namelink = userhomepage.link_to(request)
         else:

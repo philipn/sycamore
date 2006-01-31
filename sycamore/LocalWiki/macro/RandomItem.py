@@ -31,7 +31,7 @@ def execute(macro, args, formatter=None):
     re_args = re.search('(?P<caption>.+)\,\s(?P<the_rest>.*)', args)
     pagename = re_args.group('caption')
     items = re_args.group('the_rest')
-    page = Page(pagename)
+    page = Page(pagename, macro.request.cursor)
 
     try:
         links = max(int(items), 1)

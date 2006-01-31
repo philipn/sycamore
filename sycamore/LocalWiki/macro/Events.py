@@ -32,7 +32,7 @@ def execute(macro, args, formatter=None):
     old_date = ''
     events = []
     # clear events that have passed
-    macro.request.cursor.execute("DELETE from events where DATE(FROM_UNIXTIME(event_time))<DATE(FROM_UNIXTIME(%s))", (time.time()))
+    macro.request.cursor.execute("DELETE from events where DATE(FROM_UNIXTIME(event_time))<DATE(FROM_UNIXTIME(%(timenow)s))", {'timenow':time.time()})
     macro.request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events order by event_time")
     result = macro.request.cursor.fetchone()
     while result:
@@ -95,7 +95,7 @@ def execute(macro, args, formatter=None):
 		processed_text = doParse(text,macro)
 		processed_location = doParse(event_location,macro)
                 processed_name = doParse(event_name,macro)
-                month_dict = { 1: 'January', 2: 'Feburary', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
+                month_dict = { 1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
                 string_month = month_dict[month]
                 if (macro.request.user.may.admin("Events Board") or posted_by == macro.request.user.name) and not do_mini: 
                         if date == old_date:

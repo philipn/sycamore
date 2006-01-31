@@ -11,6 +11,9 @@ import os, time, sys
 from LocalWiki import config, wikiutil, wikidb
 from LocalWiki.util import LocalWikiNoFooter, web
 import cPickle
+if config.memcache:
+  from LocalWiki.support import MemcachePool
+
 #############################################################################
 ### Timing
 #############################################################################
@@ -56,15 +59,21 @@ class RequestBase:
 
     def __init__(self, properties={}):
         self.writestack = []
+	self.getText = None
+        if config.memcache:
+          self.mc = MemcachePool.getMC()
+	if not properties: properties = wikiutil.prepareAllProperties()
+        self.__dict__.update(properties)
+	self.req_cache = {'exists': {},'users': {}, 'users_id': {}} # per-request cache
         # order is important here!
-        from LocalWiki import user
+
 	self.db_connect()
+	  
+        from LocalWiki import user
         self.user = user.User(self)
-	self.db_disconnect()
         self.dicts = self.initdicts()
 
         from LocalWiki import i18n
-    
         if config.theme_force:
             theme_name = config.theme_default
         else:
@@ -85,15 +94,13 @@ class RequestBase:
         self.sent_headers = 0
         self.user_headers = []
 
-        self.__dict__.update(properties)
-
         self.i18n = i18n
         self.lang = i18n.requestLanguage(self) 
         self.getText = lambda text, i18n=self.i18n, request=self, lang=self.lang: i18n.getText(text, request, lang)
 
         # XXX Removed call to i18n.adaptcharset()
   
-        self.opened_logs = 0 # XXX for what do we need that???
+        #self.opened_logs = 0 # XXX for what do we need that???
 
         self.reset()
 
@@ -191,7 +198,7 @@ class RequestBase:
             Also, this list is always sorted.
         """
         if self._all_pages is None:
-            self._all_pages = wikiutil.getPageList(alphabetize=True)
+            self._all_pages = wikiutil.getPageList(self.cursor, alphabetize=True)
         return self._all_pages
 
     def redirect(self, file=None):
@@ -227,7 +234,7 @@ class RequestBase:
 
     def initdicts(self):
         from LocalWiki import wikidicts
-        dicts = wikidicts.GroupDict()
+        dicts = wikidicts.GroupDict(self)
         dicts.scandicts()
         return dicts
         
@@ -329,20 +336,21 @@ class RequestBase:
     def db_connect(self):
       self.db = wikidb.connect()
       self.cursor = self.db.cursor()
-      self.cursor.execute("start transaction")
 
     def db_disconnect(self, had_error=False):
       if not had_error:
-        self.cursor.execute("commit")
+        self.db.commit()
       else:
-        self.cursor.execute("rollback")
+        self.db.rollback()
+
       self.cursor.close()
-      self.db.close()
+      del self.cursor
+      del self.db
 
     def run(self):
         had_error = False
         _ = self.getText
-        self.open_logs()
+        #self.open_logs()
         if self.isForbidden():
             self.http_headers([
                 'Status: 403 FORBIDDEN',
@@ -351,8 +359,47 @@ class RequestBase:
             self.write('You are not allowed to access this!\n')
             return self.finish()
 
-	self.db_connect()
-	
+        
+        # parse request data
+        try:
+            self.args = self.setup_args()
+            self.form = self.args 
+            path_info = self.getPathinfo()
+
+            #from pprint import pformat
+            #sys.stderr.write(pformat(self.__dict__))
+    
+            action = self.form.get('action',[None])[0]
+
+            pagename = None
+            oldlink = None
+            if len(path_info) and path_info[0] == '/':
+                pagename = wikiutil.unquoteWikiname(path_info[1:])
+                oldlink = wikiutil.unquoteFilename(path_info[1:])
+
+	    pagename = self.recodePageName(pagename)
+            oldlink = self.recodePageName(oldlink)
+
+	    pagename_propercased = ''
+	    oldlink_propercased = ''
+	    if pagename: 
+	      self.cursor.execute("SELECT name from curPages where name=%(pagename)s", {'pagename':pagename})
+	      pagename_result = self.cursor.fetchone()
+	      self.cursor.execute("SELECT name from curPages where name=%(oldlink)s", {'oldlink':oldlink})
+	      oldlink_result = self.cursor.fetchone()
+	      if pagename_result: pagename_propercased = pagename_result[0]
+	      if oldlink_result: oldlink_propercased = oldlink_result[0]
+	      if pagename_propercased:
+	        self.pagename = pagename_propercased
+	      else:
+	        self.pagename = pagename
+
+        except: # catch and print any exception
+            self.reset_output()
+            self.http_headers()
+            self.print_exception()
+            return self.finish()
+
         # Imports
         from LocalWiki.Page import Page
 	if self.query_string.startswith('img=true'):
@@ -375,28 +422,6 @@ class RequestBase:
             return self.finish()
 
 
-        # parse request data
-        try:
-            self.args = self.setup_args()
-            self.form = self.args 
-            path_info = self.getPathinfo()
-
-            #from pprint import pformat
-            #sys.stderr.write(pformat(self.__dict__))
-    
-            action = self.form.get('action',[None])[0]
-
-            pagename = None
-            oldlink = None
-            if len(path_info) and path_info[0] == '/':
-                pagename = wikiutil.unquoteWikiname(path_info[1:])
-                oldlink = wikiutil.unquoteFilename(path_info[1:])
-        except: # catch and print any exception
-            self.reset_output()
-            self.http_headers()
-            self.print_exception()
-            return self.finish()
-
         try:
             # possibly jump to page where user left off
             #if not pagename and not action and self.user.remember_last_visit:
@@ -408,20 +433,6 @@ class RequestBase:
             # handle request
             from LocalWiki import wikiaction
 
-            pagename = self.recodePageName(pagename)
-            oldlink = self.recodePageName(oldlink)
-
-	    pagename_propercased = ''
-	    oldlink_propercased = ''
-	    if pagename: 
-	      self.cursor.execute("SELECT name from curPages where name=%s", (pagename,))
-	      pagename_result = self.cursor.fetchone()
-	      self.cursor.execute("SELECT name from curPages where name=%s", (oldlink,))
-	      oldlink_result = self.cursor.fetchone()
-	      if pagename_result: pagename_propercased = pagename_result[0]
-	      if oldlink_result: oldlink_propercased = oldlink_result[0]
-
-	    
 	    #The following "if" is to deal with the switchover to urls with Page_names_like_this.
             if config.domain and (config.domain == "daviswiki.org" or config.domain == "rocwiki.org") and self.http_referer.find(config.domain) == -1:
                   if pagename and pagename_propercased:
@@ -455,14 +466,14 @@ class RequestBase:
                         wikiutil.getSysPage(self, config.page_front_page).page_name
 
                 if config.allow_extended_names:
-                        Page(query).send_page(self, count_hit=1)
+                        Page(query, self.cursor, req_cache=self.req_cache).send_page(self, count_hit=1)
                 else:
                     from LocalWiki.parser.wiki import Parser
                     import re
                     word_match = re.match(Parser.word_rule, query)
                     if word_match:
                         word = word_match.group(0)
-                        Page(word).send_page(self, count_hit=1)
+                        Page(word, self.cursor, req_cache=self.req_cache).send_page(self, count_hit=1)
                     else:
                         self.http_headers()
                         self.write('<p>' + _("Can't work out query") + ' "<pre>' + query + '</pre>"')
@@ -534,6 +545,11 @@ class RequestBase:
     def open_logs(self):
         pass
 
+
+    def finish(self, had_error=False, dont_do_db=False):
+      if not dont_do_db:
+        self.db_disconnect(had_error=had_error)
+
 # CGI ---------------------------------------------------------------
 
 class RequestCGI(RequestBase):
@@ -553,13 +569,13 @@ class RequestCGI(RequestBase):
             msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
             msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
 
-    def open_logs(self):
-        # create CGI log file, and one for catching stderr output
-        import cgi 
-        if not self.opened_logs:
-            cgi.logfile = os.path.join(config.data_dir, 'cgi.log')
-            sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
-            self.opened_logs = 1
+    #def open_logs(self):
+    #    # create CGI log file, and one for catching stderr output
+    #    import cgi 
+    #    if not self.opened_logs:
+    #        cgi.logfile = os.path.join(config.data_dir, 'cgi.log')
+    #        sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
+    #        self.opened_logs = 1
 
     def setup_args(self):
         return self._setup_args_from_cgi_form()
@@ -581,9 +597,9 @@ class RequestCGI(RequestBase):
     def flush(self):
         sys.stdout.flush()
         
-    def finish(self, had_error=False):
+    def finish(self, had_error=False, dont_do_db=False):
         # flush the output, ignore errors caused by the user closing the socket
-	self.db_disconnect(had_error=had_error)
+	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         try:
             sys.stdout.flush()
         except IOError, ex:
@@ -717,17 +733,17 @@ class RequestTwisted(RequestBase):
     def flush(self):
         pass # XXX is there a flush in twisted?
 
-    def finish(self):
-    	self.db.close()
+    def finish(self, had_error=False, dont_do_db=False):
+	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         #print "request.RequestTwisted.finish"
         self.reactor.callFromThread(self.twistd.finish)
 
-    def open_logs(self):
-        return
-        # create log file for catching stderr output
-        if not self.opened_logs:
-            sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
-            self.opened_logs = 1
+    #def open_logs(self):
+    #    return
+    #    # create log file for catching stderr output
+    #    if not self.opened_logs:
+    #        sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
+    #        self.opened_logs = 1
 
 
     #############################################################################
@@ -824,8 +840,8 @@ class RequestCLI(RequestBase):
     def flush(self):
         sys.stdout.flush()
         
-    def finish(self):
-    	self.db.close()
+    def finish(self, had_error=False, dont_do_db=False):
+	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         # flush the output, ignore errors caused by the user closing the socket
         try:
             sys.stdout.flush()
@@ -947,11 +963,11 @@ class RequestStandAlone(RequestBase):
         # env['SERVER_PROTOCOL'] = self.protocol_version
         RequestBase.__init__(self, properties)
 
-    def open_logs(self):
-        # create error log file for catching stderr output
-        if not self.opened_logs:
-            sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
-            self.opened_logs = 1
+    #def open_logs(self):
+    #    # create error log file for catching stderr output
+    #    if not self.opened_logs:
+    #        sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
+    #        self.opened_logs = 1
 
     def setup_args(self):
         self.env['REQUEST_METHOD'] = self.request_method
@@ -995,8 +1011,8 @@ class RequestStandAlone(RequestBase):
     def flush(self):
         self.wfile.flush()
         
-    def finish(self):
-    	self.db.close()
+    def finish(self, had_error=False, dont_do_db=False):
+	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         # flush the output, ignore errors caused by the user closing the socket
         try:
             self.wfile.flush()
@@ -1057,7 +1073,7 @@ class RequestStandAlone(RequestBase):
 class RequestModPy(RequestBase):
     """ specialized on mod_python requests """
 
-    def __init__(self, req):
+    def __init__(self, req, properties):
         """ Saves mod_pythons request and sets basic variables using
             the req.subprocess_env, cause this provides a standard
             way to access the values we need here.
@@ -1076,7 +1092,7 @@ class RequestModPy(RequestBase):
         # flags if headers sent out contained content-type or status
         self._have_ct = 0
         self._have_status = 0
-        RequestBase.__init__(self)
+        RequestBase.__init__(self, properties)
         
         
     def setup_args(self):
@@ -1136,8 +1152,8 @@ class RequestModPy(RequestBase):
         """
         pass
         
-    def finish(self):
-    	self.db.close()
+    def finish(self, had_error=False, dont_do_db=False):
+	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         """ Just return apache.OK. Status is set in req.status.
         """
         # is it possible that we need to return somethig else here?
@@ -1238,7 +1254,7 @@ class RequestFastCGI(RequestBase):
         self.fcgenv = env
         self.fcgform = form
         self._setup_vars_from_std_env(env)
-        RequestBase.__init__(self, properties)
+        RequestBase.__init__(self, properties=properties)
 
     def setup_args(self):
         """ Use the FastCGI form to setup arguments. """
@@ -1262,8 +1278,8 @@ class RequestFastCGI(RequestBase):
         """
         self.fcgreq.flush_out()
 
-    def finish(self):
-    	self.db.close()
+    def finish(self, had_error=False, dont_do_db=False):
+	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         """ Call finish method of FastCGI request to finish handling
             of this request.
         """

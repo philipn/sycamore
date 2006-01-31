@@ -28,33 +28,31 @@ def recordCaption(pagename, linked_from_pagename, image_name, caption, cursor):
    # records the caption to the db so that we can easily look it up
    # very simple -- no versioning or anything.  just keeps it there for easy/quick reference
    #  (linked_from_pagename is for future use)
-   cursor.execute("SELECT image_name from imageCaptions where attached_to_pagename=%s and image_name=%s and linked_from_pagename=%s", (pagename, image_name, linked_from_pagename))
+   mydict = {'pagename': pagename, 'image_name': image_name, 'caption': caption, 'linked_from_pagename': linked_from_pagename}
+   cursor.execute("SELECT image_name from imageCaptions where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s", mydict)
    result = cursor.fetchone()
    if result:
-     cursor.execute("UPDATE imageCaptions set caption=%s where attached_to_pagename=%s and image_name=%s and linked_from_pagename=%s", (caption, pagename, image_name, linked_from_pagename))
+     cursor.execute("UPDATE imageCaptions set caption=%(caption)s where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s", mydict)
    else:
-     cursor.execute("INSERT into imageCaptions set attached_to_pagename=%s, image_name=%s, caption=%s, linked_from_pagename=%s", (pagename, image_name, caption, linked_from_pagename))
+     cursor.execute("INSERT into imageCaptions (attached_to_pagename, image_name, caption, linked_from_pagename) values (%(pagename)s, %(image_name)s, %(caption)s, %(linked_from_pagename)s", mydict)
 
 def deleteCaption(pagename, linked_from_pagename, image_name, cursor):
-   cursor.execute("DELETE from imageCaptions where attached_to_pagename=%s and image_name=%s and linked_from_pagename=%s", (pagename, image_name, linked_from_pagename))
+   cursor.execute("DELETE from imageCaptions where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s", {'pagename':pagename, 'image_name':image_name, 'linked_from_pagename':linked_from_pagename})
 
 
 def getImageSize(pagename, image_name, cursor):
     # gets the size of an image (not a thumbnail) in the DB
-    cursor.execute("SELECT xsize, ysize from images where attached_to_pagename=%s and name=%s", (pagename, image_name))
+    cursor.execute("SELECT xsize, ysize from images where attached_to_pagename=%(pagename)s and name=%(image_name)s", {'pagename':pagename, 'image_name':image_name})
     result = cursor.fetchone()
     if result:
       return (result[0], result[1])
     else:
       return (0, 0)
 
-def deleteThumbnail(pagename, image_name, request):
-   request.cursor.execute("DELETE from thumbnails where name=%s and attached_to_pagename=%s", (image_name, pagename))
-
 def touchCaption(pagename, linked_from_pagename, image_name, caption, cursor):
     stale = True
     db_caption = ''
-    cursor.execute("SELECT caption from imageCaptions where attached_to_pagename=%s and linked_from_pagename=%s and image_name=%s", (pagename, linked_from_pagename, image_name))
+    cursor.execute("SELECT caption from imageCaptions where attached_to_pagename=%(pagename)s and linked_from_pagename=%(linked_from_pagename)s and image_name=%(image_name)s", {'pagename':pagename, 'linked_from_pagename':linked_from_pagename, 'image_name':image_name})
     result = cursor.fetchone()
     if result: db_caption = result[0] 
     if caption != db_caption: 
@@ -62,10 +60,11 @@ def touchCaption(pagename, linked_from_pagename, image_name, caption, cursor):
     if not caption:
       deleteCaption(pagename, linked_from_pagename, image_name, cursor)
 
-def touchThumbnail(pagename, image_name, cursor, maxsize=0):
+def touchThumbnail(request, pagename, image_name, maxsize=0):
+    cursor = request.cursor
     if not maxsize: maxsize = default_px_size
     # first we see if the thumbnail is there with the proper size
-    cursor.execute("SELECT xsize, ysize from thumbnails where name=%s and attached_to_pagename=%s", (image_name, pagename))
+    cursor.execute("SELECT xsize, ysize from thumbnails where name=%(image_name)s and attached_to_pagename=%(pagename)s", {'image_name':image_name, 'pagename':pagename})
     result = cursor.fetchone()
     if result:
      if result[0] and result[1]:
@@ -75,16 +74,15 @@ def touchThumbnail(pagename, image_name, cursor, maxsize=0):
       	# this means the thumbnail is the right size
         return x, y
     # we need to generate a new thumbnail of the right size
-    return generateThumbnail(pagename, image_name, maxsize, cursor)
+    return generateThumbnail(request, pagename, image_name, maxsize)
 
-def generateThumbnail(pagename, image_name, maxsize, cursor):
+def generateThumbnail(request, pagename, image_name, maxsize):
+    cursor = request.cursor 
     from PIL import Image
     import cStringIO,time
+    dict = {'filename':image_name, 'page_name':pagename}
 
-    cursor.execute("SELECT image from images where name=%s and attached_to_pagename=%s", (image_name, pagename))
-    result = cursor.fetchone()
-    	
-    open_imagefile = cStringIO.StringIO(result[0].tostring())
+    open_imagefile = cStringIO.StringIO(wikidb.getImage(request, dict)[0])
     im = Image.open(open_imagefile)
     converted = 0
     if not im.palette is None:
@@ -133,13 +131,9 @@ def generateThumbnail(pagename, image_name, maxsize, cursor):
     type = mimetypes.guess_type(image_name)[0][6:]
     save_imagefile = cStringIO.StringIO()
     shrunk_im.save(save_imagefile, type, quality=90)
-    cursor.execute("SELECT name from thumbnails where name=%s and attached_to_pagename=%s", (image_name, pagename))
-    thumb_exists = cursor.fetchone()
-    if thumb_exists:
-      image_value = save_imagefile.getvalue()
-      cursor.execute("UPDATE thumbnails set xsize=%s, ysize=%s, image=%s, last_modified=%s where name=%s and attached_to_pagename=%s;", (x, y, image_value, time.time(), image_name, pagename))
-    else:
-      cursor.execute("INSERT into thumbnails set xsize=%s, ysize=%s, image=%s, name=%s, last_modified=%s, attached_to_pagename=%s;", (x, y, save_imagefile.getvalue(),image_name, time.time(), pagename))
+    image_value = save_imagefile.getvalue()
+    dict = {'x':x, 'y':y, 'filecontent':image_value, 'uploaded_time':time.time(), 'filename':image_name, 'pagename':pagename}
+    wikidb.putImage(request, dict, thumbnail=True)
 
     save_imagefile.close()
     open_imagefile.close()
@@ -219,7 +213,7 @@ def execute(macro, args, formatter=None):
       return formatter.rawHTML('[[Image(%s)]]' % wikiutil.escape(args))
 
     #is the original image even on the page?
-    macro.request.cursor.execute("SELECT name from images where name=%s and attached_to_pagename=%s", (image_name, pagename))
+    macro.request.cursor.execute("SELECT name from images where name=%(image_name)s and attached_to_pagename=%(pagename)s", {'image_name':image_name, 'pagename':pagename})
     result = macro.request.cursor.fetchone()
     image_exists = result
 
@@ -242,7 +236,7 @@ def execute(macro, args, formatter=None):
 
     if thumbnail:
       # let's generated the thumbnail or get the dimensions if it's already been generated
-      x, y = touchThumbnail(pagename, image_name, macro.request.cursor, px_size)	
+      x, y = touchThumbnail(macro.request, pagename, image_name, px_size)	
       d = { 'right':'floatRight', 'left':'floatLeft', '':'noFloat' }
       floatSide = d[alignment]
       if caption and border:

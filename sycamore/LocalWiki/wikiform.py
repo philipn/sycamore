@@ -94,5 +94,5 @@ def do_formtest(pagename, request):
         result.append('<li><em>%s</em> = %s</li>' % (key.upper(), repr(wikiutil.escape(val))))
     msg = '%s<ul>\n%s</ul>\n' % (_('Submitted form data:'), '\n'.join(result))
 
-    Page(pagename).send_page(request, msg=msg)
+    Page(pagename, request.cursor).send_page(request, msg=msg)
 
