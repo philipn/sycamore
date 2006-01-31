@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: iso-8859-1 -*-
 """
     LocalWiki - CGI Driver Script
@@ -7,12 +7,12 @@
     @license: GNU GPL, see COPYING for details.
 """
 
-import sys
-sys.path.extend(['/Library/Webserver','/Library/Webserver/Documents/installhtml/dwiki'])
+import sys, os
+sys.path.extend(['/Library/Webserver/sycamore','/Library/Webserver/sycamore/installhtml/dwiki'])
 
 from LocalWiki.request import RequestCGI
+from LocalWiki import wikidb
 
-import os
 if os.environ.get('QUERY_STRING') == 'test':
     print "Content-Type: text/plain\n\nLocalWiki CGI Diagnosis\n======================\n"
 
@@ -20,7 +20,6 @@ if os.environ.get('QUERY_STRING') == 'test':
         from LocalWiki.wikitest import runTest
         print 'Package "LocalWiki" successfully imported.\n'
         request = RequestCGI()    
-        runTest(request)
     except:
         import sys, traceback, string, pprint
         type, value, tb = sys.exc_info()
@@ -29,5 +28,5 @@ if os.environ.get('QUERY_STRING') == 'test':
         print "\nTraceback (innermost last):\n%s" % string.join(
             traceback.format_tb(tb) + traceback.format_exception_only(type, value))
 else:
-    request = RequestCGI()
-    request.run()
+      request = RequestCGI()
+      request.run()

@@ -358,8 +358,16 @@ hr {
 
 .user {
         margin-top: 10px;
+	margin-right: 22px;
         text-align: center;
         color: white;
+}
+
+.loginbox {
+        margin-top: 10px;
+	margin-right: 2px;
+        text-align: center;
+	color: white;
 }
 
 .user a {

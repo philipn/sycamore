@@ -27,20 +27,20 @@ sitename = 'Local Wiki Default Install'
 interwikiname = None
 
 #no slashes at the end on these guys !!
-data_dir = '/Library/Webserver/Documents/installhtml/dwiki/data'
+data_dir = '/Library/Webserver/sycamore/installhtml/dwiki/data'
 
 # this is the root where, say, a href="/" resolves to (considering whther or not you have a domain)
-web_root = '/Library/Webserver/Documents/installhtml'
+web_root = '/Library/Webserver/sycamore/installhtml'
 
 # this is what's after the url if your wiki is in a directory
-web_dir = '/installhtml'
+web_dir = ''
 
 # where the indexing applications are installed, etc
-app_dir = '/Library/Webserver/util_apps'
+app_dir = '/Library/Webserver/sycamore/util_apps'
 
 # this is where the theme css is stored
 #  this is relative to the web server's root
-url_prefix = '/installhtml/wiki'
+url_prefix = '/wiki'
 
 #displayed logo in our theme !!!! WOOO!!! Change this for a DIFFERENT LOGO!!
 default_logo = 'syclogo.png'
@@ -56,7 +56,7 @@ catchphrase = 'Your phrase here..'
 # so if you have ~/public_html/wiki/index.cgi as your wiki executable then this would be "wiki/index.cgi"
 # if there is no index.cgi then it would be "wiki"
 # this is anything after the root of where your web stuff is installed
-relative_dir = 'installhtml/index.cgi'
+relative_dir = 'index.cgi'
 
 #your domain (used for cookies, etc)
 # uncomment only if you've got a domain and want cookies to work across subdomains
@@ -66,10 +66,15 @@ domain = 'localhost'
 talk_pages = 1
 
 # MySQL database settings.
-db_name = 'wiki_test'
-db_user = 'root'
+db_type = 'mysql'
+db_name = 'wiki'
+db_user = 'philipneustrom'
 db_user_password = ''
 db_host = 'localhost'
+
+#Memcache settings.  This is if you want a high-performance wiki.
+memcache = True
+memcache_servers = ['127.0.0.1:11211']
 
 # Referer regular expression is used to filter out http referers from image viewing.
 # It's for stopping image hotlinking, basically.
