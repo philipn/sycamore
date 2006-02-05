@@ -236,7 +236,7 @@ class PageEditor(Page):
         # check datestamp (version) of the page our edit is based on
         if preview is not None:
             # propagate original datestamp
-            mtime = int(form['datestamp'][0])
+            mtime = float(form['datestamp'][0])
 
             # did someone else change the page while we were editing?
             conflict_msg = None
@@ -333,7 +333,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         #    self._make_backup(raw_body)
 
         # send datestamp (version) of the page our edit is based on
-        self.request.write('<input type="hidden" name="datestamp" value="%d">' % (mtime,))
+        self.request.write('<input type="hidden" name="datestamp" value="%s">' % (repr(mtime)))
 
         # Print the editor textarea and the save button
         self.request.write('<textarea id="savetext" name="savetext" rows="%d" cols="%d" style="width:100%%">%s</textarea>'
