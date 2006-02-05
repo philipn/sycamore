@@ -17,7 +17,7 @@ def execute(macro, args, formatter=None):
     for entry in results:
       name = entry[0] 
       new_count = entry[1]
-      page = Page(name, macro.request.cursor)
+      page = Page(name, macro.request)
       if new_count == 0:
        if page.isRedirect(): continue
 
@@ -25,6 +25,6 @@ def execute(macro, args, formatter=None):
         old_count = new_count
 	macro.request.write(macro.formatter.heading(2, str(new_count)))
       else: macro.request.write(", ")
-      macro.request.write(page.link_to(macro.request, know_status=True, know_status_exists=True))
+      macro.request.write(page.link_to(know_status=True, know_status_exists=True))
 
     return ''

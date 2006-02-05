@@ -29,7 +29,7 @@ def execute(pagename, request):
       """ % (config.sitename, config.domain, add_on, config.relative_dir,  config.sitename)
       # get normal recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit = 100)
-    else:
+    elif pagename.lower() != 'bookmarks':
       rss_init_text = """<?xml version="1.0" ?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes for "%s" - %s</title><link>http://%s%s%s/%s</link><description>Recent Changes of the page "%s" on %s.</description><language>en-us</language>
 </channel> 
@@ -37,6 +37,8 @@ def execute(pagename, request):
       """ % (pagename, config.sitename, config.domain, add_on, config.relative_dir, wikiutil.quoteWikiname(pagename), pagename, config.sitename)
       # get page-specific recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit = 100, page=pagename)
+    else:
+      return ''
 
     rss_dom = xml.dom.minidom.parseString(rss_init_text)
     channel = rss_dom.getElementsByTagName("channel")[0]
@@ -47,7 +49,7 @@ def execute(pagename, request):
       item_guid.appendChild(rss_dom.createTextNode("%s, %s" % (line.ed_time, wikiutil.quoteWikiname(line.pagename))))
       item_description = rss_dom.createElement("description")
       if line.action in ['SAVE', 'SAVENEW', 'RENAME', 'COMMENT_MACRO', 'SAVE/REVERT', 'DELETE']:
-        version2 = Page(line.pagename, request.cursor, prev_date=line.ed_time).version
+        version2 = Page(line.pagename, request, prev_date=line.ed_time).version
         version1 = version2 - 1
         description = "%s %s" % (line.comment, do_diff(line.pagename, request, in_wiki_interface=False, text_mode=True, version1=version1, version2=version2))
       else:

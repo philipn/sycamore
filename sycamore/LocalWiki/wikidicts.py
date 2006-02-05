@@ -43,12 +43,12 @@ class Dict:
        is stripped from the member 
     """
 
-    def __init__(self, name, cursor, dict=1):
+    def __init__(self, name, request, dict=1):
         """Initialize a Dict, starting from <nothing>.
         """
         self.name = name
         self._dict = {}
-        p = Page.Page(name, cursor)
+        p = Page.Page(name, request)
         if dict: # used for dicts
             regex = r'^\s(?P<key>.*?)::\s(?P<val>.*?)(\s*)$' # 1st level definition list,
                                                # strip trailing blanks
@@ -85,10 +85,10 @@ class Group(Dict):
 
     """
 
-    def __init__(self, name, cursor):
+    def __init__(self, name, request):
         """Initialize a Group, starting from <nothing>.
         """
-        Dict.__init__(self, name, cursor, dict=0)
+        Dict.__init__(self, name, request, dict=0)
 
     def members(self):
         return self._dict.keys()
@@ -135,9 +135,10 @@ class DictDict:
                Default: ".*Dict$"  Defs$ Vars$ ???????????????????
     """
 
-    def __init__(self, cursor):
+    def __init__(self, request):
         self.reset()
-	self.cursor = cursor
+	self.request = request
+	self.cursor = request.cursor
 
     def reset(self):
         self.dictdict = {}
@@ -253,7 +254,7 @@ class GroupDict(DictDict):
         now = int(time.time()) # we dont want float!
         # check for new groups / dicts from time to time...
         if now - self.namespace_timestamp >= 60:
-            pagelist = wikiutil.getPageList(self.request.cursor)
+            pagelist = wikiutil.getPageList(self.request)
             dictpages = filter(dict_re.search, pagelist)
             #print '%s -> %s' % (config.page_dict_regex, dictpages)
             for pagename in dictpages:
@@ -269,7 +270,7 @@ class GroupDict(DictDict):
 
         # check if groups / dicts have been modified on disk
         for pagename in self.dictdict:
-            if Page.Page(pagename, self.request.cursor).mtime() >= self.pageupdate_timestamp:
+            if Page.Page(pagename, self.request).mtime() >= self.pageupdate_timestamp:
                 if dict_re.search(pagename):
                     self.adddict(pagename)
                 elif group_re.search(pagename):

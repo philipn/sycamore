@@ -2,7 +2,7 @@
 """
 Map Macro
 """
-from LocalWiki import wikiutil, wikiform, config
+from LocalWiki import config
 
 Dependencies = []
 

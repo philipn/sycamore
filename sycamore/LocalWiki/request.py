@@ -64,7 +64,7 @@ class RequestBase:
           self.mc = MemcachePool.getMC()
 	if not properties: properties = wikiutil.prepareAllProperties()
         self.__dict__.update(properties)
-	self.req_cache = {'exists': {},'users': {}, 'users_id': {}} # per-request cache
+	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}} # per-request cache
         # order is important here!
 
 	self.db_connect()
@@ -198,7 +198,7 @@ class RequestBase:
             Also, this list is always sorted.
         """
         if self._all_pages is None:
-            self._all_pages = wikiutil.getPageList(self.cursor, alphabetize=True)
+            self._all_pages = wikiutil.getPageList(self, alphabetize=True)
         return self._all_pages
 
     def redirect(self, file=None):
@@ -362,6 +362,7 @@ class RequestBase:
         
         # parse request data
         try:
+	    from LocalWiki.Page import Page
             self.args = self.setup_args()
             self.form = self.args 
             path_info = self.getPathinfo()
@@ -383,12 +384,11 @@ class RequestBase:
 	    pagename_propercased = ''
 	    oldlink_propercased = ''
 	    if pagename: 
-	      self.cursor.execute("SELECT name from curPages where name=%(pagename)s", {'pagename':pagename})
-	      pagename_result = self.cursor.fetchone()
-	      self.cursor.execute("SELECT name from curPages where name=%(oldlink)s", {'oldlink':oldlink})
-	      oldlink_result = self.cursor.fetchone()
-	      if pagename_result: pagename_propercased = pagename_result[0]
-	      if oldlink_result: oldlink_propercased = oldlink_result[0]
+	      pagename_exists_name = Page(pagename, self).exists()
+	      if pagename_exists_name: pagename_propercased = pagename_exists_name
+	      oldlink_exists_name = Page(oldlink, self).exists()
+	      if oldlink_exists_name: oldlink_propercased = oldlink_exists_name
+
 	      if pagename_propercased:
 	        self.pagename = pagename_propercased
 	      else:
@@ -466,14 +466,14 @@ class RequestBase:
                         wikiutil.getSysPage(self, config.page_front_page).page_name
 
                 if config.allow_extended_names:
-                        Page(query, self.cursor, req_cache=self.req_cache).send_page(self, count_hit=1)
+                        Page(query, self).send_page(count_hit=1)
                 else:
                     from LocalWiki.parser.wiki import Parser
                     import re
                     word_match = re.match(Parser.word_rule, query)
                     if word_match:
                         word = word_match.group(0)
-                        Page(word, self.cursor, req_cache=self.req_cache).send_page(self, count_hit=1)
+                        Page(word, self).send_page(count_hit=1)
                     else:
                         self.http_headers()
                         self.write('<p>' + _("Can't work out query") + ' "<pre>' + query + '</pre>"')

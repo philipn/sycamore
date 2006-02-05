@@ -223,7 +223,7 @@ class Macro:
         html = []
         index_letters = []
         allpages = int(self.form.get('allpages', [0])[0]) != 0
-        pages = wikiutil.getPageList(self.request.cursor)
+        pages = wikiutil.getPageList(self.request)
         #list(wikiutil.getPageList(config.text_dir))
         # pages = filter(self.request.user.may.read, pages)
         #if not allpages:
@@ -286,7 +286,7 @@ class Macro:
         html = []
         index_letters = []
         allpages = int(self.form.get('allpages', [0])[0]) != 0
-        pages = wikiutil.getPageList(self.request.cursor, alphabetize=True)
+        pages = wikiutil.getPageList(self.request, alphabetize=True)
         #list(wikiutil.getPageList(config.text_dir))
         # pages = filter(self.request.user.may.read, pages)
         #if not allpages:
@@ -420,7 +420,7 @@ class Macro:
 
     def _macro_PageCount(self, args, formatter=None):
         if not formatter: formatter = self.formatter
-        return formatter.text("%d" % (len(wikiutil.getPageList(self.request.cursor)),))
+        return formatter.text("%d" % (len(wikiutil.getPageList(self.request)),))
 
 
     def _macro_Icon(self, args, formatter=None):
@@ -437,7 +437,7 @@ class Macro:
             return "<strong>%s: %s</strong>" % (
                 _("ERROR in regex '%s'") % (args,), e)
 
-	all_pages = wikiutil.getPageList(self.request.cursor)
+	all_pages = wikiutil.getPageList(self.request)
         hits = filter(needle_re.search, all_pages)
         hits.sort()
         hits = filter(self.request.user.may.read, hits)

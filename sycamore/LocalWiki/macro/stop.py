@@ -1,4 +1,3 @@
-from LocalWiki.Page import Page
 Dependencies = []
 
 def execute(macro, args, formatter=None):

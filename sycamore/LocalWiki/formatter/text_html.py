@@ -76,7 +76,7 @@ class Formatter(FormatterBase):
             See wikiutil.link_tag() for possible keyword parameters.
         """
         apply(FormatterBase.pagelink, (self, pagename, text), kw)
-        return Page(pagename, self.request.cursor, req_cache=self.request.req_cache).link_to(self.request, text, **kw)
+        return Page(pagename, self.request).link_to(text, **kw)
 
     def url(self, url, text=None, css=None, **kw):
         """

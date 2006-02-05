@@ -75,7 +75,7 @@ def execute(macro, text, args, formatter=None):
     if this_page.page_name.lower() == inc_name.lower():
         result.append('<p><strong class="error">Recursive include of "%s" forbidden</strong></p>' % (inc_name,))
 	return ''.join(result)
-    inc_page = Page(inc_name, macro.request.cursor)
+    inc_page = Page(inc_name, macro.request)
 
     # check for "from" and "to" arguments (allowing partial includes)
     body = inc_page.get_raw_body() + '\n'

@@ -150,7 +150,7 @@ class Parser:
         #elif config.allow_subpages and url[0] == wikiutil.CHILD_PREFIX:
             # fancy link to subpage [wiki:/SubPage text]
         #    return self._word_repl(url, text)
-        elif Page(url, self.request.cursor).exists():
+        elif Page(url, self.request).exists():
             # fancy link to local page [wiki:LocalPage text]
             return self._word_repl(url, text)
 

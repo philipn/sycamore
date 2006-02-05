@@ -11,7 +11,6 @@
 # Imports
 import re, time, cStringIO, os
 from LocalWiki import config, user, util, wikiutil, wikixml, wikidb
-from LocalWiki.Page import Page
 from LocalWiki.logfile import editlog
 from LocalWiki.widget.comments import Comment
 

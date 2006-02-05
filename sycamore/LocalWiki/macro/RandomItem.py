@@ -31,7 +31,7 @@ def execute(macro, args, formatter=None):
     re_args = re.search('(?P<caption>.+)\,\s(?P<the_rest>.*)', args)
     pagename = re_args.group('caption')
     items = re_args.group('the_rest')
-    page = Page(pagename, macro.request.cursor)
+    page = Page(pagename, macro.request)
 
     try:
         links = max(int(items), 1)
@@ -64,7 +64,7 @@ def execute(macro, args, formatter=None):
         page.set_raw_body(quote, 1)
         out = cStringIO.StringIO()
         macro.request.redirect(out)
-        page.send_page(macro.request, content_only=1, content_id="RandomQuote_%s" % wikiutil.quoteWikiname(page.page_name) )
+        page.send_page(content_only=1, content_id="RandomQuote_%s" % wikiutil.quoteWikiname(page.page_name) )
         quote = out.getvalue()
         macro.request.redirect()
         # quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)
@@ -80,11 +80,10 @@ def execute(macro, args, formatter=None):
         page.set_raw_body(quote, 1)
         out = cStringIO.StringIO()
         macro.request.redirect(out)
-        page.send_page(macro.request, content_only=1, content_id="RandomQuote_%s" % wikiutil.quoteWikiname(page.page_name) )
+        page.send_page(content_only=1, content_id="RandomQuote_%s" % wikiutil.quoteWikiname(page.page_name) )
         quote = out.getvalue()
         macro.request.redirect()
         # quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)    
-
 
 
     if not quotes:

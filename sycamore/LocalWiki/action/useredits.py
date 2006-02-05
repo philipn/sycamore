@@ -47,7 +47,7 @@ def display_edits(request, userpage):
     else:
 	offset = offset_given*100 - offset_given
 
-    userid = getUserId(userpage, request.cursor)
+    userid = getUserId(userpage, request)
     request.cursor.execute("SELECT count(editTime) from allPages where userEdited=%(userid)s", {'userid':userid})
     count_result = request.cursor.fetchone()
 
@@ -76,7 +76,7 @@ def display_edits(request, userpage):
 	editType = edit[3]
 	comment = edit[4]
 
-	page = Page(pagename, request.cursor)
+	page = Page(pagename, request)
 
 	actions = ''
 

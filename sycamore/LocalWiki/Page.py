@@ -19,7 +19,7 @@ class Page:
 
     _SPLIT_RE = re.compile('([%s])([%s])' % (config.lowerletters, config.upperletters))
 
-    def __init__(self, page_name, cursor, **keywords):
+    def __init__(self, page_name, request, **keywords):
         """
         Create page object.
 
@@ -35,7 +35,8 @@ class Page:
 	@keyword req_cache: per-req cache of some information
         """
         self.page_name = page_name
-        self.cursor = cursor
+	self.request = request
+        self.cursor = request.cursor
 
         self.prev_date = keywords.get('prev_date')
 	if self.prev_date:
@@ -53,6 +54,7 @@ class Page:
         self._raw_body = None
         self._raw_body_modified = 0
         self.hilite_re = None
+	self.proper_name = None
         
         if keywords.has_key('formatter'):
             self.formatter = keywords.get('formatter')
@@ -147,7 +149,7 @@ class Page:
 	
         return (editTimeUnix, editUserID)
 
-    def last_modified_str(self, request):
+    def last_modified_str(self):
         """
         Return the last modified info.
         
@@ -155,14 +157,15 @@ class Page:
         @rtype: string
         @return: timestamp and editor information
         """
+	request = self.request
         if not self.exists():
             return None
 
 	editTimeUnix, userEditedID = self._last_modified()
 	editTime = request.user.getFormattedDateTime(editTimeUnix)
 	if userEditedID:
-	  editUser = user.User(request, userEditedID)
-	  editUser_text = Page(editUser.name, request.cursor).link_to(request)
+	  editUser = user.User(self.request, userEditedID)
+	  editUser_text = Page(editUser.name, self.request).link_to()
         
           result = "(last edited %(time)s by %(editor)s)" % {
                 'time': editTime,
@@ -193,23 +196,25 @@ class Page:
         @rtype: bool
         @return: true, if page exists
         """
-	if self.req_cache: lower_pagename = self.page_name.lower()
-	if self.req_cache: 
-	  if self.req_cache.has_key('exists_dict'):
-	    if lower_pagename in self.req_cache['exists_dict']:
-	      return self.req_cache['exists_dict'][lower_page_name]
+	lower_pagename = self.page_name.lower()
+	proper_pagename = False
+	memcache_hit = False
+	if self.request.req_cache['pagenames'].has_key(lower_pagename):
+	  return self.request.req_cache['pagenames'][lower_pagename]
+	if config.memcache:
+	  proper_pagename = self.request.mc.get("pagename:%s" % wikiutil.quoteFilename(lower_pagename))
+	  if proper_pagename is not None:
+	    memcache_hit = True
+	  else: proper_pagename = False
+	if not proper_pagename and not memcache_hit:
+	  self.cursor.execute("SELECT name from curPages where name=%(pagename)s", {'pagename': self.page_name})
+	  result = self.cursor.fetchone()
+	  if result: proper_pagename = result[0]
+	  if config.memcache:
+	    self.request.mc.add("pagename:%s" % wikiutil.quoteFilename(lower_pagename), proper_pagename)
 
-	self.cursor.execute("SELECT name from curPages where name=%(page_name)s", {'page_name': self.page_name})
-	result = self.cursor.fetchone()
-	bool_exists = False
-        if result:
-	  if result[0]: bool_exists = True
-
-	if self.req_cache:
-	  if self.req_cache.has_key('exists_dict'):
-	    self.req_cache['exists_dict'][lower_pagename] = bool_exists
-
-	return bool_exists
+        self.request.req_cache['pagenames'][lower_pagename] = proper_pagename
+	return proper_pagename
 
 
     def size(self):
@@ -267,14 +272,14 @@ class Page:
           if result[0]: return int(result[0])
 	else: return 0
 
-    def ctime(self, request):
+    def ctime(self):
         """
 	Gets the cached time of the page.
 	"""
-	cache = caching.CacheEntry(self.page_name, request)
+	cache = caching.CacheEntry(self.page_name, self.request)
 	return cache.mtime()
 
-    def mtime_printable(self, request):
+    def mtime_printable(self):
         """
         Get printable modification timestamp of this page.
         
@@ -285,7 +290,7 @@ class Page:
         if not t:
             result = "0" # TODO: i18n, "Ever", "Beginning of time"...?
         else:
-            result = request.user.getFormattedDateTime(t)
+            result = self.request.user.getFormattedDateTime(t)
         return result
     
     def get_raw_body(self):
@@ -326,7 +331,7 @@ class Page:
         self._raw_body = body
         self._raw_body_modified = modified
 
-    def url(self, request, querystr=None):
+    def url(self, querystr=None):
         """
         Return an URL for this page.
 
@@ -335,7 +340,7 @@ class Page:
         @rtype: string
         @return: complete url of this page (including query string if specified)
         """
-        url = "%s/%s" % (request.getScriptname(), wikiutil.quoteWikiname(self.page_name))
+        url = "%s/%s" % (self.request.getScriptname(), wikiutil.quoteWikiname(self.page_name))
         if querystr:
             querystr = util.web.makeQueryString(querystr)
             url = "%s?%s" % (url, querystr)
@@ -343,13 +348,11 @@ class Page:
 
     def getName(self):
        # gets the proper page name
-       self.cursor.execute("SELECT name from curPages where name=%(page_name)s", {'page_name':self.page_name})
-       result = self.cursor.fetchone()
-       if result: return result[0]
-       else: return self.page_name
+       exists_name = self.exists()
+       if exists_name: return exists_name
+       return self.page_name
 
-
-    def link_to(self, request, text=None, querystr=None, anchor=None, know_status=False, know_status_exists=False, **kw):
+    def link_to(self, text=None, querystr=None, anchor=None, know_status=False, know_status_exists=False, **kw):
         """
         Return HTML markup that links to this page.
         See wikiutil.link_tag() for possible keyword parameters.
@@ -366,6 +369,7 @@ class Page:
         @rtype: string
         @return: formatted link
         """
+	request = self.request
 	if know_status_exists and know_status: know_exists = True
 	else: know_exists = False
         text = text
@@ -399,7 +403,7 @@ class Page:
             kw['css_class'] = 'nonexistent'
             return wikiutil.link_tag(request, url, text, formatter=fmt, **kw) + attach_link
 
-    def send_page(self, request, msg=None, **keywords):
+    def send_page(self, msg=None, **keywords):
         """
         Output the formatted page.
 
@@ -409,6 +413,7 @@ class Page:
         @keyword count_hit: if 1, add an event to the log
         @keyword hilite_re: a regular expression for highlighting e.g. search results
         """
+	request = self.request
         _ = request.getText
 
         # determine modes
@@ -491,7 +496,7 @@ class Page:
                             elif targetallowed == 'external':
                                 url = target
                         else:
-                            url = Page(target, request.cursor).url()
+                            url = Page(target, request).url()
                         pi_refresh = {'delay': delay, 'url': url, }
                     except (ValueError,):
                         pi_refresh = None
@@ -629,12 +634,12 @@ class Page:
         
         # new page?
         if not self.exists() and not content_only and not self.prev_date:
-            self._emptyPageText(request)
+            self._emptyPageText()
         elif not request.user.may.read(self.page_name):
             request.write("<strong>%s</strong><br>" % _("You are not allowed to view this page."))
         else:
             # parse the text and send the page content
-            self.send_page_content(request, Parser, body)
+            self.send_page_content(Parser, body)
 
             
         # end wiki content div
@@ -667,7 +672,7 @@ class Page:
 	#	db.close()
 
 
-    def send_page_content(self, request, Parser, body, needsupdate=0):
+    def send_page_content(self, Parser, body, needsupdate=0):
         """
         Output the formatted wiki page, using caching, if possible.
 
@@ -676,6 +681,7 @@ class Page:
         @param body: text of the wiki page
         @param needsupdate: if 1, force update of the cached compiled page
         """
+	request = self.request
         formatter_name = str(self.formatter.__class__).\
                          replace('LocalWiki.formatter.', '').\
                          replace('.Formatter', '')
@@ -752,17 +758,18 @@ class Page:
         try:
             exec code
         except 'CacheNeedsUpdate': # if something goes wrong, try without caching
-           self.send_page_content(request, Parser, body, needsupdate=1)
+           self.send_page_content(Parser, body, needsupdate=1)
            cache = caching.CacheEntry(key, request)
             
 
-    def _emptyPageText(self, request):
+    def _emptyPageText(self):
         """
         Output the default page content for new pages.
         
         @param request: the request object
         """
         from LocalWiki.action import LikePages
+	request = self.request
         _ = request.getText
   
         request.write(self.formatter.paragraph(1))
@@ -773,7 +780,7 @@ class Page:
   
         # look for template pages
         templates = filter(lambda page, u = wikiutil: u.isTemplatePage(page),
-            wikiutil.getPageList(request.cursor))
+            wikiutil.getPageList(request))
         if templates:
             templates.sort()
 
@@ -804,7 +811,7 @@ class Page:
                 _('The following pages with similar names already exist...') + '</p>')
             LikePages.showMatches(self.page_name, request, start, end, matches)
 
-    def buildCache(self, request):
+    def buildCache(self):
         """
 	builds the page's cache.
 	"""
@@ -813,12 +820,13 @@ class Page:
         # is not efficient, but reduces code duplication
         # !!! it is also an evil hack, and needs to be removed
         # !!! by refactoring Page to separate body parsing & send_page
+	request = self.request
 	buffer = cStringIO.StringIO()
         request.redirect(buffer)
         try:
             try:
                 request.mode_getpagelinks = 1
-                Page(self.page_name, request.cursor).send_page(request, content_only=1)
+                Page(self.page_name, request).send_page(content_only=1)
             except:
                 import traceback
                 traceback.print_exc()
@@ -831,7 +839,7 @@ class Page:
             if hasattr(request, '_fmt_hd_counters'):
                 del request._fmt_hd_counters
 
-    def getPageLinks(self, request, docache=True):
+    def getPageLinks(self, docache=True):
         """
         Get a list of the links on this page.
         
@@ -840,6 +848,7 @@ class Page:
         @rtype: list
         @return: page names this page links to
         """
+	request = self.request
         if not self.exists(): return []
 
         key = self.page_name
@@ -854,7 +863,7 @@ class Page:
             try:
                 try:
                     request.mode_getpagelinks = 1
-                    Page(self.page_name, request.cursor).send_page(request, content_only=1)
+                    Page(self.page_name, request).send_page(content_only=1)
                 except:
                     import traceback
                     traceback.print_exc()

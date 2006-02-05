@@ -8,7 +8,7 @@ cursor = db.cursor()
 
 def clearCaches():
   print "Clearing page caches..."
-  plist = wikiutil.getPageList(cursor)
+  plist = wikiutil.getPageList(request)
   arena = 'Page.py'
   for pname in plist:
     key = pname
@@ -23,7 +23,7 @@ def buildCaches():
   req = request.RequestCGI(db)
   req.redirect(cStringIO.StringIO())
   for pname in wikiutil.getPageList():
-   Page(pname, req.cursor).getPageLinks(req, docache=True)
+   Page(pname, req).getPageLinks(docache=True)
   req.redirect()
 
 clearCaches()

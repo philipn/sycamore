@@ -105,9 +105,9 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename)
     text = '<div><h4>Image history</h4></div><ul>'
     for revision in revisions:
       if revision[1]:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), Page(revision[1], request.cursor).link_to(request), request.user.getFormattedDateTime(revision[2]), Page(revision[3], request.cursor).link_to(request))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), Page(revision[1], request).link_to(), request.user.getFormattedDateTime(revision[2]), Page(revision[3], request).link_to())
       else:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), request.user.getFormattedDateTime(revision[2]), Page(revision[3], request.cursor).link_to(request))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), request.user.getFormattedDateTime(revision[2]), Page(revision[3], request).link_to())
     text += '</ul>'
     return text
 
@@ -131,11 +131,11 @@ def info(pagename, request):
     if image_num: 
       image_attach_info = _('There are <a href="%(link)s">%(count)s image(s)</a> stored for this page.') % {
         'count': image_num,
-        'link': Page(pagename, request.cursor).url(request, "action=Files")
+        'link': Page(pagename, request).url("action=Files")
     }
     else:
       image_attach_info = _('There are no <a href="%(link)s">image(s)</a> stored for this page.') % {
-        'link': Page(pagename, request.cursor).url(request, "action=Files")
+        'link': Page(pagename, request).url("action=Files")
     }
 
 
@@ -531,7 +531,7 @@ def getCaptionsHTML(attached_to_pagename, image_name, request):
    html_formatter = Formatter(request)
    for result in results:
      # right now, there will only be one of these, but the plural is for later when images can be refered to by multiple pages
-     html += '<div style="width: %spx;"><p class="bigCaption"><em>%s</em></p></div>' % (xsize, wikiutil.wikifyString(result[0], request, Page(attached_to_pagename, request.cursor), formatter=html_formatter))
+     html += '<div style="width: %spx;"><p class="bigCaption"><em>%s</em></p></div>' % (xsize, wikiutil.wikifyString(result[0], request, Page(attached_to_pagename, request), formatter=html_formatter))
    return html
 
 def send_viewfile(pagename, request):
@@ -558,7 +558,7 @@ def send_viewfile(pagename, request):
         result = request.cursor.fetchone()
 	deleted_image = False
 
-	request.write("<h4 style=\"padding-bottom: 1em;\">Image '%s' of page %s:</h4>" % (filename, Page(pagename, request.cursor).link_to(request)))
+	request.write("<h4 style=\"padding-bottom: 1em;\">Image '%s' of page %s:</h4>" % (filename, Page(pagename, request).link_to()))
 
 	if result:
 	# this means the image is 'active' and wasn't most recently deleted.
@@ -613,7 +613,7 @@ def send_viewfile(pagename, request):
 
     timestamp = ''
     if deleted_image:
-      request.write('<p>This version of the image was <b>deleted</b> by %s on %s.</p>' % (Page(deleted_by, request.cursor).link_to(request), request.user.getFormattedDateTime(deleted_time)))
+      request.write('<p>This version of the image was <b>deleted</b> by %s on %s.</p>' % (Page(deleted_by, request).link_to(), request.user.getFormattedDateTime(deleted_time)))
       request.write('<img src="%s%s" alt="%s">' % (
         getAttachUrl(pagename, filename, request, escaped=1, deleted=1, version=version), timestamp, wikiutil.escape(filename, 1)))
     else:
@@ -622,7 +622,7 @@ def send_viewfile(pagename, request):
       request.write(getCaptionsHTML(pagename, filename, request))
 
     if uploaded_by:
-      request.write('<p>Uploaded by %s on %s.  Image size: %sKB</p>' % (Page(uploaded_by, request.cursor).link_to(request), request.user.getFormattedDateTime(uploaded_time), image_size))
+      request.write('<p>Uploaded by %s on %s.  Image size: %sKB</p>' % (Page(uploaded_by, request).link_to(), request.user.getFormattedDateTime(uploaded_time), image_size))
     else:
       request.write('<p>Upload information unknown.  Please refer to the original page </p>')
 
@@ -666,7 +666,7 @@ def show_deleted_images(pagename, request):
     urlpagename = wikiutil.quoteWikiname(pagename)
 
     for item in result:
-      text_list += "<li>[<a href=\"%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s\">restore to page</a>] <a href=\"%s/%s?action=%s&amp;do=view&amp;target=%s\">%s</a> deleted by %s on %s.</li>" % (baseurl, urlpagename, action, item[0], repr(item[3]), baseurl, urlpagename, action, item[0], item[0], Page(item[2], request.cursor).link_to(request), request.user.getFormattedDateTime(item[1]))
+      text_list += "<li>[<a href=\"%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s\">restore to page</a>] <a href=\"%s/%s?action=%s&amp;do=view&amp;target=%s\">%s</a> deleted by %s on %s.</li>" % (baseurl, urlpagename, action, item[0], repr(item[3]), baseurl, urlpagename, action, item[0], item[0], Page(item[2], request).link_to(), request.user.getFormattedDateTime(item[1]))
 
 
     request.http_headers()
@@ -713,7 +713,7 @@ def do_admin_browser(request):
             for filename in files:
                 filepath = os.path.join(page_dir, filename)
                 data.addRow((
-                    Page(pagename, request.cursor).link_to(request, querystr="action=Files"),
+                    Page(pagename, request).link_to(querystr="action=Files"),
                     wikiutil.escape(filename),
                     os.path.getsize(filepath),
                     '',

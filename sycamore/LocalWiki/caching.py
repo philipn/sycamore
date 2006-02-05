@@ -93,5 +93,5 @@ def dependencies(pagename, request):
   results = request.cursor.fetchall()
   l = []
   for result in results:
-   l.append(Page(result[0]))
+   l.append(Page(result[0], request))
   return l

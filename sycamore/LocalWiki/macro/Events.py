@@ -1,7 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 import time, re
 from LocalWiki import wikiutil, wikiform, config, wikidb
-from LocalWiki.Page import Page
 import xml.dom.minidom
 from cStringIO import StringIO
 

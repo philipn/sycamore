@@ -367,7 +367,7 @@ def isImageOnPage(pagename, filename, cursor):
 ### Page storage helpers
 #############################################################################
 
-def getPageList(cursor, alphabetize=False):
+def getPageList(request, alphabetize=False):
     """
     List all pages, except for "CVS" directories,
     hidden files (leading '.') and temp files (leading '#')
@@ -376,6 +376,7 @@ def getPageList(cursor, alphabetize=False):
     @return: all (unquoted) wiki page names
 
     """
+    cursor = request.cursor
     if not alphabetize: cursor.execute("SELECT name from curPages")
     else: cursor.execute("SELECT name from curPages order by name")
     result = []
@@ -386,7 +387,7 @@ def getPageList(cursor, alphabetize=False):
 
     return result
 
-def getPageDict(cursor):
+def getPageDict(request):
     """
     Return a dictionary of page objects for all pages,
     with the page name as the key.
@@ -395,11 +396,12 @@ def getPageDict(cursor):
     @rtype: dict
     @return: all pages {pagename: Page, ...}
     """
+    cursor = request.cursor
     from LocalWiki.Page import Page
     pages = {}
-    pagenames = getPageList(cursor)
+    pagenames = getPageList(request)
     for name in pagenames:
-        pages[name] = Page(name, cursor)
+        pages[name] = Page(name, request)
     return pages
 
 
@@ -452,7 +454,7 @@ def getSysPage(request, pagename):
         i18n_page = Page(i18n_name)
         if i18n_page.exists():
             return i18n_page
-    return Page(pagename, request.cursor)
+    return Page(pagename, request)
 
 
 def getHomePage(request, username=None):
@@ -474,7 +476,7 @@ def getHomePage(request, username=None):
         from LocalWiki.Page import Page
 
         # plain homepage?
-        pg = Page(username, request.cursor)
+        pg = Page(username, request)
         if pg.exists(): return pg
 
     return None
@@ -983,7 +985,7 @@ def send_title(request, text, **keywords):
 
     _ = request.getText
     pagename = keywords.get('pagename', None)
-    page = Page(pagename, request.cursor)
+    page = Page(pagename, request)
 
     # get name of system pages
     #page_front_page = getSysPage(request, config.page_front_page).page_name
@@ -997,7 +999,7 @@ def send_title(request, text, **keywords):
     if pagename and config.allow_subpages:
         pos = pagename.rfind('/')
         if pos >= 0:
-            pp = Page(pagename[:pos], request.cursor)
+            pp = Page(pagename[:pos], request)
             if pp.exists():
                 page_parent_page = pp.page_name
 
@@ -1032,10 +1034,13 @@ def send_title(request, text, **keywords):
     # add the rss link for per-page rss
     if config.relative_dir: add_on = '/'
     else: add_on = ''
-    if pagename.lower() != 'recent changes':
-      rss_html = '<link rel=alternate type="application/rss+xml" href="/%s%s%s?action=rss_rc" title="Recent Changes RSS Feed">' % (config.relative_dir, add_on, quoteWikiname(pagename))
-    else:
+
+    if pagename.lower() == 'bookmarks':
       rss_html = ''
+    elif pagename.lower() == 'recent changes':
+      rss_html = ''
+    else: 
+      rss_html = '<link rel=alternate type="application/rss+xml" href="/%s%s%s?action=rss_rc" title="Recent Changes RSS Feed">' % (config.relative_dir, add_on, quoteWikiname(pagename))
 
     request.write("""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -1104,7 +1109,7 @@ def send_title(request, text, **keywords):
             and pagename and request.user.may.edit(pagename) \
             and request.user.edit_on_doubleclick:
         bodyattr += ''' ondblclick="location.href='%s'"''' % (
-            Page(pagename, request.cursor).url(request, "action=edit"))
+            Page(pagename, request).url("action=edit"))
 
     # Set body to the user interface language and direction
     bodyattr += ' %s' % request.theme.ui_lang_attr()
@@ -1181,7 +1186,7 @@ def send_title(request, text, **keywords):
         'site_name': config.sitename,
         'page': page,             # necessary???
         'pagesize': pagename and page.size() or 0,
-        'last_edit_info': pagename and page.last_modified_str(request) or '',
+        'last_edit_info': pagename and page.last_modified_str() or '',
         'page_name': pagename or '',
         'page_user_prefs': "User Preferences",
 	'polite_msg': keywords.get('polite_msg', ''),

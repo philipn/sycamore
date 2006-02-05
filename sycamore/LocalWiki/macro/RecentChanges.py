@@ -80,7 +80,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     is_event = lines[-1].action == 'NEWEVENT'
     # check whether this page is newer than the user's bookmark
     hilite = line.ed_time > (bookmark or line.ed_time)
-    page = Page(line.pagename, request.cursor)
+    page = Page(line.pagename, request)
 
     html_link = ''
     if not page.exists():
@@ -110,7 +110,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     force_split = len(page.page_name) > _MAX_PAGENAME_LENGTH
     
     d['icon_html'] = html_link
-    d['pagelink_html'] = page.link_to(request, text=page.page_name)
+    d['pagelink_html'] = page.link_to(text=page.page_name)
     
     # print time of change
     d['time_html'] = None

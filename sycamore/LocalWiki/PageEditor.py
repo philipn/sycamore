@@ -114,7 +114,7 @@ class PageEditor(Page):
         """
         self.request = request
         self._ = request.getText
-        Page.__init__(self, page_name, request.cursor, **keywords)
+        Page.__init__(self, page_name, request, **keywords)
 
         self.do_revision_backup = keywords.get('do_revision_backup', 1)
         #self.do_editor_backup = keywords.get('do_editor_backup', 1)

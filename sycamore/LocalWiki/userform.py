@@ -578,9 +578,9 @@ def do_user_browser(request):
     for uid in user.getUserList(self.request.cursor):
         account = user.User(request, uid)
 
-        userhomepage = Page(account.name, self.request.cursor)
+        userhomepage = Page(account.name, self.request)
         if userhomepage.exists():
-            namelink = userhomepage.link_to(request)
+            namelink = userhomepage.link_to()
         else:
             namelink = account.name
 

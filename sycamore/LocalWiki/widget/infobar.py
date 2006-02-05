@@ -6,7 +6,7 @@ def isNotSubscribed(request, pagename):
     return not request.user.isFavoritedTo(pagename) and request.user.valid
 
 def isUserPage(request, pagename):
-    return getUserId(pagename)
+    return getUserId(pagename, request)
 
 class InfoBar(base.Widget):
     #Display, query args, should this be displayed

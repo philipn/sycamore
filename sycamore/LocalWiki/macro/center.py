@@ -1,7 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
 from LocalWiki import wikiutil, wikiform, config
-from LocalWiki.Page import Page
 
 Dependencies = []
 

@@ -148,6 +148,10 @@ class User:
         self.favorited_pages = ""
         self.theme_name = config.theme_default
 	self.tz_offset = config.tz_offset
+	self.rc_bookmark = 0
+	self.rc_showcomments = 1
+	self.favorites = {}
+	self.is_login = False
         # if an account is disabled, it may be used for looking up
         # id -> username for page info and recent changes, but it
         # is not usabled for the user any more:
@@ -175,6 +179,7 @@ class User:
 		if self.isValidCookieDough(cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value):
 			# okay, lets let them in
        	        	self.id = self.getUserIdDough(cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value)
+			self.is_login = True
 			
 
         # we got an already authenticated username:
@@ -194,6 +199,9 @@ class User:
         else:
             from security import Default
             self.may = Default(self)
+
+	if self.is_login:
+	  self._init_login()
 
 
 #    def __filename(self):
@@ -278,7 +286,7 @@ class User:
 	  if config.memcache:
 	    user_data = self.request.mc.get('users:%s' % self.id)
 	  if not user_data:
-	    self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark from users where id=%(userid)s", {'userid':self.id})
+	    self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark, rc_showcomments from users where id=%(userid)s", {'userid':self.id})
 	    data = self.request.cursor.fetchone()
 
             user_data = {'enc_password': ''}
@@ -296,6 +304,7 @@ class User:
 	    user_data['last_saved'] = data[11]
 	    user_data['tz_offset'] = data[12]
 	    user_data['rc_bookmark'] = data[13]
+	    user_data['rc_showcomments'] = data[14]
 
 	    if config.memcache: self.request.mc.add('users:%s' % self.id, user_data)
 
@@ -351,6 +360,11 @@ class User:
         result = self.request.cursor.fetchone()
       return id
 
+    def getUserdict(self):
+       #Returns dictionary of all relevant user values -- essentially an entire user's relevant information
+	return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz_offset':self.tz_offset, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments}
+
+
     def save(self):
         """
         Save user account data to user account file on disk.
@@ -360,7 +374,7 @@ class User:
         """
         self.last_saved = str(time.time())
 
-	userdict = {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz_offset':self.tz_offset}
+        userdict = self.getUserdict()
 
         if not self.id:
 	  self.id = self._new_user_id()
@@ -368,8 +382,12 @@ class User:
 	  userdict['join_date'] = time.time()
 	  userdict['id'] = self.id
 	  self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz_offset) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz_offset)s)", userdict)
+	  if config.memache:
+	    self.request.mc.set("users:%s" % self.id, userdict)
 	else:
 	  self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz_offset=%(tz_offset)s where id=%(id)s", userdict)
+	  if config.memcache:
+	    self.request.mc.set("users:%s" % self.id, userdict)
 		
     def makeCookieHeader(self):
         """
@@ -536,9 +554,12 @@ class User:
         """
         if self.valid:
 	    bool_show= '1'
-	    if hideshow == 'showcomments' : bool_show= '1'
-	    elif hideshow == 'hidecomments' : bool_show= '0'
+	    if hideshow == 'showcomments' : bool_show = 1
+	    elif hideshow == 'hidecomments' : bool_show = 0
+	    self.rc_showcomments = bool_show
 	    self.request.cursor.execute("UPDATE users set rc_showcomments=%(show_status)s where id=%(userid)s", {'show_status':bool_show, 'userid':self.id})
+	    if config.memcache:
+	      self.request.mc.set("users:%s" % self.id, self.getUserdict())
 
     def getShowComments(self):
         """
@@ -547,14 +568,9 @@ class User:
         @rtype: int
         @return: bookmark time (UTC UNIX timestamp) or None
         """
-        if self.valid and self.exists():
-	    self.request.cursor.execute("SELECT rc_showcomments from users where id=%(id)s", {'id':self.id})
-	    result = self.request.cursor.fetchone()
-	    # just in case..
-	    if not result:  return 1
-	    if result[0] == 1: return 1
-	    else:  return 0
-		
+        if self.valid:
+	  return self.rc_showcomments
+
         return 1
 
     def setBookmark(self, tm = None):
@@ -567,6 +583,8 @@ class User:
             if not tm: tm = time.time()
 	    self.request.cursor.execute("UPDATE users set rc_bookmark=%(timenow)s where id=%(userid)s", {'timenow':str(tm), 'userid':self.id})
 	    self.rc_bookmark = tm
+	    if config.memcache:
+	      self.request.mc.set("users:%s" % self.id, self.getUserdict())
 
 
     def getBookmark(self):
@@ -597,11 +615,9 @@ class User:
         #return int(self.favorited_pages[index + len(pagename + "*"):index + 10 + len(pagename + "*")])
         #import re
         #from LocalWiki import wikiutil
-        self.request.cursor.execute("SELECT viewTime from userFavorites where username=%(name)s and page=%(pagename)s", {'name':self.name, 'pagename':pagename})
-        result = self.request.cursor.fetchone()
-	if result: return result[0]
+	if self.favorites.has_key(pagename):
+	  return self.favorites[pagename]
 	else: return None
-
 
     def delBookmark(self):
         """
@@ -613,6 +629,8 @@ class User:
         if self.valid:
 	   self.request.cursor.execute("UPDATE users set rc_bookmark=NULL where id=%(id)s", {'id':self.id})
 	   self.rc_bookmark = 0
+	   if config.memcache:
+	     self.request.mc.set("users:%s" % self.id, self.getUserdict())
 	   return 0
 	    
         return 1
@@ -662,6 +680,38 @@ class User:
 #        subscrPages = filter(None, subscrPages)
 #        return subscrPages
 
+    def _init_login(self):
+      """
+      Actions to be performed when an actual user logs in.
+      """
+      self.favorites = self.getFavorites()
+
+    def getFavorites(self):
+        """
+	Gets the dictionary of user's favorites.
+	"""
+	favs = {}
+	if self.favorites: return self.favorites
+        if self.request.req_cache['userFavs'].has_key(self.id):
+	  favs = self.request.req_cache['userFavs'][self.id]
+	  return favs
+	if config.memcache:
+	  favs = self.request.mc.get("userFavs:%s" % self.id)
+	  self.request.req_cache['userFavs'][self.id] = favs  
+	if not favs:
+	  favs = {}
+	  self.request.cursor.execute("SELECT page, viewTime from userFavorites where username=%(username)s", {'username': self.name})
+	  result = self.request.cursor.fetchall()
+	  if result:
+	    for pagename, viewTime in result:
+	      favs[pagename] = viewTime
+	  if config.memcache:
+	    self.request.mc.add("userFavs:%s" % self.id, favs)
+	  self.request.req_cache['userFavs'][self.id] = favs  
+	    
+	return favs
+
+
     def getFavoriteList(self):
         """
         Get list of pages this user has marked as a favorite sorted in alphabetical order.
@@ -669,24 +719,21 @@ class User:
         @rtype: list
         @return: pages this user has marked as favorites.
         """
-	favPages = []
-	self.request.cursor.execute("SELECT page from userFavorites where username=%(name)s order by page", {'name':self.name})
-	page = self.request.cursor.fetchone()
-	while page:
-	   favPages.append(page[0])
-	   page=self.request.cursor.fetchone()
-	return favPages
+	return self.favorites.keys().sort()
+
 
     def checkFavorites(self, pagename):
         """
         Checks to see if pagename is in the favorites list, and if it is, it updates the timestamp.
         """
-        if self.name:
-	  self.request.cursor.execute("SELECT page from userFavorites where username=%(name)s and page=%(pagename)s", {'name':self.name, 'pagename':pagename})
-	  result = self.request.cursor.fetchone()
-	  if result:
+        if self.name and self.favorites:
+	  if self.favorites.has_key(pagename):
           # we have it as a favorite
-	     self.request.cursor.execute("UPDATE userFavorites set viewTime=%(timenow)s where username=%(name)s and page=%(pagename)s", {'timenow':time.time(), 'name':self.name, 'pagename':pagename}) 
+	    timenow = time.time()
+	    self.favorites[pagename] = timenow
+	    if config.memcache:
+	      self.request.mc.set('userFavs:%s' % self.id, self.favorites)
+	    self.request.cursor.execute("UPDATE userFavorites set viewTime=%(timenow)s where username=%(name)s and page=%(pagename)s", {'timenow':timenow, 'name':self.name, 'pagename':pagename}) 
  	  
 
     def isFavoritedTo(self, pagename):
@@ -698,10 +745,10 @@ class User:
         @return: 1, if user has page in favorited pages ("Bookmarks")
                  0, if not
         """
+        if self.valid and self.name and not self.favorites: self.favorites = self.getFavorites()
         if self.valid:
-	    self.request.cursor.execute("SELECT page from userFavorites where username=%(name)s and page=%(pagename)s", {'name':self.name, 'pagename':pagename})
-	    result = self.request.cursor.fetchone()
-	    if result: return True
+	  if self.favorites.has_key(pagename):
+	    return True
 	return False
 
 #    def isSubscribedTo(self, pagelist):
@@ -763,19 +810,28 @@ class User:
         @rtype: bool
         @return: true, if page was NEWLY subscribed.
         """ 
+        if self.valid and self.name and not self.favorites: self.favorites = self.getFavorites()
 	if not self.isFavoritedTo(pagename):
-	    self.request.cursor.execute("INSERT into userFavorites (page, username, viewTime) values (%(pagename)s, %(name)s, %(timenow)s)", {'pagename':pagename, 'name':self.name, 'timenow':time.time()})
-	    return 1
+	  timenow = time.time()
+	  self.favorites[pagename] = timenow
+	  self.request.cursor.execute("INSERT into userFavorites (page, username, viewTime) values (%(pagename)s, %(name)s, %(timenow)s)", {'pagename':pagename, 'name':self.name, 'timenow':timenow})
+	  if config.memcache:
+	    self.request.mc.set("userFavs:%s" % self.id, self.favorites)
+	  return True
 
-        return 0
+        return False
 
 
     def delFavorite(self, pagename):
+        if self.valid and self.name and not self.favorites: self.favorites = self.getFavorites()
 	if self.isFavoritedTo(pagename):	
-	   self.request.cursor.execute("DELETE from userFavorites where page=%(pagename)s and username=%(username)s", {'pagename':pagename, 'name':self.name})
-           return 1
+	   del self.favorites[pagename]
+	   if config.memcache:
+	     self.request.mc.set("userFavs:%s" % self.id, self.favorites)
+	   self.request.cursor.execute("DELETE from userFavorites where page=%(pagename)s and username=%(username)s", {'pagename':pagename, 'username':self.name})
+           return True
 
-        return 0
+        return False
 
 
     def addTrail(self, pagename):

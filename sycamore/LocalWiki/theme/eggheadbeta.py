@@ -87,7 +87,7 @@ class Theme(ThemeBase):
 	   '<img class="borderless" src="%s" hspace="8" alt="article"/><br/>Article'
 	      % self.img_url('article.png')))
 	else:
-	  talk_page = Page(d['page_name']+'/Talk', self.request.cursor, req_cache=self.request.req_cache)
+	  talk_page = Page(d['page_name']+'/Talk', self.request)
 	  if talk_page.exists():
 	    return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
 	     '<img class="borderless" src="%s" hspace="8" alt="talk"/><br/>Talk'
@@ -382,24 +382,27 @@ class Theme(ThemeBase):
             html.append('<table width="100%%" border="0" cellspacing="0" cellpadding="0"><tr>')
 	    # noedit is a keyword that tells us if we are in an area where an edit link just logically makes no sense, such as the info tab.
 	    if not keywords.get('noedit'):
-	     html.append('<td align="left" width="50%%">')
+	     if d['last_edit_info']:
+	       html.append('<td align="left" width="50%%">')
+	     else:
+	       html.append('<td align="left" width="15%%">')
              if editable:
                  html.append("%s" % (
                      wikiutil.link_tag(self.request, d['q_page_name']+'?action=edit', _('Edit'))))
                  html.append(' this page')
                  html.append(' %(last_edit_info)s' % d)
-             else :
+             else:
                html.append('Most pages are editable.  Please login to edit and add comments.</td>')
 	
 	    # if editing doesnt make sense then we have more room for the license note
 	    if not keywords.get('noedit'):
               license_text = """
 <!-- Creative Commons Licence --><font style="font-size:9px;">Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Creative Commons License</a>.  See %s.</font><!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/2.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/2.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->
-""" % (Page("Copyrights", self.request.cursor, req_cache=self.request.req_cache).link_to(self.request))
+""" % (Page("Copyrights", self.request).link_to())
 	    else:
 	      license_text = """
 <!-- Creative Commons Licence --><font style="font-size:9px;">Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Creative Commons License</a>.  See %s.</font><!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/2.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/2.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->
-""" % (Page("Copyrights", self.request.cursor, req_cache=self.request.req_cache).link_to(self.request))
+""" % (Page("Copyrights", self.request).link_to())
 
 	
             cc_button = '<a href="http://creativecommons.org/licenses/by/2.0/"><img alt="Creative Commons License" border="0" src="%s"/></a>' % self.img_url('cc.png')

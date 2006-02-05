@@ -10,7 +10,7 @@ def execute(macro, args, formatter=None):
     if not args:
       page = macro.formatter.page
     else:
-      page = Page(args, macro.request.cursor)
+      page = Page(args, macro.request)
     links_here = page.getPageLinksTo()
     text = ''
     if links_here:
