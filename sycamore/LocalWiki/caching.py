@@ -15,11 +15,6 @@ class CacheEntry:
         self.key = key
 	self.request = request
 
-    def exists(self):
-	self.request.cursor.execute("SELECT cachedTime from curPages where name=%(key)s", {'key':self.key})
-	result = self.request.cursor.fetchone()
-	return result
-
     def mtime(self):
 	self.request.cursor.execute("SELECT cachedTime from curPages where name=%(key)s", {'key':self.key})
 	result = self.request.cursor.fetchone()

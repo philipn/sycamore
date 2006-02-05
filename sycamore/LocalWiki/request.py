@@ -64,7 +64,7 @@ class RequestBase:
           self.mc = MemcachePool.getMC()
 	if not properties: properties = wikiutil.prepareAllProperties()
         self.__dict__.update(properties)
-	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}} # per-request cache
+	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'last_edit_info': {}} # per-request cache
         # order is important here!
 
 	self.db_connect()

@@ -38,20 +38,20 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, ver
     """
     if not deleted:
       if not thumb:
-        url = "%s/%s?img=true&file=%s" % (wikiutil.baseScriptURL(), 
+        url = "%s/%s?img=true&amp;file=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
             urllib.quote_plus(filename))
       else:
         if not size:
-	  url = "%s/%s?img=true&file=%s&thumb=yes" % (wikiutil.baseScriptURL(), 
+	  url = "%s/%s?img=true&amp;file=%s&amp;thumb=yes" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
             urllib.quote_plus(filename))
 	else:
-	  url = "%s/%s?img=true&file=%s&thumb=yes&size=%s" % (wikiutil.baseScriptURL(), 
+	  url = "%s/%s?img=true&amp;file=%s&amp;thumb=yes&amp;size=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
             urllib.quote_plus(filename), size)
     else:
-      url = "%s/%s?img=true&file=%s&deleted=true&version=%s" % (wikiutil.baseScriptURL(), 
+      url = "%s/%s?img=true&amp;file=%s&amp;deleted=true&amp;version=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
             urllib.quote_plus(filename), repr(version))
 

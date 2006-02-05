@@ -11,7 +11,7 @@ import sys, re, os, array
 #  
 #  size : the size of the image. if size is supplied this implies it's a thumbnail. Can be either width or height depending on whichever is larger in source image. The size supplied is the desired scaled size.
 #  
-#  alignment : left/right. if it's a thumbnail then it gives it a usual float:left or float:right. if it's not a thumbnail then you need to wrap the image in a div that sends it left or right (i'm not sure it even needs to float..)
+#  alignment : left/right. if it's a thumbnail then it gives it a usual float:left or float:right. if it's not a thumbnail then you need to wrap the image in a span that sends it left or right (i'm not sure it even needs to float..)
 #  
 #  thumb : this is just the string "thumb" or "thumbnail" that tells us it's a thumbnail. optional if size is supplied, if size not supplied defaults to (default size?). Should default size be a systemwide variable, or hard coded?
 #  
@@ -227,7 +227,7 @@ def execute(macro, args, formatter=None):
                     ''),
                 linktext)
 
-    full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&do=view&target=" + image_name
+    full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&amp;do=view&amp;target=" + image_name
     # put the caption in the db if it's new and if we're not in preview mode
     if not formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption, macro.request.cursor)
     if caption:
@@ -240,23 +240,23 @@ def execute(macro, args, formatter=None):
       d = { 'right':'floatRight', 'left':'floatLeft', '':'noFloat' }
       floatSide = d[alignment]
       if caption and border:
-        html.append('<div class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s"/></a><div>%s</div></div>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size),caption))
+        html.append('<span class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a><span>%s</span></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size), image_name, caption))
       elif border:
-        html.append('<div class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s"/></a></div>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size)))
+        html.append('<span class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size), image_name))
       elif caption and not border:
-        html.append('<div class="%s thumb noborder" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s"/></a><div>%s</div></div>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size),caption))
+        html.append('<span class="%s thumb noborder" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a><span>%s</span></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size), image_name, caption))
     else:
       x, y = getImageSize(pagename, image_name, macro.request.cursor)
       if not border and not caption:
-        img_string = '<a href="%s"><img class="borderless" src="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request))
+        img_string = '<a href="%s"><img class="borderless" src="%s" alt="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), image_name)
       elif border and not caption:
-        img_string = '<a href="%s"><img class="border" src="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request))
+        img_string = '<a href="%s"><img class="border" src="%s" alt="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), image_name)
       elif border and caption:
-        img_string = '<a href="%s"><img class="border" src="%s"/></a><div style="width: %spx;"><p class="normalCaption">%s</p></div>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), x, caption)
+        img_string = '<a href="%s"><img class="border" src="%s" alt="%s"/></a><span style="width: %spx;"><p class="normalCaption">%s</p></span>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), image_name, x, caption)
       elif not border and caption:
-        img_string = '<a href="%s"><img class="borderless" src="%s"/></a><div style="width: %spx;"><p class="normalCaption">%s</p></div></div>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), x, caption)
-      if alignment == 'right': img_string = '<div class="floatRight">' + img_string + '</div>'
-      elif alignment == 'left': img_string = '<div class="floatLeft">' + img_string + '</div>'
+        img_string = '<a href="%s"><img class="borderless" src="%s" alt="%s"/></a><span style="width: %spx;"><p class="normalCaption">%s</p></span></span>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), image_name, x, caption)
+      if alignment == 'right': img_string = '<span class="floatRight">' + img_string + '</span>'
+      elif alignment == 'left': img_string = '<span class="floatLeft">' + img_string + '</span>'
 
       html.append(img_string)
       

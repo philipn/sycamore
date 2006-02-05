@@ -73,7 +73,7 @@ class Page:
         self.date = self.version_number_to_date(self.version)
 	return self.date
       elif not self.date:
-        self.date = self._last_modified()[0]
+        self.date = self.last_edit_info()[0]
       return self.date
 
     def get_version(self):
@@ -82,7 +82,7 @@ class Page:
         self.version = self.date_to_version_number(self.date)
 	return self.version
       elif not self.version:
-        self.date = self._last_modified()[0]
+        self.date = self.last_edit_info()[0]
 	self.version = self.date_to_version_number(self.date)
       return self.version
 
@@ -128,26 +128,35 @@ class Page:
         rnd = random.randint(0,1000000000)
         return os.path.join(config.text_dir, ('#%s.%d#' % (wikiutil.quoteFilename(self.page_name), rnd)))
 
+    def last_edit_info(self):
+       """
+       Returns info about the last edit on the page.
+       Returns tuple of editTime(double), userEdited(id)
+       """
+       edit_info = None
+       if not self.exists():
+         return None
+       # check per-request cache
+       if self.request.req_cache['last_edit_info'].has_key(self.page_name):
+         return self.request.req_cache['last_edit_info'][self.page_name] 
+       # check memcache
+       if config.memcache:
+         edit_info = self.request.mc.get("last_edit_info:%s" % wikiutil.quoteFilename(self.page_name))
+	 if edit_info:
+	   self.request.req_cache['last_edit_info'][self.page_name] = edit_info
+	   return edit_info
 
+       self.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':self.page_name})
+       result = self.cursor.fetchone()
+       editTimeUnix = result[0]
+       editUserID = result[1]
+       edit_info = (editTimeUnix, editUserID)
+       self.request.req_cache['last_edit_info'][self.page_name] = edit_info
+       if config.memcache:
+         self.request.mc.add("last_edit_info:%s" % wikiutil.quoteFilename(self.page_name), edit_info)
 
-    def _last_modified(self):
-        """
-        Return the last modified info.
-	Works for the current version of the page.
-	For a general modification value, call Page.date
-        
-        @param request: the request object
-        @rtype: string
-        @return: timestamp and editor id
-        """
-        if not self.exists():
-            return None
-	self.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':self.page_name})
-	result = self.cursor.fetchone()
-	editTimeUnix = result[0]
-	editUserID = result[1]
-	
-        return (editTimeUnix, editUserID)
+       return edit_info
+
 
     def last_modified_str(self):
         """
@@ -161,7 +170,7 @@ class Page:
         if not self.exists():
             return None
 
-	editTimeUnix, userEditedID = self._last_modified()
+	editTimeUnix, userEditedID = self.last_edit_info()
 	editTime = request.user.getFormattedDateTime(editTimeUnix)
 	if userEditedID:
 	  editUser = user.User(self.request, userEditedID)
@@ -264,7 +273,9 @@ class Page:
         @return: mtime of page (or 0 if page does not exist)
         """
 	if not self.prev_date:
-          self.cursor.execute("SELECT editTime from curPages where name=%(page_name)s", {'page_name': self.page_name})
+	  if self.exists():
+	    return self.last_edit_info()[0]
+	  return 0
         else:
 	  self.cursor.execute("SELECT editTime from allPages where name=%(page_name)s and editTime <= %(prev_date)s order by editTime desc limit 1;", {'page_name':self.page_name, 'prev_date':self.prev_date})
         result = self.cursor.fetchone()
