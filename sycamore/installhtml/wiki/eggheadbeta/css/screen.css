@@ -16,44 +16,44 @@ div.tabArea {
   color: #555555;
 }
 
-div.floatLeft {
+span.floatLeft {
   margin: 10px 10px 10px 0px;
   float: left;
   clear: left;
 }
 
-div.floatRight {
+span.floatRight {
   margin: 10px 0px 10px 10px;
   float: right;
   clear: right;
 }
 
-div.noFloat {
+span.noFloat {
   margin: 10px 10px 10px 0px;
   float: left;
 }
 
-div.thumb {
+span.thumb {
   text-align: center;
   padding: 2px;
   border: 1px solid #CBCBCB;
   font-size: 10px;
 }
 
-div.thumb img {
+span.thumb img {
   border: 1px solid #CBCBCB;
 }
 
 
-div.thumb img.borderless {
+span.thumb img.borderless {
   border: 0px;
 }
 
-div.thumb.noborder {
+span.thumb.noborder {
   border: 0px;
 }
 
-div.thumb img:hover {
+span.thumb img:hover {
   cursor: pointer;
 }
 
