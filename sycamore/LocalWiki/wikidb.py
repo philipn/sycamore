@@ -210,12 +210,11 @@ def putImage(request, dict, thumbnail=False, do_delete=False):
       key = "thumbnails:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['pagename']))
       request.mc.delete(key)
 
-  if do_delete: 
-    # rebuild the page cache
-    from LocalWiki import caching
-    from LocalWiki.Page import Page
-    caching.CacheEntry(dict['pagename'], request).clear()
-    Page(dict['pagename'], request).buildCache()
+  # rebuild the page cache
+  from LocalWiki import caching
+  from LocalWiki.Page import Page
+  caching.CacheEntry(dict['pagename'], request).clear()
+  Page(dict['pagename'], request).buildCache()
 
 def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor=''):
   # betta' with this line object so we can move away from array indexing

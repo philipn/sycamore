@@ -98,7 +98,7 @@ class Formatter:
 
     def __is_static(self, dependencies):
         for dep in dependencies:
-            if dep not in  self.static: return False
+            if dep not in self.static: return False
         return True
 
     def __adjust_formatter_state(self):

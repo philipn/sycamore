@@ -7,6 +7,7 @@
 """
 # Imports
 import xml.dom.minidom, time
+from LocalWiki.wikiutil import quoteFilename
 
 def convert_xml(dom):
   pages = dom.getElementsByTagName("page")
@@ -109,7 +110,14 @@ def update_points(mapPoints, request, pagename=None):
         old_categories.append(cat_id[0])
         
       cursor.execute("INSERT into oldMapPoints set pagename=%(pagename)s, x=%(x)s, y=%(y)s, created_time=(select created_time from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s), created_by=(select created_by from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(pagename)s), created_by_ip=(select created_by_ip from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s), deleted_time=%(time_now)s, deleted_by=%(deleted_by)s, deleted_by_ip=%(deleted_by_ip)s", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr})
-      cursor.execute("DELETE from mapPoints where pagename=%s and id=%s", (pagename, id))
+      cursor.execute("DELETE from mapPoints where pagename=%(pagename)s and id=%(id)s", {'pagename':pagename, 'id':id})
       for old_category in old_categories:
         cursor.execute("INSERT into oldMapPointCategories set pagename=%(pagename)s, x=%(x)s, y=%(y)s, deleted_time=%(time_now)s, id=%(old_category)s", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category})
       cursor.execute("DELETE from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename, 'x':x, 'y':y})
+  
+    # clear the memcache if they deleted all points
+    if config.memcache:
+      cursor.execute("SELECT count(pagename) from mapPoints where name=%(pagename)s", {'pagename': pagename})
+      num_points = cursor.fetchone()
+      if not num_points:
+        request.mc.delete("has_map:%s" % quoteFilename(pagename))

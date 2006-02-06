@@ -491,6 +491,9 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
             pass
         # Then really delete it
 	self.request.cursor.execute("DELETE from curPages where name=%(page_name)s", {'page_name':self.page_name})
+	from LocalWiki import caching
+	cache = caching.CacheEntry(self.page_name, self.request)
+	cache.clear()
 
 	# remove entry from the search databases
 	os.spawnl(os.P_WAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', '%s' % wikiutil.quoteFilename(self.page_name))
@@ -715,6 +718,10 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 		self.request.cursor.execute("INSERT into curPages values (%(page_name)s, %(text)s, NULL, %(ourtime)s, NULL, %(id)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id})
 	# then we need to update the allPages table for Recent Changes and page-centric Info.
 	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip})
+
+	import caching
+	cache = caching.CacheEntry(self.page_name, self.request)
+	cache.clear()
 
 	# set in-memory page text
 	self.set_raw_body(text)

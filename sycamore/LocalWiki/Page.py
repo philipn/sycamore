@@ -8,7 +8,7 @@
 
 # Imports
 import cStringIO, os, re, urllib, os.path, random
-from LocalWiki import caching, config, user, util, wikiutil, wikidb 
+from LocalWiki import config, user, util, wikiutil, wikidb 
 import cPickle
 #import LocalWiki.util.web
 
@@ -249,10 +249,22 @@ class Page:
         return False
 
     def hasMapPoints(self):
-      self.cursor.execute("SELECT pagename from mapPoints where pagename=%(page_name)s", {'page_name':self.page_name})
-      if self.cursor.fetchone():
-        return True
-      return False
+      has_points = False
+      if config.memcache:
+        has_points = self.request.mc.get("has_map:%s" % wikiutil.quoteFilename(self.page_name))
+	if has_points is not None:
+	  return has_points
+	else:
+	  has_points = False
+      self.cursor.execute("SELECT count(pagename) from mapPoints where pagename=%(page_name)s", {'page_name':self.page_name})
+      result = self.cursor.fetchone()
+      if result:
+        if result[0]:
+          has_points = True
+      if config.memcache:
+        self.request.mc.add("has_map:%s" % wikiutil.quoteFilename(self.page_name), has_points)
+
+      return has_points	
 
     def human_size(self):
 	"""
@@ -287,6 +299,7 @@ class Page:
         """
 	Gets the cached time of the page.
 	"""
+	from LocalWiki import caching
 	cache = caching.CacheEntry(self.page_name, self.request)
 	return cache.mtime()
 
@@ -303,6 +316,35 @@ class Page:
         else:
             result = self.request.user.getFormattedDateTime(t)
         return result
+
+    def get_meta_text(self):
+      """
+      Returns the meta text of a page.  This includes things that start iwth # at the beginning of page's text, such as #acl and #redirect.
+      """
+      meta_text = False
+      if self.request.req_cache['meta_text'].has_key((self.page_name, self.mtime())):
+        return self.request.req_cache['meta_text'][(self.page_name, self.mtime())]
+      if config.memcache:
+        meta_text = self.request.mc.get("meta_text:%s,%s" % (wikiutil.quoteFilename(self.page_name), repr(self.mtime())))
+        if meta_text is not None:
+	  self.request.req_cache['meta_text'][(self.page_name, self.mtime())] = meta_text
+	  return meta_text
+
+      body = self.get_raw_body()
+      meta_text = []
+      for line in body:
+        if line[0] == '#':
+	  meta_text.append(line)
+	else:
+	  break
+      meta_text = ''.join(meta_text)
+
+      self.request.req_cache['meta_text'][(self.page_name, self.mtime())] = meta_text
+      if config.memcache:
+        self.request.mc.add("meta_text:%s,%s" % (wikiutil.quoteFilename(self.page_name), repr(self.mtime())), meta_text)
+
+      return meta_text
+        
     
     def get_raw_body(self):
         """
@@ -311,21 +353,31 @@ class Page:
         @rtype: string
         @return: raw page contents of this page
         """
+	text = None
         if self._raw_body is None:
-		if not self.prev_date:
-			self.cursor.execute("SELECT text from curPages where name=%(page_name)s", {'page_name':self.page_name})
-			result = self.cursor.fetchone()
-			if result: text = result[0]
-			else: text = ''
-		else:
-			self.cursor.execute("SELECT text, editTime from allPages where (name=%(page_name)s and editTime<=%(prev_date)s) order by editTime desc limit 1", {'page_name':self.page_name, 'prev_date':self.prev_date})
-			result = self.cursor.fetchone()
-			if result: text = result[0]
-			else: text = ''
+	  if not self.prev_date:
+	    if config.memcache:
+	      text = self.request.mc.get("page_text:%s" % (wikiutil.quoteFilename(self.page_name)))
 
-		#if self.prev_date:  self.prev_date = result[1]
-
-        	self.set_raw_body(text)
+	    if not text:
+	      self.cursor.execute("SELECT text from curPages where name=%(page_name)s", {'page_name':self.page_name})
+	      result = self.cursor.fetchone()
+	      if result: text = result[0]
+	      else: text = ''
+	      if config.memcache:
+	        self.request.mc.add("page_text:%s" % wikiutil.quoteFilename(self.page_name), text)
+	  else:
+	    if config.memcache:
+	      text = self.request.mc.get("text:%s,%s" % (wikiutil.quoteFilename(self.page_name), repr(self.prev_date)))
+	    if not text:
+	      self.cursor.execute("SELECT text, editTime from allPages where (name=%(page_name)s and editTime<=%(prev_date)s) order by editTime desc limit 1", {'page_name':self.page_name, 'prev_date':self.prev_date})
+	      result = self.cursor.fetchone()
+	      if result: text = result[0]
+	      else: text = ''
+	      if config.memcache:
+	        self.request.mc.add("page_text:%s,%s" % (wikiutil.quoteFilename(self.page_name), repr(self.prev_date)), text)
+            
+          self.set_raw_body(text)
 
         return self._raw_body
 
@@ -442,8 +494,8 @@ class Page:
         #if keywords.get('count_hit', 0):
         #     eventlog.EventLog().add(request, 'VIEWPAGE', {'pagename': self.page_name})
 
-        # load the text
-        body = self.get_raw_body()
+        # load the meta-text
+        meta_text = self.get_meta_text()
 
         # if necessary, load the default formatter
         if self.default_formatter:
@@ -465,17 +517,17 @@ class Page:
         #    pi_format = "xslt"
 
         # check processing instructions
-        while body and body[0] == '#':
+        while meta_text:
             # extract first line
             try:
-                line, body = body.split('\n', 1)
+                line, meta_text = meta_text.split('\n', 1)
             except ValueError:
-                line = body
-                body = ''
+                line = meta_text
+                meta_text = ''
 
             # end parsing on empty (invalid) PI
             if line == "#":
-                body = line + '\n' + body
+                meta_text = line + '\n' + meta_text
                 break
 
             # skip comments (lines with two hash marks)
@@ -524,23 +576,6 @@ class Page:
                     wikiutil.quoteWikiname(pi_redirect),
                     urllib.quote_plus(self.page_name, ''),))
                 return
-            elif verb == "deprecated":
-                # deprecated page, append last backup version to current contents
-                # (which should be a short reason why the page is deprecated)
-                msg = '%s<strong>%s</strong><br>%s' % (
-                    wikiutil.getSmiley('/!\\', self.formatter),
-                    _('The backupped content of this page is deprecated and will not be included in search results!'),
-                    msg)
-
-                oldversions = wikiutil.getBackupList(config.backup_dir, self.page_name)
-                if oldversions:
-                    oldfile = oldversions[0]
-                    olddate = os.path.basename(oldfile)[len(wikiutil.quoteFilename(self.page_name))+1:]
-                    oldpage = Page(self.page_name, request, date=olddate)
-                    body = body + oldpage.get_raw_body()
-                    del oldfile
-                    del olddate
-                    del oldpage
             elif verb == "pragma":
                 # store a list of name/value pairs for general use
                 try:
@@ -566,7 +601,7 @@ class Page:
                 pass
             else:
                 # unknown PI ==> end PI parsing, and show invalid PI as text
-                body = line + '\n' + body
+                meta_text = line + '\n' + meta_text
                 break
 
         # start document output
@@ -650,7 +685,7 @@ class Page:
             request.write("<strong>%s</strong><br>" % _("You are not allowed to view this page."))
         else:
             # parse the text and send the page content
-            self.send_page_content(Parser, body)
+            self.send_page_content(Parser)
 
             
         # end wiki content div
@@ -683,7 +718,7 @@ class Page:
 	#	db.close()
 
 
-    def send_page_content(self, Parser, body, needsupdate=0):
+    def send_page_content(self, Parser, needsupdate=0):
         """
         Output the formatted wiki page, using caching, if possible.
 
@@ -692,6 +727,7 @@ class Page:
         @param body: text of the wiki page
         @param needsupdate: if 1, force update of the cached compiled page
         """
+	body = ''
 	request = self.request
         formatter_name = str(self.formatter.__class__).\
                          replace('LocalWiki.formatter.', '').\
@@ -702,12 +738,13 @@ class Page:
             (not getattr(Parser, 'caching', None)) or
             (not formatter_name in config.caching_formats)):
             # parse the text and send the page content
+	    body = self.get_raw_body()
             Parser(body, request).format(self.formatter)
             return
 
         #try cache
         _ = request.getText
-        from LocalWiki import wikimacro
+        from LocalWiki import wikimacro, caching
         key = self.page_name
         cache = caching.CacheEntry(key, request)
         code = None
@@ -726,6 +763,7 @@ class Page:
 
         # render page
         if needsupdate:
+	    body = self.get_raw_body()
             from LocalWiki.formatter.text_python import Formatter
             formatter = Formatter(request, ["page"], self.formatter)
 
@@ -769,6 +807,7 @@ class Page:
         try:
             exec code
         except 'CacheNeedsUpdate': # if something goes wrong, try without caching
+	   body = self.get_raw_body()
            self.send_page_content(Parser, body, needsupdate=1)
            cache = caching.CacheEntry(key, request)
             
@@ -831,6 +870,7 @@ class Page:
         # is not efficient, but reduces code duplication
         # !!! it is also an evil hack, and needs to be removed
         # !!! by refactoring Page to separate body parsing & send_page
+	from LocalWiki import caching
 	request = self.request
 	buffer = cStringIO.StringIO()
         request.redirect(buffer)
@@ -859,6 +899,7 @@ class Page:
         @rtype: list
         @return: page names this page links to
         """
+	from LocalWiki import caching
 	request = self.request
         if not self.exists(): return []
 
@@ -947,10 +988,10 @@ class Page:
                 acl = None
         if acl is None:
             import wikiacl
-            body = ''
+            meta_text = ''
             if self.exists():
-                body = self.get_raw_body()
+              meta_text = self.get_meta_text()
 
-            acl = wikiacl.parseACL(body)
+            acl = wikiacl.parseACL(meta_text)
             self._acl_cache[self.page_name] = (mtime, acl)
         return acl

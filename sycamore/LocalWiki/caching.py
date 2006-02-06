@@ -9,6 +9,7 @@
 # Imports
 import os, shutil, time
 from LocalWiki import config, wikiutil, wikidb
+from LocalWiki.Page import Page
 
 class CacheEntry:
     def __init__(self, key, request):
@@ -16,35 +17,21 @@ class CacheEntry:
 	self.request = request
 
     def mtime(self):
-	self.request.cursor.execute("SELECT cachedTime from curPages where name=%(key)s", {'key':self.key})
-	result = self.request.cursor.fetchone()
-	if result:
-	  return result[0]
-	else: return 0
+      return self.content_info()[1]
 
     def needsUpdate(self):
-        needsupdate = True
-        self.request.cursor.execute("SELECT editTime, cachedTime from curPages where name=%(key)s", {'key':self.key})
-        result = self.request.cursor.fetchone()
-        	
-        if result:
-            if result[0]:
-		edit_time = result[0]
-            else: return True 
-            if result[1]:
-		cached_time = result[1]
-            else: return True
+        needsupdate = False
+	page_cache = self.content_info()
+	if not page_cache[0] or not page_cache[1]: return True
 
-            needsupdate = edit_time > cached_time
+	#edit_time = Page(self.key, self.request).mtime()
+	#cached_time = self.mtime()
+
+        #needsupdate = edit_time > cached_time
         
         # if a page has attachments (images) we check if this needs changing, too
 	# also check included pages
         if not needsupdate:
-	    self.request.cursor.execute("SELECT max(uploaded_time) from images where attached_to_pagename=%(key)s", {'key':self.key})
-	    result = self.request.cursor.fetchone()
-	    if result:
-	      ftime2 = result[0]
-              needsupdate = ftime2 > cached_time
 	    for page in dependencies(self.key, self.request):
 	      if (page.mtime() > cached_time) or (page.ctime(self.request) > cached_time):
 	        return True
@@ -52,19 +39,51 @@ class CacheEntry:
         return needsupdate
 
     def update(self, content, links):
-        self.request.cursor.execute("UPDATE curPages set cachedText=%(cached_content)s, cachedTime=%(cached_time)s where name=%(key)s", {'cached_content':wikidb.dbapi.Binary(content), 'cached_time':time.time(), 'key':self.key})
+        cached_time = time.time()
+        self.request.cursor.execute("UPDATE curPages set cachedText=%(cached_content)s, cachedTime=%(cached_time)s where name=%(key)s", {'cached_content':wikidb.dbapi.Binary(content), 'cached_time':cached_time, 'key':self.key})
+	if config.memcache:
+	  page_cache = (content, cached_time)
+	  self.request.mc.set("page_cache:%s" % wikiutil.quoteFilename(self.key), page_cache)
 	self.request.cursor.execute("DELETE from links where source_pagename=%(key)s", {'key':self.key})
 	for link in links:
 	  self.request.cursor.execute("INSERT into links values (%(key)s, %(link)s)", {'key':self.key, 'link':link})
 
+    def content_info(self):
+        page_cache = None
+	if self.request.req_cache['page_cache'].has_key(self.key):
+	  return self.request.req_cache['page_cache'][self.key]
+    	if config.memcache:
+	  page_cache = self.request.mc.get("page_cache:%s" % wikiutil.quoteFilename(self.key))
+	if not page_cache:
+          self.request.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(key)s", {'key':self.key})
+          result = self.request.cursor.fetchone()
+	  if result:
+	    if result[0] and result[1]:
+	      text = wikidb.binaryToString(result[0])
+	      cached_time = result[1]
+	      page_cache = (text, cached_time)
+	    else:
+	      page_cache = ('', 0)
+	  else:
+	    page_cache = ('', 0)
+	  if config.memcache:
+	    self.request.mc.add("page_cache:%s" % wikiutil.quoteFilename(self.key), page_cache)
+	self.request.req_cache['page_cache'][self.key] = page_cache
+
+	return page_cache
+
     def content(self):
-        self.request.cursor.execute("SELECT cachedText from curPages where name=%(key)s", {'key':self.key})
-        result = self.request.cursor.fetchone()
-	return result[0]
+      return self.content_info()[0]
 
     def clear(self):
         #clears the content of the cache regardless of whether or not the page needs an update
 	self.request.cursor.execute("UPDATE curPages set cachedText=NULL, cachedTime=NULL where name=%(key)s", {'key':self.key})
+	if config.memcache:
+	  self.request.mc.delete("page_cache:%s" % wikiutil.quoteFilename(self.key))
+	  self.request.mc.delete("last_edit_info:%s" % wikiutil.quoteFilename(self.key))
+	  self.request.mc.delete("pagename:%s" % wikiutil.quoteFilename(self.key.lower()))
+	  self.request.mc.delete("page_text:%s" % wikiutil.quoteFilename(self.key))
+	  self.request.mc.delete("page_deps:%s" % wikiutil.quoteFilename(self.key))
 
 def dependency(depend_pagename, source_pagename, request):
   # note that depend_pagename depends on source_pagename
@@ -80,13 +99,24 @@ def dependency(depend_pagename, source_pagename, request):
 def clear_dependencies(pagename, request):
   # clears out dependencies.  do this before parsing on a page save
   request.cursor.execute("DELETE from pageDependencies where page_that_depends=%(page_name)s", {'page_name':pagename})
+  if config.memcache:
+    request.mc.delete("page_deps:%s" % wikiutil.quoteFilename(pagename))
 
 def dependencies(pagename, request):
   from LocalWiki.Page import Page
   # return a list of pages (page objects) that pagename depends on
+  page_deps = False
+  if config.memcache:
+    page_deps = request.mc.get("page_deps:%s" % wikiutil.quoteFilename(pagename))
+    if page_deps is not None:
+      return page_deps
+    else:
+      page_deps = False
   request.cursor.execute("SELECT source_page from pageDependencies where page_that_depends=%(page_name)s", {'page_name':pagename})
   results = request.cursor.fetchall()
-  l = []
+  page_deps = []
   for result in results:
-   l.append(Page(result[0], request))
-  return l
+   page_deps.append(Page(result[0], request))
+  if config.memcache:
+    request.mc.add("page_deps:%s" % wikiutil.quoteFilename(pagename), page_deps)
+  return page_deps

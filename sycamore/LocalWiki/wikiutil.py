@@ -1185,7 +1185,6 @@ def send_title(request, text, **keywords):
         'logo_string': config.logo_string,
         'site_name': config.sitename,
         'page': page,             # necessary???
-        'pagesize': pagename and page.size() or 0,
         'last_edit_info': pagename and page.last_modified_str() or '',
         'page_name': pagename or '',
         'page_user_prefs': "User Preferences",
