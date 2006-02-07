@@ -28,5 +28,7 @@ if os.environ.get('QUERY_STRING') == 'test':
         print "\nTraceback (innermost last):\n%s" % string.join(
             traceback.format_tb(tb) + traceback.format_exception_only(type, value))
 else:
-      request = RequestCGI()
-      request.run()
+      import profile
+      for i in range(0, 10):
+        request = RequestCGI()
+        profile.run('request.run()', 'prof%d' % i)

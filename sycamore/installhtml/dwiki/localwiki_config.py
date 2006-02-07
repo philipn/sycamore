@@ -12,6 +12,7 @@
             (for MoinMoin)
 
     @copyright: 2000-2003 by J?rgen Hermann <jh@web.de>
+    @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
     @license: GNU GPL, see COPYING for details.
 """
 # If you run several wikis on one host (commonly called a wiki farm),
@@ -75,6 +76,8 @@ db_host = 'localhost'
 #Memcache settings.  This is if you want a high-performance wiki.
 memcache = True
 memcache_servers = ['127.0.0.1:11211']
+# memcache_servers can be either ['server1:port', 'server2:port'] or given with weights as in
+#  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)
 
 # Referer regular expression is used to filter out http referers from image viewing.
 # It's for stopping image hotlinking, basically.
