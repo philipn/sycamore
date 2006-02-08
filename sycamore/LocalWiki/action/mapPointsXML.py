@@ -1,13 +1,11 @@
 from LocalWiki import config, wikidb
 import xml.dom.minidom
 
-def pointsToXML():
+def pointsToXML(cursor):
     xml_init_text = '<?xml version="1.0" ?><data></data>'
     points_dom = xml.dom.minidom.parseString(xml_init_text)
     data = points_dom.getElementsByTagName("data")[0]
 
-    db = wikidb.connect() 
-    cursor = db.cursor()
     cursor.execute("SELECT id, img, name from mapCategoryDefinitions;")
     cat_definitions = cursor.fetchall()
     masterCat = points_dom.createElement("category")
@@ -48,13 +46,9 @@ def pointsToXML():
       pages.appendChild(point)
         
     if pages_points: data.appendChild(pages)
-    cursor.close()
-    db.close()
 
     return points_dom.toprettyxml()
 
-pointsToXML()
-
 def execute(pagename, request):
   request.http_headers(["Content-Type: application/xml"])
-  request.write(pointsToXML())
+  request.write(pointsToXML(request.cursor))

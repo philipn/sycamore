@@ -251,7 +251,7 @@ class Page:
     def hasMapPoints(self):
       has_points = False
       if config.memcache:
-        has_points = self.request.mc.get("has_map:%s" % wikiutil.quoteFilename(self.page_name))
+        has_points = self.request.mc.get("has_map:%s" % wikiutil.quoteFilename(self.page_name.lower()))
 	if has_points is not None:
 	  return has_points
 	else:
@@ -262,7 +262,7 @@ class Page:
         if result[0]:
           has_points = True
       if config.memcache:
-        self.request.mc.add("has_map:%s" % wikiutil.quoteFilename(self.page_name), has_points)
+        self.request.mc.add("has_map:%s" % wikiutil.quoteFilename(self.page_name.lower()), has_points)
 
       return has_points	
 

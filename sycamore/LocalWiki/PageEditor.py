@@ -179,7 +179,7 @@ class PageEditor(Page):
 
         # Did one of the prechecks fail?
         if msg:
-            self.send_page(self.request, msg=msg)
+            self.send_page(msg=msg)
             return
 
         # check for preview submit
@@ -447,7 +447,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 
         if preview is not None:
             self.request.write('<div id="preview">')
-            self.send_page(self.request, content_only=1, hilite_re=badwords_re, preview=preview)
+            self.send_page(content_only=1, hilite_re=badwords_re, preview=preview)
             self.request.write('</div>')
 
         self.request.write('</div>\n') # end content div
@@ -470,7 +470,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 
         backto = self.request.form.get('backto', [None])[0]
         page = backto and Page(backto, self.request) or self
-        page.send_page(self.request, msg=_('Edit was cancelled.'))
+        page.send_page(msg=_('Edit was cancelled.'))
 
 
     def deletePage(self, comment=None):

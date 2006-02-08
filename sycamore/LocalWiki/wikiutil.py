@@ -994,17 +994,8 @@ def send_title(request, text, **keywords):
     #page_user_prefs = getSysPage(request, 'User Preferences').page_name
     #page_find_page = getSysPage(request, 'Search').page_name
 
-    # parent page?
-    page_parent_page = None
-    if pagename and config.allow_subpages:
-        pos = pagename.rfind('/')
-        if pos >= 0:
-            pp = Page(pagename[:pos], request)
-            if pp.exists():
-                page_parent_page = pp.page_name
-
     # Print the HTML <head> element
-    user_head = config.html_head
+    user_head = [config.html_head]
     
     # search engine precautions / optimization:
     # if it is an action or edit/search, send query headers (noindex,nofollow):
@@ -1014,19 +1005,19 @@ def send_title(request, text, **keywords):
 		crawl = 0
 
     if (not crawl) or (request.request_method == 'POST'):
-        user_head += '''<meta name="robots" content="noindex,nofollow">\n'''
+        user_head.append('''<meta name="robots" content="noindex,nofollow">\n''')
     elif not page.exists():
-	user_head += '''<meta name="robots" content="noindex,nofollow">\n'''
+	user_head.append('''<meta name="robots" content="noindex,nofollow">\n''')
     # if it is a special page, index it and follow the links:
     elif pagename in ['Front Page', 'Title Index',]:
-        user_head += '''<meta name="robots" content="index,follow">\n'''
+        user_head.append('''<meta name="robots" content="index,follow">\n''')
     # if it is a normal page, index it, but do not follow the links, because
     # there are a lot of illegal links (like actions) or duplicates:
     else:
-        user_head += '''<meta name="robots" content="index,follow">\n'''
+        user_head.append('''<meta name="robots" content="index,follow">\n''')
         
     if keywords.has_key('pi_refresh') and keywords['pi_refresh']:
-        user_head += '<meta http-equiv="refresh" content="%(delay)d;URL=%(url)s">' % keywords['pi_refresh']
+        user_head.append('<meta http-equiv="refresh" content="%(delay)d;URL=%(url)s">' % keywords['pi_refresh'])
     
     if keywords.has_key('strict_title') and keywords['strict_title']: strict_title = keywords['strict_title']
     else: strict_title = text
@@ -1050,7 +1041,7 @@ def send_title(request, text, **keywords):
 %s
 %s
 """ % (
-        user_head,
+        ''.join(user_head),
         keywords.get('html_head', ''),
 	rss_html,
         request.theme.html_head({
@@ -1099,51 +1090,29 @@ def send_title(request, text, **keywords):
     #)
 
     request.write("</head>\n")
-    request.flush()
 
     # start the <body>
-    bodyattr = ''
+    bodyattr = []
     if keywords.has_key('body_attr'):
-        bodyattr += ' ' + keywords['body_attr']
+        bodyattr.append(' %s' % keywords['body_attr'])
     if keywords.get('allow_doubleclick', 0) and not keywords.get('print_mode', 0) \
             and pagename and request.user.may.edit(pagename) \
             and request.user.edit_on_doubleclick:
-        bodyattr += ''' ondblclick="location.href='%s'"''' % (
-            Page(pagename, request).url("action=edit"))
+        bodyattr.append(''' ondblclick="location.href='%s'"''' % (
+            page.url("action=edit")))
 
     # Set body to the user interface language and direction
-    bodyattr += ' %s' % request.theme.ui_lang_attr()
+    bodyattr.append(' %s' % request.theme.ui_lang_attr())
     
     body_onload = keywords.get('body_onload', '')
     if body_onload:
-        bodyattr += ''' onload="%s"''' % body_onload
+        bodyattr.append(''' onload="%s"''' % body_onload)
     request.write('\n<body%s>\n' % bodyattr)
 
     # if in Print mode, emit the title and return immediately
     if keywords.get('print_mode', 0):
         ## print '<h1>%s</h1><hr>\n' % (escape(text),)
         return
-
-    navibar = None
-    #quicklinks = request.user.getQuickLinks()
-    if config.navi_bar:
-        for navi_link in config.navi_bar:
-            newwin = ''
-            if navi_link.startswith('^'):
-                newwin = '^'
-                navi_link = navi_link[1:]
-            if not navi_link.startswith('['):
-                # copy real links verbatim, try to map system pages else
-                navi_link = getSysPage(request, navi_link).page_name
-
-        navibar = []
-        
-
-    hp = getHomePage(request)
-    if hp:
-        page_home_page = hp.page_name
-    else:
-        page_home_page = None
 
     # list user actions that start with an uppercase letter
     #available_actions = []
@@ -1167,10 +1136,6 @@ def send_title(request, text, **keywords):
             'alt': icon[0],
             'src': icon[1],
         }
-    titlesearch = searchfield % {
-        'type': 'title',
-        'value': escape(form and form.get('text_title', [''])[0] or '', 1),
-    }
     textsearch = searchfield %  {
         'type': 'new',
         'value': escape(form and form.get('text_full', [''])[0] or '', 1),
@@ -1183,9 +1148,9 @@ def send_title(request, text, **keywords):
         'title_text': text,
         'title_link': keywords.get('link', ''),
         'logo_string': config.logo_string,
+	'script_name': request.getScriptname(),
         'site_name': config.sitename,
         'page': page,             # necessary???
-        'last_edit_info': pagename and page.last_modified_str() or '',
         'page_name': pagename or '',
         'page_user_prefs': "User Preferences",
 	'polite_msg': keywords.get('polite_msg', ''),
@@ -1194,8 +1159,6 @@ def send_title(request, text, **keywords):
         'user_prefs': ("User Preferences", request.user.name)[request.user.valid],
         'msg': keywords.get('msg', ''),
         'trail': keywords.get('trail', None),
-        'navibar': navibar,
-        'titlesearch': titlesearch,
         'textsearch': textsearch,
     }
 

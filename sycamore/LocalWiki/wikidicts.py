@@ -178,7 +178,7 @@ class DictDict:
 
     def adddict(self, dictname):
         """add a new dict (will be read from the wiki page)"""
-        self.dictdict[dictname] = Dict(dictname, self.cursor)
+        self.dictdict[dictname] = Dict(dictname, self.request)
 
     def has_dict(self, dictname):
         return self.dictdict.has_key(dictname)
@@ -218,7 +218,7 @@ class GroupDict(DictDict):
 
     def addgroup(self, groupname):
         """add a new group (will be read from the wiki page)"""
-        self.dictdict[groupname] = Group(groupname)
+        self.dictdict[groupname] = Group(groupname, self.request)
 
     def hasgroup(self, groupname):
         return self.dictdict.has_key(groupname)
@@ -297,5 +297,3 @@ class GroupDict(DictDict):
                 pass
         # remember it globally (persistent environments)
         DICTS_DATA = data
-
-

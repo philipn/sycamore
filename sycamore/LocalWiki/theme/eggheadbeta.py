@@ -42,15 +42,12 @@ class Theme(ThemeBase):
         @rtype: string
         @return: banner html
         """
-        if config.relative_dir: add_on = '/'
-        else: add_on = ''
-
         if d['script_name']:
-            html ='&nbsp;<a href="%(script_name)s">' % d
+            html = ['&nbsp;<a href="%(script_name)s">' % d]
         else:
-            html ='&nbsp;<a href="/' + config.relative_dir + add_on + 'Front_Page">' % d
-        html = html + '<img align="middle" src="%s/%s" border=0 alt="wiki logo"></a>' % (config.web_dir, config.default_logo)
-        return html
+            html = ['&nbsp;<a href="%s/Front_Page">' % self.request.getScriptname()]
+        html.append('<img align="middle" src="%s/%s" border=0 alt="wiki logo"></a>' % (config.web_dir, config.default_logo))
+        return ''.join(html)
 
     def new_iconbar(self, d):
       return """<td valign="bottom">&nbsp;&nbsp;&nbsp;&nbsp;</td>
@@ -101,7 +98,6 @@ class Theme(ThemeBase):
 	      % self.img_url('talk.png')))
 
 
-
     def mapicon(self, d):
       if self.showapplet:
         return """<td style="font-size: 7pt;" align="center" valign="bottom" id="show"><a href="#" style="text-decoration: none;" onmouseover="a.hover" onclick="doshow();"><img class="borderless" src="%s" hspace="8" alt="view map"/><br/>Map</a></td>
@@ -145,35 +141,24 @@ class Theme(ThemeBase):
         @return: username html
         """
         _ = self.request.getText
-        html = []
-        if config.relative_dir:
-            relative_dir = '/' + config.relative_dir
-        else:
-            relative_dir = ''
         if self.request.user.valid:
-            html.append('<form action="%s" method="POST">' % config.relative_dir)
-            html.append('<input type="hidden" name="action" value="userform">')
-            html.append('<input type="hidden" name="logout" value="Logout">')
-            html.append('<table class="user" align="right" border="0" cellpadding="2"><tr><td>Welcome, ') 
-            html.append('%s' % wikiutil.link_tag(self.request, self.request.user.name))
-            html.append('<br/>')
-            html.append('</td></tr>')
-            html.append('<tr><td align="right"><a href="%s/User Preferences"><img src="%s" class="actionButton" alt="settings"></a></td></tr>' % (relative_dir, self.img_url('settings.png')))
-            html.append('<tr><td align="right"><input type="image" name="Submit" value="Submit" src="%s" class="actionButton"></td></tr></table>' % self.img_url('logout.png'))
-            html.append('</form>')
+	    html = """<form action="%s" method="POST">
+<input type="hidden" name="action" value="userform">
+<input type="hidden" name="logout" value="Logout">
+<table class="user" align="right" border="0" cellpadding="2"><tr><td>Welcome, %s<br/></td></tr><tr><td align="right"><a href="%s/User_Preferences"><img src="%s" class="actionButton" alt="settings"></a></td></tr>
+<tr><td align="right"><input type="image" name="Submit" value="Submit" src="%s" class="actionButton"></td></tr></table></form>""" % (self.request.getScriptname(), wikiutil.link_tag(self.request, self.request.user.name), self.request.getScriptname(), self.img_url('settings.png'), self.img_url('logout.png'))
         else:
-            html.append('<form action="%s/%s" method="POST">' % (relative_dir, d['page_name']))
-            html.append('<input type="hidden" name="action" value="userform">')
-            html.append('<table width="225" border="0" cellspacing="2" cellpadding="0" class="loginbox">')
-            html.append('<tr><td width="50%" align="right" nowrap>User name:</td>')
-            html.append('<td colspan="2" align="left" nowrap><input class="formfields" size="22" name="username" type="text">') 
-            html.append('</td> </tr> <tr>')
-            html.append('<td align="right">Password:</td>')
-            html.append('<td colspan="2" align="left" nowrap> <input class="formfields" size="22" type="password" name="password"> ')
-            html.append('<input type="hidden" name="login" value="Login">')
-            html.append('</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login" class="actionButton" alt="login"></td><td align="right"><a href="%s/User Preferences"><img src="%s" class="actionButton" alt="new user"></a></td></tr></table>' % (self.img_url('login.png'), relative_dir, self.img_url('newuser.png')))
-            html.append('</form>')
-        return ''.join(html)
+            html = """<form action="%s/%s" method="POST">
+<input type="hidden" name="action" value="userform">
+<table width="225" border="0" cellspacing="2" cellpadding="0" class="loginbox">
+<tr><td width="50%%" align="right" nowrap>User name:</td>
+<td colspan="2" align="left" nowrap><input class="formfields" size="22" name="username" type="text"></td> </tr> <tr>
+<td align="right">Password:</td>
+<td colspan="2" align="left" nowrap> <input class="formfields" size="22" type="password" name="password"> 
+<input type="hidden" name="login" value="Login">
+</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login" class="actionButton" alt="login"></td><td align="right"><a href="%s/User_Preferences"><img src="%s" class="actionButton" alt="new user"></a></td></tr></table></form>""" % (self.request.getScriptname(), d['q_page_name'], self.img_url('login.png'), self.request.getScriptname(), self.img_url('newuser.png'))
+	    
+        return html
 
     def navibar(self, d):
         """
@@ -234,11 +219,6 @@ class Theme(ThemeBase):
         other_page_html = ""
 
 	# so our formatting here looks nicer :)
-        if config.relative_dir:
-            d['relative_dir'] = '/' + config.relative_dir
-        else:
-            d['relative_dir'] = ''
-
         if d['page_name']:
             if d['page_name'] == "Front Page":
               front_class += ' activeTab'
@@ -251,7 +231,7 @@ class Theme(ThemeBase):
             elif d['page_name'] == "Bookmarks" and self.request.user.valid:
               bookmarks_class += ' activeTab'
             else:
-              other_page_html = '<a href="%(relative_dir)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a>' % d
+              other_page_html = '<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a>' % d
         
 
         dict = {
@@ -268,26 +248,26 @@ class Theme(ThemeBase):
         if self.request.user.valid:
             html = """
 <div class="tabArea">
-<a href="%(relative_dir)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
-<a href="%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
-<a href="%(relative_dir)s/People" class="%(people_class)s">People</a>
-<a href="%(relative_dir)s/Bookmarks" class="%(bookmarks_class)s">Bookmarks</a>
-<a href="%(relative_dir)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
+<a href="%(script_name)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
+<a href="%(script_name)s/Map" class="%(davismap_class)s">Map</a>
+<a href="%(script_name)s/People" class="%(people_class)s">People</a>
+<a href="%(script_name)s/Bookmarks" class="%(bookmarks_class)s">Bookmarks</a>
+<a href="%(script_name)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
 %(other_html)s
 </div>
 """ % dict
         else:
             html = """
 <div class="tabArea">
-<a href="%(relative_dir)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
-<a href="%(relative_dir)s/Map" class="%(davismap_class)s">Map</a>
-<a href="%(relative_dir)s/People" class="%(people_class)s">People</a>
-<a href="%(relative_dir)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
+<a href="%(script_name)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
+<a href="%(script_name)s/Map" class="%(davismap_class)s">Map</a>
+<a href="%(script_name)s/People" class="%(people_class)s">People</a>
+<a href="%(script_name)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
 %(other_html)s
 </div>
 """ % dict
 
-        return ''.join(html)
+        return html
 
 
     def make_iconlink(self, which, d, actionButton=False):
@@ -377,22 +357,30 @@ class Theme(ThemeBase):
         html = []
         if keywords.get('editable', 1):
             editable = self.request.user.may.edit(d['page_name']) and d['page'].isWritable()
+	    if editable:
+	      d['last_edit_info'] = d['page'].last_modified_str()
+	    else: d['last_edit_info'] = ''
+
             html.append('<script language="JavaScript" type="text/javascript">\nvar donate2=new Image();donate2.src="%s";var donate=new Image();donate.src="%s";</script>' % (self.img_url('donate2.png'), self.img_url('donate.png')))
             html.append('<div id="footer">')
             html.append('<table width="100%%" border="0" cellspacing="0" cellpadding="0"><tr>')
 	    # noedit is a keyword that tells us if we are in an area where an edit link just logically makes no sense, such as the info tab.
 	    if not keywords.get('noedit'):
-	     if d['last_edit_info']:
-	       html.append('<td align="left" width="50%%">')
-	     else:
-	       html.append('<td align="left" width="15%%">')
-             if editable:
-                 html.append("%s" % (
-                     wikiutil.link_tag(self.request, d['q_page_name']+'?action=edit', _('Edit'))))
-                 html.append(' this page')
-                 html.append(' %(last_edit_info)s' % d)
-             else:
-               html.append('Most pages are editable.  Please login to edit and add comments.</td>')
+	      if editable:
+	        if d['last_edit_info']:
+	          html.append('<td align="left" width="50%%">')
+		else:
+	          html.append('<td align="left" width="15%%">')
+	      else:
+	          html.append('<td align="left" width="50%%">')
+              if editable:
+                  html.append("%s" % (
+                      wikiutil.link_tag(self.request, d['q_page_name']+'?action=edit', _('Edit'))))
+                  html.append(' this page')
+		  if d['last_edit_info']:
+                    html.append(' %(last_edit_info)s' % d)
+              else:
+                html.append('Most pages are editable.  Please login to edit and add comments.</td>')
 	
 	    # if editing doesnt make sense then we have more room for the license note
 	    if not keywords.get('noedit'):
@@ -471,12 +459,9 @@ src="%(web_dir)s/utils.js" type="text/javascript"></script>
         title_str = '"%s"' %  d['title_text']
 	if d['page_name'] and d['page'].hasMapPoints() and not self.isEdit(d):
            self.showapplet = True
-        apphtml = ""
+        apphtml = ''
         if self.showapplet:
-           relative_dir = ''
-           if config.relative_dir:
-               relative_dir = '/' + config.relative_dir
-           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, d['title_text'], relative_dir)
+           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, d['script_name'], d['title_text'], d['script_name'])
         dict = {
             'config_header1_html': self.emit_custom_html(config.page_header1),
             'config_header2_html': self.emit_custom_html(config.page_header2),
@@ -490,7 +475,6 @@ src="%(web_dir)s/utils.js" type="text/javascript"></script>
             'search_form_html': self.searchform(d),
             'applet_html': apphtml,
         }
-        dict.update(d)
 
 # %(logo_html)s ### from...
         html = """

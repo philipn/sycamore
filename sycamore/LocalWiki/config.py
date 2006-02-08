@@ -107,12 +107,6 @@ _cfg_defaults = {
     'max_macro_size': 50,
     'memcache': False,
     'memcache_servers': [],
-    'navi_bar': [
-        'Front Page',
-        'Recent Changes',
-        'Find Page',
-        'Wiki Guide',
-    ],
     'nonexist_qm': 0,
 
     'page_credits': """<a href="http://dev.daviswiki.org">LocalWiki Powered</a><br>
@@ -288,5 +282,10 @@ for _dirname in ('text', 'user', 'cache', 'backup', 'plugin'):
 
 sys.path.append(data_dir)
 
-del os, sys, _dirname, _varname
+# setup proper relative_dir
+if relative_dir:
+  proper_relative_dir = "%s/" % relative_dir 
+else:
+  proper_relative_dir = relative_dir
 
+del os, sys, _dirname, _varname

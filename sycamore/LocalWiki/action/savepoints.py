@@ -1,8 +1,8 @@
 # Imports
-import time,string
-import os
+import time, string, os
 import xml.dom.minidom
 from LocalWiki import config, user, util, wikiutil, mapping
+
 def clean(text):
 	text=text.replace('\x85','&#8230;') # elipsis
 	text=text.replace('\x91','&#8216;') # opening single quote
@@ -27,8 +27,12 @@ def execute(pagename, request):
     findName = request.form.get("name")[0]
     
     # be extra paranoid
+    if not request.user.may.edit(pagename):
+      request.write('You may not edit this page.')
+      return
                     
     changes_xml = request.form.get("xml")[0]
+
     dom = xml.dom.minidom.parseString(changes_xml)
     # we need to convert it to the proper map xml format
     mapPoints = mapping.convert_xml(dom)
