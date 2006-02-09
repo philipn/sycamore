@@ -29,9 +29,6 @@ if os.environ.get('QUERY_STRING') == 'test':
             print 'Your PYTHONPATH is:\n%s' % pprint.pformat(sys.path)
         print "\nTraceback (innermost last):\n%s" % string.join(
             traceback.format_tb(tb) + traceback.format_exception_only(type, value))
-elif 'profile=True' in os.environ.get('QUERY_STRING'):
-    import time, profile
-    profile.run('RequestCGI().run()', 'prof%d' % time.time())
 else:
     request = RequestCGI()
     request.run()
