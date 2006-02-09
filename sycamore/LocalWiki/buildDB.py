@@ -96,8 +96,8 @@ def create_tables(cursor):
    cursor.execute("""create table curPages
      (
      name varchar(100) primary key,
-     text mediumblob,
-     cachedText mediumtext,
+     text mediumtext,
+     cachedText mediumblob,
      editTime double,
      cachedTime double,
      userEdited char(19)
