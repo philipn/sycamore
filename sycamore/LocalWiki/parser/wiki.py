@@ -2,7 +2,7 @@
 """
     LocalWiki - LocalWiki Wiki Markup Parser
 
-    @copyright: 2000, 2001, 2002 by J�rgen Hermann <jh@web.de>
+    @copyright: 2000, 2001, 2002 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
@@ -34,7 +34,7 @@ class Parser:
 
     # some common strings
     PARENT_PREFIX = wikiutil.PARENT_PREFIX
-    punct_pattern = re.escape('''"\'}]|:,.)?!''')
+    punct_pattern = re.escape('''"“”\'}]|:,.)?!''')
     url_pattern = ('http|https|ftp|nntp|news|mailto|telnet|wiki|file|' +
             (config.url_schemas and '|' + '|'.join(config.url_schemas) or ''))
 

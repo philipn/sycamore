@@ -15,12 +15,13 @@
     @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
     @license: GNU GPL, see COPYING for details.
 """
+from os.path import abspath
+
 # If you run several wikis on one host (commonly called a wiki farm),
 # uncommenting the following allows you to load global settings for
 # all your wikis. You will then have to create "farm_config.py" in
 # the MoinMoin package directory.
 # this file is also used for the blacklist (which, by, default, has nothing in it)..just leave it uncommented and it won't cause any problems, promise.
-#
 from farmconfig import *
 
 # basic options (you normally need to change these)
@@ -28,16 +29,16 @@ sitename = 'Local Wiki Default Install'
 interwikiname = None
 
 #no slashes at the end on these guys !!
-data_dir = '/Library/Webserver/sycamore/installhtml/dwiki/data'
+data_dir = abspath('data')
 
 # this is the root where, say, a href="/" resolves to (considering whther or not you have a domain)
-web_root = '/Library/Webserver/sycamore/installhtml'
+web_root = abspath('..')
 
 # this is what's after the url if your wiki is in a directory
 web_dir = ''
 
 # where the indexing applications are installed, etc
-app_dir = '/Library/Webserver/sycamore/util_apps'
+app_dir = abspath('../../util_apps')
 
 # this is where the theme css is stored
 #  this is relative to the web server's root
@@ -69,12 +70,12 @@ talk_pages = 1
 # MySQL database settings.
 db_type = 'mysql'
 db_name = 'wiki'
-db_user = 'philipneustrom'
+db_user = 'root'
 db_user_password = ''
 db_host = 'localhost'
 
 #Memcache settings.  This is if you want a high-performance wiki.
-memcache = True
+memcache = True 
 memcache_servers = ['127.0.0.1:11211']
 # memcache_servers can be either ['server1:port', 'server2:port'] or given with weights as in
 #  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)

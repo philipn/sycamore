@@ -8,7 +8,9 @@
 """
 
 import sys, os
-sys.path.extend(['/Library/Webserver/sycamore','/Library/Webserver/sycamore/installhtml/dwiki'])
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.join(__directory__, '..'),
+                 os.path.join(__directory__, 'dwiki')])
 
 from LocalWiki.request import RequestCGI
 from LocalWiki import wikidb
@@ -27,8 +29,9 @@ if os.environ.get('QUERY_STRING') == 'test':
             print 'Your PYTHONPATH is:\n%s' % pprint.pformat(sys.path)
         print "\nTraceback (innermost last):\n%s" % string.join(
             traceback.format_tb(tb) + traceback.format_exception_only(type, value))
+elif 'profile=True' in os.environ.get('QUERY_STRING'):
+    import time, profile
+    profile.run('RequestCGI().run()', 'prof%d' % time.time())
 else:
-      import profile
-      for i in range(0, 10):
-        request = RequestCGI()
-        profile.run('request.run()', 'prof%d' % i)
+    request = RequestCGI()
+    request.run()

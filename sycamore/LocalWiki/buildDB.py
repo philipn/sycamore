@@ -1,5 +1,10 @@
-import sys
-sys.path.extend(['/usr/local/lib/python2.4/site-packages','/var/www/dwiki'])
+import sys, os
+
+__directory__ = os.path.dirname(__file__)
+
+sys.path.extend(['/usr/local/lib/python2.4/site-packages',
+                 os.path.join(__directory__, '..'),
+                 os.path.join(__directory__, '..', 'installhtml', 'dwiki')])
 from LocalWiki import wikidb, config
 
 basic_pages = {}
