@@ -35,6 +35,7 @@ data_dir = abspath('data')
 web_root = abspath('..')
 
 # this is what's after the url if your wiki is in a directory
+# e.g. '' for the root, and '/mywiki' if it's in directory mywiki
 web_dir = ''
 
 # where the indexing applications are installed, etc
@@ -58,7 +59,7 @@ catchphrase = 'Your phrase here..'
 # so if you have ~/public_html/wiki/index.cgi as your wiki executable then this would be "wiki/index.cgi"
 # if there is no index.cgi then it would be "wiki"
 # this is anything after the root of where your web stuff is installed
-relative_dir = 'index.cgi'
+relative_dir = 'index.scgi'
 
 #your domain (used for cookies, etc)
 # uncomment only if you've got a domain and want cookies to work across subdomains
@@ -103,30 +104,17 @@ max_macro_size = 50                     # max size of RecentChanges in KB (0=unl
 bang_meta = 1                           # use ! to escape WikiNames?
 show_section_numbers = 0                # enumerate headlines?
 
-# charting needs "gdchart" installed!
-# you can remove the test and gain a little speed (i.e. keep only
-# the chart_options assignment, or remove this code section altogether)
-try:
-    import gdchart
-    chart_options = {'width': 720, 'height': 400}
-except ImportError:
-    pass
+allowed_actions = ['DeletePage','AttachFile']
 
-# security critical actions (deactivated by default)
-if 1:
-    allowed_actions = ['DeletePage','AttachFile']
-
-
-# for standalone server (see cgi-bin/moin.py)
+# for standalone http server (see installhtml/index)
 httpd_host = "localhost"
 httpd_port = 80
 httpd_user = "nobody"
-httpd_docs = "/usr/share/moin/wiki/htdocs/"
 
 theme_default = 'eggheadbeta'
 theme_force = True
 acl_enabled = 1
-acl_rights_default = "AdminGroup:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read"
+acl_rights_default = "AdminGroup:admin,read,write,delete,revert TestMe:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read"
 
 #attachments = {
 # dir and url are depricated

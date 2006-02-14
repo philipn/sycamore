@@ -1,0 +1,6 @@
+
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^map.daviswiki.org$ [OR]
+RewriteCond %{HTTP_HOST} ^www.map.daviswiki.org$
+RewriteRule ^(.*)$ http://daviswiki.org/index.cgi/Davis_20Map [R=301,L]
+

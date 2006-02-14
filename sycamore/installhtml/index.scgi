@@ -1,22 +1,20 @@
 #!/usr/bin/env python -OO
 # -*- coding: iso-8859-1 -*-
 """
-    LocalWiki - CGI Driver Script
+    LocalWiki - FastCGI Driver Script
 
     @copyright: 2006 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
 
-import sys, os
-__directory__ = os.path.dirname(__file__)
-sys.path.extend([os.path.join(__directory__, '..'),
-                 os.path.join(__directory__, 'dwiki')])
+import sys, logging
+sys.path.extend(['/Library/Webserver/sycamore','/Library/Webserver/sycamore/installhtml/dwiki'])
 
-from LocalWiki.support.wsgi_server.cgi_base import run_with_cgi
+from LocalWiki.support.wsgi_server.scgi_threading import WSGIServer
 #from LocalWiki.support.wsgi_server import swap 
 from LocalWiki.request import RequestWSGI
-
-os.environ["FCGI_FORCE_CGI"] = 'Y'
+from logging import NOTSET
+import profile, time
 
 def handle_request(env, start_response):
   if env.get('QUERY_STRING', '') == 'profile':
@@ -25,5 +23,8 @@ def handle_request(env, start_response):
   else:
     request = RequestWSGI(env, start_response)
     return request.run()
-
-run_with_cgi(handle_request)
+    
+if __name__ == '__main__':
+  #WSGIServer(handle_request, '/tmp/fcgi.sock').run()
+  #swap.serve_application(handle_request, '/index.scgi', 8882)
+  WSGIServer(handle_request, scriptName='/index.scgi', bindAddress=('localhost', 8882), loggingLevel=NOTSET).run()

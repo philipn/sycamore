@@ -1,73 +1,73 @@
 <area name="Davis Area">
-	<img src="/map/full.png" width="600" height="440"/>
+	<img src="/wiki/map/full.png" width="600" height="440"/>
 	<upleft x="6614047.721" y="1978184.417"/>
 	<lowright x="6658478.338" y="1945621.744"/>
 	<area name="Downtown">
-		<img src="/map/downtown.png" width="600" height="440"/>
+		<img src="/wiki/map/downtown.png" width="600" height="440"/>
 		<upleft x="6633736.04" y="1961364.137"/>
 		<lowright x="6637303.368" y="1958748.89"/>
 	</area>
 	<area name="Central Davis">
-		<img src="/map/central.png" width="600" height="440"/>
+		<img src="/wiki/map/central.png" width="600" height="440"/>
 		<upleft x="6627979.631" y="1966506.207"/>
 		<lowright x="6636056.627" y="1960593.414"/>
 	</area>
 	<area name="North Davis">
-		<img src="/map/north.png" width="600" height="440"/>
+		<img src="/wiki/map/north.png" width="600" height="440"/>
 		<upleft x="6627641.235" y="1971525.089"/>
 		<lowright x="6635246.929" y="1965949.272"/>
 	</area>
 	<area name="West Davis">
-		<img src="/map/west.png" width="600" height="440"/>
+		<img src="/wiki/map/west.png" width="600" height="440"/>
 		<upleft x="6620475.921" y="1966448.787"/>
 		<lowright x="6628143.106" y="1960823.198"/>
 	</area>
 	<area name="East Davis">
-		<img src="/map/east.png" width="600" height="440"/>
+		<img src="/wiki/map/east.png" width="600" height="440"/>
 		<upleft x="6635796.294" y="1970728.712"/>
 		<lowright x="6649186.174" y="1960923.612"/>
 		<area name="Wild Horse">
-  		<img src="/map/wildhorse.png" width="600" height="440"/>
+  		<img src="/wiki/map/wildhorse.png" width="600" height="440"/>
   		<upleft x="6638058.858" y="1971132.433"/>
   		<lowright x="6644096.379" y="1966698.865"/>
   	</area>
   	<area name="East Davis Detail">
-  		<img src="/map/eddetail1.png" width="600" height="440"/>
+  		<img src="/wiki/map/eddetail1.png" width="600" height="440"/>
   		<upleft x="6635563.608" y="1967150.898"/>
   		<lowright x="6643955.18" y="1960998.945"/>
   	</area>
   	<area name="East Davis Detail">
-  		<img src="/map/eddetail2.png" width="600" height="440"/>
+  		<img src="/wiki/map/eddetail2.png" width="600" height="440"/>
   		<upleft x="6642977.327" y="1967899.548"/>
   		<lowright x="6650229.172" y="1962595.238"/>
   	</area>
 	</area>
 	<area name="South Davis">
-		<img src="/map/south.png" width="600" height="440"/>
+		<img src="/wiki/map/south.png" width="600" height="440"/>
 		<upleft x="6636498.59" y="1962761.024"/>
 		<lowright x="6649127.473" y="1953513.184"/>
 		<area name="South Davis Detail">
-  		<img src="/map/sddetail1.png" width="600" height="440"/>
+  		<img src="/wiki/map/sddetail1.png" width="600" height="440"/>
   		<upleft x="6637605.732" y="1961410.912"/>
   		<lowright x="6643825.431" y="1956856.37"/>
   	</area>
   	<area name="South Davis Detail">
-  		<img src="/map/sddetail2.png" width="600" height="440"/>
+  		<img src="/wiki/map/sddetail2.png" width="600" height="440"/>
   		<upleft x="6630877.582" y="1960889.659"/>
   		<lowright x="6634633.175" y="1958139.525"/>
   	</area>
 	</area>
 	<area name="El Macero">
-		<img src="/map/elmacero.png" width="600" height="440"/>
+		<img src="/wiki/map/elmacero.png" width="600" height="440"/>
 		<upleft x="6648545.365" y="1963282.68"/>
 		<lowright x="6654850" y="1958652.326"/>
 	</area>
 	<area name="Campus">
-		<img src="/map/campus.png" width="600" height="440"/>
+		<img src="/wiki/map/campus.png" width="600" height="440"/>
 		<upleft x="6626888.901" y="1961071.068"/>
 		<lowright x="6635416.456" y="1954819.425"/>
 		<area name="Core Campus">
-  		<img src="/map/centralcampus.png" width="600" height="440"/>
+  		<img src="/wiki/map/centralcampus.png" width="600" height="440"/>
   		<upleft x="6629977.572" y="1960919.313"/>
   		<lowright x="6634251.451" y="1957789.649"/>
   	</area>
