@@ -36,14 +36,14 @@ def execute(macro, args, formatter=None):
     if _guard: return ''
     html = ''
 
+    # flush request output because this may take a second to generate
+    macro.request.flush()
+
     # build a list of wanted pages tuples.  (pagename, k) where k is the number of links to pagename
     wanted = []
-    db = wikidb.connect()
-    cursor = db.cursor()
+    cursor = macro.request.cursor
     cursor.execute("SELECT destination_pagename, source_pagename from links left join curPages on (destination_pagename=curPages.name) where curPages.name is NULL order by destination_pagename")
     wanted_results = cursor.fetchall()
-    cursor.close()
-    db.close()
     if wanted_results:
       # we have wanted pages
       old_pagename = wanted_results[0][0]

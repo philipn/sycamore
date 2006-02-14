@@ -16,7 +16,7 @@ import urllib
 from LocalWiki import config, i18n, wikiutil
 from LocalWiki.Page import Page
 
-class Theme:
+class Theme(object):
     """ here are the functions generating the html responsible for
         the look and feel of your wiki site
     """
@@ -241,8 +241,6 @@ class Theme:
 	      tag = '<img class="borderless" src="%s" alt="%s" width="%s" height="%s">' % (
                 img, alt, w, h)
 
-            import warnings
-            warnings.warn("calling themes without correct request", DeprecationWarning)
         return tag
 
     def make_iconlink(self, which, d, actionButton=False):

@@ -21,14 +21,14 @@ def execute(macro, args, formatter=None):
     global _guard
     if _guard: return ''
 
+    # flush the request output because orphaned may take time to generate
+    macro.request.flush()
+
     # delete all linked pages from a dict of all pages
     _guard = 1
-    db = wikidb.connect()
-    cursor = db.cursor()
+    cursor = macro.request.cursor
     cursor.execute("SELECT curPages.name from curPages left join links on links.source_pagename=curPages.name where links.source_pagename is NULL;")
     orphanednames_result = cursor.fetchall()
-    cursor.close()
-    db.close()
     _guard = 0
 
     # check for the extreme case

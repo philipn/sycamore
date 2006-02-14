@@ -21,8 +21,8 @@ def execute(pagename, request):
 
     # be extra paranoid in dangerous actions
     if actname in config.excluded_actions \
-            or not request.user.may.edit(pagename) \
-            or not request.user.may.delete(pagename):
+            or not request.user.may.edit(page) \
+            or not request.user.may.delete(page):
         return page.send_page(request,
             msg = _('You are not allowed to delete this page.'))
 

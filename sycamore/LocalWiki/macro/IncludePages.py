@@ -85,7 +85,7 @@ def execute(macro, text, args,  formatter=None):
         return ('<p><strong class="error">%s</strong></p>' %
             _("ERROR in regex '%s'") % (inc_pattern,), e)
 
-    all_pages = wikiutil.getPageList(macro.request.cursor)
+    all_pages = wikiutil.getPageList(macro.request)
     hits = filter(needle_re.search, all_pages)
     hits.sort()
     sort_dir = args.group('sort')

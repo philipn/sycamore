@@ -29,7 +29,7 @@ def savedata(request):
     return UserSettingsHandler(request).handleData()
 
 
-class UserSettingsHandler:
+class UserSettingsHandler(object):
 
     def __init__(self, request):
         """ Initialize user settings form. """
@@ -66,7 +66,7 @@ class UserSettingsHandler:
 						del dict[given_uid]
 						lostpasswdfile.close()
 						lostpasswdfile = open(config.data_dir + '/lostpasswddict.pickle', 'w')
-						cPickle.dump(dict, lostpasswdfile, 2)
+						cPickle.dump(dict, lostpasswdfile, True)
 						state = True
 		lostpasswdfile.close()
 	return state
@@ -88,7 +88,7 @@ class UserSettingsHandler:
 	else:
 		dict[userid] = [user.hash(ourcode) + ',' + str(time.time())]
 	
-	cPickle.dump(dict, lostpasswdfile, 2)
+	cPickle.dump(dict, lostpasswdfile, True)
 	lostpasswdfile.close()
 	return ourcode
 

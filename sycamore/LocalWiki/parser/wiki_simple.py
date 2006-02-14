@@ -797,9 +797,8 @@ class Parser:
 
         # prepare regex patterns
         rules = self.formatting_rules.replace('\n', '|')
-        if config.allow_extended_names:
-            rules = rules + r'|(?P<wikiname_bracket>\["[^\[\]]+?"\])'
-	    rules = rules + r'|(?P<bracket_link>\["[^\[\]]+?" [^\[\]]+?\])'
+        rules = rules + r'|(?P<wikiname_bracket>\["[^\[\]]+?"\])'
+	rules = rules + r'|(?P<bracket_link>\["[^\[\]]+?" [^\[\]]+?\])'
         if config.bang_meta:
             rules = r'(?P<notword>!%(word_rule)s)|%(rules)s' % {
                 'word_rule': self.word_rule,

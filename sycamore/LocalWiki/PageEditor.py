@@ -16,7 +16,6 @@ import LocalWiki.util.web
 import LocalWiki.util.mail
 import LocalWiki.util.datetime
 import xml.dom.minidom
-import cPickle
 
 
 
@@ -154,10 +153,8 @@ class PageEditor(Page):
             base_uri += '&amp;' + util.web.makeQueryString(backto=backto)
 
         # check edit permissions
-        if not self.request.user.may.edit(self.page_name):
+        if not self.request.user.may.edit(self):
             msg = _('You are not allowed to edit this page.')
-        elif not self.isWritable():
-            msg = _('Page is immutable!')
         elif self.prev_date:
             # Trying to edit an old version, this is not possible via
             # the web interface, but catch it just in case...
@@ -298,7 +295,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         self.request.write('<p>')
         self.request.write('<a href="%s&amp;rows=10&amp;cols=60%s">%s</a>' % (
             base_uri, template_param, _('Reduce editor size')))
-        self.request.write(" | ", wikiutil.getSysPage(self.request, 'Help On Formatting').link_to(self.request))
+        self.request.write(" | %s" %wikiutil.getSysPage(self.request, 'Help On Formatting').link_to(self.request))
         #self.request.write(" | ", wikiutil.getSysPage(self.request, 'InterWiki').link_to(self.request))
         if preview is not None and emit_anchor:
             self.request.write(' | <a href="#preview">%s</a>' % _('Skip to preview'))
@@ -309,7 +306,12 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         # button toolbar
         self.request.write('<p>')
 	self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.user.theme_name, 'img', 'buttons')))
-        self.request.write("<script type=\"text/javascript\" src=\"%s/edit.js\"></script>" % (config.web_dir))
+	if self.request.user.name:
+	  self.request.write("""<script type=\"text/javascript\">var userPageLink = '["%s"]';</script>""" % (self.request.user.name))
+	else:
+	  self.request.write("""<script type=\"text/javascript\">var userPageLink = '%s';</script>""" % (self.request.remote_addr))
+	  
+        self.request.write("<script type=\"text/javascript\" src=\"%s/wiki/edit.js\"></script>" % (config.web_dir))
         # send form
         self.request.write('<form name="editform" method="post" action="%s/%s#preview">' % (
             self.request.getScriptname(),
@@ -340,9 +342,8 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
             % (text_rows, text_cols, wikiutil.escape(raw_body)))
         self.request.write('</p>')
 
-        self.request.write("<p>", _("<font size=\"+1\">Please comment about this change:</font>"),
-            '<br><input type="text" class="formfields" name="comment" value="%s" size="%d" maxlength="80" style="width:100%%"></p>' % (
-                wikiutil.escape(kw.get('comment', ''), 1), text_cols,))
+        self.request.write("""<p> %s<br><input type="text" class="formfields" name="comment" value="%s" size="%d" maxlength="80" style="width:100%%"></p>""" %
+                (_("<font size=\"+1\">Please comment about this change:</font>"), wikiutil.escape(kw.get('comment', ''), 1), text_cols))
 
         # category selection
         #cat_pages = wikiutil.filterCategoryPages(wikiutil.getPageList(config.text_dir))
@@ -383,7 +384,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
           relative_dir = '/' + config.relative_dir
         if show_applet:
           mapButton = '<input id="show" class="formbutton" type="button" value="Edit Map" onclick="doshow();"/><input class="formbutton" id="hide" style="display: none;" type="button" value="Hide Map" onclick="dohide();"/>'
-          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, self.page_name, relative_dir)
+          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, self.page_name, relative_dir)
         
         self.request.write('''
 <p>
@@ -490,7 +491,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
             # XXXX Error handling
             pass
         # Then really delete it
-	self.request.cursor.execute("DELETE from curPages where name=%(page_name)s", {'page_name':self.page_name})
+	self.request.cursor.execute("DELETE from curPages where name=%(page_name)s", {'page_name':self.page_name}, isWrite=True)
 	from LocalWiki import caching
 	cache = caching.CacheEntry(self.page_name, self.request)
 	cache.clear()
@@ -594,7 +595,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         @return: wiki freelink to user's homepage or remote address
         """
         username = self.request.user.name
-        if username and config.allow_extended_names and \
+        if username and \
                 username.count(' ') and Page(username, self.request).exists():
             username = '["%s"]' % username
         return user.getUserIdentification(self.request, username)
@@ -713,15 +714,18 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	self.request.cursor.execute("SELECT name from curPages where name=%(page_name)s", {'page_name':self.page_name})
 	exists = self.request.cursor.fetchone()
 	if exists:
-		self.request.cursor.execute("UPDATE curPages set name=%(page_name)s, text=%(text)s, editTime=%(ourtime)s, userEdited=%(id)s where name=%(page_name)s", {'page_name': self.page_name, 'text': text, 'ourtime': ourtime, 'id': self.request.user.id})
+		self.request.cursor.execute("UPDATE curPages set name=%(page_name)s, text=%(text)s, editTime=%(ourtime)s, userEdited=%(id)s where name=%(page_name)s", {'page_name': self.page_name, 'text': text, 'ourtime': ourtime, 'id': self.request.user.id}, isWrite=True)
 	else:
-		self.request.cursor.execute("INSERT into curPages values (%(page_name)s, %(text)s, NULL, %(ourtime)s, NULL, %(id)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id})
+		self.request.cursor.execute("INSERT into curPages values (%(page_name)s, %(text)s, NULL, %(ourtime)s, NULL, %(id)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id}, isWrite=True)
 	# then we need to update the allPages table for Recent Changes and page-centric Info.
-	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip})
+	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip}, isWrite=True)
 
 	import caching
 	cache = caching.CacheEntry(self.page_name, self.request)
 	cache.clear()
+	# clear possible dependencies (e.g. [[Include]])
+	for pagename in caching.depend_on_me(self.page_name, self.request):
+	  caching.CacheEntry(pagename, self.request).clear()
 
 	# set in-memory page text
 	self.set_raw_body(text)
@@ -807,17 +811,13 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         #!!! datestamp check is not enough since internal operations use "0"
 
         # expand variables, unless it's a template or form page
-        if not (wikiutil.isTemplatePage(self.page_name) or
-                wikiutil.isFormPage(self.page_name)):
+        if not wikiutil.isTemplatePage(self.page_name):
             newtext = self._expand_variables(newtext)
 
         msg = ""
         if not self.request.user.may.save(self, newtext, datestamp, **kw):
             msg = _('You are not allowed to edit this page!')
             raise self.AccessDenied, msg
-        elif not self.isWritable():
-            msg = _('Page is immutable!')
-            raise self.Immutable, msg
         elif not newtext.strip():
             msg = _('You cannot save empty pages.')
             raise self.EmptyPage, msg
@@ -863,6 +863,14 @@ delete the changes of the other person, which is excessively rude!</em></p>
             if self._acl_cache.has_key(self.page_name):
                 del self._acl_cache[self.page_name]
 
+	    # see if we need to update the group dictionary
+	    if wikiutil.isGroupPage(self.page_name):
+	      from LocalWiki import wikidicts
+              dicts = wikidicts.GroupDict(self.request)
+              dicts.scandicts()
+	      dicts.addgroup(self.page_name)
+	      dicts.save()
+
             # we'll try to change the stats early-on
             self.userStatAdd(self.request.user.name, action, self.page_name)
 
@@ -906,7 +914,7 @@ delete the changes of the other person, which is excessively rude!</em></p>
          created_count += 1
        last_page_edited = pagename
        last_edit_date = time.time()
-       self.request.cursor.execute("UPDATE users set created_count=%(created_count)s, edit_count=%(edit_count)s, last_page_edited=%(last_page_edited)s, last_edit_date=%(last_edit_date)s where name=%(username)s", {'created_count':created_count, 'edit_count':edit_count, 'last_page_edited':last_page_edited, 'last_edit_date':last_edit_date, 'username':username})
+       self.request.cursor.execute("UPDATE users set created_count=%(created_count)s, edit_count=%(edit_count)s, last_page_edited=%(last_page_edited)s, last_edit_date=%(last_edit_date)s where name=%(username)s", {'created_count':created_count, 'edit_count':edit_count, 'last_page_edited':last_page_edited, 'last_edit_date':last_edit_date, 'username':username}, isWrite=True)
 
 
 class PageLock:

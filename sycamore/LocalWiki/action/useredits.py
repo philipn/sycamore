@@ -80,23 +80,19 @@ def display_edits(request, userpage):
 
 	actions = ''
 
-	actions = '%s&nbsp;%s' % (actions, page.link_to(request,
+	actions = '%s&nbsp;%s' % (actions, page.link_to(
 		     text=_('view'),
 		     querystr='action=recall&amp;date=%s' % repr(mtime)))
-	actions = '%s&nbsp;%s' % (actions, page.link_to(request,
+	actions = '%s&nbsp;%s' % (actions, page.link_to(
 		     text=_('raw'),
 		     querystr='action=raw&amp;date=%s' % repr(mtime)))
-	actions = '%s&nbsp;%s' % (actions, page.link_to(request,
+	actions = '%s&nbsp;%s' % (actions, page.link_to(
 		     text=_('print'),
 		     querystr='action=print&amp;date=%s' % repr(mtime)))
-	if request.user.may.revert(pagename) and editType != 'DELETE':
-	    actions = '%s&nbsp;%s' % (actions, page.link_to(request,
-			text=_('revert'),
-                        querystr='action=revert&amp;date=%s&amp' % (repr(mtime))))
 
 	comment = Comment(request, comment, editType).render()
 
-	edits.addRow((page.link_to(request),
+	edits.addRow((page.link_to(),
 		      request.user.getFormattedDateTime(mtime),
 		      userIp,
 		      comment,

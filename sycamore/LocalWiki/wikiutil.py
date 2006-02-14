@@ -10,7 +10,6 @@
 import os, re, urllib, difflib, string
 from LocalWiki import config, util, wikidb
 from LocalWiki.util import filesys, pysupport
-import cPickle
 import time
 
 # constants for page names
@@ -21,6 +20,7 @@ CHILD_PREFIX = "/" # changing this will not really work
 _TEMPLATE_RE = None
 _FORM_RE = None
 _CATEGORY_RE = None
+_GROUP_RE = None
 
 def prepareAllProperties():
   # sets up the consistent data between requests.  right now, this is just the db connection
@@ -303,7 +303,7 @@ def isSystemPage(request, pagename):
     @return: true if page is a system page
     """
     return (request.dicts.has_member('System Pages Group', pagename) or
-        isTemplatePage(pagename) or isFormPage(pagename))
+        isTemplatePage(pagename))
 
 #def isEditorBackup(pagename):
 #    return pagename.endswith('/MoinEditorBackup')
@@ -321,19 +321,18 @@ def isTemplatePage(pagename):
         _TEMPLATE_RE = re.compile(config.page_template_regex)
     return _TEMPLATE_RE.search(pagename) is not None
 
-
-def isFormPage(pagename):
+def isGroupPage(pagename):
     """
-    Is this a form page?
+    Is this a group page?
     
     @param pagename: the page name
     @rtype: bool
-    @return: true if page is a form page
+    @return: true if page is a group page
     """
-    global _FORM_RE
-    if _FORM_RE is None:
-        _FORM_RE = re.compile(config.page_form_regex)
-    return _FORM_RE.search(pagename) is not None
+    global _GROUP_RE
+    if _GROUP_RE is None:
+        _GROUP_RE = re.compile(config.page_group_regex)
+    return _GROUP_RE.search(pagename) is not None
 
 
 def filterCategoryPages(pagelist):
@@ -1096,7 +1095,7 @@ def send_title(request, text, **keywords):
     if keywords.has_key('body_attr'):
         bodyattr.append(' %s' % keywords['body_attr'])
     if keywords.get('allow_doubleclick', 0) and not keywords.get('print_mode', 0) \
-            and pagename and request.user.may.edit(pagename) \
+            and pagename and request.user.may.edit(page) \
             and request.user.edit_on_doubleclick:
         bodyattr.append(''' ondblclick="location.href='%s'"''' % (
             page.url("action=edit")))
@@ -1147,7 +1146,6 @@ def send_title(request, text, **keywords):
         'script_name': request.getScriptname(),
         'title_text': text,
         'title_link': keywords.get('link', ''),
-        'logo_string': config.logo_string,
 	'script_name': request.getScriptname(),
         'site_name': config.sitename,
         'page': page,             # necessary???
@@ -1182,9 +1180,6 @@ def send_title(request, text, **keywords):
     # now call the theming code to do the rendering
     request.write(request.theme.header(d))
     
-    # emit it
-    request.flush()
-
 
 def send_footer(request, pagename, **keywords):
     """

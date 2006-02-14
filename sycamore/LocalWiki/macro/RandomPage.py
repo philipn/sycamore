@@ -9,6 +9,7 @@
 # Imports
 import whrandom
 from LocalWiki import config, wikiutil
+from LocalWiki.Page import Page
 
 Dependencies = ["time"]
 
@@ -24,7 +25,8 @@ def execute(macro, args, formatter):
     all_pages = macro.request.getPageList()
     pages = []
     while len(pages) < links and all_pages:
-        page = whrandom.choice(all_pages)
+        pagename = whrandom.choice(all_pages)
+	page = Page(pagename, macro.request)
         if macro.request.user.may.read(page):
             pages.append(page)
         all_pages.remove(page)

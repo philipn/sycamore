@@ -29,15 +29,15 @@ def copy_images(oldpagename, newpagename, request):
     result = request.cursor.fetchone()
     old_page_file_dict = {'filename': filename, 'image': result[0], 'uploaded_time': result[1], 'uploaded_by': result[2], 'uploaded_by_ip': result[3], 'xsize': result[4], 'ysize': result[5], 'newpagename': newpagename, 'timenow': time.time(), 'userid': request.user.id, 'userip': request.remote_addr}
     if filename not in new_page_files:
-            request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s)", old_page_file_dict)
+            request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s)", old_page_file_dict, isWrite=True)
     else:
-      request.cursor.execute("INSERT into oldImages set name=%(filename)s, image=(SELECT image from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_time=(SELECT uploaded_time from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_by=(SELECT uploaded_by from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_by_ip=(SELECT uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), xsize=(SELECT xsize from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), ysize=(SELECT ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), attached_to_pagename=%(newpagename)s, deleted_by=%(userid)s, deleted_by_ip=%(userip)s, deleted_time=%(timenow)s", old_page_file_dict)
+      request.cursor.execute("INSERT into oldImages set name=%(filename)s, image=(SELECT image from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_time=(SELECT uploaded_time from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_by=(SELECT uploaded_by from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_by_ip=(SELECT uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), xsize=(SELECT xsize from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), ysize=(SELECT ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), attached_to_pagename=%(newpagename)s, deleted_by=%(userid)s, deleted_by_ip=%(userip)s, deleted_time=%(timenow)s", old_page_file_dict, isWrite=True)
       request.cursor.execute("SELECT name from images where name=%(filename)s and attached_to_pagename=%(newpagename)s", old_page_file_dict)
       result = request.cursor.fetchone()
       if result:
-        request.cursor.execute("UPDATE images set image=%(image)s, uploaded_time=%(uploaded_time)s, uploaded_by=%(uploaded_by)s, uploaded_by_ip=%(uploaded_by_ip)s, xsize=%(xsize)s, ysize=%(ysize)s where name=%(filename) and attached_to_pagename=%(newpagename)", old_page_file_dict)
+        request.cursor.execute("UPDATE images set image=%(image)s, uploaded_time=%(uploaded_time)s, uploaded_by=%(uploaded_by)s, uploaded_by_ip=%(uploaded_by_ip)s, xsize=%(xsize)s, ysize=%(ysize)s where name=%(filename) and attached_to_pagename=%(newpagename)", old_page_file_dict, isWrite=True)
       else:
-        request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s)", old_page_file_dict)
+        request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s)", old_page_file_dict, isWrite=True)
 
  
 def execute(pagename, request):
@@ -49,7 +49,7 @@ def execute(pagename, request):
 
     # be extra paranoid in dangerous actions
     if actname in config.excluded_actions or \
-        not request.user.may.edit(pagename) or not request.user.may.delete(pagename):
+        not request.user.may.edit(page) or not request.user.may.delete(page):
             msg = _('You are not allowed to rename pages in this wiki!')
 
     # check whether page exists at all

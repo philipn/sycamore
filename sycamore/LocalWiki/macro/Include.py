@@ -70,12 +70,12 @@ def execute(macro, text, args, formatter=None):
         this_page._macroInclude_pagelist = {}
 
     inc_name = wikiutil.AbsPageName(this_page.page_name, args.group('name'))
-    if not macro.request.user.may.read(inc_name):
+    inc_page = Page(inc_name, macro.request)
+    if not macro.request.user.may.read(inc_page):
         return ''
     if this_page.page_name.lower() == inc_name.lower():
         result.append('<p><strong class="error">Recursive include of "%s" forbidden</strong></p>' % (inc_name,))
 	return ''.join(result)
-    inc_page = Page(inc_name, macro.request)
 
     # check for "from" and "to" arguments (allowing partial includes)
     body = inc_page.get_raw_body() + '\n'
@@ -113,14 +113,14 @@ def execute(macro, text, args, formatter=None):
     if config.relative_dir: add_on = '/'
     else: add_on = ''
 
-    heading = args.group('htext') or inc_page.split_title()
+    heading = args.group('htext') or inc_page.page_name
     level = 1
     if args.group('level'):
         level = int(args.group('level'))
     if args.group('htext') or showtitle: 
       if print_mode:
         result.append(formatter.heading(level, heading))
-      elif macro.request.user.may.edit(inc_name):
+      elif macro.request.user.may.edit(inc_page):
          result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), heading, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
 
     # set or increment include marker

@@ -104,7 +104,7 @@ def hash(cleartext):
 ### User
 #############################################################################
 
-class User:
+class User(object):
     """A LocalWiki User"""
 
     _checkbox_fields = [
@@ -381,11 +381,11 @@ class User:
  	  # account doesn't exist yet
 	  userdict['join_date'] = time.time()
 	  userdict['id'] = self.id
-	  self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz_offset) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz_offset)s)", userdict)
+	  self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz_offset) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz_offset)s)", userdict, isWrite=True)
 	  if config.memcache:
 	    self.request.mc.set("users:%s" % self.id, userdict)
 	else:
-	  self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz_offset=%(tz_offset)s where id=%(id)s", userdict)
+	  self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz_offset=%(tz_offset)s where id=%(id)s", userdict, isWrite=True)
 	  if config.memcache:
 	    self.request.mc.set("users:%s" % self.id, userdict)
 		
@@ -433,15 +433,15 @@ class User:
 	the session dict is key'd by the session id
 	  and each node of the list is a (hashed secret, time of creation) pair
 	"""
-	import random, cPickle
+	import random
 	secret = hash(str(random.random()))
 
 	sessionid = hash(str(time.time()) + str(self.id))
 	# clear possibly old expired sessions
-	self.request.cursor.execute("DELETE from userSessions where user_id=%(id)s and expire_time>=%(timenow)s", {'id':self.id, 'timenow':time.time()})
+	self.request.cursor.execute("DELETE from userSessions where user_id=%(id)s and expire_time>=%(timenow)s", {'id':self.id, 'timenow':time.time()}, isWrite=True)
 	# add our new session
 	hash_secret = hash(secret)
-	self.request.cursor.execute("INSERT into userSessions (user_id, session_id, secret, expire_time) values (%(user_id)s, %(session_id)s, %(secret)s, %(expiretime)s)", {'user_id':self.id, 'session_id':sessionid, 'secret':hash_secret, 'expiretime':expiretime})
+	self.request.cursor.execute("INSERT into userSessions (user_id, session_id, secret, expire_time) values (%(user_id)s, %(session_id)s, %(secret)s, %(expiretime)s)", {'user_id':self.id, 'session_id':sessionid, 'secret':hash_secret, 'expiretime':expiretime}, isWrite=True)
 	if config.memcache:
 	  key = "userSessions:%s,%s" % (self.id, sessionid)
 	  if self.remember_me:
@@ -557,7 +557,7 @@ class User:
 	    if hideshow == 'showcomments' : bool_show = 1
 	    elif hideshow == 'hidecomments' : bool_show = 0
 	    self.rc_showcomments = bool_show
-	    self.request.cursor.execute("UPDATE users set rc_showcomments=%(show_status)s where id=%(userid)s", {'show_status':bool_show, 'userid':self.id})
+	    self.request.cursor.execute("UPDATE users set rc_showcomments=%(show_status)s where id=%(userid)s", {'show_status':bool_show, 'userid':self.id}, isWrite=True)
 	    if config.memcache:
 	      self.request.mc.set("users:%s" % self.id, self.getUserdict())
 
@@ -581,7 +581,7 @@ class User:
         """
         if self.valid:
             if not tm: tm = time.time()
-	    self.request.cursor.execute("UPDATE users set rc_bookmark=%(timenow)s where id=%(userid)s", {'timenow':str(tm), 'userid':self.id})
+	    self.request.cursor.execute("UPDATE users set rc_bookmark=%(timenow)s where id=%(userid)s", {'timenow':str(tm), 'userid':self.id}, isWrite=True)
 	    self.rc_bookmark = tm
 	    if config.memcache:
 	      self.request.mc.set("users:%s" % self.id, self.getUserdict())
@@ -627,7 +627,7 @@ class User:
         @return: 0 on success, 1 on failure
         """
         if self.valid:
-	   self.request.cursor.execute("UPDATE users set rc_bookmark=NULL where id=%(id)s", {'id':self.id})
+	   self.request.cursor.execute("UPDATE users set rc_bookmark=NULL where id=%(id)s", {'id':self.id}, isWrite=True)
 	   self.rc_bookmark = 0
 	   if config.memcache:
 	     self.request.mc.set("users:%s" % self.id, self.getUserdict())
@@ -733,7 +733,7 @@ class User:
 	    self.favorites[pagename] = timenow
 	    if config.memcache:
 	      self.request.mc.set('userFavs:%s' % self.id, self.favorites)
-	    self.request.cursor.execute("UPDATE userFavorites set viewTime=%(timenow)s where username=%(name)s and page=%(pagename)s", {'timenow':timenow, 'name':self.name, 'pagename':pagename}) 
+	    self.request.cursor.execute("UPDATE userFavorites set viewTime=%(timenow)s where username=%(name)s and page=%(pagename)s", {'timenow':timenow, 'name':self.name, 'pagename':pagename}, isWrite=True) 
  	  
 
     def isFavoritedTo(self, pagename):
@@ -814,7 +814,7 @@ class User:
 	if not self.isFavoritedTo(pagename):
 	  timenow = time.time()
 	  self.favorites[pagename] = timenow
-	  self.request.cursor.execute("INSERT into userFavorites (page, username, viewTime) values (%(pagename)s, %(name)s, %(timenow)s)", {'pagename':pagename, 'name':self.name, 'timenow':timenow})
+	  self.request.cursor.execute("INSERT into userFavorites (page, username, viewTime) values (%(pagename)s, %(name)s, %(timenow)s)", {'pagename':pagename, 'name':self.name, 'timenow':timenow}, isWrite=True)
 	  if config.memcache:
 	    self.request.mc.set("userFavs:%s" % self.id, self.favorites)
 	  return True
@@ -828,7 +828,7 @@ class User:
 	   del self.favorites[pagename]
 	   if config.memcache:
 	     self.request.mc.set("userFavs:%s" % self.id, self.favorites)
-	   self.request.cursor.execute("DELETE from userFavorites where page=%(pagename)s and username=%(username)s", {'pagename':pagename, 'username':self.name})
+	   self.request.cursor.execute("DELETE from userFavorites where page=%(pagename)s and username=%(username)s", {'pagename':pagename, 'username':self.name}, isWrite=True)
            return True
 
         return False

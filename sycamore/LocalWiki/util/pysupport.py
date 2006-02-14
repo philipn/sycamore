@@ -25,14 +25,10 @@ def getPackageModules(packagefile):
         starting with an underscore (note that this uses file system
         calls, i.e. it won't work with ZIPped packages and the like).
     """
-    import os, re
 
-    pyre = re.compile(r"^([^_].*)\.py$")
-    pyfiles = filter(None, map(pyre.match, os.listdir(os.path.dirname(packagefile))))
-    modules = map(lambda x: x.group(1), pyfiles)
-    modules.sort()
-    return modules
+    import os, fnmatch
 
+    return [os.path.splitext(f)[0] for f in fnmatch.filter(os.listdir(os.path.dirname(packagefile)), "[!_]*.py")]
 
 def importName(modulename, name):
     """ Import a named object from a module in the context of this function,

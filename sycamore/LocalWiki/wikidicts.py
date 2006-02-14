@@ -6,7 +6,8 @@
     @copyright: 2003 by Gustavo Niemeyer, http://moin.conectiva.com.br/GustavoNiemeyer
     @license: GNU GPL, see COPYING for details.
 """
-import re, pickle, time, os
+import time, os
+import cPickle as pickle
 from LocalWiki import config, wikiutil, Page
 
 DICTS_PICKLE_VERSION = 1
@@ -46,6 +47,7 @@ class Dict:
     def __init__(self, name, request, dict=1):
         """Initialize a Dict, starting from <nothing>.
         """
+	import re
         self.name = name
         self._dict = {}
         p = Page.Page(name, request)
@@ -231,35 +233,53 @@ class GroupDict(DictDict):
                 grouplist.append(group.name)
         return grouplist
 
+    def save(self):
+       # save to disk and memcache the results of an add
+       data = {
+            "namespace_timestamp": self.namespace_timestamp,
+            "pageupdate_timestamp": self.pageupdate_timestamp,
+            "dictdict": self.dictdict,
+            "picklever": self.picklever,
+       } 
+       picklefile = config.data_dir + '/dicts.pickle'
+       pickle.dump(data, open(picklefile, 'w'), True)
+       try:
+         os.chmod(picklefile, 0666 & config.umask)
+       except OSError:
+         pass
+       if config.memcache:
+         self.request.mc.set('dicts_data', data)
+
     def scandicts(self):
         """scan all pages matching the dict / group regex and init the dictdict"""
-        global DICTS_DATA, DICTS_PICKLE_VERSION
+        global DICTS_PICKLE_VERSION
         dump = 0
-        picklefile = config.data_dir + '/dicts.pickle'
+	if config.memcache:
+	  DICTS_DATA = self.request.mc.get("dicts_data")
+	else:
+	  DICTS_DATA = {}
+
         if DICTS_DATA:
             self.__dict__.update(DICTS_DATA)
         else:
+	    DICTS_DATA = {}
             try:
+                picklefile = config.data_dir + '/dicts.pickle'
                 data = pickle.load(open(picklefile))
                 self.__dict__.update(data)
                 if self.picklever != DICTS_PICKLE_VERSION:
                     self.reset()
                     dump = 1
+		if config.memcache:
+		  self.request.mc.add('dicts_data', data)
             except:
                 self.reset()
 
-        dict_re = re.compile(config.page_dict_regex)
-        group_re = re.compile(config.page_group_regex)
-        
-        now = int(time.time()) # we dont want float!
-        # check for new groups / dicts from time to time...
-        if now - self.namespace_timestamp >= 60:
+	# init the dicts the first time
+	if not self.namespace_timestamp:
+            now = time.time()
+            group_re = re.compile(config.page_group_regex)
             pagelist = wikiutil.getPageList(self.request)
-            dictpages = filter(dict_re.search, pagelist)
-            #print '%s -> %s' % (config.page_dict_regex, dictpages)
-            for pagename in dictpages:
-                if not self.dictdict.has_key(pagename):
-                    self.adddict(pagename)
             grouppages = filter(group_re.search, pagelist)
             #print '%s -> %s' % (config.page_group_regex, grouppages)
             for pagename in grouppages:
@@ -268,15 +288,13 @@ class GroupDict(DictDict):
             self.namespace_timestamp = now
             dump = 1
 
-        # check if groups / dicts have been modified on disk
-        for pagename in self.dictdict:
-            if Page.Page(pagename, self.request).mtime() >= self.pageupdate_timestamp:
-                if dict_re.search(pagename):
-                    self.adddict(pagename)
-                elif group_re.search(pagename):
-                    self.addgroup(pagename)
-                dump = 1
-        self.pageupdate_timestamp = now
+        ## check if groups / dicts have been modified on disk
+        #for pagename in self.dictdict:
+        #    if Page.Page(pagename, self.request).mtime() >= self.pageupdate_timestamp:
+        #        if group_re.search(pagename):
+        #            self.addgroup(pagename)
+        #        dump = 1
+        #self.pageupdate_timestamp = now
         
         data = {
             "namespace_timestamp": self.namespace_timestamp,
@@ -290,10 +308,8 @@ class GroupDict(DictDict):
                     group = self.dictdict[pagename]
                     group.expandgroups(self)
 
-            pickle.dump(data, open(picklefile, 'w'))
+            pickle.dump(data, open(picklefile, 'w'), True)
             try:
                 os.chmod(picklefile, 0666 & config.umask)
             except OSError:
                 pass
-        # remember it globally (persistent environments)
-        DICTS_DATA = data

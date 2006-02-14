@@ -2,6 +2,7 @@
 import time, string, os
 import xml.dom.minidom
 from LocalWiki import config, user, util, wikiutil, mapping
+from LocalWiki.Page import Page
 
 def clean(text):
 	text=text.replace('\x85','&#8230;') # elipsis
@@ -27,7 +28,8 @@ def execute(pagename, request):
     findName = request.form.get("name")[0]
     
     # be extra paranoid
-    if not request.user.may.edit(pagename):
+    page = Page(pagename, request)
+    if not request.user.may.edit(page):
       request.write('You may not edit this page.')
       return
                     

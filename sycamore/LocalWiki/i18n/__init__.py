@@ -172,6 +172,9 @@ def requestLanguage(request):
     if request.user.valid and request.user.language:
         return request.user.language
 
+    if config.default_lang:
+      return config.default_lang
+
     # Or try to return one of the user browser accepted languages, if it
     # is available on this wiki...
     available = wikiLanguages()

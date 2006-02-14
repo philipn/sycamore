@@ -3,6 +3,7 @@ import time, re
 from LocalWiki import wikiutil, wikiform, config, wikidb
 import xml.dom.minidom
 from cStringIO import StringIO
+from LocalWiki.Page import Page
 
 def yearList():
   current_year = time.localtime(time.time())[0]  
@@ -96,7 +97,7 @@ def execute(macro, args, formatter=None):
                 processed_name = doParse(event_name,macro)
                 month_dict = { 1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
                 string_month = month_dict[month]
-                if (macro.request.user.may.admin("Events Board") or posted_by == macro.request.user.name) and not do_mini: 
+                if (macro.request.user.may.admin(Page("Events Board", macro.request)) or posted_by == macro.request.user.name) and not do_mini: 
                         if date == old_date:
                             htmltext.append('<ul>\n<h4 id="head-%s">%s</h4>\n'
                                   '<a href="/%s%sEvents_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s<br>\n'

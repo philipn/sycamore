@@ -45,7 +45,7 @@ def imgSend(request):
   try:
     image, modified_time_unix = wikidb.getImage(request, d, deleted=deleted, thumbnail=thumbnail, version=version)
   except:
-    request.http_headers(["Content-Type: text/html"])
+    request.http_headers()
     request.write("No image..?")
     return
 
@@ -54,10 +54,10 @@ def imgSend(request):
   if mimetype:
     # we're good to go to output the image
     datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
-    request.http_headers(["Content-Type: " + mimetype, "Last-Modified: " + datestring])
+    request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring)])
     #output image
     request.write(image)
   else:
-    request.http_headers(["Content-Type: text/html"])
+    request.http_headers()
     request.write("No image..?")
     return

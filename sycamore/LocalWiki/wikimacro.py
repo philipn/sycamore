@@ -13,7 +13,7 @@
 """
 
 # Imports
-import re, time
+import time
 from LocalWiki import action, config, macro, util
 from LocalWiki import wikiutil, wikiaction, i18n
 from LocalWiki.Page import Page
@@ -425,10 +425,12 @@ class Macro:
 
     def _macro_Icon(self, args, formatter=None):
         if not formatter: formatter = self.formatter
+	self.request.formatter = formatter
         icon = args.lower()
         return self.request.theme.make_icon(icon, actionButton=True)
 
     def _macro_PageList(self, args, formatter=None):
+        import re
         if not formatter: formatter = self.formatter
         _ = self._
         try:
@@ -440,13 +442,14 @@ class Macro:
 	all_pages = wikiutil.getPageList(self.request)
         hits = filter(needle_re.search, all_pages)
         hits.sort()
+	hits = [Page(hit, request) for hit in hits]
         hits = filter(self.request.user.may.read, hits)
 
         result = []
         result.append(self.formatter.bullet_list(1))
-        for filename in hits:
+        for page in hits:
             result.append(self.formatter.listitem(1))
-            result.append(self.formatter.pagelink(filename, generated=1))
+            result.append(self.formatter.pagelink(page.page_name, generated=1))
             result.append(self.formatter.listitem(0))
         result.append(self.formatter.bullet_list(0))
         return ''.join(result)

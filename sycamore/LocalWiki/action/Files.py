@@ -112,7 +112,8 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename)
     return text
 
 def _delete_footer(request, pagename, baseurl, urlpagename, action, filename):
-   if request.user.may.delete(pagename):
+   page = Page(pagename, request)
+   if request.user.may.delete(page):
       urlfile = urllib.quote_plus(filename)
       return '[<a href="%s/%s?action=%s&amp;do=del&amp;target=%s">delete image</a>]' % (baseurl, urlpagename, action, urlfile)
    return ''
@@ -239,7 +240,8 @@ def send_uploadform(pagename, request):
     """
     _ = request.getText
     
-    if not request.user.may.read(pagename):
+    page = Page(pagename, request)
+    if not request.user.may.read(page):
         request.write('<p>%s</p>' % _('You are not allowed to view this page.'))
         return
 
@@ -248,7 +250,7 @@ def send_uploadform(pagename, request):
 
     request.write(_get_filelist(request, pagename))
 
-    if not request.user.may.edit(pagename):
+    if not request.user.may.edit(page):
         request.write('<p>%s</p>' % _('You are not allowed to attach an image to this page.'))
         return
 
@@ -295,22 +297,23 @@ def execute(pagename, request):
     _ = request.getText
 
     msg = None
+    page = Page(pagename, request)
     if action_name in config.excluded_actions:
         msg = _('File attachments are not allowed in this wiki!')
     elif not request.form.has_key('do'):
         upload_form(pagename, request)
     elif request.form['do'][0] == 'upload':
-        if request.user.may.edit(pagename):
+        if request.user.may.edit(page):
             do_upload(pagename, request)
         else:
             msg = _('You are not allowed to attach an image to this page.')
     elif request.form['do'][0] == 'del':
-        if request.user.may.delete(pagename):
+        if request.user.may.delete(page):
             del_image(pagename, request)
         else:
             msg = _('You are not allowed to delete images on this page.')
     elif request.form['do'][0] == 'restore':
-        if request.user.may.edit(pagename):
+        if request.user.may.edit(page):
             restore_image(pagename, request)
         else:
             msg = _('You are not allowed to restore images to this page.')
@@ -318,12 +321,12 @@ def execute(pagename, request):
     elif request.form['do'][0] == 'show_deleted':
            show_deleted_images(pagename, request)
     elif request.form['do'][0] == 'get':
-        if request.user.may.read(pagename):
+        if request.user.may.read(page):
             get_file(pagename, request)
         else:
             msg = _('You are not allowed to get imagse from this page.')
     elif request.form['do'][0] == 'view':
-        if request.user.may.read(pagename):
+        if request.user.may.read(page):
             view_file(pagename, request)
         else:
             msg = _('You are not allowed to view images of this page.')
@@ -503,12 +506,12 @@ def restore_image(pagename, request):
     if is_in_images:
 	# this means the image wasn't most recently deleted but the user still would like to revert to this version of the image
 	#backup the current version of the image
-	request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, uploaded_by_ip, deleted_time, deleted_by, deleted_by_ip) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, %(deleted_by_ip)s)", {'filename':filename, 'pagename':pagename, 'timenow':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr})
+	request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, uploaded_by_ip, deleted_time, deleted_by, deleted_by_ip) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, %(deleted_by_ip)s)", {'filename':filename, 'pagename':pagename, 'timenow':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr}, isWrite=True)
 	#revert by putting their version as the current version
-	request.cursor.execute("UPDATE images set image=(select image from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), xsize=(select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), ysize=(select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), uploaded_by=%(userid)s, uploaded_by_ip=%(userip)s, uploaded_time=%(timenow)s where name=%(filename)s and attached_to_pagename=%(pagename)s", {'filename':filename, 'pagename':pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':timenow})
+	request.cursor.execute("UPDATE images set image=(select image from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), xsize=(select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), ysize=(select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), uploaded_by=%(userid)s, uploaded_by_ip=%(userip)s, uploaded_time=%(timenow)s where name=%(filename)s and attached_to_pagename=%(pagename)s", {'filename':filename, 'pagename':pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':timenow}, isWrite=True)
 
     else:
-      request.cursor.execute("INSERT into images (name, attached_to_pagename, image, xsize, ysize, uploaded_by, uploaded_by_ip, uploaded_time) values (%(filename)s, %(pagename)s, (select image from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), (select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), (select ysize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), %(userid)s, %(userip)s, %(timenow)s)",{'filename':filename, 'pagename':pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':time.time()})
+      request.cursor.execute("INSERT into images (name, attached_to_pagename, image, xsize, ysize, uploaded_by, uploaded_by_ip, uploaded_time) values (%(filename)s, %(pagename)s, (select image from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), (select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), (select ysize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), %(userid)s, %(userip)s, %(timenow)s)",{'filename':filename, 'pagename':pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':time.time()}, isWrite=True)
 
     # delete the thumbnail -- this also has the effect of clearing the cache for the page/image
     wikidb.putImage(request, {'pagename': pagename, 'filename': filename}, thumbnail=True, do_delete=True) 

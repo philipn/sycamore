@@ -8,7 +8,7 @@
 """
 
 import os, time, sys
-from LocalWiki import config, wikiutil, wikidb
+from LocalWiki import config, wikiutil, wikidb, user, i18n
 from LocalWiki.util import LocalWikiNoFooter, web
 import cPickle
 if config.memcache:
@@ -45,16 +45,16 @@ class Clock:
 #############################################################################
 ### Request Data
 #############################################################################
-class RequestBase:
+class RequestBase(object):
     """ A collection for all data associated with ONE request. """
 
     # Header set to force misbehaved proxies and browsers to keep their
     # hands off a page
     # Details: http://support.microsoft.com/support/kb/articles/Q234/0/67.ASP
     nocache = [
-        "Pragma: no-cache",
-        "Cache-Control: no-cache",
-        "Expires: -1",
+        ("Pragma", "no-cache"),
+        ("Cache-Control", "no-cache"),
+        ("Expires", "-1")
     ]
 
     def __init__(self, properties={}):
@@ -62,18 +62,16 @@ class RequestBase:
 	self.getText = None
         if config.memcache:
           self.mc = MemcachePool.getMC()
-	if not properties: properties = wikiutil.prepareAllProperties()
-        self.__dict__.update(properties)
+	#if not properties: properties = wikiutil.prepareAllProperties()
+        #self.__dict__.update(properties)
 	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'last_edit_info': {}, 'page_cache': {}, 'meta_text': {}} # per-request cache
         # order is important here!
 
 	self.db_connect()
 	  
-        from LocalWiki import user
         self.user = user.User(self)
         self.dicts = self.initdicts()
 
-        from LocalWiki import i18n
         if config.theme_force:
             theme_name = config.theme_default
         else:
@@ -93,6 +91,8 @@ class RequestBase:
 
         self.sent_headers = 0
         self.user_headers = []
+	self.status = ''
+	self.output_buffer = []
 
         self.i18n = i18n
         self.lang = i18n.requestLanguage(self) 
@@ -139,7 +139,7 @@ class RequestBase:
         self.auth_username = None
         if config.auth_http_enabled and env.get('AUTH_TYPE','') == 'Basic':
             self.auth_username = env.get('REMOTE_USER','')
-                                    
+
 ##        f=open('/tmp/env.log','a')
 ##        f.write('---ENV\n')
 ##        f.write('script_name = %s\n'%(self.script_name))
@@ -241,6 +241,8 @@ class RequestBase:
     def isForbidden(self):
         """ check for web spiders and refuse anything except viewing """
         forbidden = 0
+	# REMOVE ME BEFORE COMMIT
+	if self.query_string == 'profile': return False
         if ((self.query_string != '' or self.request_method != 'GET')
             and self.query_string != 'action=rss_rc' and self.query_string != 'action=events&rss=1' and self.query_string != 'rss=1&action=events'):
             from LocalWiki.util import web
@@ -339,7 +341,10 @@ class RequestBase:
 
     def db_disconnect(self, had_error=False):
       if not had_error:
-        self.db.commit()
+        if self.db.do_commit:
+          self.db.commit()
+	else:
+	  self.db.rollback()
       else:
         self.db.rollback()
 
@@ -352,10 +357,8 @@ class RequestBase:
         _ = self.getText
         #self.open_logs()
         if self.isForbidden():
-            self.http_headers([
-                'Status: 403 FORBIDDEN',
-                'Content-Type: text/plain'
-            ])
+	    self.status = "403 FORBIDDEN"
+            self.http_headers([('Content-Type', 'text/plain')])
             self.write('You are not allowed to access this!\n')
             return self.finish()
 
@@ -465,18 +468,7 @@ class RequestBase:
                     query = wikiutil.unquoteWikiname(self.query_string) or \
                         wikiutil.getSysPage(self, config.page_front_page).page_name
 
-                if config.allow_extended_names:
-                        Page(query, self).send_page(count_hit=1)
-                else:
-                    from LocalWiki.parser.wiki import Parser
-                    import re
-                    word_match = re.match(Parser.word_rule, query)
-                    if word_match:
-                        word = word_match.group(0)
-                        Page(word, self).send_page(count_hit=1)
-                    else:
-                        self.http_headers()
-                        self.write('<p>' + _("Can't work out query") + ' "<pre>' + query + '</pre>"')
+                Page(query, self).send_page(count_hit=1)
 
             # generate page footer
             # (actions that do not want this footer use raise util.LocalWikiNoFooter to break out
@@ -520,13 +512,13 @@ class RequestBase:
         return self.finish(had_error=had_error)
 
 
-    def http_redirect(self, url):
+    def http_redirect(self, url, type="text/html"):
         """ Redirect to a fully qualified, or server-rooted URL """
         if url.find("://") == -1:
             url = self.getQualifiedURL(url)
 
-        self.http_headers(["Status: 302", "Location: %s" % url])
-
+	self.status = "302 FOUND"
+	self.user_headers = [("Location", url)]
 
     def print_exception(self, type=None, value=None, tb=None, limit=None):
         if type is None:
@@ -549,262 +541,6 @@ class RequestBase:
     def finish(self, had_error=False, dont_do_db=False):
       if not dont_do_db:
         self.db_disconnect(had_error=had_error)
-
-# CGI ---------------------------------------------------------------
-
-class RequestCGI(RequestBase):
-    """ specialized on CGI requests """
-
-    def __init__(self, properties={}):
-        self._setup_vars_from_std_env(os.environ)
-        #sys.stderr.write("----\n")
-        #for key in os.environ.keys():    
-        #    sys.stderr.write("    %s = '%s'\n" % (key, os.environ[key]))
-        RequestBase.__init__(self, properties)
-
-	self.form = {}
-        # force input/output to binary
-        if sys.platform == "win32":
-            import msvcrt
-            msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
-            msvcrt.setmode(sys.stdout.fileno(), os.O_BINARY)
-
-    #def open_logs(self):
-    #    # create CGI log file, and one for catching stderr output
-    #    import cgi 
-    #    if not self.opened_logs:
-    #        cgi.logfile = os.path.join(config.data_dir, 'cgi.log')
-    #        sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
-    #        self.opened_logs = 1
-
-    def setup_args(self):
-        return self._setup_args_from_cgi_form()
-        
-    def read(self, n=None):
-        """ Read from input stream.
-        """
-        if n is None:
-            return sys.stdin.read()
-        else:
-            return sys.stdin.read(n)
-
-    def write(self, *data):
-        """ Write to output stream.
-        """
-        for piece in data:
-            sys.stdout.write(piece)
-
-    def flush(self):
-        sys.stdout.flush()
-        
-    def finish(self, had_error=False, dont_do_db=False):
-        # flush the output, ignore errors caused by the user closing the socket
-	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
-        try:
-            sys.stdout.flush()
-        except IOError, ex:
-            import errno
-            if ex.errno != errno.EPIPE: raise
-
-    #############################################################################
-    ### Accessors
-    #############################################################################
-
-    def getScriptname(self):
-        """ Return the scriptname part of the URL ("/path/to/my.cgi"). """
-        name = self.script_name
-        if name == '/':
-            return ''
-        return name
-
-
-    def getPathinfo(self):
-        """ Return the remaining part of the URL. """
-        pathinfo = self.path_info
-
-        # Fix for bug in IIS/4.0
-        if os.name == 'nt':
-            scriptname = self.getScriptname()
-            if pathinfo.startswith(scriptname):
-                pathinfo = pathinfo[len(scriptname):]
-
-        return pathinfo
-
-
-    #############################################################################
-    ### Headers
-    #############################################################################
-
-    def setHttpHeader(self, header):
-        self.user_headers.append(header)
-
-
-    def http_headers(self, more_headers=[]):
-        if self.sent_headers:
-            #self.write("Headers already sent!!!\n")
-            return
-        self.sent_headers = 1
-        have_ct = 0
-
-        # send http headers
-        for header in more_headers + self.user_headers:
-            if header.lower().startswith("content-type:"):
-                # don't send content-type multiple times!
-                if have_ct: continue
-                have_ct = 1
-            self.write(header, '\r\n')
-
-        if not have_ct:
-            self.write("Content-type: text/html;charset=%s\r\n" % config.charset)
-
-        self.write('\r\n')
-
-        #from pprint import pformat
-        #sys.stderr.write(pformat(more_headers))
-        #sys.stderr.write(pformat(self.user_headers))
-
-
-# Twisted -----------------------------------------------------------
-
-class RequestTwisted(RequestBase):
-    """ specialized on Twisted requests """
-
-    def __init__(self, twistedRequest, pagename, reactor, properties={}):
-        self.twistd = twistedRequest
-        self.http_accept_language = self.twistd.getHeader('Accept-Language')
-        self.reactor = reactor
-        self.saved_cookie = self.twistd.getHeader('Cookie')
-        self.server_protocol = self.twistd.clientproto
-        self.server_name = self.twistd.getRequestHostname().split(':')[0]
-        self.server_port = str(self.twistd.getHost()[2])
-        self.is_ssl = self.twistd.isSecure()
-        if self.server_port != ('80', '443')[self.is_ssl]:
-            self.http_host = self.server_name + ':' + self.server_port
-        else:
-            self.http_host = self.server_name
-        self.script_name = "/" + '/'.join(self.twistd.prepath[:-1]) # "" XXX
-        self.path_info = "/" + pagename
-        if self.twistd.postpath:
-            self.path_info += '/' + '/'.join(self.twistd.postpath)
-        self.request_method = self.twistd.method
-        self.remote_host = self.twistd.getClient()
-        self.remote_addr = self.twistd.getClientIP()
-        self.http_user_agent = self.twistd.getHeader('User-Agent')
-        self.request_uri = self.twistd.uri
-       
-        qindex = self.request_uri.find('?')
-        if qindex != -1:
-            self.query_string = self.request_uri[qindex+1:]
-        else:
-            self.query_string = ''
-        self.outputlist = []
-        self.auth_username = None # TODO, see: self.twistd.user / .password (http auth)
-        RequestBase.__init__(self, properties)
-        #print "request.RequestTwisted.__init__: received_headers=\n" + str(self.twistd.received_headers)
-
-    def setup_args(self):
-        return self.twistd.args
-        
-    def read(self, n=None):
-        """ Read from input stream.
-        """
-        # XXX why is that wrong?:
-        #rd = self.reactor.callFromThread(self.twistd.read)
-        
-        # XXX do we need self.reactor.callFromThread with that?
-        # XXX if yes, why doesnt it work?
-        self.twistd.content.seek(0, 0)
-        if n is None:
-            rd = self.twistd.content.read()
-        else:
-            rd = self.twistd.content.read(n)
-        #print "request.RequestTwisted.read: data=\n" + str(rd)
-        return rd
-    
-    def write(self, *data):
-        """ Write to output stream.
-        """
-        wd = ''.join(data)
-        # XXX UNICODE - encode to config.charset
-        #wd = u''.join(data).encode(config.charset)
-        #print "request.RequestTwisted.write: data=\n" + wd
-        self.reactor.callFromThread(self.twistd.write, wd)
-
-    def flush(self):
-        pass # XXX is there a flush in twisted?
-
-    def finish(self, had_error=False, dont_do_db=False):
-	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
-        #print "request.RequestTwisted.finish"
-        self.reactor.callFromThread(self.twistd.finish)
-
-    #def open_logs(self):
-    #    return
-    #    # create log file for catching stderr output
-    #    if not self.opened_logs:
-    #        sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
-    #        self.opened_logs = 1
-
-
-    #############################################################################
-    ### Accessors
-    #############################################################################
-
-    def getScriptname(self):
-        """ Return the scriptname part of the URL ("/path/to/my.cgi"). """
-        scriptname = self.script_name
-        if scriptname == '/':
-            scriptname = ''
-        return scriptname
-
-    def getPathinfo(self):
-        """ Return the remaining part of the URL. """
-        return self.path_info
-
-
-    #############################################################################
-    ### Headers
-    #############################################################################
-
-    def setHttpHeader(self, header):
-        self.user_headers.append(header)
-
-    def __setHttpHeader(self, header):
-        key, value = header.split(':',1)
-        value = value.lstrip()
-        self.twistd.setHeader(key, value)
-        #print "request.RequestTwisted.setHttpHeader: %s" % header
-
-    def http_headers(self, more_headers=[]):
-        if self.sent_headers:
-            #self.write("Headers already sent!!!\n")
-            return
-        self.sent_headers = 1
-        have_ct = 0
-
-        # set http headers
-        for header in more_headers + self.user_headers:
-            if header.lower().startswith("content-type:"):
-                # don't send content-type multiple times!
-                if have_ct: continue
-                have_ct = 1
-            self.__setHttpHeader(header)
-
-        if not have_ct:
-            self.__setHttpHeader("Content-type: text/html;charset=%s" % config.charset)
-
-
-    def http_redirect(self, url):
-        """ Redirect to a fully qualified, or server-rooted URL """
-        if url.count("://") == 0:
-            # no https method??
-            url = "http://%s:%s%s" % (self.server_name, self.server_port, url)
-
-        self.twistd.redirect(url)
-        # calling finish here will send the rest of the data to the next
-        # request. leave the finish call to run()
-        #self.twistd.finish()
-        raise LocalWikiNoFooter
 
 
 # CLI ------------------------------------------
@@ -896,394 +632,56 @@ class RequestCLI(RequestBase):
         raise Exception("Redirect not supported for command line tools!")
 
 
-# StandAlone Server -------------------------------------------------
-class RequestStandAlone(RequestBase):
-    """
-    specialized on StandAlone Server (httpdmain.py) requests
-    """
 
-    def __init__(self, sa, properties={}):
+class RequestWSGI(RequestBase):
+    """ General interface to Web Server Gateway Interface v1.0 """
+
+    def __init__(self, env, start_response):
+        """ Initializes variables from WSGI environment.
+
+            @param env: the standard WSGI environment
+            @param start_response: the standard WSGI response-starting function
         """
-        @param sa: stand alone server object
-        @param properties: ...
-        """
-        import urllib
-        self.wfile = sa.wfile
-        self.rfile = sa.rfile
-        self.headers = sa.headers
-        self.is_ssl = 0
-        rest = sa.path
-        i = rest.rfind('?')
-        if i >= 0:
-            rest, query = rest[:i], rest[i+1:]
-        else:
-            query = ''
-        uqrest = urllib.unquote(rest)
-        
-        #HTTP headers
-        self.env = {} 
-        for hline in sa.headers.headers:
-            key = sa.headers.isheader(hline)
-            if key:
-                hdr = sa.headers.getheader(key)
-                self.env[key] = hdr
-                
-        #accept = []
-        #for line in sa.headers.getallmatchingheaders('accept'):
-        #    if line[:1] in string.whitespace:
-        #        accept.append(line.strip())
-        #    else:
-        #        accept = accept + line[7:].split(',')
-        #
-        #env['HTTP_ACCEPT'] = ','.join(accept)
-
-        co = filter(None, sa.headers.getheaders('cookie'))
-
-        self.http_accept_language = sa.headers.getheader('Accept-Language')
-        self.server_name = sa.server.server_name
-        self.server_port = str(sa.server.server_port)
-        self.http_host = sa.headers.getheader('host')
-        self.http_referer = sa.headers.getheader('referer')
-        self.saved_cookie = ', '.join(co) or ''
-        self.script_name = ''
-        self.path_info = uqrest 
-        self.query_string = query or ''
-        self.request_method = sa.command
-        self.remote_addr = sa.client_address[0]
-        self.http_user_agent = sa.headers.getheader('user-agent') or ''
-        # from standalone script:
-        # XXX AUTH_TYPE
-        # XXX REMOTE_USER
-        # XXX REMOTE_IDENT
-        self.auth_username = None
-        #env['PATH_TRANSLATED'] = uqrest #self.translate_path(uqrest)
-        #host = self.address_string()
-        #if host != self.client_address[0]:
-        #    env['REMOTE_HOST'] = host
-        # env['SERVER_PROTOCOL'] = self.protocol_version
-        RequestBase.__init__(self, properties)
-
-    #def open_logs(self):
-    #    # create error log file for catching stderr output
-    #    if not self.opened_logs:
-    #        sys.stderr = open(os.path.join(config.data_dir, 'error.log'), 'at')
-    #        self.opened_logs = 1
-
-    def setup_args(self):
-        self.env['REQUEST_METHOD'] = self.request_method
-        self.env['QUERY_STRING'] = self.query_string
-	ct = self.headers.getheader('content-type')
-	if ct:
-	    self.env['CONTENT_TYPE'] = ct
-        cl = self.headers.getheader('content-length')
-        if cl:
-            self.env['CONTENT_LENGTH'] = cl
-        
-        import cgi
-        #print "env = ", self.env
-        #form = cgi.FieldStorage(self, headers=self.env, environ=self.env)
-        form = cgi.FieldStorage(self, environ=self.env)
-        return self._setup_args_from_cgi_form(form)
-        
-    def read(self, n=None):
-        """ Read from input stream.
-        """
-        if n is None:
-            return self.rfile.read()
-        else:
-            return self.rfile.read(n)
-
-    def readline (self):
-	L = ""
-	while 1:
-	    c = self.read(1)
-	    L += c
-	    if c == '\n':
-		break
-	return L
-	    
-    def write(self, *data):
-        """ Write to output stream.
-        """
-        for piece in data:
-            self.wfile.write(piece)
-
-    def flush(self):
-        self.wfile.flush()
-        
-    def finish(self, had_error=False, dont_do_db=False):
-	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
-        # flush the output, ignore errors caused by the user closing the socket
-        try:
-            self.wfile.flush()
-        except IOError, ex:
-            import errno
-            if ex.errno != errno.EPIPE: raise
-
-    #############################################################################
-    ### Accessors
-    #############################################################################
-
-    def getScriptname(self):
-        """ Return the scriptname part of the URL ("/path/to/my.cgi"). """
-        name = self.script_name
-        if name == '/':
-            return ''
-        return name
-
-
-    def getPathinfo(self):
-        """ Return the remaining part of the URL. """
-        return self.path_info
-
-
-    #############################################################################
-    ### Headers
-    #############################################################################
-
-    def setHttpHeader(self, header):
-        self.user_headers.append(header)
-
-    def http_headers(self, more_headers=[]):
-        if self.sent_headers:
-            #self.write("Headers already sent!!!\n")
-            return
-        self.sent_headers = 1
-        have_ct = 0
-
-        # send http headers
-        for header in more_headers + self.user_headers:
-            if header.lower().startswith("content-type:"):
-                # don't send content-type multiple times!
-                if have_ct: continue
-                have_ct = 1
-            self.write(header, '\r\n')
-
-        if not have_ct:
-            self.write("Content-type: text/html;charset=%s\r\n" % config.charset)
-
-        self.write('\r\n')
-
-        #from pprint import pformat
-        #sys.stderr.write(pformat(more_headers))
-        #sys.stderr.write(pformat(self.user_headers))
-
-
-# mod_python/Apache -------------------------------------------------
-class RequestModPy(RequestBase):
-    """ specialized on mod_python requests """
-
-    def __init__(self, req, properties):
-        """ Saves mod_pythons request and sets basic variables using
-            the req.subprocess_env, cause this provides a standard
-            way to access the values we need here.
-
-            @param req: the mod_python request instance
-        """
-        req.add_common_vars()
-        self.mpyreq = req
-        # some mod_python 2.7.X has no get method for table objects,
-        # so we make a real dict out of it first.
-        if not hasattr(req.subprocess_env,'get'):
-            env=dict(req.subprocess_env)
-        else:
-            env=req.subprocess_env
         self._setup_vars_from_std_env(env)
-        # flags if headers sent out contained content-type or status
-        self._have_ct = 0
-        self._have_status = 0
-        RequestBase.__init__(self, properties)
-        
-        
-    def setup_args(self):
-        """ Sets up args by using mod_python.util.FieldStorage, which
-            is different to cgi.FieldStorage. So we need a seperate
-            method for this.
-        """
-        import types
-        from mod_python import util
-        form = util.FieldStorage(self.mpyreq)
-
-        args = {}
-        for key in form.keys():
-            values = form[key]
-            if not isinstance(values, types.ListType):
-                values = [values]
-            fixedResult = []
-            for i in values:
-                ## mod_python 2.7 might return strings instead
-                ## of Field objects
-                if hasattr(i,'value'):
-                    fixedResult.append(i.value)
-                else:
-                    fixedResult.append(i)
-                ## if object has a filename attribute, remember it
-                ## with a name hack
-                if hasattr(i,'filename') and i.filename:
-                    args[key+'__filename__']=i.filename
-            args[key] = fixedResult
-        return args
-
-    def run(self, req):
-        """ mod_python calls this with its request object. We don't
-            need it cause its already passed to __init__. So ignore
-            it and just return RequestBase.run.
-
-            @param req: the mod_python request instance
-        """
-        return RequestBase.run(self)
-
-    def read(self, n=None):
-        """ Read from input stream.
-        """
-        if n is None:
-            return self.mpyreq.read()
-        else:
-            return self.mpyreq.read(n)
-
-    def write(self, *data):
-        """ Write to output stream.
-        """
-        for piece in data:
-            self.mpyreq.write(piece)
-
-    def flush(self):
-        """ We can't flush it, so do nothing.
-        """
-        pass
-        
-    def finish(self, had_error=False, dont_do_db=False):
-	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
-        """ Just return apache.OK. Status is set in req.status.
-        """
-        # is it possible that we need to return somethig else here?
-        from mod_python import apache
-        return apache.OK
-        
-    
-    #############################################################################
-    ### Accessors
-    #############################################################################
-
-    def getScriptname(self):
-        """ Return the scriptname part of the URL ('/path/to/my.cgi'). """
-        name = self.script_name
-        if name == '/':
-            return ''
-        return name
-
-
-    def getPathinfo(self):
-        """ Return the remaining part of the URL. """
-        return self.path_info
-
-    #############################################################################
-    ### Headers
-    #############################################################################
-
-    def setHttpHeader(self, header):
-        """ Filters out content-type and status to set them directly
-            in the mod_python request. Rest is put into the headers_out
-            member of the mod_python request.
-
-            @param header: string, containing valid HTTP header.
-        """
-        key, value = header.split(':',1)
-        value = value.lstrip()
-        if key.lower() == 'content-type':
-            # save content-type for http_headers
-            if not self._have_ct:
-                # we only use the first content-type!
-                self.mpyreq.content_type = value
-                self._have_ct = 1
-        elif key.lower() == 'status':
-            # save status for finish
-            try:
-                self.mpyreq.status = int(value.split(' ',1)[0])
-            except:
-                pass
-            else:
-                self._have_status = 1
-        else:
-            # this is a header we sent out
-            self.mpyreq.headers_out[key]=value
-
-
-    def http_headers(self, more_headers=[]):
-        """ Sends out headers and possibly sets default content-type
-            and status.
-
-            @keyword more_headers: list of strings, defaults to []
-        """
-        for header in more_headers:
-            self.setHttpHeader(header)
-        # if we don't had an content-type header, set text/html
-        if self._have_ct == 0:
-            self.mpyreq.content_type = "text/html;charset=%s" % config.charset
-        # if we don't had a status header, set 200
-        if self._have_status == 0:
-            self.mpyreq.status = 200
-        # this is for mod_python 2.7.X, for 3.X it's a NOP
-        self.mpyreq.send_http_header()
-
-    def http_redirect(self, url):
-        """ Redirect to a fully qualified, or server-rooted URL """
-        # we could do internal redirects (this server) directly using
-        # apache. would speedup things...
-        if url.find("://") == -1:
-            url = self.getQualifiedURL(url)
-
-        self.http_headers(["Status: 302",
-                           "Location: " + url])
-
-
-# FastCGI -----------------------------------------------------------
-
-class RequestFastCGI(RequestBase):
-    """ specialized on FastCGI requests """
-
-    def __init__(self, fcgRequest, env, form, properties={}):
-        """ Initializes variables from FastCGI environment and saves
-            FastCGI request and form for further use.
-
-            @param fcgRequest: the FastCGI request instance.
-            @param env: environment passed by FastCGI.
-            @param form: FieldStorage passed by FastCGI.
-        """
-        self.fcgreq = fcgRequest
-        self.fcgenv = env
-        self.fcgform = form
-        self._setup_vars_from_std_env(env)
+	self.start_response = start_response
+	self.env = env
+	properties = {}
         RequestBase.__init__(self, properties=properties)
 
     def setup_args(self):
-        """ Use the FastCGI form to setup arguments. """
-        return self._setup_args_from_cgi_form(self.fcgform)
+      import cgi
+      #print "env = ", self.env
+      #form = cgi.FieldStorage(self, headers=self.env, environ=self.env)
+      self.input_stream = self.env['wsgi.input']
+      form = cgi.FieldStorage(self, environ=self.env)
+      return self._setup_args_from_cgi_form(form)
 
-    def read(self, n=None):
-        """ Read from input stream.
-        """
-        if n is None:
-            return self.fcgreq.stdin.read()
-        else:
-            return self.fcgreq.stdin.read(n)
-
-    def write(self, *data):
+    def write(self, data_string):
         """ Write to output stream.
         """
-        self.fcgreq.out.write("".join(data))
+	self.output_buffer.append(data_string)
+        #self.wsgi_output("".join(data))
+
+    def read(self, n=None):
+      # read n bytes from input stream
+      if n is None:
+        return self.input_stream.read()
+      else:
+        return self.input_stream.read(n)
 
     def flush(self):
         """ Flush output stream.
         """
-        self.fcgreq.flush_out()
+	self.wsgi_output(''.join(self.output_buffer))
+	self.output_buffer = []
 
     def finish(self, had_error=False, dont_do_db=False):
 	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
-        """ Call finish method of FastCGI request to finish handling
+        """ Call finish method of WSGI request to finish handling
             of this request.
         """
-        self.fcgreq.finish()
+	# we return a list as per the WSGI spec
+        return self.output_buffer
 
 
     #############################################################################
@@ -1323,26 +721,12 @@ class RequestFastCGI(RequestBase):
     def http_headers(self, more_headers=[]):
         """ Send out HTTP headers. Possibly set a default content-type.
         """
-        if self.sent_headers:
-            #self.write("Headers already sent!!!\n")
-            return
-        self.sent_headers = 1
-        have_ct = 0
+        # send http headers and get the write callable
+	all_headers = more_headers + self.user_headers
+	if not all_headers:
+	  all_headers = [("Content-Type", "text/html")]
 
-        # send http headers
-        for header in more_headers + self.user_headers:
-            if header.lower().startswith("content-type:"):
-                # don't send content-type multiple times!
-                if have_ct: continue
-                have_ct = 1
-            self.write(header, '\r\n')
+	if not self.status:
+	  self.status = '200 OK'
 
-        if not have_ct:
-            self.write("Content-type: text/html;charset=%s\r\n" % config.charset)
-
-        self.write('\r\n')
-
-        #from pprint import pformat
-        #sys.stderr.write(pformat(more_headers))
-        #sys.stderr.write(pformat(self.user_headers))
-
+	self.wsgi_output = self.start_response(self.status, all_headers)

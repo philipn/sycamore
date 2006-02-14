@@ -99,7 +99,8 @@ def findMatches(pagename, request,
             matches[pagemap[anypage]] = 8
 
     for pagename in matches.keys():
-        if not request.user.may.read(pagename):
+        page = Page(pagename, request)
+        if not request.user.may.read(page):
             del matches[pagename]
 
     return start, end, matches

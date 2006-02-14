@@ -17,7 +17,7 @@ def execute(pagename, request):
 
     # be extra paranoid
     if actname in config.excluded_actions or \
-        not request.user.may.edit(pagename):
+        not request.user.may.edit(page):
             msg = _('You are not allowed to edit this page. (An account is needed in most cases)')
     # check to make sure the comment macro is in the page
     

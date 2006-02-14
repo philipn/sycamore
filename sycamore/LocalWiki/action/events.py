@@ -3,6 +3,7 @@ import time,string
 import os
 from LocalWiki import config, user, util, wikiutil, wikidb
 from LocalWiki.PageEditor import PageEditor
+from LocalWiki.Page import Page
 import xml.dom.minidom
 
 creator_text = 'The %s Robot' % config.sitename
@@ -53,7 +54,7 @@ def execute(pagename, request):
 
     # check whether the user filled out the form
     elif request.form.has_key('uid') and request.form.has_key('del'):
-        if request.form.get('del')[0] == "1" and request.user.may.admin("Events Board"):
+        if request.form.get('del')[0] == "1" and request.user.may.admin(Page("Events Board", request)):
 	    # let's try and delete the event!
 	    uid = request.form.get('uid')[0]
 	    request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})

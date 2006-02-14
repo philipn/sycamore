@@ -174,7 +174,8 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
         data_line = (t.readline()).strip('\n')
         j = 0
         while (len(title_hits) != twith+1 and percent_line and data_line):
-                if request.user.may.read(data_line) and Page(data_line, request).exists():
+		page = Page(data_line, request)
+                if request.user.may.read(page) and page.exists():
                         title_hits.append(data_line)
                 else:
                         tcount = tcount + 1
@@ -199,7 +200,8 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
     readable = 0
     while (len(full_hits) != pwith+1 and percent_line and pagename_line and data_line):
         name = pagename_line.strip('\n')
-        if request.user.may.read(wikiutil.unquoteWikiname(name)) and Page(wikiutil.unquoteWikiname(name), request).exists():
+	page = Page(wikiutil.unquoteWikiname(name), request)
+        if request.user.may.read(page) and page.exists():
                 full_hits.append((name,int(string.replace(percent_line, "%", " ").strip()), data_line))
         else:
                 count = count + 1
@@ -318,16 +320,16 @@ def do_titlesearch(pagename, request, fieldname='value'):
         needle_re = re.compile(needle, re.IGNORECASE)
     except re.error:
         needle_re = re.compile(re.escape(needle), re.IGNORECASE)
-    all_pages = wikiutil.getPageList(request)
+    all_pages = wikiutil.getPageList(request, alphabetize=True)
     hits = filter(needle_re.search, all_pages)
-    hits.sort()
 
+    hits = [Page(hit, request) for hit in hits]
     hits = filter(request.user.may.read, hits)
 
     request.write('<div id="content">\n') # start content div
     request.write('<ul>')
-    for filename in hits:
-        request.write('<li>%s</li>' % Page(filename, request).link_to())
+    for page in hits:
+        request.write('<li>%s</li>' % page.link_to())
     request.write('</ul>')
 
     print_search_stats(request, len(hits), len(all_pages), start)
@@ -388,8 +390,9 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
         or date1 and date2 parameters
     """
     l = []
-    if not request.user.may.read(pagename):
-        Page(pagename, request).send_page()
+    page = Page(pagename, request)
+    if not request.user.may.read(page):
+        page.send_page()
         return
 
     # version numbers
@@ -535,7 +538,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 def do_info(pagename, request):
     page = Page(pagename, request)
 
-    if not request.user.may.read(pagename):
+    if not request.user.may.read(page):
         page.send_page()
         return
 
@@ -645,7 +648,7 @@ def do_info(pagename, request):
 	else:
 	   # so they see a consistent version of the page between page forward/back
 	   offset = offset_given*100 - offset_given
-        may_revert = request.user.may.revert(pagename)
+        may_revert = request.user.may.revert(page)
 	request.cursor.execute("SELECT count(editTime) from allPages where name=%(pagename)s", {'pagename':pagename})
 	count_result = request.cursor.fetchone()
 	if count_result: versions = count_result[0]
@@ -783,8 +786,9 @@ def do_info(pagename, request):
 
 def do_recall(pagename, request):
     # We must check if the current page has different ACLs.
-    if not request.user.may.read(pagename):
-        Page(pagename, request).send_page()
+    page = Page(pagename, request)
+    if not request.user.may.read(page):
+        page.send_page()
         return
     if request.form.has_key('date'):
         Page(pagename, request, prev_date=request.form['date'][0]).send_page()
@@ -824,9 +828,10 @@ def do_content(pagename, request):
 
 
 def do_edit(pagename, request):
-    if not request.user.may.edit(pagename):
+    page = Page(pagename, request)
+    if not request.user.may.edit(page):
         _ = request.getText
-        Page(pagename, request).send_page(
+        page.send_page(
             msg = _('You are not allowed to edit this page.'))
         return
     from LocalWiki.PageEditor import PageEditor
@@ -843,9 +848,9 @@ def isValidPageName(name):
 def do_revert(pagename, request):
     from LocalWiki.PageEditor import PageEditor
     _ = request.getText
-
-    if not request.user.may.revert(pagename):
-        return Page(pagename, request).send_page(
+    page = Page(pagename, request)
+    if not request.user.may.revert(page):
+        return page.send_page(
             msg = _('You are not allowed to revert this page!'))
 
     if request.form.has_key('version'):
@@ -869,6 +874,9 @@ def do_revert(pagename, request):
     except pg.SaveError:
         savemsg = _("An error occurred while reverting the page.")
     request.reset()
+
+    # clear req cache so user sees proper page state (exist)
+    request.req_cache['pagenames'][pagename] = pagename
     pg.send_page(msg=savemsg)
     return None
 
@@ -877,8 +885,9 @@ def do_savepage(pagename, request):
 
     _ = request.getText
 
-    if not request.user.may.edit(pagename):
-        Page(pagename, request).send_page(
+    page = Page(pagename, request)
+    if not request.user.may.edit(page):
+        page.send_page(
             msg = _('You are not allowed to edit this page.'))
         return
 
@@ -956,7 +965,10 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         backto = request.form.get('backto', [None])[0]
         if backto:
             pg = Page(backto, request)
-        pg.send_page(msg=savemsg)
+
+	# clear request cache so that the user sees the page as existing
+	request.req_cache['pagenames'][pagename] = pagename
+        pg.send_page(msg=savemsg, send_headers=False)
         request.http_redirect(pg.url())
 
 def do_favorite(pagename, request):
@@ -965,13 +977,14 @@ def do_favorite(pagename, request):
     """ 
     _ = request.getText
 
+    page = Page(pagename, request)
     if request.form.has_key('delete'):
        removed_pagename = wikiutil.unquoteWikiname(request.form.get('delete')[0])
        request.user.favorites = request.user.getFavorites()
        request.user.delFavorite(removed_pagename)
        msg = _("Page '%s' removed from Bookmarks" % removed_pagename)
 
-    elif not request.user.may.read(pagename):
+    elif not request.user.may.read(page):
         msg = _("You are not allowed to bookmark a page you can't read.")
         
     # check whether the user has a profile
@@ -997,7 +1010,8 @@ def do_subscribe(pagename, request):
     """
     _ = request.getText
 
-    if not request.user.may.read(pagename):
+    page = Page(pagename, request)
+    if not request.user.may.read(page):
         msg = _("You are not allowed to subscribe to a page you can't read.")
 
     # check config
@@ -1090,8 +1104,9 @@ def do_formtest(pagename, request):
 #############################################################################
 
 def do_raw(pagename, request):
-    if not request.user.may.read(pagename):
-        Page(pagename, request).send_page()
+    page = Page(pagename, request)
+    if not request.user.may.read(page):
+        page.send_page()
         return
 
     request.http_headers(["Content-type: text/plain;charset=%s" % config.charset])
@@ -1132,13 +1147,6 @@ def do_format(pagename, request):
     Page(pagename, request, formatter = Formatter(request)).send_page()
     raise LocalWikiNoFooter
 
-
-def do_chart(pagename, request):
-    if request.user.may.read(pagename):
-        chart_type = request.form['type'][0]
-        func = pysupport.importName("LocalWiki.stats." + chart_type, "draw")
-        func(pagename, request)
-    raise LocalWikiNoFooter
 
 
 def do_dumpform(pagename, request):

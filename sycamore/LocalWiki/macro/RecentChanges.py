@@ -278,6 +278,9 @@ def execute(macro, args, formatter=None, **kw):
     pagename = request.getPathinfo()[1:]
     d['q_page_name'] = wikiutil.quoteWikiname(pagename)
 
+    # flush output because getting all the changes may take a while in some cases
+    request.flush()
+
     lines = wikidb.getRecentChanges(request, max_days=7)
 
     tnow = time.time()
@@ -350,7 +353,8 @@ def execute(macro, args, formatter=None, **kw):
     day_count = 0
 
     for line in lines:
-        if not request.user.may.read(line.pagename):
+        line.page = Page(line.pagename, macro.request)
+        if not request.user.may.read(line.page):
             continue
 
         line.time_tuple = request.user.getTime(line.ed_time)

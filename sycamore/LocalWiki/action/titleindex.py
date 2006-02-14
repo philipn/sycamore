@@ -11,6 +11,7 @@
 """
 
 from LocalWiki import config, util, wikiutil
+from LocalWiki.Page import Page
 
 
 def execute(pagename, request):
@@ -24,9 +25,9 @@ def execute(pagename, request):
 
     request.http_headers(["Content-Type: " + mimetype])
 
-    pages = list(wikiutil.getPageList(request.cursor))
-    pages.sort()
+    pages = wikiutil.getPageList(request, alphabetize=true)
 
+    pages = [Page(pagename, request) for pagename in pages]
     pages = filter(request.user.may.read, pages)
 
     if mimetype == "text/xml":

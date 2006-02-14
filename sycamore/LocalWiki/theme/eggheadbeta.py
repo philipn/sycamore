@@ -5,7 +5,7 @@
 from LocalWiki.Page import Page
 from LocalWiki import config, wikiutil
 from classic import Theme as ThemeBase
-import string
+import string, psyco
 
 class Theme(ThemeBase):
     """ here are the functions generating the html responsible for
@@ -32,7 +32,6 @@ class Theme(ThemeBase):
       ThemeBase.__init__(self, request)
       self.icons['www'] = ("[WWW]", "localwiki-www.png", 14, 11)
 
-
     # Header stuff #######################################################
 
     def banner(self,d):
@@ -46,7 +45,7 @@ class Theme(ThemeBase):
             html = ['&nbsp;<a href="%(script_name)s">' % d]
         else:
             html = ['&nbsp;<a href="%s/Front_Page">' % self.request.getScriptname()]
-        html.append('<img align="middle" src="%s/%s" border=0 alt="wiki logo"></a>' % (config.web_dir, config.default_logo))
+        html.append('<img align="middle" src="%s/wiki/%s" border=0 alt="wiki logo"></a>' % (config.web_dir, config.default_logo))
         return ''.join(html)
 
     def new_iconbar(self, d):
@@ -58,7 +57,7 @@ class Theme(ThemeBase):
 	     """ % (self.editicon(d), self.infoicon(d), self.talkicon(d), self.mapicon(d))
 
     def editicon(self,d):
-      editable = self.request.user.may.edit(d['page_name']) and d['page'].isWritable()
+      editable = self.request.user.may.edit(d['page'])
       if editable:
         return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
 	   '<img class="borderless" src="%s" hspace="8" alt="edit"/><br/>Edit'
@@ -91,7 +90,7 @@ class Theme(ThemeBase):
 	      % self.img_url('talk.png')))
 	  else:
 	    # if the viewer can't edit the talk page, let's spare them from looking at a useless link to an empty page:
-	    if not self.request.user.may.edit(talk_page.page_name):
+	    if not self.request.user.may.edit(talk_page):
 	      return ''
 	    return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
 	     '<img class="borderless" src="%s" hspace="8" alt="talk"/><br/>Talk'
@@ -356,14 +355,12 @@ class Theme(ThemeBase):
         _ = self.request.getText
         html = []
         if keywords.get('editable', 1):
-            editable = self.request.user.may.edit(d['page_name']) and d['page'].isWritable()
+            editable = self.request.user.may.edit(d['page'])
 	    if editable:
 	      d['last_edit_info'] = d['page'].last_modified_str()
 	    else: d['last_edit_info'] = ''
 
-            html.append('<script language="JavaScript" type="text/javascript">\nvar donate2=new Image();donate2.src="%s";var donate=new Image();donate.src="%s";</script>' % (self.img_url('donate2.png'), self.img_url('donate.png')))
-            html.append('<div id="footer">')
-            html.append('<table width="100%%" border="0" cellspacing="0" cellpadding="0"><tr>')
+            html.append('<script language="JavaScript" type="text/javascript">\nvar donate2=new Image();donate2.src="%s";var donate=new Image();donate.src="%s";</script><div id="footer"><table width="100%%" border="0" cellspacing="0" cellpadding="0"><tr>' % (self.img_url('donate2.png'), self.img_url('donate.png')))
 	    # noedit is a keyword that tells us if we are in an area where an edit link just logically makes no sense, such as the info tab.
 	    if not keywords.get('noedit'):
 	      if editable:
@@ -386,16 +383,14 @@ class Theme(ThemeBase):
 	    if not keywords.get('noedit'):
               license_text = """
 <!-- Creative Commons Licence --><font style="font-size:9px;">Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Creative Commons License</a>.  See %s.</font><!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/2.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/2.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->
-""" % (Page("Copyrights", self.request).link_to())
+""" % (Page("Copyrights", self.request).link_to(know_status=True, know_status_exists=True))
 	    else:
 	      license_text = """
 <!-- Creative Commons Licence --><font style="font-size:9px;">Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Creative Commons License</a>.  See %s.</font><!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/2.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/2.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->
-""" % (Page("Copyrights", self.request).link_to())
-
+""" % (Page("Copyrights", self.request).link_to(know_status=True, know_status_exists=True))
 	
             cc_button = '<a href="http://creativecommons.org/licenses/by/2.0/"><img alt="Creative Commons License" border="0" src="%s"/></a>' % self.img_url('cc.png')
-            html.append('<td align="center" valign="middle">%s</td><td align="center" valign="middle" width="190px">%s %s</td></tr></table></div>' % (license_text, cc_button, wikiutil.link_tag(self.request, 'Donate', _('<img name="rollover" onMouseOver="document.rollover.src=donate2.src;" onMouseOut="document.rollover.src=donate.src;" src="%s" border="0" alt="donate"/>' % self.img_url('donate.png')))))
-            html.append('<br/>')
+            html.append('<td align="center" valign="middle">%s</td><td align="center" valign="middle" width="190px">%s %s</td></tr></table></div><br>' % (license_text, cc_button, wikiutil.link_tag(self.request, 'Donate', _('<img name="rollover" onMouseOver="document.rollover.src=donate2.src;" onMouseOut="document.rollover.src=donate.src;" src="%s" border="0" alt="donate"/>' % self.img_url('donate.png')))))
         return ''.join(html)
         
     #def info_link(self, d):
@@ -436,13 +431,13 @@ class Theme(ThemeBase):
 	if dict['newtitle'] is config.catchphrase: 
         	html = """
 <title>%(sitename)s - %(newtitle)s</title><script
-src="%(web_dir)s/utils.js" type="text/javascript"></script>
+src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 %(stylesheets_html)s
 		""" % dict
 	else:
                 html = """
 <title>%(newtitle)s - %(sitename)s</title><script
-src="%(web_dir)s/utils.js" type="text/javascript"></script>
+src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 %(stylesheets_html)s
                 """ % dict	
 
@@ -461,7 +456,7 @@ src="%(web_dir)s/utils.js" type="text/javascript"></script>
            self.showapplet = True
         apphtml = ''
         if self.showapplet:
-           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/map.jar, %s/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, d['script_name'], d['title_text'], d['script_name'])
+           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, d['script_name'], d['title_text'], d['script_name'])
         dict = {
             'config_header1_html': self.emit_custom_html(config.page_header1),
             'config_header2_html': self.emit_custom_html(config.page_header2),
@@ -563,27 +558,12 @@ src="%(web_dir)s/utils.js" type="text/javascript"></script>
         @rtype: string
         @return: page footer html
         """
-        dict = {
-            'config_page_footer1_html': self.emit_custom_html(config.page_footer1),
-            'config_page_footer2_html': self.emit_custom_html(config.page_footer2),
-            'showtext_html': self.showtext_link(d, **keywords),
-            'edittext_html': self.edittext_link(d, **keywords),
-            'version_html': self.showversion(d, **keywords),
-            'footer_fragments_html': self.footer_fragments(d, **keywords),
-        }
-
-        dict.update(d)
-        
-        html = """
-%(edittext_html)s
-%(version_html)s
-""" % dict
 
 	# I guess this is probably the best place for this now
 	self.request.user.checkFavorites(d['page_name'])
 
-        return html
-
+	return self.edittext_link(d, **keywords)
+        
 def execute(request):
     """
     Generate and return a theme object

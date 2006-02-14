@@ -11,13 +11,12 @@ import cStringIO, os, re, urllib, os.path, random
 from LocalWiki import config, user, util, wikiutil, wikidb 
 import cPickle
 #import LocalWiki.util.web
+import psyco
 
-class Page:
+class Page(object):
     """Page - Manage an (immutable) page associated with a WikiName.
        To change a page's content, use the PageEditor class.
     """
-
-    _SPLIT_RE = re.compile('([%s])([%s])' % (config.lowerletters, config.upperletters))
 
     def __init__(self, page_name, request, **keywords):
         """
@@ -62,11 +61,6 @@ class Page:
         else:
             self.default_formatter = 1
 
- 	if keywords.has_key('req_cache'):
-	  self.req_cache = keywords.get('req_cache')
-	else:
-	  self.req_cache = {}
-
     def get_date(self):
       # returns date this page/verison was created
       if self.version and not self.date:
@@ -99,25 +93,6 @@ class Page:
         result = self.cursor.fetchone()
         return result[0]
 
-    def split_title(self, force=0):
-        """
-        Return a string with the page name split by spaces, if
-        the user wants that.
-        
-        @param request: the request object
-        @param force: if != 0, then force splitting the page_name
-        @rtype: string
-        @return: pagename of this page, splitted into space separated words
-        """
-        if not force: return self.page_name
-    
-        # look for the end of words and the start of a new word,
-        # and insert a space there
-        splitted = self._SPLIT_RE.sub(r'\1 \2', self.page_name)
-        # also split at subpage separator
-        return splitted.replace("/", "/ ")
-
-
     def _tmp_filename(self):
         """
         The name of the temporary file used while saving.
@@ -141,7 +116,7 @@ class Page:
          return self.request.req_cache['last_edit_info'][self.page_name] 
        # check memcache
        if config.memcache:
-         edit_info = self.request.mc.get("last_edit_info:%s" % wikiutil.quoteFilename(self.page_name))
+         edit_info = self.request.mc.get("last_edit_info:%s" % wikiutil.quoteFilename(self.page_name.lower()))
 	 if edit_info:
 	   self.request.req_cache['last_edit_info'][self.page_name] = edit_info
 	   return edit_info
@@ -153,7 +128,7 @@ class Page:
        edit_info = (editTimeUnix, editUserID)
        self.request.req_cache['last_edit_info'][self.page_name] = edit_info
        if config.memcache:
-         self.request.mc.add("last_edit_info:%s" % wikiutil.quoteFilename(self.page_name), edit_info)
+         self.request.mc.add("last_edit_info:%s" % wikiutil.quoteFilename(self.page_name.lower()), edit_info)
 
        return edit_info
 
@@ -186,16 +161,6 @@ class Page:
             }
 
         return result
-
-
-    def isWritable(self):
-        """
-        Can this page be changed?
-        
-        @rtype: bool
-        @return: true, if this page is writable or does not exist
-        """
-	return True #for now...
 
 
     def exists(self):
@@ -325,7 +290,7 @@ class Page:
       if self.request.req_cache['meta_text'].has_key((self.page_name, self.mtime())):
         return self.request.req_cache['meta_text'][(self.page_name, self.mtime())]
       if config.memcache:
-        meta_text = self.request.mc.get("meta_text:%s,%s" % (wikiutil.quoteFilename(self.page_name), repr(self.mtime())))
+        meta_text = self.request.mc.get("meta_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.mtime())))
         if meta_text is not None:
 	  self.request.req_cache['meta_text'][(self.page_name, self.mtime())] = meta_text
 	  return meta_text
@@ -341,7 +306,7 @@ class Page:
 
       self.request.req_cache['meta_text'][(self.page_name, self.mtime())] = meta_text
       if config.memcache:
-        self.request.mc.add("meta_text:%s,%s" % (wikiutil.quoteFilename(self.page_name), repr(self.mtime())), meta_text)
+        self.request.mc.add("meta_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.mtime())), meta_text)
 
       return meta_text
         
@@ -357,7 +322,7 @@ class Page:
         if self._raw_body is None:
 	  if not self.prev_date:
 	    if config.memcache:
-	      text = self.request.mc.get("page_text:%s" % (wikiutil.quoteFilename(self.page_name)))
+	      text = self.request.mc.get("page_text:%s" % (wikiutil.quoteFilename(self.page_name.lower())))
 
 	    if not text:
 	      self.cursor.execute("SELECT text from curPages where name=%(page_name)s", {'page_name':self.page_name})
@@ -365,17 +330,17 @@ class Page:
 	      if result: text = result[0]
 	      else: text = ''
 	      if config.memcache:
-	        self.request.mc.add("page_text:%s" % wikiutil.quoteFilename(self.page_name), text)
+	        self.request.mc.add("page_text:%s" % wikiutil.quoteFilename(self.page_name.lower()), text)
 	  else:
 	    if config.memcache:
-	      text = self.request.mc.get("text:%s,%s" % (wikiutil.quoteFilename(self.page_name), repr(self.prev_date)))
+	      text = self.request.mc.get("text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.prev_date)))
 	    if not text:
 	      self.cursor.execute("SELECT text, editTime from allPages where (name=%(page_name)s and editTime<=%(prev_date)s) order by editTime desc limit 1", {'page_name':self.page_name, 'prev_date':self.prev_date})
 	      result = self.cursor.fetchone()
 	      if result: text = result[0]
 	      else: text = ''
 	      if config.memcache:
-	        self.request.mc.add("page_text:%s,%s" % (wikiutil.quoteFilename(self.page_name), repr(self.prev_date)), text)
+	        self.request.mc.add("page_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.prev_date)), text)
             
           self.set_raw_body(text)
 
@@ -681,7 +646,7 @@ class Page:
         # new page?
         if not self.exists() and not content_only and not self.prev_date:
             self._emptyPageText()
-        elif not request.user.may.read(self.page_name):
+        elif not request.user.may.read(self):
             request.write("<strong>%s</strong><br>" % _("You are not allowed to view this page."))
         else:
             # parse the text and send the page content
@@ -803,13 +768,12 @@ class Page:
         formatter = self.formatter
         parser = Parser(body, request)
         macro_obj = wikimacro.Macro(parser)
-
         try:
             exec code
         except 'CacheNeedsUpdate': # if something goes wrong, try without caching
-	   body = self.get_raw_body()
-           self.send_page_content(Parser, body, needsupdate=1)
-           cache = caching.CacheEntry(key, request)
+	    body = self.get_raw_body()
+            self.send_page_content(Parser, body, needsupdate=1)
+            cache = caching.CacheEntry(key, request)
             
 
     def _emptyPageText(self):

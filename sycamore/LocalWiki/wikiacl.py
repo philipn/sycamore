@@ -123,6 +123,7 @@ class AccessControlList:
            This can be used in multiple subsequent calls
            to process longer lists.
         """
+	global GROUPRE
         if remember:
             self.acl_lines.append(aclstring)
         for ac in aclstring.strip().split():

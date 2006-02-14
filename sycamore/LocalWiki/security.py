@@ -29,26 +29,24 @@ class Permissions:
     def __init__(self, user):
         """ Calculate the permissons `user` has.
         """
-        from LocalWiki.Page import Page
-        self.Page = Page
         self.name = user.name
         self.request = user.request
 
-    def read(self, pagename, **kw):
+    def read(self, page, **kw):
         """ Check whether user may read this page.
 
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(pagename).may(self.request, self.name, "read")
+        return self.getACL(page).may(self.request, self.name, "read")
 
-    def edit(self, pagename, **kw):
+    def edit(self, page, **kw):
         """ Check whether user may edit this page.
 
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(pagename).may(self.request, self.name, "write")
+        return self.getACL(page).may(self.request, self.name, "write")
 
     def save(self, editor, newtext, datestamp, **kw):
         """ Check whether user may save a page.
@@ -60,23 +58,23 @@ class Permissions:
             to edit any pages.") is a bit misleading, this will be fixed
             if we add policy-specific msgs.
         """
-        return self.edit(editor.page_name)
+        return self.edit(editor)
 
-    def delete(self, pagename, **kw):
+    def delete(self, page, **kw):
         """ Check whether user may delete this page.
 
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(pagename).may(self.request, self.name, "delete")
+        return self.getACL(page).may(self.request, self.name, "delete")
 
-    def revert(self, pagename, **kw):
+    def revert(self, page, **kw):
         """ Check whether user may revert this page.
 
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(pagename).may(self.request, self.name, "revert")
+        return self.getACL(page).may(self.request, self.name, "revert")
 
     def admin(self, pagename, **kw):
         """ Check whether user may administrate this page.
@@ -84,10 +82,10 @@ class Permissions:
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(pagename).may(self.request, self.name, "admin")
+        return self.getACL(page).may(self.request, self.name, "admin")
 
-    def getACL(self, pagename, **kw):
-        return self.Page(pagename, self.request).getACL()
+    def getACL(self, page, **kw):
+        return page.getACL()
 
 # make an alias for the default policy
 Default = Permissions
