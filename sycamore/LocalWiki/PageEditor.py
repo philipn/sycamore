@@ -138,7 +138,7 @@ class PageEditor(Page):
 
         form = self.request.form
         _ = self._
-        self.request.http_headers(self.request.nocache)
+        self.request.http_headers([("Content-Type", "text/html")] + self.request.nocache)
         msg = None
         edit_lock_message = None
         preview = kw.get('preview', None)
@@ -495,6 +495,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	from LocalWiki import caching
 	cache = caching.CacheEntry(self.page_name, self.request)
 	cache.clear()
+	self.request.req_cache['pagenames'][self.page_name] = False
 
 	# remove entry from the search databases
 	os.spawnl(os.P_WAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', '%s' % wikiutil.quoteFilename(self.page_name))

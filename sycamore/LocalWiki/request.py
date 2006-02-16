@@ -89,7 +89,7 @@ class RequestBase(object):
         self.mode_getpagelinks = 0
         self.no_closing_html_code = 0
 
-        self.sent_headers = 0
+        self.sent_headers = False
         self.user_headers = []
 	self.status = ''
 	self.output_buffer = []
@@ -468,6 +468,7 @@ class RequestBase(object):
                     query = wikiutil.unquoteWikiname(self.query_string) or \
                         wikiutil.getSysPage(self, config.page_front_page).page_name
 
+		self.http_headers()
                 Page(query, self).send_page(count_hit=1)
 
             # generate page footer
@@ -680,6 +681,7 @@ class RequestWSGI(RequestBase):
         """ Call finish method of WSGI request to finish handling
             of this request.
         """
+	if not self.sent_headers: self.http_headers()
 	# we return a list as per the WSGI spec
         return self.output_buffer
 
@@ -730,3 +732,4 @@ class RequestWSGI(RequestBase):
 	  self.status = '200 OK'
 
 	self.wsgi_output = self.start_response(self.status, all_headers)
+	self.sent_headers = True

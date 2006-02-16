@@ -23,13 +23,13 @@ def execute(pagename, request):
     if actname in config.excluded_actions \
             or not request.user.may.edit(page) \
             or not request.user.may.delete(page):
-        return page.send_page(request,
+        return page.send_page(
             msg = _('You are not allowed to delete this page.'))
 
 
     # check whether page exists at all
     if not page.exists():
-        return page.send_page(request,
+        return page.send_page(
             msg = _('This page is already deleted or was never created!'))
 
     # check whether the user clicked the delete button
@@ -37,21 +37,21 @@ def execute(pagename, request):
         # check whether this is a valid deletion request (make outside
         # attacks harder by requiring two full HTTP transactions)
         if not _checkTicket(request.form['ticket'][0]):
-            return page.send_page(request,
+            return page.send_page(
                 msg = _('Please use the interactive user interface to delete pages!'))
 
         # Delete the page
         page.deletePage(request.form.get('comment', [''])[0])
 
-        return page.send_page(request,
+        return page.send_page(
                 msg = _('Page "%s" was successfully deleted!') % (pagename,))
 
     # send deletion form
-    url = page.url(request)
+    url = page.url()
     ticket = _createTicket()
     querytext = _('Really delete this page?')
     button = _('Delete')
-    comment_label = _("Optional reason for the deletion")
+    comment_label = _("Reason for deletion")
     formhtml = """
 <form method="GET" action="%(url)s">
 <strong>%(querytext)s</strong>
@@ -70,7 +70,7 @@ def execute(pagename, request):
     'comment_label': comment_label,
 }
 
-    return page.send_page(request, msg=formhtml)
+    return page.send_page(msg=formhtml)
 
 
 def _createTicket(tm = None):

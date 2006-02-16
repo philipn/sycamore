@@ -114,7 +114,7 @@ class UserSettingsHandler(object):
                     #uid = cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value
 		    cookie_dir = config.web_dir
 	   	    if not cookie_dir: cookie_dir = '/'
-                    self.request.setHttpHeader('Set-Cookie: %s=%s; expires=Tuesday, 01-Jan-1999 12:00:00 GMT;host=%s;Path=%s' % (wikiutil.quoteFilename(config.sitename)+'ID', cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value,config.domain, cookie_dir))
+                    self.request.setHttpHeader(('Set-Cookie','%s=%s; expires=Tuesday, 01-Jan-1999 12:00:00 GMT;host=%s;Path=%s' % (wikiutil.quoteFilename(config.sitename)+'ID', cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value,config.domain, cookie_dir)))
             self.request.saved_cookie = ''
             self.request.auth_username = ''
             self.request.user = user.User(self.request)

@@ -49,4 +49,4 @@ def execute(pagename, request):
 	      msg = _('Your comment has been added.')
 	
 
-    return page.send_page(request, msg )
+    return page.send_page(msg)

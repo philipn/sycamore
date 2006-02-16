@@ -573,7 +573,7 @@ class Page(object):
         doc_leader = self.formatter.startDocument(self.page_name)
         if not content_only:
             # send the document leader
-            request.http_headers()
+            #request.http_headers()
             request.write(doc_leader)
 
             # send the page header

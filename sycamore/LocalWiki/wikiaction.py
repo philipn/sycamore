@@ -1,4 +1,5 @@
 # -*- coding: iso-8859-1 -*-
+
 """
     LocalWiki - Action Handlers
 
@@ -337,34 +338,6 @@ def do_titlesearch(pagename, request, fieldname='value'):
     wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
 
 
-def do_inlinesearch(pagename, request):
-    text_title = request.form.get('text_title', [''])[0]
-    text_full = request.form.get('text_full', [''])[0]
-    
-    if request.form.has_key('button_title.x'):
-        if request.form['button_title.x'][0] == "0" and \
-                text_full and not text_title:
-            search = 'full'
-        else:
-            search = 'title'
-    elif request.form.has_key('button_full.x'):
-        search = 'full'
-    elif request.form.has_key('button_new.x'):
-        search = 'new'
-    elif request.form.has_key('text_full'):
-        search = 'full'
-    else:
-        search = 'title'
-
-    globals()["do_%ssearch" % search](pagename, request, fieldname = "text_" + search)
-
-def print_search_stats(request, hits, start):
-    _ = request.getText
-    request.write("<p>%s %s</p>" % (
-        _("%(hits)d hits.") % {'hits': hits},
-        _("Needed %(timer).1f seconds.") % {'timer': time.clock() - start + 0.05}))
-
-
 def do_highlight(pagename, request):
     if request.form.has_key('value'):
         needle = request.form["value"][0]
@@ -539,6 +512,7 @@ def do_info(pagename, request):
     page = Page(pagename, request)
 
     if not request.user.may.read(page):
+    	request.http_headers()
         page.send_page()
         return
 
@@ -587,7 +561,7 @@ def do_info(pagename, request):
         # show links
         links_from_page = page.getPageLinks(request)
         if links_from_page:
-            request.write('<p>', _('This page links to the following pages:'), '<br>')
+            request.write('<p>%s<br>' % _('This page links to the following pages:'))
             for linkedpage in links_from_page:
                 request.write("%s%s " % (Page(linkedpage, request).link_to(), ",."[linkedpage == links_from_page[-1]]))
             request.write("</p>")
@@ -595,7 +569,7 @@ def do_info(pagename, request):
 
 	links_to_page = page.getPageLinksTo()
         if links_to_page:
-            request.write('<p>', _('The following pages link to this page:'), '<br>')
+            request.write('<p>%s<br>' % _('The following pages link to this page:'))
             for linkingpage in links_to_page:
                 request.write("%s%s " % (Page(linkingpage, request).link_to(), ",."[linkingpage == links_to_page[-1]]))
             request.write("</p>")
@@ -758,7 +732,7 @@ def do_info(pagename, request):
           request.write('</div>')
           request.write('\n</form>\n')
 	else:
-	  request.write('<p>This page has no revision history.  This is probably because the page was never created.</p>')
+	  request.write('<p>This page has no revision history.  This is probably because the page was never created.</p></div>')
 
 
     _ = request.getText
@@ -843,42 +817,6 @@ def do_edit(pagename, request):
 
 def isValidPageName(name):
     return not re.search('[^A-Za-z\-0-9 $&\.\,:;/\'\!\(\)]',name)
-
-
-def do_revert(pagename, request):
-    from LocalWiki.PageEditor import PageEditor
-    _ = request.getText
-    page = Page(pagename, request)
-    if not request.user.may.revert(page):
-        return page.send_page(
-            msg = _('You are not allowed to revert this page!'))
-
-    if request.form.has_key('version'):
-      version = int(request.form['version'][0])
-      oldpg = Page(pagename, request, version=version)
-      date = oldpg.prev_date
-      comment = 'v' + str(version)
-    elif request.form.has_key('date'):
-      date = request.form['date'][0]
-      oldpg = Page(pagename, request, prev_date=date)
-      version = oldpg.date_to_version_number(date)
-      comment = date
-    else:
-      return
-      
-    pg = PageEditor(pagename, request)
-
-    try:
-        savemsg = pg.saveText(oldpg.get_raw_body(), '0',
-            stripspaces=0, notify=1, comment=comment, action="SAVE/REVERT")
-    except pg.SaveError:
-        savemsg = _("An error occurred while reverting the page.")
-    request.reset()
-
-    # clear req cache so user sees proper page state (exist)
-    request.req_cache['pagenames'][pagename] = pagename
-    pg.send_page(msg=savemsg)
-    return None
 
 def do_savepage(pagename, request):
     from LocalWiki.PageEditor import PageEditor
@@ -969,7 +907,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	# clear request cache so that the user sees the page as existing
 	request.req_cache['pagenames'][pagename] = pagename
         pg.send_page(msg=savemsg, send_headers=False)
-        request.http_redirect(pg.url())
+        #request.http_redirect(pg.url())
 
 def do_favorite(pagename, request):
     """ Add the current wiki page to the favorites list in the user's
@@ -1046,9 +984,9 @@ def do_subscribe(pagename, request):
 
 def do_userform(pagename, request):
     from LocalWiki import userform
-    savemsg = userform.savedata(request)
+    savemsg = userform.savedata(request) # we end up sending cookie headers here..possibly
+    request.setHttpHeader(("Content-Type", "text/html"))
     Page(pagename, request).send_page(msg=savemsg)
-
 
 def do_bookmark(pagename, request):
     if request.form.has_key('time'):
@@ -1109,7 +1047,7 @@ def do_raw(pagename, request):
         page.send_page()
         return
 
-    request.http_headers(["Content-type: text/plain;charset=%s" % config.charset])
+    request.http_headers([("Content-type", "text/plain;charset=%s" % config.charset)])
     #request.write('<html><head><meta name="robots" content="noindex,nofollow"></head>')
 
     try:
@@ -1156,44 +1094,6 @@ def do_dumpform(pagename, request):
     request.write("<html><body>%s</body></html>" % data)
     raise LocalWikiNoFooter
 
-
-def do_export(pagename, request):
-    import shutil, cStringIO
-    from LocalWiki.wikixml import wikiexport
-
-    # Protect this with ACLs, when ready!
-
-    # get parameters
-    compression = request.form.get('compression', None)
-
-    # prepare output stream
-    fileid = time.strftime("%Y-%m-%d", request.user.getTime())
-    filename = "wiki-export-%s.xml" % fileid 
-    outbuff = cStringIO.StringIO()
-    mimetype, out = 'text/xml', outbuff
-    if compression == "gzip":
-        import gzip
-        mimetype, out = 'application/x-gzip', gzip.GzipFile(
-            filename, "wb", 9, outbuff)
-        filename = filename + '.gz'
-
-    # create export document
-    export = wikiexport.WikiExport(out, public=1)
-    export.run()
-
-    # send http headers
-    headers = [
-        "Content-Type: %s" % mimetype,
-        "Content-Length: %d" % len(outbuff.getvalue()),
-    ]
-    if mimetype != 'text/xml':
-        headers.append("Content-Disposition: attachment; filename=%s" % filename)
-    request.http_headers(headers)
-
-    # copy the body
-    outbuff.reset()
-    shutil.copyfileobj(outbuff, request, 8192)
-    raise LocalWikiNoFooter
 
 
 #############################################################################

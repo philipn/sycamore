@@ -421,7 +421,8 @@ class User(object):
         cookie[wikiutil.quoteFilename(config.sitename)+'ID'] = self.id + ',' + sessionid + ',' + secret
 	cookie_dir = config.web_dir
 	if not cookie_dir: cookie_dir = '/'
-        return "%s expires=%s;host=%s;Path=%s" % (cookie.output(), expirestr, config.domain, cookie_dir)
+	cookie_value = cookie.output()[12:]  # this is stupid, but we need to send headers in tuple format..
+        return ("Set-Cookie", "%s expires=%s;host=%s;Path=%s" % (cookie_value, expirestr, config.domain, cookie_dir))
 
 
     def cookieDough(self, expiretime, now):

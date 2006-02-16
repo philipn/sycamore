@@ -489,10 +489,12 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 </div>
 <div id="title">
 <table width="100%%" border="0" cellspacing="0" cellpadding="0">
-<tr valign="middle"><td height="40" nowrap>
+<tr><td height="40" nowrap>
 %(title_html)s
-<td width="100%%" align="right">
+</td>
+<td width="100%%" align="right" valign="middle">
 %(search_form_html)s
+</td>
 </td></tr></table></div>
 %(config_header2_html)s
 %(applet_html)s
@@ -512,7 +514,6 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         @return: search form html
         """
         _ = self.request.getText
-        sitenav_pagename = wikiutil.getSysPage(self.request, 'SiteNavigation').page_name
         dict = {
             'search_title': _("Search"),
             'search_html': _("Search: %(textsearch)s&nbsp;&nbsp;") % d,

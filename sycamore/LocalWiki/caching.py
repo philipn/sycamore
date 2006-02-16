@@ -43,7 +43,7 @@ class CacheEntry:
         self.request.cursor.execute("UPDATE curPages set cachedText=%(cached_content)s, cachedTime=%(cached_time)s where name=%(key)s", {'cached_content':wikidb.dbapi.Binary(content), 'cached_time':cached_time, 'key':self.key}, isWrite=True)
 	if config.memcache:
 	  page_cache = (content, cached_time)
-	  self.request.mc.set("page_cache:%s" % wikiutil.quoteFilename(self.key), page_cache)
+	  self.request.mc.set("page_cache:%s" % wikiutil.quoteFilename(self.key.lower()), page_cache)
 	self.request.cursor.execute("DELETE from links where source_pagename=%(key)s", {'key':self.key}, isWrite=True)
 	for link in links:
 	  self.request.cursor.execute("INSERT into links values (%(key)s, %(link)s)", {'key':self.key, 'link':link}, isWrite=True)
@@ -53,7 +53,7 @@ class CacheEntry:
 	if self.request.req_cache['page_cache'].has_key(self.key):
 	  return self.request.req_cache['page_cache'][self.key]
     	if config.memcache:
-	  page_cache = self.request.mc.get("page_cache:%s" % wikiutil.quoteFilename(self.key))
+	  page_cache = self.request.mc.get("page_cache:%s" % wikiutil.quoteFilename(self.key.lower()))
 	if not page_cache:
           self.request.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(key)s", {'key':self.key})
           result = self.request.cursor.fetchone()
@@ -67,7 +67,7 @@ class CacheEntry:
 	  else:
 	    page_cache = ('', 0)
 	  if config.memcache:
-	    self.request.mc.add("page_cache:%s" % wikiutil.quoteFilename(self.key), page_cache)
+	    self.request.mc.add("page_cache:%s" % wikiutil.quoteFilename(self.key.lower()), page_cache)
 	self.request.req_cache['page_cache'][self.key] = page_cache
 
 	return page_cache

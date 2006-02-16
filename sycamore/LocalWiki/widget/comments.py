@@ -15,8 +15,16 @@ class Comment(base.Widget):
 	if self.type.find('/REVERT') != -1:
 	    # check if it's in version format (default)
 	    if self.comment[0] == 'v':
-	      version = self.comment[1:]
-	      self.comment = "Revert to version %(version)s." % {'version': version}
+	      given_comment_start = self.comment.find('c')
+	      if given_comment_start:
+	        given_comment = self.comment[given_comment_start+1:]
+		version = self.comment[1:given_comment_start]
+	      else:
+	        version = self.comment[1:]
+	      if given_comment:
+	        self.comment = "Revert to version %(version)s (%(given_comment)s)." % {'version': version, 'given_comment': given_comment}
+	      else:	
+	        self.comment = "Revert to version %s." % version
 	    else:
 	      datestamp = self.request.user.getFormattedDateTime(float(self.comment))
 	      self.comment = "Revert to version dated %(datestamp)s." % {'datestamp': datestamp}
