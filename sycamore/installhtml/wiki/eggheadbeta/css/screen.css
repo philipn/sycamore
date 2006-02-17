@@ -75,6 +75,10 @@ div.enlarge {
   font-size: 12px;
 }
 
+div.iconText {
+font-size: 7pt;
+}
+
 .caption {
   text-align: center;
   font-style: italic;
@@ -547,7 +551,7 @@ margin-bottom: 0.25em;
 }
 
 .diff {
-        width:99%;
+        width:100%;
 }
     
 .diff-title {

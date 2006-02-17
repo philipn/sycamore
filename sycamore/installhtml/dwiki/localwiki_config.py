@@ -32,7 +32,7 @@ interwikiname = None
 data_dir = abspath('data')
 
 # this is the root where, say, a href="/" resolves to (considering whther or not you have a domain)
-web_root = abspath('..')
+web_root = abspath('.')
 
 # this is what's after the url if your wiki is in a directory
 # e.g. '' for the root, and '/mywiki' if it's in directory mywiki
@@ -59,7 +59,7 @@ catchphrase = 'Your phrase here..'
 # so if you have ~/public_html/wiki/index.cgi as your wiki executable then this would be "wiki/index.cgi"
 # if there is no index.cgi then it would be "wiki"
 # this is anything after the root of where your web stuff is installed
-relative_dir = 'index.scgi'
+relative_dir = 'index.cgi'
 
 #your domain (used for cookies, etc)
 # uncomment only if you've got a domain and want cookies to work across subdomains
