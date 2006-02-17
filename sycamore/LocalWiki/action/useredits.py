@@ -33,7 +33,7 @@ def display_edits(request, userpage):
 	Column('mtime', label=_('Date'), align='right'),
 	Column('ip', label=_('From IP')),
 	Column('comment', label=_('Comment')),
-	Column('action', label=_('Action'))
+	Column('', label=_(''))
     ]
 
 
@@ -78,18 +78,9 @@ def display_edits(request, userpage):
 
 	page = Page(pagename, request)
 
-	actions = ''
-
-	actions = '%s&nbsp;%s' % (actions, page.link_to(
-		     text=_('view'),
-		     querystr='action=recall&amp;date=%s' % repr(mtime)))
-	actions = '%s&nbsp;%s' % (actions, page.link_to(
-		     text=_('raw'),
-		     querystr='action=raw&amp;date=%s' % repr(mtime)))
-	actions = '%s&nbsp;%s' % (actions, page.link_to(
-		     text=_('print'),
-		     querystr='action=print&amp;date=%s' % repr(mtime)))
-
+	version = page.date_to_version_number(mtime)
+	actions = page.link_to(text=_('show'), querystr='action=diff&amp;version2=%s&amp;version1=%s' % (version, version-1))
+		     
 	comment = Comment(request, comment, editType).render()
 
 	edits.addRow((page.link_to(),

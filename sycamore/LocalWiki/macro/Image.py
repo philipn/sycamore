@@ -34,7 +34,7 @@ def recordCaption(pagename, linked_from_pagename, image_name, caption, cursor):
    if result:
      cursor.execute("UPDATE imageCaptions set caption=%(caption)s where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s", mydict)
    else:
-     cursor.execute("INSERT into imageCaptions (attached_to_pagename, image_name, caption, linked_from_pagename) values (%(pagename)s, %(image_name)s, %(caption)s, %(linked_from_pagename)s", mydict)
+     cursor.execute("INSERT into imageCaptions values (attached_to_pagename, image_name, caption, linked_from_pagename) values (%(pagename)s, %(image_name)s, %(caption)s, %(linked_from_pagename)s", mydict)
 
 def deleteCaption(pagename, linked_from_pagename, image_name, cursor):
    cursor.execute("DELETE from imageCaptions where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s", {'pagename':pagename, 'image_name':image_name, 'linked_from_pagename':linked_from_pagename})
@@ -229,7 +229,7 @@ def execute(macro, args, formatter=None):
 
     full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&amp;do=view&amp;target=" + image_name
     # put the caption in the db if it's new and if we're not in preview mode
-    if not formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption, macro.request.cursor)
+    if not formatter.isPreview() and not formatter.name == 'text_html': touchCaption(pagename, pagename, image_name, caption, macro.request.cursor)
     if caption:
       # parse the caption string
       caption = wikiutil.wikifyString(caption, formatter.request, formatter.page, formatter=formatter)

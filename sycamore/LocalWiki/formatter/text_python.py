@@ -39,6 +39,7 @@ class Formatter:
         self.__formatter = "formatter"
         self.__parser = "parser"
         self.request = request
+	self.name = 'text_python'
         # XXX never used???
         #self.__static_macros = ['BR', 'GoTo', 'TableOfContents', 'Anchor', 'Icon']
         #self.__static_macros.extend(i18n.languages.keys())

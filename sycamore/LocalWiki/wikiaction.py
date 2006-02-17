@@ -357,7 +357,7 @@ def do_highlight(pagename, request):
 ### Misc Actions
 #############################################################################
 
-def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1=0, version2=0, diff1_date='', diff2_date=''):
+def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1=None, version2=None, diff1_date='', diff2_date=''):
     """ Handle "action=diff"
         checking for either a "date=backupdate" parameter
         or date1 and date2 parameters
@@ -370,23 +370,24 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 
     # version numbers
     try:
-        if not version1: version1 = request.form['version1'][0]
+        if version1 is None: version1 = request.form['version1'][0]
         try:
             version1 = int(version1)
         except StandardError:
-            version1 = 0
+            version1 = None
     except KeyError:
-        version1 = 0
+        version1 = None
 
     try:
-        if not version2: version2 = request.form['version2'][0]
+        if version2 is None: version2 = request.form['version2'][0]
         try:
             version2 = int(version2)
         except StandardError:
-            version2 = 0
+            version2 = None
     except KeyError:
-        version2 = 0
+        version2 = None 
 
+    
     if version1:
       if not diff1_date: diff1_date = repr(Page(pagename, request).version_number_to_date(version1))
     if version2:
@@ -413,6 +414,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
       except KeyError:
           diff2_date = '0'
 
+    
     if diff1_date == '-1' and diff2_date == '0':
         try:
             diff1_date = request.form['date'][0]
@@ -422,6 +424,18 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
                 diff1_date = '-1'
         except KeyError:
             diff1_date = '-1'
+
+	if diff1_date:
+	  version1 = page.date_to_version_number(diff1_date)
+
+    if not version1 and not version2:
+      # we are pressing 'diff' in the recent changes/etc
+      page = Page(pagename, request)
+      current_mtime = page.mtime()
+      current_version = page.date_to_version_number(current_mtime)
+      version2 = current_version
+      version1 = current_version - 1
+
   
     # spacing flag?
     try:
@@ -460,7 +474,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 	
         oldpage = Page(pagename, request, prev_date=first_olddate)
         oldcount1 = oldcount1 - 1
-    elif diff1_date == 0:
+    elif diff1_date is None:
         oldpage = Page(pagename, request)
         # oldcount1 is still on init value 0
     else:
@@ -470,7 +484,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
             oldpage = Page("$EmptyPage$", request) # XXX: ugly hack
             oldpage.set_raw_body("")    # avoid loading from db
             
-    if diff2_date == 0:
+    if diff2_date is None:
         newpage = Page(pagename, request)
         # oldcount2 is still on init value 0
     else:
@@ -484,15 +498,41 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 
     l.append('<div id="content">\n') # start content div
     l.append('<p><strong>')
+
+    old_mtime = oldpage.mtime()
+    new_mtime = newpage.mtime()
+    old_version = oldpage.get_version()
+    new_version = newpage.get_version()
+    max_mtime = max(old_mtime, new_mtime)
+    if version1:
+      min_version = min(old_version, new_version)
+      is_oldest = False
+    else: is_oldest = True
+
+    max_version = max(old_version, new_version)
+
     if version1:
       l.append(_('Differences between versions %s (%s) and %s (%s)') % (
-        oldpage.get_version(), oldpage.mtime_printable(), newpage.get_version(), newpage.mtime_printable()))
+        old_version, oldpage.mtime_printable(old_mtime), new_version, newpage.mtime_printable(new_mtime)))
     else:
       l.append(_('Differences between versions 0 and versions %s (%s)') % (1, newpage.mtime_printable()))
   
     if edit_count > 1:
         l.append(' ' + _('(spanning %d versions)') % (edit_count,))
     l.append('</strong></p>')
+
+    if in_wiki_interface:
+      current_mtime = Page(pagename, request).mtime()
+      is_current = (current_mtime == max_mtime)
+      previous_edit = ''
+      next_edit = ''
+      if not is_current:
+	next_edit = newpage.link_to(text="next edit&rarr;", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (max_version+1, max_version))
+      if not is_oldest:
+        previous_edit = newpage.link_to(text="&larr;previous edit", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (min_version, min_version-1))
+        
+      l.append('<div style="float:left;">%s</div><div style="float:right;">%s</div><div style="clear:both;"></div>' % (previous_edit, next_edit))
+	
   
     from LocalWiki.util.diff import diff
     if version1: l.append(diff(request, oldpage.get_raw_body(), newpage.get_raw_body(), text_mode=text_mode))
@@ -1004,6 +1044,7 @@ def do_bookmark(pagename, request):
         request.user.delBookmark()
     else:
         request.user.setBookmark(tm)
+    request.http_headers()
     Page(pagename, request).send_page()
 
 def do_showcomments(pagename, request):

@@ -257,7 +257,7 @@ class Page(object):
 	  self.cursor.execute("SELECT editTime from allPages where name=%(page_name)s and editTime <= %(prev_date)s order by editTime desc limit 1;", {'page_name':self.page_name, 'prev_date':self.prev_date})
         result = self.cursor.fetchone()
 	if result:
-          if result[0]: return int(result[0])
+          if result[0]: return result[0]
 	else: return 0
 
     def ctime(self):
@@ -268,14 +268,15 @@ class Page(object):
 	cache = caching.CacheEntry(self.page_name, self.request)
 	return cache.mtime()
 
-    def mtime_printable(self):
+    def mtime_printable(self, t=None):
         """
         Get printable modification timestamp of this page.
-        
+
+       	@ optional param t: unix mtime 
         @rtype: string
         @return: formatted string with mtime of page
         """
-        t = self.mtime()
+        if not t: t = self.mtime()
         if not t:
             result = "0" # TODO: i18n, "Ever", "Beginning of time"...?
         else:

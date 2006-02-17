@@ -31,6 +31,7 @@ class Formatter(FormatterBase):
         self._in_code = 0
         self._base_depth = 0
         self._show_section_numbers = None
+	self.name = 'text_html'
 	self._preview = kw.get("preview", 0)
 
         if not hasattr(request, '_fmt_hd_counters'):
