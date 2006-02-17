@@ -297,12 +297,17 @@ class Page(object):
 	  return meta_text
 
       body = self.get_raw_body()
+      body = body.split('\n')
       meta_text = []
       for line in body:
-        if line[0] == '#':
-	  meta_text.append(line)
+	if line:
+	  if line[0] == '#':
+	    meta_text.append(line)
+	  else:
+	    break
 	else:
 	  break
+
       meta_text = ''.join(meta_text)
 
       self.request.req_cache['meta_text'][(self.page_name, self.mtime())] = meta_text
@@ -574,7 +579,7 @@ class Page(object):
         doc_leader = self.formatter.startDocument(self.page_name)
         if not content_only:
             # send the document leader
-            #request.http_headers()
+            request.http_headers()
             request.write(doc_leader)
 
             # send the page header
@@ -598,11 +603,8 @@ class Page(object):
                     redir = request.form['redirect'][0]
                     polite_msg = 'Redirected from ' + wikiutil.link_tag(request, wikiutil.quoteWikiname(redir) + '?action=show', redir)
                 if pi_redirect:
-                    msg = '%s<strong>%s</strong><br>%s' % (
-                        wikiutil.getSmiley('<!>', self.formatter),
-                        _('This page redirects to page "%(page)s"') % {'page': pi_redirect},
-                        msg)
-
+                    msg = '<strong>%s</strong><br>%s' % (_('This page redirects to page %(page)s') % {'page': Page(pi_redirect, request).link_to()}, msg)
+                        
                 
                 # Page trail
                 trail = None

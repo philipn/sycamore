@@ -277,6 +277,7 @@ class GroupDict(DictDict):
 
 	# init the dicts the first time
 	if not self.namespace_timestamp:
+	    import re
             now = time.time()
             group_re = re.compile(config.page_group_regex)
             pagelist = wikiutil.getPageList(self.request)

@@ -468,7 +468,7 @@ class RequestBase(object):
                     query = wikiutil.unquoteWikiname(self.query_string) or \
                         wikiutil.getSysPage(self, config.page_front_page).page_name
 
-		self.http_headers()
+		#self.http_headers()
                 Page(query, self).send_page(count_hit=1)
 
             # generate page footer
