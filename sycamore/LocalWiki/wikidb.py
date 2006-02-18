@@ -302,7 +302,8 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
          from LocalWiki import user
 	 from LocalWiki.Page import Page
          if self.userid:
-           return Page(user.User(request, self.userid).name, request).link_to()
+           editUser = user.User(request, self.userid)
+           return user.getUserLink(request, editUser)
          else: return ''
 
   lines = []

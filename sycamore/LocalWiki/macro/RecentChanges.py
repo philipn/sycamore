@@ -140,26 +140,12 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
             d['time_html'] = time.strftime("at %I:%M %p", line.time_tuple)
     
     # print editor name or IP
-    d['editors'] = None
+    d['editors'] = []
     if config.show_hosts:
-        if len(lines) > 1:
-            counters = {}
-            editorlist = [] 
-            for idx in range(len(lines)):
-                name = lines[idx].getEditor(request)
-		ip = lines[idx].host
-                editorlist.append((name,ip))
-                #if not counters.has_key(name): counters[name] = []
-                #counters[name].append(idx+1)
-            #poslist = map(None,  counters.values(), counters.keys())
-            #poslist.sort()
-            ##request.write(repr(counters.items()))
-            d['editors'] = []
-            for name, ip in editorlist:
-                d['editors'].append((name, ip))
-        else:
-            d['editors'] = []
-            d['editors'].append((line.getEditor(request),line.host))
+        for idx in range(len(lines)):
+            name = lines[idx].getEditor(request)
+            ip = lines[idx].host
+            d['editors'].append((name,ip))
 
     comments = []
     for idx in range(len(lines)):

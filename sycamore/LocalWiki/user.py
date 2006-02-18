@@ -65,6 +65,13 @@ def getUserId(searchName, request):
     request.req_cache['users_id'][searchName] = id
     return id
 
+def getUserLink(request, userObject):
+    if userObject.anonymous:
+        return userObject.ip
+    else:
+        from LocalWiki import Page
+        return Page.Page(userObject.name, request).link_to()
+
 def getUserIdentification(request, username=None):
     """ 
     Return user name or IP or '<unknown>' indicator.
@@ -127,12 +134,21 @@ class User(object):
         """
         self.valid = 0
         self.id = id
+        
         if auth_username:
             self.auth_username = auth_username
         elif request:
             self.auth_username = request.auth_username
         else:
             self.auth_username = ""
+        
+        if self.id and self.id.startswith('anon:'):
+            self.ip = self.id[5:]
+            self.anonymous = True
+        else:
+            self.ip = None
+            self.anonymous = False
+
         self.name = name
         if not password:
             self.enc_password = ""
@@ -518,8 +534,11 @@ class User(object):
         @rtype: int
         @return: tm tuple adjusted for user's timezone
         """
-        if self.tz_offset and not global_time: return datetime.tmtuple(tm + self.tz_offset)
-	else: return datetime.tmtuple(tm + config.tz_offset)
+
+        if self.tz_offset and not global_time: 
+            return datetime.tmtuple(tm + self.tz_offset)
+	else: 
+            return datetime.tmtuple(tm + config.tz_offset)
 
 
     def getFormattedDate(self, tm):

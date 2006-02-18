@@ -714,12 +714,19 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 	ourtime = time.time()
 	self.request.cursor.execute("SELECT name from curPages where name=%(page_name)s", {'page_name':self.page_name})
 	exists = self.request.cursor.fetchone()
+        if not self.request.user.id:
+            user_id = 'anon:%s' % ip
+        else:
+            user_id = self.request.user.id
+
 	if exists:
-		self.request.cursor.execute("UPDATE curPages set name=%(page_name)s, text=%(text)s, editTime=%(ourtime)s, userEdited=%(id)s where name=%(page_name)s", {'page_name': self.page_name, 'text': text, 'ourtime': ourtime, 'id': self.request.user.id}, isWrite=True)
+		self.request.cursor.execute("UPDATE curPages set name=%(page_name)s, text=%(text)s, editTime=%(ourtime)s, userEdited=%(id)s where name=%(page_name)s", {'page_name': self.page_name, 'text': text, 'ourtime': ourtime, 'id': user_id}, isWrite=True)
 	else:
-		self.request.cursor.execute("INSERT into curPages values (%(page_name)s, %(text)s, NULL, %(ourtime)s, NULL, %(id)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id}, isWrite=True)
+		self.request.cursor.execute("INSERT into curPages values (%(page_name)s, %(text)s, NULL, %(ourtime)s, NULL, %(id)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':user_id}, isWrite=True)
+
 	# then we need to update the allPages table for Recent Changes and page-centric Info.
-	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':self.request.user.id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip}, isWrite=True)
+
+	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':user_id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip}, isWrite=True)
 
 	import caching
 	cache = caching.CacheEntry(self.page_name, self.request)
@@ -873,7 +880,8 @@ delete the changes of the other person, which is excessively rude!</em></p>
 	      dicts.save()
 
             # we'll try to change the stats early-on
-            self.userStatAdd(self.request.user.name, action, self.page_name)
+            if self.request.user.name:
+                self.userStatAdd(self.request.user.name, action, self.page_name)
 
             # we quote the pagetext so we can pass it as a single argument and then have the process run without us paying it any attention
             os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteWikiname(self.page_name), wikiutil.quoteWikiname(newtext))
@@ -904,18 +912,18 @@ delete the changes of the other person, which is excessively rude!</em></p>
         return msg
 
     def userStatAdd(self, username, action, pagename):
-       self.request.cursor.execute("SELECT created_count, edit_count from users where name=%(username)s", {'username':username})
-       result = self.request.cursor.fetchone()
+        self.request.cursor.execute("SELECT created_count, edit_count from users where name=%(username)s", {'username':username})
+        result = self.request.cursor.fetchone()
        
-       created_count = result[0]
-       edit_count = result[1]
+        created_count = result[0]
+        edit_count = result[1]
 
-       edit_count += 1
-       if action == 'SAVENEW':	
-         created_count += 1
-       last_page_edited = pagename
-       last_edit_date = time.time()
-       self.request.cursor.execute("UPDATE users set created_count=%(created_count)s, edit_count=%(edit_count)s, last_page_edited=%(last_page_edited)s, last_edit_date=%(last_edit_date)s where name=%(username)s", {'created_count':created_count, 'edit_count':edit_count, 'last_page_edited':last_page_edited, 'last_edit_date':last_edit_date, 'username':username}, isWrite=True)
+        edit_count += 1
+        if action == 'SAVENEW':	
+            created_count += 1
+        last_page_edited = pagename
+        last_edit_date = time.time()
+        self.request.cursor.execute("UPDATE users set created_count=%(created_count)s, edit_count=%(edit_count)s, last_page_edited=%(last_page_edited)s, last_edit_date=%(last_edit_date)s where name=%(username)s", {'created_count':created_count, 'edit_count':edit_count, 'last_page_edited':last_page_edited, 'last_edit_date':last_edit_date, 'username':username}, isWrite=True)
 
 
 class PageLock:

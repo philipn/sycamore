@@ -103,11 +103,12 @@ def _info_header(request, pagename, in_images_list_area=True):
 
 def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename):
     text = '<div><h4>Image history</h4></div><ul>'
+
     for revision in revisions:
-      if revision[1]:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), Page(revision[1], request).link_to(), request.user.getFormattedDateTime(revision[2]), Page(revision[3], request).link_to())
+      if revision[2]:
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[1]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[1]), user.getUserLink(request, user.User(request, revision[2])), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
       else:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), request.user.getFormattedDateTime(revision[2]), Page(revision[3], request).link_to())
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[1]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[1]), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
     text += '</ul>'
     return text
 
@@ -319,7 +320,7 @@ def execute(pagename, request):
             msg = _('You are not allowed to restore images to this page.')
 
     elif request.form['do'][0] == 'show_deleted':
-           show_deleted_images(pagename, request)
+        show_deleted_images(pagename, request)
     elif request.form['do'][0] == 'get':
         if request.user.may.read(page):
             get_file(pagename, request)
@@ -555,9 +556,9 @@ def send_viewfile(pagename, request):
 
         if not version:
  	  # in some rare cases the images were not uploaded by a user, so let's check to see if there's information on the upload-er
- 	  request.cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), images.uploaded_time from images, users where attached_to_pagename=%(pagename)s and images.name=%(filename)s and (users.id=images.uploaded_by or images.uploaded_by is NULL or images.uploaded_by='')", {'pagename':pagename, 'filename':filename})
+ 	  request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image) from images where attached_to_pagename=%(pagename)s and name=%(filename)s", {'pagename':pagename, 'filename':filename})
 	else:
-          request.cursor.execute("SELECT images.name, images.uploaded_time, users.name, length(image), images.uploaded_time from images, users where attached_to_pagename=%(pagename)s and images.name=%(filename)s and (users.id=images.uploaded_by or images.uploaded_by is NULL or images.uploaded_by='') and images.uploaded_time=%(version_date)s", {'pagename':pagename, 'filename':filename, 'version_date':version})
+          request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image) from images where attached_to_pagename=%(pagename)s and images.name=%(filename)s and images.uploaded_time=%(version_date)s", {'pagename':pagename, 'filename':filename, 'version_date':version})
         result = request.cursor.fetchone()
 	deleted_image = False
 
@@ -566,19 +567,19 @@ def send_viewfile(pagename, request):
 	if result:
 	# this means the image is 'active' and wasn't most recently deleted.
         # let's get some image history, if it's around
-           request.cursor.execute("SELECT oldImages.name, oldImages.uploaded_time, users.name, oldImages.deleted_time, users2.name from oldImages, users, users as users2 where attached_to_pagename=%(pagename)s and oldImages.name=%(filename)s and (users.id=oldImages.uploaded_by or oldImages.uploaded_by is NULL or oldImages.uploaded_by='') and (users2.id=oldImages.deleted_by or oldImages.deleted_by is NULL or oldImages.deleted_by='') order by oldImages.uploaded_time desc;", {'pagename':pagename, 'filename':filename})
+           request.cursor.execute("SELECT name, uploaded_time, uploaded_by, deleted_time, deleted_by from oldImages where attached_to_pagename=%(pagename)s and oldImages.name=%(filename)s order by uploaded_time desc;", {'pagename':pagename, 'filename':filename})
            revisions_item = request.cursor.fetchone()
 	   while revisions_item:
-   	     revisions.append((revisions_item[1], revisions_item[2], revisions_item[3], revisions_item[4]))
+   	     revisions.append((revisions_item[0], revisions_item[1], revisions_item[2], revisions_item[3], revisions_item[4]))
              revisions_item = request.cursor.fetchone()
         else:
 	   # let's see if the image was deleted, and if so we'll display it with a note about how it was removed.
 	   if not version:
 	   # grab the most recent version of the image
-             request.cursor.execute("SELECT oldImages.name, oldImages.uploaded_time, users.name, length(oldImages.image), oldImages.deleted_time, users2.name from oldImages, users, users as users2 where attached_to_pagename=%(pagename)s and oldImages.name=%(filename)s and (users.id=oldImages.uploaded_by or oldImages.uploaded_by is NULL or oldImages.uploaded_by='') and (users2.id=oldImages.deleted_by or oldImages.deleted_by is NULL or oldImages.deleted_by='') order by oldImages.uploaded_time desc;", {'pagename':pagename, 'filename':filename})
+             request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image), deleted_time, deleted_by from oldImages where attached_to_pagename=%(pagename)s and oldImages.name=%(filename)s and order by uploaded_time desc;", {'pagename':pagename, 'filename':filename})
 	   else:
 	     # let's grab the proper version of the image
-	     request.cursor.execute("SELECT oldImages.name, oldImages.uploaded_time, users.name, length(oldImages.image), oldImages.deleted_time, users2.name from oldImages, users, users as users2 where attached_to_pagename=%(pagename)s and oldImages.name=%(filename)s and (users.id=oldImages.uploaded_by or oldImages.uploaded_by is NULL or oldImages.uploaded_by='') and (users2.id=oldImages.deleted_by or oldImages.deleted_by is NULL or oldImages.deleted_by='') and oldImages.uploaded_time=%(version_date)s order by oldImages.uploaded_time desc;", {'pagename':pagename, 'filename':filename, 'version_date':version})
+	     request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image), deleted_time, deleted_by from oldImages where attached_to_pagename=%(pagename)s and name=%(filename)s and uploaded_time=%(version_date)s order by uploaded_time desc;", {'pagename':pagename, 'filename':filename, 'version_date':version})
 	   revisions_and_latest = request.cursor.fetchall()
 	   if revisions_and_latest:
 	      result = revisions_and_latest[0]
@@ -600,15 +601,15 @@ def send_viewfile(pagename, request):
 	deleted_by = ''
 	image_size = 0
 	if result[1]: uploaded_time = result[1]
-	if result[2]: uploaded_by = result[2]
+	if result[2]: 
+            uploaded_by = user.User(request, result[2])
 	if result[3]: image_size = result[3]
 	if deleted_image:
 	  deleted_time = result[4]
-	  deleted_by = result[5]
+	  deleted_by = user.User(request, result[5])
 
         image_size = image_size/1024
     
-
     #request.write('<h2>' + _("Attachment '%(filename)s'") % {'filename': filename} + '</h2>')
     baseurl = request.getScriptname()
     action = action_name
@@ -625,7 +626,7 @@ def send_viewfile(pagename, request):
       request.write(getCaptionsHTML(pagename, filename, request))
 
     if uploaded_by:
-      request.write('<p>Uploaded by %s on %s.  Image size: %sKB</p>' % (Page(uploaded_by, request).link_to(), request.user.getFormattedDateTime(uploaded_time), image_size))
+      request.write('<p>Uploaded by %s on %s.  Image size: %sKB</p>' % (user.getUserLink(request, uploaded_by), request.user.getFormattedDateTime(uploaded_time), image_size))
     else:
       request.write('<p>Upload information unknown.  Please refer to the original page </p>')
 
@@ -661,15 +662,14 @@ def show_deleted_images(pagename, request):
 
     # send header & title
     pagetitle = "Deleted images for \"%s\"" % (pagename)
-    request.cursor.execute("SELECT * from (SELECT oldImages.name as name, oldImages.deleted_time, users.name as user_name, oldImages.uploaded_time from oldImages, users where attached_to_pagename=%(pagename)s and (users.id=oldImages.deleted_by or oldImages.deleted_by is NULL or oldImages.deleted_by='') and (oldImages.name, oldImages.attached_to_pagename) not in (SELECT images.name, images.attached_to_pagename from images) order by deleted_time desc) as hack_table group by name order by deleted_time desc;", {'pagename':pagename})
+    request.cursor.execute("SELECT * from (SELECT name, deleted_time, deleted_by, uploaded_time from oldImages where attached_to_pagename=%(pagename)s and (oldImages.name, oldImages.attached_to_pagename) not in (SELECT name, attached_to_pagename from images) order by deleted_time desc) as hack_table group by name order by deleted_time desc;", {'pagename':pagename})
     result = request.cursor.fetchall()
     text_list = "<p><ul>"
     baseurl = request.getScriptname()
     action = action_name
     urlpagename = wikiutil.quoteWikiname(pagename)
-
     for item in result:
-      text_list += "<li>[<a href=\"%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s\">restore to page</a>] <a href=\"%s/%s?action=%s&amp;do=view&amp;target=%s\">%s</a> deleted by %s on %s.</li>" % (baseurl, urlpagename, action, item[0], repr(item[3]), baseurl, urlpagename, action, item[0], item[0], Page(item[2], request).link_to(), request.user.getFormattedDateTime(item[1]))
+      text_list += "<li>[<a href=\"%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s\">restore to page</a>] <a href=\"%s/%s?action=%s&amp;do=view&amp;target=%s\">%s</a> deleted by %s on %s.</li>" % (baseurl, urlpagename, action, item[0], repr(item[3]), baseurl, urlpagename, action, item[0], item[0], user.getUserLink(request, user.User(request, item[2])), request.user.getFormattedDateTime(item[1]))
 
 
     request.http_headers()

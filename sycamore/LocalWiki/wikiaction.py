@@ -740,7 +740,7 @@ def do_info(pagename, request):
    	    
 	    if entry[2]:
 	    	editUser = user.User(request, entry[2])
-            	editUser_text = Page(editUser.name, request).link_to()
+            	editUser_text = user.getUserLink(request, editUser)
 		editUser_text = '<span title="%s">' % userIP + editUser_text + '</span>'
 	    else: editUser_text = '<i>none</i>'
             history.addRow((

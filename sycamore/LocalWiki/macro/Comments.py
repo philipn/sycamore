@@ -14,7 +14,7 @@ def execute(macro, args, formatter=None):
        title = args
     else:
        title = "Comments:"
-    if not macro.request.user.valid:
+    if not macro.request.user.valid and not macro.request.user.anonymous:
         text.append('<h3>%s</h3>\n&nbsp;&nbsp;<strong>Note: You must be logged in to add comments</strong>\n' % title)
     else: text.append('<h3>%s</h3>\n'
                 '<form method="POST" action="%s/%s">\n'

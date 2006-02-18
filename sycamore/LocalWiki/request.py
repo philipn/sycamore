@@ -68,8 +68,8 @@ class RequestBase(object):
         # order is important here!
 
 	self.db_connect()
-	  
-        self.user = user.User(self)
+        
+        self.user = user.User(self, getattr(self, 'userId', None))
         self.dicts = self.initdicts()
 
         if config.theme_force:
@@ -121,7 +121,7 @@ class RequestBase(object):
         self.path_info = env.get('PATH_INFO', '')
         self.query_string = env.get('QUERY_STRING', '')
         self.request_method = env.get('REQUEST_METHOD', None)
-
+        
 	self.remote_addr = env.get('REMOTE_ADDR')
 	self.proxy_addr = None
 
@@ -130,6 +130,8 @@ class RequestBase(object):
             if web.isIpAddress(xff):
                 self.remote_addr = env.get('HTTP_X_FORWARDED_FOR')
                 self.proxy_addr = env.get('REMOTE_ADDR')
+
+        self.userId = 'anon:%s' % self.remote_addr
 
         self.http_user_agent = env.get('HTTP_USER_AGENT', '')
         self.is_ssl = env.get('SSL_PROTOCOL', '') != '' \

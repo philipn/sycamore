@@ -149,8 +149,8 @@ class Page(object):
 	editTime = request.user.getFormattedDateTime(editTimeUnix)
 	if userEditedID:
 	  editUser = user.User(self.request, userEditedID)
-	  editUser_text = Page(editUser.name, self.request).link_to()
-        
+          editUser_text = user.getUserLink(self.request, editUser)
+
           result = "(last edited %(time)s by %(editor)s)" % {
                 'time': editTime,
                 'editor': editUser_text,

@@ -40,9 +40,14 @@ def execute(pagename, request):
 	if len(comment_text) > 1024:
 	      msg = _('Your comment is too long.  Please keep it to 1000 characters or less.')
 	else: 
+              if request.user.anonymous:
+                  userId = request.user.ip
+              else:
+                  userId = '["' + request.user.name + '"]'
+
               now = time.time()
 	      now_formatted = request.user.getFormattedDateTime(now, global_time=True)
-	      formatted_comment_text = comment_text + " --" + '["' + request.user.name + '"]'
+	      formatted_comment_text = comment_text + " --" + userId
 	      newtext = oldtext + "------" + "\n" + "''" + ''.join(now_formatted) + "'' [[nbsp]] " + formatted_comment_text
 	      page.saveText(newtext, '0',
          		comment="Comment added.", action="COMMENT_MACRO")
