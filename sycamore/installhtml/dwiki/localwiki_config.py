@@ -75,6 +75,9 @@ db_user = 'root'
 db_user_password = ''
 db_host = 'localhost'
 
+# location of the GNU Diff3 application.
+diff3_location = '/usr/bin/diff3'
+
 #Memcache settings.  This is if you want a high-performance wiki.
 memcache = True 
 memcache_servers = ['127.0.0.1:11211']
@@ -95,14 +98,14 @@ upperletters = "A-Z??????????????????????????????"
 lowerletters = "0-9a-z?????????????????????????????????"
 
 # options people are likely to change due to personal taste
-show_hosts = 1                          # show hostnames?
-nonexist_qm = 0                         # show '?' for nonexistent?
-backtick_meta = 1                       # allow `inline typewriter`?
-allow_extended_names = 1                # allow ["..."] markup?
-edit_rows = 20                          # editor size
-max_macro_size = 50                     # max size of RecentChanges in KB (0=unlimited)
-bang_meta = 1                           # use ! to escape WikiNames?
-show_section_numbers = 0                # enumerate headlines?
+#show_hosts = 1                          # show hostnames?
+#nonexist_qm = 0                         # show '?' for nonexistent?
+#backtick_meta = 1                       # allow `inline typewriter`?
+#allow_extended_names = 1                # allow ["..."] markup?
+##edit_rows = 20                          # editor size
+#max_macro_size = 50                     # max size of RecentChanges in KB (0=unlimited)
+#bang_meta = 1                           # use ! to escape WikiNames?
+#show_section_numbers = 0                # enumerate headlines?
 
 allowed_actions = ['DeletePage','AttachFile']
 
@@ -114,7 +117,7 @@ httpd_user = "nobody"
 theme_default = 'eggheadbeta'
 theme_force = True
 acl_enabled = 1
-acl_rights_default = "AdminGroup:admin,read,write,delete,revert TestMe:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read"
+acl_rights_default = "AdminGroup:admin,read,write,delete,revert TestMe:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read,write"
 
 #attachments = {
 # dir and url are depricated

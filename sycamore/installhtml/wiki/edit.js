@@ -5,7 +5,19 @@ var alertText;
 var clientPC = navigator.userAgent.toLowerCase(); // Get client info
 var is_gecko = ((clientPC.indexOf('gecko')!=-1) && (clientPC.indexOf('spoofer')==-1)
                 && (clientPC.indexOf('khtml') == -1) && (clientPC.indexOf('netscape/7.0')==-1));
-var is_safari = ((clientPC.indexOf('AppleWebKit')!=-1) && (clientPC.indexOf('spoofer')==-1));
+var is_safari = ((clientPC.indexOf('applewebkit')!=-1) && (clientPC.indexOf('spoofer')==-1));
+var is_modern_safari = false;
+
+if (is_safari) {
+// Figure out if it's a new version of Safari or not
+  index = clientPC.lastIndexOf('safari');
+  version_number = clientPC.substring(index+7);
+  if (version_number > 314) {
+    is_modern_safari=true;
+  }
+}
+
+
 var is_khtml = (navigator.vendor == 'KDE' || ( document.childNodes && !document.all && !navigator.taintEnabled ));
 if (clientPC.indexOf('opera')!=-1) {
     var is_opera = true;
@@ -39,7 +51,7 @@ function addInfobox(infoText,text_alert) {
 	// if no support for changing selection, add a small copy & paste field
 	// document.selection is an IE-only property. The full toolbar works in IE and
 	// Gecko-based browsers.
-	if(!document.selection && !is_gecko) {
+	if(!document.selection && !is_gecko && !is_modern_safari) {
  		infoText=escapeQuotesHTML(infoText);
 	 	document.write("<form name='infoform' id='infoform'>"+
 			"<input size=80 id='infobox' name='infobox' value=\""+
@@ -61,7 +73,7 @@ function addButton(imageFile, speedTip, tagOpen, tagClose, sampleText) {
 
 	// we can't change the selection, so we show example texts
 	// when moving the mouse instead, until the first button is clicked
-	if(!document.selection && !is_gecko) {
+	if(!document.selection && !is_gecko && !is_modern_safari) {
 		// filter backslashes so it can be shown in the infobox
 		var re=new RegExp("\\\\n","g");
 		tagOpen=tagOpen.replace(re,"");
@@ -100,7 +112,7 @@ function insertTags(tagOpen, tagClose, sampleText) {
 
 	var txtarea = document.editform.savetext;
 	// IE
-	if(document.selection  && !is_gecko) {
+	if(document.selection  && !is_gecko && !is_modern_safari) {
 		var theSelection = document.selection.createRange().text;
 		if(!theSelection) { theSelection=sampleText;}
 		txtarea.focus();

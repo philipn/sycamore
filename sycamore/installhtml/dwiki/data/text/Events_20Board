@@ -1,5 +1,0 @@
-#acl AdminGroup:admin,read,write,delete,revert EventsGroup:admin,read,write,delete,revert All:read
-[[EventsButtons(davisevents)]]
-[[Events]]
-----
-'''This is a place to post events!'''  Just enter text as you would into the wiki.  Try to use ''links'' to the pages associated with venues, etc (so if you say "Rochester Theater" you should make that into a link, {{{["Rochester Theater"]}}}).  This makes it easier for people to find out more information on the organization, etc.  You can ''easily'' delete the event after posting it (if you make a mistake, etc).  To include a picture you must link to the picture externally (meaning it has to be hosted on some other website). Then ''just paste in the url of the image in brackets''.  So if the image is at {{{http://site.com/pict.jpg}}} you would put {{{[http://site.com/pict.jpg]}}}. Feel free to include a flyer/other photo.  (Just be sure to type the information too!)

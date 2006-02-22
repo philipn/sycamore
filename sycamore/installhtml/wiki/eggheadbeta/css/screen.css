@@ -70,6 +70,12 @@ p.bigCaption {
   padding: 2px;
 }
 
+div.pageEditInfo {
+  float: right;
+  text-align: right;
+  margin-bottom: 5px;
+}
+
 div.enlarge {
   width: 100px;
   font-size: 12px;
@@ -477,7 +483,7 @@ margin-bottom: 0.25em;
         color: black;
 }
 
-#preview {
+div.preview {
         border: 2px solid #CBCBCB;
         padding: .5em;
         background: url(../img/draft.png);
