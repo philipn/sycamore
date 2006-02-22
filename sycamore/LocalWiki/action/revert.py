@@ -39,7 +39,10 @@ def execute(pagename, request):
           version = int(request.form['version'][0])
           oldpg = Page(pagename, request, version=version)
           date = oldpg.prev_date
-	  entered_comment = request.form['comment'][0]
+	  if request.form.has_key('comment'):
+	    entered_comment = request.form['comment'][0]
+	  else:
+	    entered_comment = ''
 	  if len(entered_comment) > 80:
 	    return page.send_page(msg = _('Please use the interfactive user interface to revert pages!'))
           if entered_comment:

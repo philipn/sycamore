@@ -871,13 +871,10 @@ def do_savepage(pagename, request):
 
     pg = PageEditor(pagename, request)
     savetext = request.form.get('savetext', [''])[0]
-    datestamp = request.form.get('datestamp', [''])[0]
+    datestamp = float(request.form.get('datestamp', [''])[0])
     comment = request.form.get('comment', [''])[0]
     category = request.form.get('category', [None])[0]
-    try:
-        rstrip = int(request.form['rstrip'][0])
-    except (KeyError, ValueError):
-        rstrip = 0
+    rstrip = True
     try:
         notify = int(request.form['notify'][0])
     except (KeyError, ValueError):
@@ -917,26 +914,20 @@ def do_savepage(pagename, request):
                                   stripspaces=rstrip, notify=notify,
                                   comment=comment)
         except pg.EditConflict, msg:
-            allow_conflicts = 1
             from LocalWiki.util import diff3
             original_text = Page(pg.page_name, request, prev_date=datestamp).get_raw_body()
             saved_text = pg.get_raw_body()
-            verynewtext = diff3.text_merge(original_text, saved_text, savetext,
-                 allow_conflicts,
-                 '----- /!\ Edit conflict! Other version: -----\n',
-                 '----- /!\ Edit conflict! Your version: -----\n',
-                 '----- /!\ End of edit conflict -----\n')
-            if verynewtext:
-                msg = _("""Someone else saved this page while you were editing!
-Please review the page and save then. Do not save this page as it is!
-Have a look at the diff of %(difflink)s to see what has been changed."""
-                ) % {'difflink':pg.link_to(querystr='action=diff&amp;date=' + datestamp)}
-                request.form['datestamp'] = pg.mtime()                             
+            verynewtext, had_conflict = diff3.text_merge(original_text, saved_text, savetext, 
+                 marker1='----- /!\ Edit conflict! Other version: -----\n',
+                 marker2='----- /!\ Edit conflict! Your version: -----\n',
+                 marker3='----- /!\ End of edit conflict -----\n')
+            if had_conflict:
+                msg = _("""Someone else changed this page while you were editing.
+There was an <b>edit conflict between your changes!</b> Please review the conflicts and merge the changes.""")
+                request.form['datestamp'] = [pg.mtime()]
                 pg.sendEditor(msg=msg, comment=request.form.get('comment', [''])[0],
-                              preview=verynewtext, staytop=1)
-                return
-            else:
-                savemsg = msg
+                              preview=verynewtext, staytop=1, had_conflict=True)
+	    return
         except pg.SaveError, msg:
             savemsg = msg
         request.reset()
@@ -945,7 +936,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
             pg = Page(backto, request)
 
 	# clear request cache so that the user sees the page as existing
-	request.req_cache['pagenames'][pagename] = pagename
+	request.req_cache['pagenames'][pagename.lower()] = pagename
         pg.send_page(msg=savemsg, send_headers=False)
         #request.http_redirect(pg.url())
 

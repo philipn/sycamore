@@ -2,7 +2,7 @@
 """
     LocalWiki - PageEditor class
 
-    @copyright: 2000-2004 by J?rgen Hermann <jh@web.de>
+    @copyright: 2005-2006 Philip Neustrom, <philipn@gmail.com>, 2000-2004 by J?rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
@@ -23,57 +23,6 @@ import xml.dom.minidom
 ### Javascript code for editor page
 #############################################################################
 
-# This code is internal to allow I18N, else we'd use a .js file;
-# we avoid the "--" operator to make this XHTML happy!
-_countdown_js = """
-<script type="text/javascript">
-var timeout_min = %(lock_timeout)s;
-var state = 0; // 0: start; 1: long count; 2: short count; 3: timeout; 4/5: blink
-var counter = 0, step = 1, delay = 1;
-
-function countdown() {
-    // change state if counter is down
-    if (counter <= 1) {
-        state += 1
-        if (state == 1) {
-            counter = timeout_min
-            step = 1
-            delay = 60000
-        }
-        if (state == 2) {
-            counter = 60
-            step = 5
-            delay = step * 1000
-        }
-        if (state == 3 || state == 5) {
-            window.status = "%(lock_expire)s"
-            state = 3
-            counter = 1
-            step = 1
-            delay = 500
-        }
-        if (state == 4) {
-            // blink the above text
-            window.status = " "
-            counter = 1
-            delay = 250
-        }
-    }
-
-    // display changes
-    if (state < 3) {
-        var msg
-        if (state == 1) msg = "%(lock_mins)s"
-        if (state == 2) msg = "%(lock_secs)s"
-        window.status = msg.replace(/#/, counter)
-    }
-    counter -= step
-
-    // Set timer for next update
-    setTimeout("countdown()", delay)
-}
-</script>
-"""
 def getText(nodelist):
     rc = ""
     for node in nodelist:
@@ -118,8 +67,6 @@ class PageEditor(Page):
         self.do_revision_backup = keywords.get('do_revision_backup', 1)
         #self.do_editor_backup = keywords.get('do_editor_backup', 1)
 
-        self.lock = PageLock(page_name, request)
-
 
     def sendEditor(self, **kw):
         """
@@ -128,6 +75,7 @@ class PageEditor(Page):
         @keyword preview: if given, show this text in preview mode
         @keyword staytop: don't go to #preview
         @keyword comment: comment field (when preview is true)
+	@keyword had_conflict: we had an edit conflict on a save.
         """
         import re
 
@@ -140,7 +88,6 @@ class PageEditor(Page):
         _ = self._
         self.request.http_headers([("Content-Type", "text/html")] + self.request.nocache)
         msg = None
-        edit_lock_message = None
         preview = kw.get('preview', None)
         emit_anchor = not kw.get('staytop', 0)
 
@@ -159,23 +106,9 @@ class PageEditor(Page):
             # Trying to edit an old version, this is not possible via
             # the web interface, but catch it just in case...
             msg = _('Cannot edit old revisions!')
-        else:
-            # try to aquire edit lock
-            ok, edit_lock_message = self.lock.aquire()
-            if not ok:
-                # failed to get the lock
-                if preview is not None:
-                    edit_lock_message = _('The lock you held timed out, be prepared for editing conflicts!'
-                        ) + "<br>" + edit_lock_message
-                else:
-                    msg = edit_lock_message
-
-            # FIXME - not a good way to count html in a string... - especially if it got removed...
-            #if edit_lock_message.count('<strong class="highlight">'):
-            #    emit_anchor = 0
 
         # Did one of the prechecks fail?
-        if msg:
+        if msg and not kw.get('had_conflict', None):
             self.send_page(msg=msg)
             return
 
@@ -185,13 +118,6 @@ class PageEditor(Page):
         else:
             title = _('Preview of "%(pagename)s"')
             self.set_raw_body(preview.replace("\r", ""), 1)
-
-        # send header stuff
-        lock_timeout = self.lock.timeout / 60
-        lock_page = wikiutil.escape(self.page_name, quote=1)
-        lock_expire = _("Your edit lock on %(lock_page)s has expired!") % {'lock_page': lock_page}
-        lock_mins = _("Your edit lock on %(lock_page)s will expire in # minutes.") % {'lock_page': lock_page}
-        lock_secs = _("Your edit lock on %(lock_page)s will expire in # seconds.") % {'lock_page': lock_page}
 
 	page_needle = self.page_name
         if config.allow_subpages and page_needle.count('/'):
@@ -206,27 +132,31 @@ class PageEditor(Page):
             pagename=self.page_name,
 	    link=link,
 	    strict_title='Editing "%s"' % self.page_name,
-            body_onload=self.lock.locktype and 'countdown()' or '', # broken / bug in Mozilla 1.5, when using #preview
-            html_head=self.lock.locktype and (
-                _countdown_js % {
-                     'lock_timeout': lock_timeout,
-                     'lock_expire': lock_expire,
-                     'lock_mins': lock_mins,
-                     'lock_secs': lock_secs,
-                    }) or ''
         )
         
         self.request.write('<div id="content">\n') # start content div
         
         # get request parameters
-        try:
-            text_rows = int(form['rows'][0])
-        except StandardError:
-            text_rows = config.edit_rows
-            if self.request.user.valid: text_rows = int(self.request.user.edit_rows)
-        try:
+	text_rows = None
+        if form.has_key('rows'):
+	  text_rows = int(form['rows'][0])
+	  if self.request.user.valid:
+	    # possibly update user's pref
+	    if text_rows != self.request.user.edit_rows:
+	      self.request.user.edit_rows = text_rows
+	      self.request.user.save()
+	else:
+          text_rows = config.edit_rows
+          if self.request.user.valid: text_rows = int(self.request.user.edit_rows)
+
+        if form.has_key('cols'):
             text_cols = int(form['cols'][0])
-        except StandardError:
+	    if self.request.user.valid:
+	      # possibly update user's pref
+	      if text_rows != self.request.user.edit_rows:
+	        self.request.user.edit_rows = text_rows
+	        self.request.user.save()
+	else:
             text_cols = 80
             if self.request.user.valid: text_cols = int(self.request.user.edit_cols)
 
@@ -240,27 +170,29 @@ class PageEditor(Page):
             if not self.exists():
                 # page does not exist, are we creating it?
                 if mtime:
-                    conflict_msg = _('Someone else deleted this page while you were editing!')
+                    conflict_msg = _('Someone else <b>deleted</b> this page while you were editing!')
             elif mtime != self.mtime():
-                conflict_msg = _('Someone else changed this page while you were editing!')
+                conflict_msg = _('Someone else changed this page while you were editing.')
                 # merge conflicting versions
                 allow_conflicts = 1
                 from LocalWiki.util import diff3
                 savetext = self.get_raw_body()
-                original_text = Page(self.page_name, self.request, date=str(mtime)).get_raw_body()
+                original_text = Page(self.page_name, self.request, prev_date=mtime).get_raw_body()
                 saved_text = Page(self.page_name, self.request).get_raw_body()
-                verynewtext = diff3.text_merge(original_text, saved_text, savetext,
-                                               allow_conflicts,
-                                               '----- /!\ Edit conflict! Other version: -----\n',
-                                               '----- /!\ Edit conflict! Your version: -----\n',
-                                               '----- /!\ End of edit conflict -----\n')
-                if verynewtext:
-                    conflict_msg = _("""Someone else saved this page while you were editing!
-Please review the page and save then. Do not save this page as it is!
-Have a look at the diff of %(difflink)s to see what has been changed."""
-                    ) % {'difflink':self.link_to(self.request, querystr='action=diff&amp;date=' + str(mtime))}
+                verynewtext, had_conflict = diff3.text_merge(original_text, saved_text, savetext,
+                marker1='----- /!\ Edit conflict! Other version: -----\n',
+	        marker2='----- /!\ Edit conflict! Your version: -----\n',
+                marker3='----- /!\ End of edit conflict -----\n')
+
+                if had_conflict:
+                    conflict_msg = _("""%s
+There was an <b>edit conflict between your changes!</b><p>Please review the conflicts and merge the changes.</p>""" % conflict_msg)
 		    mtime = self.mtime()
                     self.set_raw_body(verynewtext)
+	        else:
+		   conflict_msg = _("""%s
+Your changes were sucessfully merged!""" % conflict_msg)
+
             if conflict_msg:
                 self.request.write('<div id="message">%s</div>' % conflict_msg)
                 emit_anchor = 0 # make this msg visible!
@@ -273,8 +205,8 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 
         # output message
         message = kw.get('msg', '')
-        if edit_lock_message or message:
-            self.request.write('<div id="message">%s%s</div>' % (message, edit_lock_message))
+        if message:
+            self.request.write('<div id="message">%s</div>' % (message))
 
         # get the text body for the editor field
         if form.has_key('template'):
@@ -292,16 +224,13 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         template_param = ''
         if form.has_key('template'):
             template_param = '&amp;template=' + form['template'][0]
-        self.request.write('<p>')
-        self.request.write('<a href="%s&amp;rows=10&amp;cols=60%s">%s</a>' % (
-            base_uri, template_param, _('Reduce editor size')))
-        self.request.write(" | %s" %wikiutil.getSysPage(self.request, 'Help On Formatting').link_to(self.request))
-        #self.request.write(" | ", wikiutil.getSysPage(self.request, 'InterWiki').link_to(self.request))
-        if preview is not None and emit_anchor:
-            self.request.write(' | <a href="#preview">%s</a>' % _('Skip to preview'))
-        self.request.write(' ')
-        self.request.write(_('[current page size <strong>%(size)d</strong> bytes]') % {'size': self.size()})
-        self.request.write('</p>')
+        self.request.write(_('<div class="pageEditInfo">editor size:'))
+        self.request.write('<a href="%s&amp;rows=%d&amp;cols=60%s">%s</a>' % (
+            base_uri, text_rows + 10, template_param, '+'))
+        self.request.write(',<a href="%s&amp;rows=%s&amp;cols=60%s">%s</a>' % (
+            base_uri, text_rows - 10, template_param, '-'))
+
+        self.request.write('</div>')
         
         # button toolbar
         self.request.write('<p>')
@@ -387,7 +316,6 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
           mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, self.page_name, relative_dir)
         
         self.request.write('''
-<p>
 <table border="0" cellspacing="0"><tr height="30"><td nowrap><font size="3">
 <input type="submit" class="bigbutton" name="button_preview" value="%s">
 <input type="submit" class="formbutton" name="button_save" value="%s">
@@ -398,8 +326,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 %s
 <input type="button" class="formbutton" onClick="location.href='%s/%s?action=DeletePage'" value="Delete">
 <input type="button" class="formbutton" onClick="location.href='%s/%s?action=Rename'" value="Rename">&nbsp;&nbsp;</td></tr></table>
-</p>%s
-<p>
+%s
 ''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, relative_dir, wikiutil.quoteWikiname(self.page_name), button_spellcheck, relative_dir, wikiutil.quoteWikiname(self.page_name), relative_dir, wikiutil.quoteWikiname(self.page_name),mapHtml))
 
         #if config.mail_smarthost:
@@ -408,15 +335,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         #        _('Send mail notification'),
         #    ))
 
-        self.request.write('''
-        <input type="checkbox" name="rstrip" value="1"%s>
-        <label>%s</label>
-        </p>
-        ''' % (    ('', ' checked="checked"')[preview is not None and (form.get('rstrip',['0'])[0] == '1')],
-             _('Remove trailing whitespace from each line')
-         ))
-
-        self.request.write('<p>By clicking "Save Changes" you are agreeing to release your contribution under the <a href="http://creativecommons.org/licenses/by/2.0/">Creative Commons-By license</a>, unless noted otherwise. <b>Do not submit copyrighted work (including images) without permission.</b>  For more information, see <a href="%s/Copyrights">Copyrights</a>.' %relative_dir)
+        self.request.write('By clicking "Save Changes" you are agreeing to release your contribution under the <a href="http://creativecommons.org/licenses/by/2.0/">Creative Commons-By license</a>, unless noted otherwise. <b>Do not submit copyrighted work (including images) without permission.</b>  For more information, see <a href="%s/Copyrights">Copyrights</a>.' % relative_dir)
 
         badwords_re = None
         if preview is not None:
@@ -447,7 +366,10 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 """) + '</dl>')
 
         if preview is not None:
-            self.request.write('<div id="preview">')
+	    if not emit_anchor:
+	      preview_name = "previewHide"
+	    else: preview_name = "preview"
+            self.request.write('<div id="%s" class="preview">' % preview_name)
             self.send_page(content_only=1, hilite_re=badwords_re, preview=preview)
             self.request.write('</div>')
 
@@ -459,15 +381,13 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
 
     def sendCancel(self, newtext, datestamp):
         """
-        User clicked on Cancel button. If edit locking is active,
-        delete the current lock file.
+        User clicked on Cancel button.
         
         @param newtext: the edited text (which has been cancelled)
         @param datestamp: ...
         """
         _ = self._
         #self._make_backup(self._normalize_text(newtext))
-        self.lock.release()
 
         backto = self.request.form.get('backto', [None])[0]
         page = backto and Page(backto, self.request) or self
@@ -653,7 +573,7 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
         newtext = newtext.replace("\r", "")
 
         # possibly strip trailing spaces
-        if kw.get('stripspaces', 0):
+        if True:
             newtext = '\n'.join([line.rstrip() for line in newtext.splitlines()])
 
         # add final newline if not present in textarea, better for diffs
@@ -830,18 +750,6 @@ Have a look at the diff of %(difflink)s to see what has been changed."""
             msg = _('You cannot save empty pages.')
             raise self.EmptyPage, msg
         elif datestamp != '0' and datestamp < self.mtime():
-            msg = _("""Sorry, someone else saved the page while you edited it.
-<p>Please do the following: Use the back button of your browser, and cut&paste
-your changes from there. Then go forward to here, and click EditText again.
-Now re-add your changes to the current page contents.</p>
-<p><em>Do not just replace
-the content editbox with your version of the page, because that would
-delete the changes of the other person, which is excessively rude!</em></p>
-""")
-
-            if backup_url:
-                msg += "<p>%s</p>" % _(
-                    'A backup of your changes is <a href="%(backup_url)s">here</a>.') % {'backup_url': backup_url}
             raise self.EditConflict, msg
         elif newtext == self.get_raw_body() and not self._rename_lowercase_condition():
             msg = _('You did not change the page content, not saved!')
@@ -888,9 +796,6 @@ delete the changes of the other person, which is excessively rude!</em></p>
 
 	    # we do this so we don't return another copy of the page to the user!
 
-        # remove lock (forcibly if we were allowed to break it by the UI)
-        # !!! this is a little fishy, since the lock owner might not notice
-        # we broke his lock ==> but datestamp checking during preview will
             return msg
 
     def _rename_lowercase_condition(self):
@@ -925,159 +830,6 @@ delete the changes of the other person, which is excessively rude!</em></p>
         last_edit_date = time.time()
         self.request.cursor.execute("UPDATE users set created_count=%(created_count)s, edit_count=%(edit_count)s, last_page_edited=%(last_page_edited)s, last_edit_date=%(last_edit_date)s where name=%(username)s", {'created_count':created_count, 'edit_count':edit_count, 'last_page_edited':last_page_edited, 'last_edit_date':last_edit_date, 'username':username}, isWrite=True)
 
-
-class PageLock:
-    """
-    PageLock - Lock pages
-    
-    TODO: race conditions throughout, need to lock file during queries & update
-    """
-    def __init__(self, pagename, request):
-        """
-        """
-        self.page_name = pagename
-        self.request = request
-        self._ = request.getText
-
-        # current time and user for later checks
-        self.now = time.time()
-        self.uid = request.user.valid and request.user.id or request.remote_addr
-
-        # get details of the locking preference, i.e. warning or lock, and timeout
-        self.locktype = None
-        self.timeout = 10 * 60 # default timeout in minutes
-
-        if config.edit_locking:
-            lockinfo = config.edit_locking.split()
-            if 1 <= len(lockinfo) <= 2:
-                self.locktype = lockinfo[0].lower()
-                if len(lockinfo) > 1:
-                    try:
-                        self.timeout = int(lockinfo[1]) * 60
-                    except ValueError:
-                        pass
-
-
-    def aquire(self):
-        """
-        Begin an edit lock depending on the mode chosen in the config.
-
-        @rtype: tuple
-        @return: tuple is returned containing 2 values:
-              * a bool indicating successful aquiry
-              * a string giving a reason for failure or an informational msg
-        """
-        if not self.locktype:
-            # we are not using edit locking, so always succeed
-            return 1, ''
-
-        _ = self._
-        #!!! race conditions, need to lock file during queries & update
-        self._readLockFile()
-        bumptime = self.request.user.getFormattedDateTime(self.now + self.timeout)
-        timestamp = self.request.user.getFormattedDateTime(self.timestamp)
-        owner = self.owner_html
-        secs_valid = self.timestamp + self.timeout - self.now
-
-        # do we own the lock, or is it stale?
-        if self.owner is None or self.uid == self.owner or secs_valid < 0:
-            # create or bump the lock
-            self._writeLockFile()
-
-            msg = []
-            if self.owner is not None and -10800 < secs_valid < 0:
-                mins_ago = secs_valid / -60
-                msg.append(_(
-                    "The lock of %(owner)s timed out %(mins_ago)d minute(s) ago,"
-                    " and you were granted the lock for this page."
-                    ) % {'owner': owner, 'mins_ago': mins_ago})
-
-            if self.locktype == 'lock':
-                msg.append(_(
-                    "Other users will be <em>blocked</em> from editing this page until %(bumptime)s."
-                    ) % {'bumptime': bumptime})
-            else:
-                msg.append(_(
-                    "Other users will be <em>warned</em> until %(bumptime)s that you are editing this page."
-                    ) % {'bumptime': bumptime})
-            msg.append(_(
-                "Use the Preview button to extend the locking period."
-                ))
-            result = 1, '\n'.join(msg)
-        else:
-            mins_valid = (secs_valid+59) / 60
-            if self.locktype == 'lock':
-                # lout out user
-                result = 0, _(
-                    "This page is currently <em>locked</em> for editing by %(owner)s until %(timestamp)s,"
-                    " i.e. for %(mins_valid)d minute(s)."
-                    ) % {'owner': owner, 'timestamp': timestamp, 'mins_valid': mins_valid}
-            else:
-                # warn user about existing lock
-                result = 1, _(
-                    'This page was opened for editing or last previewed at %(timestamp)s by %(owner)s.<br>\n'
-                    '<strong class="box-warning">'
-                    'You should <em>refrain from editing</em> this page for at least another %(mins_valid)d minute(s),\n'
-                    'to avoid editing conflicts.'
-                    '</strong><br>\n'
-                    'To leave the editor, press the Cancel button.'
-                    ) % {'timestamp': timestamp, 'owner': owner, 'mins_valid': mins_valid}
-        return result
-
-
-    def release(self, force=0):
-        """ 
-        Release lock, if we own it.
-        
-        @param force: if 1, unconditionally release the lock.
-        """
-        if self.locktype:
-            # check that we own the lock in order to delete it
-            #!!! race conditions, need to lock file during queries & update
-            self._readLockFile()
-            if force or self.uid == self.owner:
-                self._deleteLockFile()
-
-
-    def _filename(self):
-        """get path and filename for edit-lock file"""
-        return wikiutil.getPagePath(self.page_name, 'edit-lock')
-
-
-    def _readLockFile(self):
-        """Load lock info if not yet loaded."""
-        _ = self._
-        self.owner = None
-        self.owner_html = wikiutil.escape(_("<unknown>"))
-        self.timestamp = 0
-
-        if self.locktype:
-            try:
-                entry = editlog.EditLog(filename=self._filename()).next()
-            except StopIteration:
-                entry = None
-                                                    
-            if entry:
-                self.owner = entry.userid or entry.addr
-                self.owner_html = entry.getEditor(self.request)
-                self.timestamp = long(entry.ed_time)
-
-
-    def _writeLockFile(self):
-        """Write new lock file."""
-        self._deleteLockFile()
-        try:
-            editlog.EditLog(filename=self._filename()).add(
-               self.request, self.page_name, None, self.now, '', action="LOCK")
-        except IOError:
-            pass
-
-    def _deleteLockFile(self):
-        """Delete the lock file unconditionally."""
-        try:
-            os.remove(self._filename())
-        except OSError:
-            pass
 
 def is_word_in_file(file, word):
       """

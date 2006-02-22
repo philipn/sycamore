@@ -209,7 +209,7 @@ class Page(object):
         """
         If the page is a redirect this returns True.  If not it returns False.
         """
-        body = self.get_raw_body()
+        body = self.get_meta_text()
         if body[0:9] == '#redirect': return True
         return False
 
@@ -308,7 +308,7 @@ class Page(object):
 	else:
 	  break
 
-      meta_text = ''.join(meta_text)
+      meta_text = '\n'.join(meta_text)
 
       self.request.req_cache['meta_text'][(self.page_name, self.mtime())] = meta_text
       if config.memcache:
@@ -602,8 +602,8 @@ class Page(object):
                 if request.form.has_key('redirect'):
                     redir = request.form['redirect'][0]
                     polite_msg = 'Redirected from ' + wikiutil.link_tag(request, wikiutil.quoteWikiname(redir) + '?action=show', redir)
-                if pi_redirect:
-                    msg = '<strong>%s</strong><br>%s' % (_('This page redirects to page %(page)s') % {'page': Page(pi_redirect, request).link_to()}, msg)
+                if pi_redirect and not msg:
+                    msg = '<strong>%s</strong><br>' % (_('This page redirects to page %(page)s') % {'page': Page(pi_redirect, request).link_to()})
                         
                 
                 # Page trail

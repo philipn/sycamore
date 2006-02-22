@@ -86,7 +86,7 @@ def execute(pagename, request):
 		    copy_images(pagename, newpagename, request)
 
                 os.spawnl(os.P_NOWAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', wikiutil.quoteFilename(pagename))
-                newpage.saveText(pagetext, '0', comment="Renamed from %s%s" % (pagename, renamecomment), action="RENAME")
+                newpage.saveText(pagetext, '0', comment='Renamed from "%s"%s' % (pagename, renamecomment), action="RENAME")
 
 		# clear cache so images show up
 		key = newpagename
@@ -105,12 +105,12 @@ def execute(pagename, request):
 		
 		  return
                 else:
-		  return newpage.send_page(request, msg)
+		  return newpage.send_page(msg)
 
 
     else:
         # send renamepage form
-        url = page.url(request)
+        url = page.url()
         ticket = _createTicket()
         button = _('Rename')
         newname_label = _("New name")
@@ -128,7 +128,7 @@ def execute(pagename, request):
 </form>
 <p>Note that the old page name will re-direct to the new page. This means you don't <i>have</i> to update links to the new name, but you ought to. (Find links to change by doing a search for the old page name)</p>""" % locals()
 
-    return page.send_page(request, msg)
+    return page.send_page(msg)
 
 def _createTicket(tm = None):
     """Create a ticket using a site-specific secret (the config)"""
