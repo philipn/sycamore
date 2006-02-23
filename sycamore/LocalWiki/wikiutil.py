@@ -983,7 +983,7 @@ def send_title(request, text, **keywords):
     from LocalWiki.Page import Page
 
     _ = request.getText
-    pagename = keywords.get('pagename', None)
+    pagename = keywords.get('pagename', '')
     page = Page(pagename, request)
 
     # get name of system pages

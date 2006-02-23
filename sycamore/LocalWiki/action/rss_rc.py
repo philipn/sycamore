@@ -1,5 +1,5 @@
 """
-    RSS Handling
+    RSS Handling!!
 
     If you do changes, please check if it still validates after your changes:
 
@@ -29,6 +29,13 @@ def execute(pagename, request):
       """ % (config.sitename, config.domain, add_on, config.relative_dir,  config.sitename)
       # get normal recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit = 100)
+    elif pagename.lower() == 'bookmarks':
+      rss_init_text = """<?xml version="1.0" ?>
+     <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Bookmarks - %s @ %s</title><link>%s</link><description>Bookmarks for user %s on %s.</description><language>en-us</language>
+     </channel> 
+     </rss>""" %  (request.user.name, config.sitename, Page(request.user.name, request).link_to(know_status=True, know_status_exists=True), request.user.name, config.sitename)
+
+      changes = wikidb.getRecentChanges(request, per_page_limit=1, userFavoritesFor=request.user.id)
     elif pagename.lower() != 'bookmarks':
       rss_init_text = """<?xml version="1.0" ?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes for "%s" - %s</title><link>http://%s%s%s/%s</link><description>Recent Changes of the page "%s" on %s.</description><language>en-us</language>

@@ -141,13 +141,6 @@ class User(object):
             self.auth_username = request.auth_username
         else:
             self.auth_username = ""
-        
-        if self.id and self.id.startswith('anon:'):
-            self.ip = self.id[5:]
-            self.anonymous = True
-        else:
-            self.ip = None
-            self.anonymous = False
 
         self.name = name
         if not password:
@@ -168,6 +161,13 @@ class User(object):
 	self.rc_showcomments = 1
 	self.favorites = {}
 	self.is_login = False
+	self.ip = None
+	self.anonymous = False
+	if self.id:
+	  if self.id[0:4] == 'anon':
+	    self.anonymous = True
+	    self.ip = self.id[5:]
+
         # if an account is disabled, it may be used for looking up
         # id -> username for page info and recent changes, but it
         # is not usabled for the user any more:
@@ -197,7 +197,6 @@ class User(object):
        	        	self.id = self.getUserIdDough(cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value)
 			self.is_login = True
 			
-
         # we got an already authenticated username:
         if not self.id and self.auth_username:
             self.id = getUserId(self.auth_username, self.request)
@@ -208,6 +207,11 @@ class User(object):
                 self.trusted = 1
         elif self.name:
             self.load()
+	else:
+	  # anonymous user
+	  self.anonymous = True
+	  self.id = 'anon:%s' % self.request.remote_addr
+	  self.ip = self.ip = self.request.remote_addr
             
         # "may" so we can say "if user.may.edit(pagename):"
         if config.SecurityPolicy:
@@ -237,6 +241,7 @@ class User(object):
         @return: true, if we have a user account
         """
 	result = False
+	if self.id[0:4] == 'anon': return False
 	if self.request.req_cache['users'].has_key(self.id):
 	  result = self.request.req_cache['users'][self.id]
 	if not result:
@@ -405,6 +410,11 @@ class User(object):
 	  if config.memcache:
 	    self.request.mc.set("users:%s" % self.id, userdict)
 		
+
+    def makeCookieDict(self, cookie_header):
+      return {cookie_header[0]: cookie_header[1]}
+
+
     def makeCookieHeader(self):
         """
         Make the Set-Cookie header for this user
@@ -519,10 +529,10 @@ class User(object):
             cookie = Cookie.SimpleCookie(request.saved_cookie)
         except Cookie.CookieError:
             # ignore invalid cookies, else user can't relogin
-            request.saved_cookie = cookie_header
+            request.saved_cookie = self.makeCookieDict(cookie_header)
         else:
             if not cookie.has_key(wikiutil.quoteFilename(config.sitename)+'ID'):
-                request.saved_cookie = cookie_header
+                request.saved_cookie = self.makeCookieDict(cookie_header)
 
 
     def getTime(self, tm, global_time=False):
