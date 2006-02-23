@@ -11,7 +11,6 @@ import cStringIO, os, re, urllib, os.path, random
 from LocalWiki import config, user, util, wikiutil, wikidb 
 import cPickle
 #import LocalWiki.util.web
-import psyco
 
 class Page(object):
     """Page - Manage an (immutable) page associated with a WikiName.

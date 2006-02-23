@@ -5,7 +5,7 @@
 from LocalWiki.Page import Page
 from LocalWiki import config, wikiutil
 from classic import Theme as ThemeBase
-import string, psyco
+import string 
 
 class Theme(ThemeBase):
     """ here are the functions generating the html responsible for
