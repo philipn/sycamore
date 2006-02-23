@@ -164,7 +164,7 @@ class User(object):
 	self.ip = None
 	self.anonymous = False
 	if self.id:
-	  if self.id[0:4] == 'anon':
+	  if self.id[0:4] == 'anon' and not self.name:
 	    self.anonymous = True
 	    self.ip = self.id[5:]
 
@@ -397,7 +397,7 @@ class User(object):
 
         userdict = self.getUserdict()
 
-        if not self.id:
+        if not self.anonymous:
 	  self.id = self._new_user_id()
  	  # account doesn't exist yet
 	  userdict['join_date'] = time.time()
