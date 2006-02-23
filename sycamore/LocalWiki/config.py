@@ -155,7 +155,7 @@ _cfg_defaults = {
     'relative_dir': 'index.cgi',
     'shared_intermap': None, # can be string or list of strings (filenames)
     'show_hosts': 1,
-    'show_section_numbers': 1,
+    'show_section_numbers': 0,
     'show_timings': 0,
     'show_version': 0,
     'sitename': 'Davis Wiki',
