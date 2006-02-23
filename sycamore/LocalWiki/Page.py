@@ -35,6 +35,7 @@ class Page(object):
         self.page_name = page_name
 	self.request = request
         self.cursor = request.cursor
+	self.date = None
 
         self.prev_date = keywords.get('prev_date')
 	if self.prev_date:
