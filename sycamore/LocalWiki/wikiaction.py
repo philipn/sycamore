@@ -621,13 +621,13 @@ def do_info(pagename, request):
 	  #prints the next and previous links, if they're needed
 	  html = '<p>'
 	  if last_version != 1:
-	    html += '[<a href="%s/%s?action=info&offset=%s">previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1)
+	    html += '[<a href="%s/%s?action=info&offset=%s">&larr;previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1)
 	  else:
-	    html += '[previous edits | '
+	    html += '[&larr;previous edits | '
 	  if offset_given:
-	    html += '<a href="%s/%s?action=info&offset=%s">next edits</a>]' % (request.getBaseURL(), pagename, offset_given-1) 
+	    html += '<a href="%s/%s?action=info&offset=%s">next edits&rarr;</a>]' % (request.getBaseURL(), pagename, offset_given-1) 
 	  else:
-	    html += 'next edits]'
+	    html += 'next edits&rarr;]'
 	  html += '</p>'
 	  request.write(html)
 
