@@ -13,6 +13,12 @@ _guard = 0
 
 Dependencies = ["pages"]
 
+def showUsers(request):
+  if request.query_string=="show_users=true":
+    return True
+  else:
+    return False
+
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
     _ = macro.request.getText
@@ -27,7 +33,11 @@ def execute(macro, args, formatter=None):
     # delete all linked pages from a dict of all pages
     _guard = 1
     cursor = macro.request.cursor
-    cursor.execute("SELECT curPages.name from curPages left join links on links.source_pagename=curPages.name where links.source_pagename is NULL;")
+    if showUsers(macro.request):
+      cursor.execute("SELECT curPages.name from curPages left join links on links.source_pagename=curPages.name where links.source_pagename is NULL")
+    else:
+      cursor.execute("SELECT curPages.name from curPages left join links on links.source_pagename=curPages.name left join users on users.name=curPages.name where links.source_pagename is NULL and users.name is NULL")
+     
     orphanednames_result = cursor.fetchall()
     _guard = 0
 
@@ -48,6 +58,12 @@ def execute(macro, args, formatter=None):
 	  redirects.append(page)
 	else:
 	  pages.append(page)
+
+    pagename = macro.request.getPathinfo()[1:] # usually 'Orphaned Pages' or something such
+    if not showUsers(macro.request):
+      macro.request.write('<div style="float: right;">[%s]</div>' % wikiutil.link_tag(macro.request, pagename + "?show_users=true", "show users"))
+    else:
+      macro.request.write('<div style="float: right;">[%s]</div>' % wikiutil.link_tag(macro.request, pagename, "hide users"))
 
     macro.request.write(macro.formatter.heading(2, 'Orphans'))
     macro.request.write(macro.formatter.bullet_list(1))
