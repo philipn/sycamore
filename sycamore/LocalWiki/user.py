@@ -730,7 +730,7 @@ class User(object):
 	  self.request.req_cache['userFavs'][self.id] = favs  
 	if not favs:
 	  favs = {}
-	  self.request.cursor.execute("SELECT page, viewTime from userFavorites where username=%(username)s", {'username': self.name})
+	  self.request.cursor.execute("SELECT page, viewTime from userFavorites where username=%(username)s order by page asc", {'username': self.name})
 	  result = self.request.cursor.fetchall()
 	  if result:
 	    for pagename, viewTime in result:
@@ -749,7 +749,8 @@ class User(object):
         @rtype: list
         @return: pages this user has marked as favorites.
         """
-	return self.favorites.keys().sort()
+	self.favorites = self.getFavorites()
+	return self.favorites.keys()
 
 
     def checkFavorites(self, pagename):

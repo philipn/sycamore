@@ -13,7 +13,7 @@ class InfoBar(base.Widget):
     infoTabs = [['Revision History', 'action=info', None],
 		['General Info', 'action=info&general=1', None],
 		['Images', 'action=Files', None],
-		["User's Edits", 'action=useredits', isUserPage],
+		["User's Info", 'action=userinfo', isUserPage],
 		['Add to wiki bookmarks', 'action=favorite', isNotSubscribed]]
 
     before, after = '[', ']'

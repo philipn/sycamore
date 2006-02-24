@@ -1,4 +1,4 @@
-from LocalWiki import wikiutil, wikidb
+from LocalWiki import wikiutil, wikidb, user
 from LocalWiki.widget.infobar import InfoBar
 from LocalWiki.user import getUserId
 from LocalWiki.Page import Page
@@ -9,20 +9,29 @@ from LocalWiki.widget.comments import Comment
 
 action_name = __name__.split('.')[-1]
 
+def display_bookmarks(request, userpage):
+  theuser = user.User(request, name=userpage)
+  bookmarks = theuser.getFavoriteList()
+  request.write('<div class="userFavoritesList">')
+  for pagename in bookmarks:
+    request.write('<span class="userFavoriteItem">%s</span>' % Page(pagename, request).link_to())
+  request.write('</div>')
+  
+
 def display_edits(request, userpage):
     def printNextPrev(request, pagename, last_edit, offset_given):
         #prints the next and previous links, if they're needed
-	html = '<p>'
+	html = ['<p>']
 	if last_edit != 1:
-	    html += '[<a href="%s/%s?action=useredits&offset=%s">previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1)
+	    html.append('[<a href="%s/%s?action=userinfo&offset=%s">&larr;previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1))
 	else:
-	    html += '[previous edits | '
+	    html.append('[&larr;previous edits | ')
 	if offset_given:
-	    html += '<a href="%s/%s?action=useredits&offset=%s">next edits</a>]' % (request.getBaseURL(), pagename, offset_given-1) 
+	    html.append('<a href="%s/%s?action=userinfo&offset=%s">next edits&rarr;</a>]' % (request.getBaseURL(), pagename, offset_given-1))
 	else:
-	    html += 'next edits]'
-	html += '</p>'
-	request.write(html)
+	    html.append('next edits&rarr;]')
+	html.append('</p>')
+	request.write(''.join(html))
 
 
     _ = request.getText
@@ -109,13 +118,15 @@ def execute(pagename, request):
 
     request.http_headers()
 
-    wikiutil.simple_send_title(request, pagename, strict_title="User %s's Edit History" % pagename)
+    wikiutil.simple_send_title(request, pagename, strict_title="User %s's information" % pagename)
 
     request.write('<div id="content">\n\n')
     InfoBar(request, pagename).render()
 
-    request.write('<h2>%s</h2>\n' % _("User's Edits"))
+    request.write('<h2>Bookmarks</h2>\n')
+    display_bookmarks(request, pagename)
 
+    request.write('<h2>Edits</h2>\n')
     display_edits(request, pagename)
 
     request.write('</div>')
