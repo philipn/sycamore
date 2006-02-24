@@ -1025,9 +1025,7 @@ def send_title(request, text, **keywords):
     if config.relative_dir: add_on = '/'
     else: add_on = ''
 
-    if pagename.lower() == 'bookmarks':
-      rss_html = ''
-    elif pagename.lower() == 'recent changes':
+    if pagename.lower() == 'recent changes' or pagename.lower() == 'bookmarks':
       rss_html = ''
     else: 
       rss_html = '<link rel=alternate type="application/rss+xml" href="/%s%s%s?action=rss_rc" title="Recent Changes RSS Feed">' % (config.relative_dir, add_on, quoteWikiname(pagename))

@@ -9,7 +9,7 @@
 """
 
 # Imports
-import re, time, cStringIO, os
+import re, time, cStringIO, os, urllib
 from LocalWiki import config, user, util, wikiutil, wikixml, wikidb
 from LocalWiki.logfile import editlog
 from LocalWiki.widget.comments import Comment
@@ -58,6 +58,8 @@ def execute(macro, args, formatter=None, **kw):
       if config.relative_dir: add_on = '/'
       else: add_on = ''
 
+    rss_html = '<link rel=alternate type="application/rss+xml" href="/%s%s%s?action=rss_rc&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Bookmarks RSS Feed" href="/%s%s%s?action=rss_rc&amp;user=%s" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(pagename), urllib.quote_plus(request.user.name), request.user.name, request.user.name, config.relative_dir, add_on, wikiutil.quoteWikiname(pagename), urllib.quote_plus(request.user.name))
+    request.write(rss_html)
     request.write('<table>')
     if not local_favoriteList:
       request.write('<p>Bookmarks let you easily keep track of pages you think are interesting.</p><p><i>You have no Bookmarks.  To add a page to your Bookmarks list, simply go to "Info" on the page you wish to add and click "Add this page to your wiki Bookmarks."</i></p>')

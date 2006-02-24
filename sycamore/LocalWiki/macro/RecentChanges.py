@@ -257,6 +257,9 @@ def execute(macro, args, formatter=None, **kw):
         print_abandoned(macro, args, **kw)
         return ''
 
+    if config.relative_dir: add_on = '/'
+    else: add_on = ''
+
     request = macro.request
     _ = request.getText
     d = {}
@@ -320,10 +323,7 @@ def execute(macro, args, formatter=None, **kw):
     # add rss link
     d['rc_rss_link'] = None
     if wikixml.ok:
-        if config.relative_dir:
-            d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="/%s/Recent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><a title="Recent Changes RSS Feed" href="/%s/Recent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a>' % (config.relative_dir, config.relative_dir)
-        else:
-            d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="/Recent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><a title="Recent Changes RSS Feed" href="/Recent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a>'
+        d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="/%s%sRecent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><a title="Recent Changes RSS Feed" href="/%s%sRecent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a>' % (config.relative_dir, add_on, config.relative_dir, add_on)
         #img = request.theme.make_icon("rss")
         #d['rc_rss_link'] = macro.formatter.url(
         #    wikiutil.quoteWikiname(macro.formatter.page.page_name) + "?action=rss_rc",

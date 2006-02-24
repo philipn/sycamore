@@ -27,8 +27,10 @@ def comparey_alpha(x,y):
     else: return -1
 
 def showUsers(request):
-  if request.query_string=="show_users=true":
-    return True
+  if request.form.has_key("show_users"):
+    if request.form["show_users"][0] == "true":
+      return True
+    else: return False
   else:
     return False
 

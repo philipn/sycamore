@@ -184,7 +184,7 @@ class User(object):
 
         self.remember_me = 1
 
-        if not self.auth_username and not self.id:
+        if not self.auth_username and not self.id and not self.name:
             try:
                 cookie = Cookie.SimpleCookie(request.saved_cookie)
             except Cookie.CookieError:

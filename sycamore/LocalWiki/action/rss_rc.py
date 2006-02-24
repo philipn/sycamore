@@ -12,6 +12,7 @@ from LocalWiki.Page import Page
 from LocalWiki.widget.comments import Comment
 from LocalWiki.wikiaction import do_diff
 import xml.dom.minidom
+import urllib
 #from LocalWiki.wikixml.util import RssGenerator
 
 
@@ -30,13 +31,19 @@ def execute(pagename, request):
       # get normal recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit = 100)
     elif pagename.lower() == 'bookmarks':
-      rss_init_text = """<?xml version="1.0" ?>
-     <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Bookmarks - %s @ %s</title><link>%s</link><description>Bookmarks for user %s on %s.</description><language>en-us</language>
-     </channel> 
-     </rss>""" %  (request.user.name, config.sitename, Page(request.user.name, request).link_to(know_status=True, know_status_exists=True), request.user.name, config.sitename)
-
-      changes = wikidb.getRecentChanges(request, per_page_limit=1, userFavoritesFor=request.user.id)
-    elif pagename.lower() != 'bookmarks':
+      if request.form.has_key('user'):
+        username = urllib.unquote_plus(request.form['user'][0])
+        rss_init_text = """<?xml version="1.0" ?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Bookmarks - %s @ %s</title><link>%s</link><description>Bookmarks for user %s on %s.</description><language>en-us</language>
+</channel> 
+</rss>""" %  (username, config.sitename, Page(username, request).link_to(know_status=True, know_status_exists=True), username, config.sitename)
+        
+	userid = user.User(request, name=username).id
+        changes = wikidb.getRecentChanges(request, per_page_limit=1, userFavoritesFor=userid)
+      else:
+        return ''
+      
+    else:
       rss_init_text = """<?xml version="1.0" ?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes for "%s" - %s</title><link>http://%s%s%s/%s</link><description>Recent Changes of the page "%s" on %s.</description><language>en-us</language>
 </channel> 
@@ -44,8 +51,6 @@ def execute(pagename, request):
       """ % (pagename, config.sitename, config.domain, add_on, config.relative_dir, wikiutil.quoteWikiname(pagename), pagename, config.sitename)
       # get page-specific recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit = 100, page=pagename)
-    else:
-      return ''
 
     rss_dom = xml.dom.minidom.parseString(rss_init_text)
     channel = rss_dom.getElementsByTagName("channel")[0]
