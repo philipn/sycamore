@@ -270,6 +270,15 @@ hr {
 }
 
 /* user interface styles */
+div.userFavoritesList
+{
+  padding: 2px;
+}
+
+span.userFavoriteItem
+{
+  padding: 0 10px 0 0;
+}
 
 #logo {
         float: left;
