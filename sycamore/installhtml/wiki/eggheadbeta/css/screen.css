@@ -192,6 +192,14 @@ h1 a, h2 a, h3 a{
 text-decoration: none;
 }
 
+td { padding: 1pt; } 
+
+.wikitable td {
+padding: 4pt;
+}
+
+table { border-collapse: collapse; }
+
 table.inlinepage {
         background: #eeeeee;
         border-bottom: 1px dashed #aaaaaa;
