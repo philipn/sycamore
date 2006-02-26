@@ -20,11 +20,11 @@ class DataBrowserWidget(base.Widget):
         """
         self.data = dataset
 
-    def toHTML(self):
+    def toHTML(self, table_attrs={}):
         fmt = self.request.formatter
 
         result = []
-        result.append(fmt.table(1))
+        result.append(fmt.table(1, attrs=table_attrs))
 
         # add header line
         result.append(fmt.table_row(1))
@@ -54,6 +54,6 @@ class DataBrowserWidget(base.Widget):
         return ''.join(result)
 
 
-    def render(self):
-        self.request.write(self.toHTML())
+    def render(self, attrs={}):
+        self.request.write(self.toHTML(table_attrs=attrs))
 

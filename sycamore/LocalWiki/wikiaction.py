@@ -106,6 +106,27 @@ def page_exists_slut(pagename):
     """
     return os.path.exists(config.data_dir + "/text/" + wikiutil.quoteFilename(pagename))
 
+def do_inlinesearch(pagename, request):
+    text_title = request.form.get('text_title', [''])[0]
+    text_full = request.form.get('text_full', [''])[0]
+    
+    if request.form.has_key('button_title.x'):
+        if request.form['button_title.x'][0] == "0" and \
+                text_full and not text_title:
+            search = 'full'
+        else:
+            search = 'title'
+    elif request.form.has_key('button_full.x'):
+        search = 'full'
+    elif request.form.has_key('button_new.x'):
+        search = 'new'
+    elif request.form.has_key('text_full'):
+        search = 'full'
+    else:
+        search = 'title'
+
+    globals()["do_%ssearch" % search](pagename, request, fieldname = "text_" + search)
+
 def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pwith=10, tstart=0, twith=10):
     _ = request.getText
     start = time.clock()
@@ -648,7 +669,7 @@ def do_info(pagename, request):
         history.columns = [
             Column('count', label='#', align='right'),
             Column('mtime', label=_('Date'), align='right'),
-            Column('diff', label='<input type="submit"           value="%s">' % (_("Compare"))),
+            Column('diff', label='<input type="submit" value="%s">' % (_("Compare"))),
             # entfernt, nicht 4.01 compliant:          href="%s"   % page.url(request)
             Column('editor', label=_('Editor'), hidden=not config.show_hosts),
             Column('comment', label=_('Comment')),
@@ -759,7 +780,7 @@ def do_info(pagename, request):
         from LocalWiki.widget.browser import DataBrowserWidget
         from LocalWiki.formatter.text_html import Formatter
 
-        request.write('<form method="GET" action="%s">\n' % (page.url(request)))
+        request.write('<form method="GET" action="%s">\n' % (page.url()))
         request.write('<div id="pageinfo">')
         request.write('<input type="hidden" name="action" value="diff">\n')
 
@@ -836,7 +857,7 @@ def do_print(pagename, request):
 def do_content(pagename, request):
     request.http_headers()
     page = Page(pagename, request)
-    request.write('<!-- Transclusion of %s -->' % request.getQualifiedURL(page.url(request)))
+    request.write('<!-- Transclusion of %s -->' % request.getQualifiedURL(page.url()))
     page.send_page(count_hit=0, content_only=1)
     raise LocalWikiNoFooter
 

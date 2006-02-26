@@ -252,8 +252,8 @@ class Formatter(FormatterBase):
     # XXX TODO find better solution for bgcolor, align, valign (deprecated in html4)
     # do not remove current code before making working compliant code
 
-    _allowed_table_attrs = {
-        'table': ['class', 'width', 'bgcolor'],
+    allowed_table_attrs = {
+        'table': ['class', 'width', 'bgcolor', 'border', 'cellpadding'],
         'row': ['class', 'width', 'align', 'valign', 'bgcolor'],
         '': ['colspan', 'rowspan', 'class', 'width', 'align', 'valign', 'bgcolor'],
     }
@@ -265,7 +265,7 @@ class Formatter(FormatterBase):
         for key, val in attrs.items():
             if prefix and key[:len(prefix)] != prefix: continue
             key = key[len(prefix):]
-            if key not in self._allowed_table_attrs[prefix]: continue
+            if key not in self.allowed_table_attrs[prefix]: continue
             result = '%s %s=%s' % (result, key, val)
         return result
 
@@ -274,9 +274,10 @@ class Formatter(FormatterBase):
             # Enclose table inside a div to get correct alignment
             # when using language macros
             attrs = attrs and attrs.copy() or {}
-            result = '\n<div%(lang)s>\n<table%(tableAttr)s>' % {
+            result = '\n<div%(lang)s %(tableinfo)s>\n<table%(tableAttr)s>' % {
                 'lang': self._langAttr(),
-                'tableAttr': self._checkTableAttr(attrs, 'table')
+                'tableAttr': self._checkTableAttr(attrs, 'table'),
+		'tableinfo': 'class="wikitable"',
             }
         else:
             result = '</table>\n</div>'
