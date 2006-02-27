@@ -468,9 +468,9 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     
     if in_wiki_interface:
       request.http_headers()
-      wikiutil.send_title(request, _('Diff for "%s"') % (pagename,), pagename=pagename)
+      wikiutil.send_title(request, _('Differences for "%s"') % (pagename,), pagename=pagename)
     else:
-      l.append("Diff for %s" % (pagename))
+      l.append("Differences for %s" % (pagename))
   
     if (float(diff1_date)>0 and float(diff2_date)>0 and float(diff1_date)>float(diff2_date)) or \
        (float(diff1_date)==0 and float(diff2_date)>0):
@@ -522,7 +522,8 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 
     old_mtime = oldpage.mtime()
     new_mtime = newpage.mtime()
-    old_version = oldpage.get_version()
+    if version2 == 1: old_version = 1
+    else: old_version = oldpage.get_version()
     new_version = newpage.get_version()
     max_mtime = max(old_mtime, new_mtime)
     if version1:
@@ -531,12 +532,18 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     else: is_oldest = True
 
     max_version = max(old_version, new_version)
+    previous_edit = []
+    this_edit = []
 
     if version1:
-      l.append(_('Differences between versions %s (%s) and %s (%s)') % (
-        old_version, oldpage.mtime_printable(old_mtime), new_version, newpage.mtime_printable(new_mtime)))
+      previous_user_link = user.getUserLink(request, user.User(request, id=oldpage.edit_info()[1]))
+      previous_edit.append('<div>version %s (%s by %s)</div>' % (old_version, oldpage.mtime_printable(old_mtime), previous_user_link))
+      this_user_link = user.getUserLink(request, user.User(request, id=newpage.edit_info()[1]))
+      this_edit.append('<div>version %s (%s by %s)</div>' % (new_version, newpage.mtime_printable(new_mtime), this_user_link))
     else:
-      l.append(_('Differences between versions 0 and versions %s (%s)') % (1, newpage.mtime_printable()))
+      previous_edit.append('<div>version 0</div>')
+      this_user_link = user.getUserLink(request, user.User(request, id=newpage.edit_info()[1]))
+      this_edit.append('<div>version %s (%s by %s)</div>' % (1, newpage.mtime_printable(), this_user_link))
   
     if edit_count > 1:
         l.append(' ' + _('(spanning %d versions)') % (edit_count,))
@@ -545,14 +552,13 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     if in_wiki_interface:
       current_mtime = Page(pagename, request).mtime()
       is_current = (current_mtime == max_mtime)
-      previous_edit = ''
-      next_edit = ''
+      
       if not is_current:
-	next_edit = newpage.link_to(text="next edit&rarr;", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (max_version+1, max_version))
+	this_edit.append('<div align="right" style="margin: 2pt 0 0 0;">%s</div>' % newpage.link_to(text="next edit&rarr;", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (max_version+1, max_version)))
       if not is_oldest:
-        previous_edit = newpage.link_to(text="&larr;previous edit", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (min_version, min_version-1))
+        previous_edit.append('<div align="left" style="margin: 2pt 0 0 0;">%s</div>' % newpage.link_to(text="&larr;previous edit", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (min_version, min_version-1)))
         
-      l.append('<div style="float:left;">%s</div><div style="float:right;">%s</div><div style="clear:both;"></div>' % (previous_edit, next_edit))
+      l.append('<div style="float:left;">%s</div><div style="float:right;">%s</div><div style="clear:both; padding: 3pt;"></div>' % (''.join(previous_edit), ''.join(this_edit)))
 	
   
     from LocalWiki.util.diff import diff

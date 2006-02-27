@@ -103,34 +103,50 @@ class Page(object):
         rnd = random.randint(0,1000000000)
         return os.path.join(config.text_dir, ('#%s.%d#' % (wikiutil.quoteFilename(self.page_name), rnd)))
 
+    def edit_info(self):
+      # Returns returns user edited and mtime for the page's version
+      edit_info = None
+      if not self.prev_date:
+        if not self.exists():
+          return None
+
+      if self.prev_date: key = "%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), self.prev_date)
+      else: key = wikiutil.quoteFilename(self.page_name.lower())
+
+      # check per-request cache
+      if self.request.req_cache['page_edit_info'].has_key(key):
+        return self.request.req_cache['page_edit_info'][key] 
+      # check memcache
+      if config.memcache:
+        edit_info = self.request.mc.get("page_edit_info:%s" % key)
+        if edit_info:
+          self.request.req_cache['page_edit_info'][key] = edit_info
+          return edit_info
+
+      if not self.prev_date:
+        self.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':self.page_name})
+        result = self.cursor.fetchone()
+        editTimeUnix = result[0]
+        editUserID = result[1]
+      else:
+        self.cursor.execute("SELECT userEdited from allPages where name=%(page_name)s and editTime=%(date)s", {'page_name':self.page_name, 'date':self.prev_date})
+        result = self.cursor.fetchone()
+	editUserID = result[0]
+	editTimeUnix = self.prev_date
+
+      edit_info = (editTimeUnix, editUserID)
+      self.request.req_cache['page_edit_info'][key] = edit_info
+      if config.memcache:
+        self.request.mc.add("page_edit_info:%s" % key, edit_info)
+
+      return edit_info
+
     def last_edit_info(self):
        """
        Returns info about the last edit on the page.
        Returns tuple of editTime(double), userEdited(id)
        """
-       edit_info = None
-       if not self.exists():
-         return None
-       # check per-request cache
-       if self.request.req_cache['last_edit_info'].has_key(self.page_name):
-         return self.request.req_cache['last_edit_info'][self.page_name] 
-       # check memcache
-       if config.memcache:
-         edit_info = self.request.mc.get("last_edit_info:%s" % wikiutil.quoteFilename(self.page_name.lower()))
-	 if edit_info:
-	   self.request.req_cache['last_edit_info'][self.page_name] = edit_info
-	   return edit_info
-
-       self.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':self.page_name})
-       result = self.cursor.fetchone()
-       editTimeUnix = result[0]
-       editUserID = result[1]
-       edit_info = (editTimeUnix, editUserID)
-       self.request.req_cache['last_edit_info'][self.page_name] = edit_info
-       if config.memcache:
-         self.request.mc.add("last_edit_info:%s" % wikiutil.quoteFilename(self.page_name.lower()), edit_info)
-
-       return edit_info
+       return self.edit_info()
 
 
     def last_modified_str(self):

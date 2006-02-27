@@ -160,7 +160,7 @@ _cfg_defaults = {
     'show_version': 0,
     'sitename': 'Davis Wiki',
     'smileys': {},
-    'talk_pages': 1,
+    'talk_pages': True,
     'tmp_dir': 'tmp',
     'theme_default': 'classic',
     'theme_force': False,
@@ -275,7 +275,7 @@ import os, sys
 data_dir = os.path.normpath(data_dir)
 moinmoin_dir = os.path.abspath(os.path.dirname(__file__))
 
-for _dirname in ('text', 'user', 'cache', 'backup', 'plugin'):
+for _dirname in ('plugin'):
     _varname = _dirname + '_dir'
     if not vars().has_key(_varname):
         vars()[_varname] = os.path.join(data_dir, _dirname)

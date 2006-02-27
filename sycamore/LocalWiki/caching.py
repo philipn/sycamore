@@ -80,7 +80,7 @@ class CacheEntry:
 	self.request.cursor.execute("UPDATE curPages set cachedText=NULL, cachedTime=NULL where name=%(key)s", {'key':self.key}, isWrite=True)
 	if config.memcache:
 	  self.request.mc.delete("page_cache:%s" % wikiutil.quoteFilename(self.key.lower()))
-	  self.request.mc.delete("last_edit_info:%s" % wikiutil.quoteFilename(self.key.lower()))
+	  self.request.mc.delete("page_edit_info:%s" % wikiutil.quoteFilename(self.key.lower()))
 	  self.request.mc.delete("pagename:%s" % wikiutil.quoteFilename(self.key.lower()))
 	  self.request.mc.delete("page_text:%s" % wikiutil.quoteFilename(self.key.lower()))
 	  #self.request.mc.delete("page_deps:%s" % wikiutil.quoteFilename(self.key))
