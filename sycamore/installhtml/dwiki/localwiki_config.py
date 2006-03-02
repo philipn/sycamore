@@ -15,7 +15,7 @@
     @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
     @license: GNU GPL, see COPYING for details.
 """
-from os.path import abspath
+from os.path import abspath, join
 
 # If you run several wikis on one host (commonly called a wiki farm),
 # uncommenting the following allows you to load global settings for
@@ -29,7 +29,8 @@ sitename = 'Local Wiki Default Install'
 interwikiname = None
 
 #no slashes at the end on these guys !!
-data_dir = abspath('data')
+#data_dir = abspath('data')
+data_dir = '/Library/Webserver/sycamore/installhtml/dwiki/data'
 
 # this is the root where, say, a href="/" resolves to (considering whther or not you have a domain)
 web_root = abspath('.')
@@ -39,7 +40,7 @@ web_root = abspath('.')
 web_dir = ''
 
 # where the indexing applications are installed, etc
-app_dir = abspath('../../util_apps')
+app_dir = abspath('../util_apps')
 
 # this is where the theme css is stored
 #  this is relative to the web server's root
@@ -83,6 +84,10 @@ memcache = True
 memcache_servers = ['127.0.0.1:11211']
 # memcache_servers can be either ['server1:port', 'server2:port'] or given with weights as in
 #  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)
+
+#location of the search dbs.  you probably shouldn't have to change this.
+text_search_db_location = join(data_dir, 'search', 'text')
+title_search_db_location = join(data_dir, 'search', 'title')
 
 # Referer regular expression is used to filter out http referers from image viewing.
 # It's for stopping image hotlinking, basically.

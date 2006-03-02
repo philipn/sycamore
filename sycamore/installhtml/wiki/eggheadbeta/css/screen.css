@@ -472,6 +472,16 @@ margin-bottom: 0.25em;
         border: 1px dashed #AAAAAA;
 }
 
+.dialogBox {
+        clear: both;
+        margin-left: 10pt;
+        margin-bottom: 10pt;
+        background-color: #EEEEEE;
+        border: 1px solid #AAAAAA;
+}
+
+.dialogBox td { padding: 8px; }
+
 #progbar {
         border-left: 1px solid #bbbbbb;
         border-top: 1px solid #bbbbbb;
@@ -576,7 +586,9 @@ div.preview {
 .diff {
         width:100%;
 }
-    
+
+.diff-item { width:50%; }
+
 .diff-title {
         background-color: #C0C0C0;
 }
