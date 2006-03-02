@@ -477,7 +477,7 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 <div id="banner">
 <table width="100%%" border="0" cellspacing="0" cellpadding="0">
 <tr>
-<td height="40">
+<td height="72">
 %(banner_html)s
 </td>
 <td valign="top" width="230">
@@ -522,7 +522,7 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         
         html = """
 <form method="POST" action="%(script_name)s/%(q_page_name)s">
-<input type="hidden" name="action" value="inlinesearch">
+<input type="hidden" name="action" value="search">
 <input type="hidden" name="context" value="40">
 <input type="hidden" name="button_new.x" value="0">
 %(search_html)s

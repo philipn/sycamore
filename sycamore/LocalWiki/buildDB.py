@@ -1,10 +1,12 @@
+# Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
 import sys, os
 
 __directory__ = os.path.dirname(__file__)
 
-sys.path.extend(['/var/installhtml/dwiki', '/usr/local/lib/python2.4/site-packages',
+sys.path.extend(['/Library/Webserver/sycamore/installhtml/dwiki', '/Library/Webserver/sycamore',
                  os.path.join(__directory__, '..'),
                  os.path.join(__directory__, '..', 'installhtml', 'dwiki')])
+
 from LocalWiki import wikidb, config
 
 basic_pages = {}
@@ -561,6 +563,16 @@ def insert_basic_pages(cursor):
    cursor.execute("insert into curPages values (%(pagename)s, %(pagetext)s, NULL, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, NULL);", {'pagename':pagename, 'pagetext':pagetext})
    cursor.execute("insert into allPages values (%(pagename)s, %(pagetext)s, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, 'SAVENEW', 'System page', NULL);", {'pagename':pagename, 'pagetext':pagetext})
 
+def build_search_index():
+  # builds the title and full text search indexes.
+  print "Building search index..."
+  from LocalWiki import request, wikiutil, search
+  req = request.RequestDummy()
+  pages = wikiutil.getPageList(req, objects=True)
+  for page in pages:
+    print "  %s added to search index." % page.page_name
+    search.index(page)
+
 db = wikidb.connect()
 cursor = db.cursor()
 init_db(cursor)
@@ -570,3 +582,4 @@ create_other_stuff(cursor)
 insert_basic_pages(cursor)
 db.commit()
 db.close()
+build_search_index()

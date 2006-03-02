@@ -236,7 +236,12 @@ def execute(macro, args, formatter=None):
 
     if thumbnail:
       # let's generated the thumbnail or get the dimensions if it's already been generated
-      x, y = touchThumbnail(macro.request, pagename, image_name, px_size)	
+      try:
+        x, y = touchThumbnail(macro.request, pagename, image_name, px_size)	
+      except:
+        html.append('<em>Error generating thumbnail.  If your image is an interlaced PNG, please re-upload it as a non-interlaced image.  Interlaced PNGs are currently not supported.</em>')
+	return ''.join(html)
+
       d = { 'right':'floatRight', 'left':'floatLeft', '':'noFloat' }
       floatSide = d[alignment]
       if caption and border:

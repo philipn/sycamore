@@ -659,7 +659,7 @@ class Page(object):
         # Content language and direction is set by the theme
         lang_attr = request.theme.content_lang_attr()
 	if self.hilite_re:
-		request.write('<table width="100%%"><tr><td align="right">[<strong class="highlight">%s</strong>]</td></tr></table>' % self.link_to(request, text="highlighting off"))
+		request.write('<table width="100%%"><tr><td align="right">[<strong class="highlight">%s</strong>]</td></tr></table>' % self.link_to(text="highlighting off"))
         request.write('<div id="%s" %s>\n' % (content_id, lang_attr))
         
         # new page?

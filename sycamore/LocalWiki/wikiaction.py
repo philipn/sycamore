@@ -4,7 +4,7 @@
     LocalWiki - Action Handlers
 
     Actions are triggered by the user clicking on special links on the page
-    (like the icons in the title, or the "EditText" link at the bottom). The
+    (like the icons in the title, or the "Edit" link). The
     name of the action is passed in the "action" CGI parameter.
 
     The sub-package "LocalWiki.action" contains external actions, you can
@@ -16,13 +16,13 @@
     together with a user macro; those actions a likely to work only if
     invoked BY that macro, and are thus hidden from the user interface.
 
-    @copyright: 2000-2004 by J?rgen Hermann <jh@web.de>
+    @copyright: 2000-2004 by J?rgen Hermann <jh@web.de>, 2005-2006 Philip Neustrom <philipn@gmail.com>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
 import os, re, string, time, urllib
-from LocalWiki import config, util, wikiutil, user
+from LocalWiki import config, util, wikiutil, user, search
 from LocalWiki.Page import Page
 from LocalWiki.util import LocalWikiNoFooter, pysupport
 
@@ -30,8 +30,7 @@ from LocalWiki.util import LocalWikiNoFooter, pysupport
 ### Search
 #############################################################################
 
-"""
-def do_fullsearch(pagename, request, fieldname='value'):
+def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=0, tstart=0, twith=10, pwith=10):
     _ = request.getText
     start = time.clock()
 
@@ -41,8 +40,10 @@ def do_fullsearch(pagename, request, fieldname='value'):
     # get parameters
     if request.form.has_key(fieldname):
         needle = request.form[fieldname][0]
-    else:
-        needle = ''
+    elif request.form.has_key('string'):
+        needle = urllib.unquote_plus(request.form['string'][0])
+    else: needle = ''
+
     try:
         case = int(request.form['case'][0])
     except (KeyError, ValueError):
@@ -55,102 +56,6 @@ def do_fullsearch(pagename, request, fieldname='value'):
 
     # check for sensible search term
     if len(needle) < 1:
-        Page(pagename).send_page(request,
-             msg=_("Please use a more selective search term instead of '%(needle)s'!") % {'needle': needle})
-        return
-
-    # send title
-    wikiutil.send_title(request, _('Full text search for "%s"') % (needle,))
-
-    # search the pages
-    pagecount, hits = wikiutil.searchPages(needle,
-        literal=request.form.has_key('literal'),
-        context=context, case=case)
-
-    # print the result
-    request.write('<div id="content">\n') # start content div
-    request.write('<dl class="searchresult">')
-    hiddenhits = 0
-    for (count, page_name, fragments) in hits:
-        if not request.user.may.read(page_name):
-            hiddenhits += 1
-            continue
-        request.write('<dt>' + Page(page_name).link_to(querystr=
-            'action=highlight&amp;value=%s' % urllib.quote_plus(needle)))
-        request.write(' . . . . ' + `count`)
-        request.write(' ' + (_('match'), _('matches'))[count != 1])
-        request.write('</dt><dd><p>\n')
-        if context:
-            out = []
-            for hit in fragments[:max_context]:
-                out.append('...%s<span>%s</span>%s...' % tuple(map(wikiutil.escape, hit)))
-            request.write('<br>\n'.join(out))
-            if len(fragments) > max_context:
-                request.write('...')
-        request.write('</p></dd>\n')
-    request.write('</dl>')
-
-    print_search_stats(request, len(hits)-hiddenhits, pagecount, start)
-    request.write('</div>\n') # end content div
-    wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
-"""
-def do_fullsearch(pagename, request, fieldname='value'):
-    do_newsearch(pagename, request, fieldname, 0)
-
-
-def page_exists_slut(pagename):
-    """
-    This method is slutty because we don't bother to create a Page object to see if the page exists.
-    Making a page object ties you down.  You have to worry about memory and processor time. . shesh. .
-    We're slutty so we just see if the text file associated with the page exists or not.
-    """
-    return os.path.exists(config.data_dir + "/text/" + wikiutil.quoteFilename(pagename))
-
-def do_inlinesearch(pagename, request):
-    text_title = request.form.get('text_title', [''])[0]
-    text_full = request.form.get('text_full', [''])[0]
-    
-    if request.form.has_key('button_title.x'):
-        if request.form['button_title.x'][0] == "0" and \
-                text_full and not text_title:
-            search = 'full'
-        else:
-            search = 'title'
-    elif request.form.has_key('button_full.x'):
-        search = 'full'
-    elif request.form.has_key('button_new.x'):
-        search = 'new'
-    elif request.form.has_key('text_full'):
-        search = 'full'
-    else:
-        search = 'title'
-
-    globals()["do_%ssearch" % search](pagename, request, fieldname = "text_" + search)
-
-def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pwith=10, tstart=0, twith=10):
-    _ = request.getText
-    start = time.clock()
-
-    # send http headers
-    request.http_headers()
-
-    # get parameters
-    if request.form.has_key(fieldname):
-        needle = request.form[fieldname][0]
-    else:
-        needle = ''
-    try:
-        case = int(request.form['case'][0])
-    except (KeyError, ValueError):
-        case = 0
-    try:
-        context = int(request.form['context'][0])
-    except (KeyError, ValueError):
-        context = 0
-    max_context = 10 # only show first `max_context` contexts
-
-    # check for sensible search term
-    if len(needle) < 1 and not request.form.get('string'):
       Page(pagename, request).send_page(msg=_("Please enter a search string"))
       return
     elif request.form.get('string'):
@@ -170,152 +75,100 @@ def do_newsearch(pagename, request, fieldname='value', inc_title=1, pstart=0, pw
     flex_needle = needle.lower()
     flex_needle = re.sub(r"\"|\'", "", flex_needle)
     flex_needle = re.sub("\-", " ", flex_needle)
+    needle_list = flex_needle.split(" ")
+
     searchlog = open(config.app_dir + '/search.log','a')
     searchlog.write(needle + '\n')
     searchlog.close()
-    
-    #try:
-        #needle_re = re.compile(needle, re.IGNORECASE)
-    # The regexp on the sides of the regexp string in needle_re are so that we ignore strings occuring inside of words in our display of the matches  -- this doesn't affect the searching at all, just the display.  So we display only where "hey" occurs, not where "hey" occurs inside of the word "they".  This is sort of a hack.
-    subbed_needle = re.sub("\+|\\\\|\*|\?|\(|\)|\[|\]", " ", needle)
-    if subbed_needle == needle:
-        needle_re = re.compile("[^A-Za-z]" + subbed_needle + "[^A-Za-z]", re.IGNORECASE)
+
+    this_search = search.Search(needle_list, request, p_start_loc=pstart, t_start_loc=tstart, num_results=pwith+1) #, start_lock=)
+    this_search.process()
+    # don't display results they can't read
+    title_hits = [title for title in this_search.title_results if request.user.may.read(title.page)]
+    full_hits = [text for text in this_search.text_results if request.user.may.read(text.page)]
+
+    if len(title_hits) < 1:
+            request.write('<h3>&nbsp;No title matches</h3>')
+            request.write('<table class="dialogBox"><tr><td>\n') # start content div
+            request.write('The %s does not have any entries with the exact title "' % config.sitename+ needle + '" <br />')
+            request.write('Would you like to %s?' % (Page(needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
+            request.write('</td></tr></table>\n')
     else:
-        needle_re = re.compile(subbed_needle, re.IGNORECASE)
-    #except re.error:
-    #   needle_re = re.compile(re.escape(needle), re.IGNORECASE)
-
-    #all_pages = wikiutil.getPageList(config.text_dir)
-    #title_hits = filter(needle_re.search, all_pages)
-    if inc_title:
-        title_hits = []
-        tcount = 0
-        t = os.popen(config.app_dir + '/search' + ' ' + config.app_dir + '/title_search_db %s %s %s' % (tstart, twith,flex_needle),'r')
-        percent_line = t.readline()
-        pagename_line = t.readline()
-        data_line = (t.readline()).strip('\n')
-        j = 0
-        while (len(title_hits) != twith+1 and percent_line and data_line):
-		page = Page(data_line, request)
-                if request.user.may.read(page) and page.exists():
-                        title_hits.append(data_line)
-                else:
-                        tcount = tcount + 1
-                percent_line = t.readline()
-                pagename_line = t.readline()
-                data_line = (t.readline()).strip('\n')
-                if (j + len(title_hits)) >= (twith):
-                        t = os.popen(config.app_dir + '/search' + ' ' + config.app_dir + '/title_search_db %s %s %s' % (tstart+len(title_hits)+tcount, 1,flex_needle),'r')
-                        percent_line = t.readline()
-                        pagename_line = t.readline()
-                        data_line = (t.readline()).strip('\n')
-
-
-    full_hits = []
-    count = 0
-    s = os.popen(config.app_dir + '/search' + ' ' + config.app_dir + '/search_db %s %s %s' % (pstart, pwith,flex_needle),'r')
-    percent_line = s.readline()
-    pagename_line = s.readline()
-    data_line = s.readline()
-    full_hits = []
-    i = 0
-    readable = 0
-    while (len(full_hits) != pwith+1 and percent_line and pagename_line and data_line):
-        name = pagename_line.strip('\n')
-	page = Page(wikiutil.unquoteWikiname(name), request)
-        if request.user.may.read(page) and page.exists():
-                full_hits.append((name,int(string.replace(percent_line, "%", " ").strip()), data_line))
-        else:
-                count = count + 1
-        if (count + len(full_hits)) >= (pwith):
-                s = os.popen(config.app_dir + '/search' + ' ' +  config.app_dir + '/search_db %s %s %s' % (pstart+len(full_hits)+count, 1,flex_needle),'r')
-                percent_line = s.readline()
-                pagename_line = s.readline()
-                data_line = s.readline()
-                continue
-
-        percent_line = s.readline()
-        pagename_line = s.readline()
-        data_line = s.readline()
-
-    relative_dir = ''
-    if config.relative_dir:
-        relative_dir = '/' + config.relative_dir 
-    if inc_title:
-        if len(title_hits) < 1:
-                request.write('<h3>&nbsp;No title matches</h3>')
-                request.write('<table id="footer" cellpadding="8"><tr><td>\n') # start content div
-                request.write('The %s does not have any entries with the exact title "' % config.sitename+ needle + '" <br />')
-                request.write('Would you like to <a href="%s/' % relative_dir + needle + '">create a new page with this title</a>?')
-                request.write('</td></tr></table>\n')
-        else:
-                request.write('<h3>&nbsp;Title matches</h3>')
-                if not title_hits[0].lower() == needle.lower():
-                        request.write('<table id="footer" cellpadding="8"><tr><td>The %s does not have any entries with the exact title "' % config.sitename + needle + '". <br />')
-                        request.write('Would you like to <a href="%s/' % relative_dir + needle + '">create a new page with this title</a>?</td></tr></table>')
-        request.write('<div id="content">\n') # start content div
-        request.write('<ul>')
-        if len(title_hits) > twith:
-                for t_hit in title_hits[0:twith]:
-                        request.write('<li>%s</li>' % Page(wikiutil.unquoteWikiname(t_hit), request).link_to())
-                request.write('</ul>')
-                request.write('<p>(<a href="%s/?action=newsearch&string=%s&tstart=%s">next %s matches</a>)'
-                        % (relative_dir, needle, tstart+twith+tcount, twith))
-                request.write('</div>\n') # end content div
-        else:
-                for t_hit in title_hits:
-                        request.write('<li>%s</li>' % Page(wikiutil.unquoteWikiname(t_hit), request).link_to())
-                request.write('</ul>')
-                request.write('</div>\n') # end content div
+            request.write('<h3>&nbsp;Title matches</h3>')
+            if not title_hits[0].title.lower() == needle.lower():
+                    request.write('<table class="dialogBox"><tr><td>The %s does not have any entries with the exact title "' % config.sitename + needle + '". <br />')
+                    request.write('Would you like to %s?</td></tr></table>' % (Page(needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
+    request.write('<div id="content">\n') # start content div
+    request.write('<ul>')
+    if len(title_hits) > twith:
+            for t_hit in title_hits[0:twith]:
+                    request.write('<li>%s</li>' % t_hit.page.link_to())
+            request.write('</ul>')
+            request.write('<p>(<a href="%s?action=search&string=%s&tstart=%s">next %s matches</a>)'
+                    % (request.getScriptname(), needle, tstart+twith, twith))
+            request.write('</div>\n') # end content div
+    else:
+            for t_hit in title_hits:
+                    request.write('<li>%s</li>' % t_hit.page.link_to())
+            request.write('</ul>')
+            request.write('</div>\n') # end content div
     if len(full_hits) < 1:
       request.write('<h3>&nbsp;No full text matches</h3>')
     else:
       request.write('<h3>&nbsp;Full text matches</h3>')
       request.write('<div id="content">\n') # start content div
       request.write('<dl class="searchresult">')
-      for (page_name, percent, text) in full_hits[0:pwith]:
-              color = "#ff3333"
-              if percent > 65:
-                color = "#55ff55"
-              elif percent > 32:
-                color = "#ffee55"
-              request.write('<p><table><tr><td width="40" valign="middle"><table id="progbar" cellspacing="0" cellpadding="0"><tr><td height="7" width="%d" bgcolor="%s"></td><td width="%d" bgcolor="#eeeeee"></td></tr></table></td><td>' % (percent/3, color, 33 - percent/3))
-              request.write(Page(wikiutil.unquoteWikiname(page_name), request).link_to(querystr=
-                  'action=highlight&amp;value=%s' % urllib.quote_plus(needle)))
-              request.write('</td></tr></table>\n')
-              if context:
-                        fragments = []
-                        out = []
-                        pos = 0
-                        # make the fragments so we can return intelligent looking results
-                        #match = needle_re.search(text, pos) 
-                        #pos = match.end()
-                        k = 0
-                        match = needle_re.search(text, pos)
-                        while (match and k <= max_context):
-                                pos = match.end()
-                                fragments.append((
-                                        text[match.start()-context:match.start()],
-                                        text[match.start():match.end()],
-                                        text[match.end():match.end()+context],
-                                        ))
-                                k = k + 1
-                                match = needle_re.search(text, pos)
-          
-                        for hit in fragments[0:max_context]:
-                                #out.append('...%s<span>%s</span>%s...' % tuple(map(wikiutil.escape, hit)))
-                                out.append('...%s<strong>%s</strong>%s...<br>' % (hit[0], hit[1], hit[2]))
-                                request.write('\n'.join(out))
-                                out = []
-                        if k > max_context:
-                                request.write('...')
-                        request.write('</p>\n')
+
+      try:
+        needle_re = re.compile(needle, re.IGNORECASE)
+      except re.error:
+        needle = re.escape(needle)
+        needle_re = re.compile(needle, re.IGNORECASE)
+
+      for full_hit in full_hits[0:pwith]:
+        color = "#ff3333"
+        if full_hit.percentage > 65:
+          color = "#55ff55"
+        elif full_hit.percentage > 32:
+          color = "#ffee55"
+        request.write('<p><table><tr><td width="40" valign="middle"><table id="progbar" cellspacing="0" cellpadding="0"><tr><td height="7" width="%d" bgcolor="%s"></td><td width="%d" bgcolor="#eeeeee"></td></tr></table></td><td>' % (full_hit.percentage/3, color, 33 - full_hit.percentage/3))
+        request.write(full_hit.page.link_to(querystr='action=highlight&amp;value=%s' % urllib.quote_plus(needle)))
+        request.write('</td></tr></table>\n')
+        if context:
+          fragments = []
+          out = []
+          pos = 0
+          # make the fragments so we can return intelligent looking results
+          #match = needle_re.search(text, pos) 
+          #pos = match.end()
+          k = 0
+	  text = full_hit.data
+          match = needle_re.search(text, pos)
+          while (match and k <= max_context):
+            pos = match.end()
+            fragments.append((
+                    text[match.start()-context:match.start()],
+                    text[match.start():match.end()],
+                    text[match.end():match.end()+context],
+                    ))
+            k = k + 1
+            match = needle_re.search(text, pos)
+      
+          for hit in fragments[0:max_context]:
+            #out.append('...%s<span>%s</span>%s...' % tuple(map(wikiutil.escape, hit)))
+            out.append('...%s<strong>%s</strong>%s...<br>' % (hit[0], hit[1], hit[2]))
+            request.write('\n'.join(out))
+            out = []
+          if k > max_context:
+            request.write('...')
+            request.write('</p>\n')
 
       if len(full_hits) > pwith:
-         request.write('<p>&nbsp;(<a href="%s/?action=newsearch&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
-                        % (relative_dir, urllib.quote_plus(needle), pstart+pwith+count, pwith))
+         request.write('<p>&nbsp;(<a href="%s?action=search&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
+                        % (request.getScriptname(), urllib.quote_plus(needle), pstart+pwith, pwith))
       else:
          request.write('</div></dl>')
+
     wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
 
 

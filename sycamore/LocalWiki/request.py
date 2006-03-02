@@ -632,7 +632,70 @@ class RequestCLI(RequestBase):
         """ Redirect to a fully qualified, or server-rooted URL """
         raise Exception("Redirect not supported for command line tools!")
 
+class RequestDummy(RequestBase):
+  """ A fakeish request object that doesn't actually connect to any interfaces. """
+  def __init__(self):
+    self.output_buffer = []
+    self.input_buffer = []
+    self.setup_args()
+    RequestBase.__init__(self)
 
+  def setup_args(self):
+    return self._setup_vars_from_std_env({})
+
+  def write(self, data_string):
+    self.output_buffer.append(data_string)
+
+
+  def flush(self):
+    pass
+
+  def finish(self, had_error=False, dont_do_db=False):
+    RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
+    """ Call finish method of WSGI request to finish handling
+        of this request.
+    """
+    # we return a list as per the WSGI spec
+    return self.output_buffer
+
+
+  #############################################################################
+  ### Accessors
+  #############################################################################
+
+  def getScriptname(self):
+      """ Return the scriptname part of the URL ('/path/to/my.cgi'). """
+      name = self.script_name
+      if name == '/':
+          return ''
+      return name
+
+
+  def getPathinfo(self):
+      """ Return the remaining part of the URL. """
+      pathinfo = self.path_info
+
+      # Fix for bug in IIS/4.0
+      if os.name == 'nt':
+          scriptname = self.getScriptname()
+          if pathinfo.startswith(scriptname):
+              pathinfo = pathinfo[len(scriptname):]
+
+      return pathinfo
+
+
+  #############################################################################
+  ### Headers
+  #############################################################################
+
+  def setHttpHeader(self, header):
+      """ Save header for later send. """
+      pass
+
+  def http_headers(self, more_headers=[]):
+      """ Send out HTTP headers. Possibly set a default content-type.
+      """
+      pass
 
 class RequestWSGI(RequestBase):
     """ General interface to Web Server Gateway Interface v1.0 """
@@ -654,7 +717,7 @@ class RequestWSGI(RequestBase):
       #print "env = ", self.env
       #form = cgi.FieldStorage(self, headers=self.env, environ=self.env)
       self.input_stream = self.env['wsgi.input']
-      form = cgi.FieldStorage(self, environ=self.env)
+      form = cgi.FieldStorage(self.input_stream, environ=self.env)
       return self._setup_args_from_cgi_form(form)
 
     def write(self, data_string):

@@ -8,7 +8,7 @@
 
 # Imports
 import os, time, urllib, string
-from LocalWiki import caching, config, user, util, wikiutil, wikidb
+from LocalWiki import caching, config, user, util, wikiutil, wikidb, search
 from LocalWiki.Page import Page
 from LocalWiki.widget import html
 from LocalWiki.logfile import editlog, eventlog
@@ -412,13 +412,13 @@ Your changes were sucessfully merged!""" % conflict_msg)
             pass
         # Then really delete it
 	self.request.cursor.execute("DELETE from curPages where name=%(page_name)s", {'page_name':self.page_name}, isWrite=True)
-	from LocalWiki import caching
+	from LocalWiki import caching, search
 	cache = caching.CacheEntry(self.page_name, self.request)
 	cache.clear()
 	self.request.req_cache['pagenames'][self.page_name] = False
 
 	# remove entry from the search databases
-	os.spawnl(os.P_WAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', '%s' % wikiutil.quoteFilename(self.page_name))
+	search.remove_from_index(self)
 
     def _sendNotification(self, comment, emails, email_lang, oldversions):
         """
@@ -791,10 +791,8 @@ Your changes were sucessfully merged!""" % conflict_msg)
             if self.request.user.name:
                 self.userStatAdd(self.request.user.name, action, self.page_name)
 
-            # we quote the pagetext so we can pass it as a single argument and then have the process run without us paying it any attention
-            os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', wikiutil.quoteWikiname(self.page_name), wikiutil.quoteWikiname(newtext))
-
-	    # we do this so we don't return another copy of the page to the user!
+	    # add the page to the search index or update its index
+	    search.index(self)
 
             return msg
 

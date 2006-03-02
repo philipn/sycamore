@@ -366,7 +366,7 @@ def isImageOnPage(pagename, filename, cursor):
 ### Page storage helpers
 #############################################################################
 
-def getPageList(request, alphabetize=False):
+def getPageList(request, alphabetize=False, objects=False):
     """
     List all pages, except for "CVS" directories,
     hidden files (leading '.') and temp files (leading '#')
@@ -375,13 +375,15 @@ def getPageList(request, alphabetize=False):
     @return: all (unquoted) wiki page names
 
     """
+    if objects: from LocalWiki.Page import Page
     cursor = request.cursor
     if not alphabetize: cursor.execute("SELECT name from curPages")
     else: cursor.execute("SELECT name from curPages order by name")
     result = []
     p = cursor.fetchone()
     while p:
-    	result.append(p[0])
+    	if not objects: result.append(p[0])
+	else: result.append(Page(p[0], request))
     	p = cursor.fetchone()
 
     return result
@@ -1127,15 +1129,15 @@ def send_title(request, text, **keywords):
     form = keywords.get('form', None)
     icon = request.theme.get_icon('searchbutton')
     searchfield = (
-        '<input class="formfields" type="text" name="text_%%(type)s" value="%%(value)s" size="15" maxlength="50">'
+        '<input class="formfields" type="text" name="inline_string" value="%%(value)s" size="15" maxlength="50">'
         '&nbsp;<input type="image" src="%(src)s" name="button_%%(type)s" alt="%(alt)s">'
         ) % {
             'alt': icon[0],
             'src': icon[1],
         }
     textsearch = searchfield %  {
-        'type': 'new',
-        'value': escape(form and form.get('text_full', [''])[0] or '', 1),
+        'type': 'normal',
+        'value': escape(form and form.get('search', [''])[0] or '', 1),
     }
     #page = Page(pagename)    
     # prepare dict for theme code:
