@@ -1,5 +1,5 @@
 # Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
-import sys, os
+import sys, os, shutil
 
 __directory__ = os.path.dirname(__file__)
 
@@ -565,6 +565,11 @@ def insert_basic_pages(cursor):
 
 def build_search_index():
   # builds the title and full text search indexes.
+
+  # let's first remove any search indexes that might be there
+  shutil.rmtree(config.title_search_db_location)
+  shutil.rmtree(config.text_search_db_location)
+
   print "Building search index..."
   from LocalWiki import request, wikiutil, search
   req = request.RequestDummy()
