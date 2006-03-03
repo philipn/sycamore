@@ -567,8 +567,10 @@ def build_search_index():
   # builds the title and full text search indexes.
 
   # let's first remove any search indexes that might be there
-  shutil.rmtree(config.title_search_db_location)
-  shutil.rmtree(config.text_search_db_location)
+  if os.path.exists(config.title_search_db_location):
+    shutil.rmtree(config.title_search_db_location)
+  if os.path.exists(config.text_search_db_location):
+    shutil.rmtree(config.text_search_db_location)
 
   print "Building search index..."
   from LocalWiki import request, wikiutil, search
