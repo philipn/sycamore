@@ -99,6 +99,7 @@ def init_db(cursor):
     cursor.execute("CREATE FUNCTION UNIX_TIMESTAMP(timestamp) RETURNS integer AS 'SELECT date_part(''epoch'', $1)::int4 AS result' language 'sql';")
 
 def create_tables(cursor):
+ print "creating tables.."
  if config.db_type == 'mysql':
    cursor.execute("""create table curPages
      (
@@ -530,8 +531,11 @@ def create_tables(cursor):
      primary key (page_that_depends, source_page)
    );""")
 
+ print "tables created"
+
 
 def create_views(cursor):
+ print "creating views..."
  cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
  cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;")
  cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
@@ -540,8 +544,10 @@ def create_views(cursor):
  cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, mapPoints.created_by_ip as userIP from mapPoints;")
  cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
  cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;")
+ print "views created"
 
 def create_other_stuff(cursor):
+ print "creating other stuff..."
  cursor.execute("INSERT into mapCategoryDefinitions values (1, 'food.png', 'Restaurants');")
  cursor.execute("INSERT into mapCategoryDefinitions values (2, 'dollar.png', 'Shopping');")
  cursor.execute("INSERT into mapCategoryDefinitions values (3, 'hand.png', 'Services');")
@@ -557,11 +563,14 @@ def create_other_stuff(cursor):
  cursor.execute("INSERT into mapCategoryDefinitions values (13, 'house.png', 'Housing');")
  cursor.execute("INSERT into mapCategoryDefinitions values (14, 'wifi.png', 'WiFi Hot Spots');")
  cursor.execute("INSERT into mapCategoryDefinitions values (99, NULL, 'Other');")
+ print "other stuff created"
 
 def insert_basic_pages(cursor):
+ print "inserting basic pages..."
  for pagename, pagetext in basic_pages.iteritems():
    cursor.execute("insert into curPages values (%(pagename)s, %(pagetext)s, NULL, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, NULL);", {'pagename':pagename, 'pagetext':pagetext})
    cursor.execute("insert into allPages values (%(pagename)s, %(pagetext)s, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, 'SAVENEW', 'System page', NULL);", {'pagename':pagename, 'pagetext':pagetext})
+ print "basic pages inserted"
 
 def build_search_index():
   # builds the title and full text search indexes.
@@ -587,6 +596,6 @@ create_tables(cursor)
 create_views(cursor)
 create_other_stuff(cursor)
 insert_basic_pages(cursor)
+build_search_index()
 db.commit()
 db.close()
-build_search_index()
