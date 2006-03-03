@@ -365,11 +365,11 @@ class Theme(ThemeBase):
 	    if not keywords.get('noedit'):
 	      if editable:
 	        if d['last_edit_info']:
-	          html.append('<td align="left" width="50%%">')
+	          html.append('<td align="left" width="50%">')
 		else:
-	          html.append('<td align="left" width="15%%">')
+	          html.append('<td align="left" width="15%">')
 	      else:
-	          html.append('<td align="left" width="50%%">')
+	          html.append('<td align="left" width="50%">')
               if editable:
                   html.append("%s" % (
                       wikiutil.link_tag(self.request, d['q_page_name']+'?action=edit', _('Edit'))))

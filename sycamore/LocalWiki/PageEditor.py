@@ -731,6 +731,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         @rtype: string
         @return: error msg
         """
+	self.page_name = self.page_name.strip() # to ensure consistency
         _ = self._
         newtext = self._normalize_text(newtext, **kw)
         #backup_url = self._make_backup(newtext, **kw)

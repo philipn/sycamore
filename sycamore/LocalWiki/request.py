@@ -241,8 +241,6 @@ class RequestBase(object):
     def isForbidden(self):
         """ check for web spiders and refuse anything except viewing """
         forbidden = 0
-	# REMOVE ME BEFORE COMMIT
-	if self.query_string == 'profile': return False
         if ((self.query_string != '' or self.request_method != 'GET')
             and self.query_string != 'action=rss_rc' and self.query_string != 'action=events&rss=1' and self.query_string != 'rss=1&action=events'):
             from LocalWiki.util import web
@@ -786,13 +784,14 @@ class RequestWSGI(RequestBase):
     def http_headers(self, more_headers=[]):
         """ Send out HTTP headers. Possibly set a default content-type.
         """
-        # send http headers and get the write callable
-	all_headers = more_headers + self.user_headers
-	if not all_headers:
-	  all_headers = [("Content-Type", "text/html")]
+	if not self.sent_headers:
+          # send http headers and get the write callable
+	  all_headers = more_headers + self.user_headers
+	  if not all_headers:
+	    all_headers = [("Content-Type", "text/html")]
 
-	if not self.status:
-	  self.status = '200 OK'
+	  if not self.status:
+	    self.status = '200 OK'
 
-	self.wsgi_output = self.start_response(self.status, all_headers)
-	self.sent_headers = True
+	  self.wsgi_output = self.start_response(self.status, all_headers)
+	  self.sent_headers = True
