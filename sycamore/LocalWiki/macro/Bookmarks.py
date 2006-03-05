@@ -11,7 +11,6 @@
 # Imports
 import re, time, cStringIO, os, urllib
 from LocalWiki import config, user, util, wikiutil, wikixml, wikidb
-from LocalWiki.logfile import editlog
 from LocalWiki.widget.comments import Comment
 
 _DAYS_SELECTION = [1, 2, 3, 7]

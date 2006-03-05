@@ -12,7 +12,6 @@
 import re, time, cStringIO
 from LocalWiki import config, user, util, wikiutil, wikixml, wikidb
 from LocalWiki.Page import Page
-from LocalWiki.logfile import editlog
 from LocalWiki.formatter.text_html import Formatter
 from LocalWiki.widget.comments import Comment
 
@@ -167,87 +166,87 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
 def cmp_lines(first, second):
     return cmp(first[0].ed_time, second[0].ed_time)
 
-def print_abandoned(macro, args, **kw):
-    request = macro.request
-    _ = request.getText
-    d = {}
-    pagename = macro.formatter.page.page_name
-    d['q_page_name'] = wikiutil.quoteWikiname(pagename)
-    msg = None
-
-    pages = request.getPageList()
-    last_edits = []
-    for page in pages:
-        try:
-            last_edits.append(editlog.EditLog(
-                wikiutil.getPagePath(page, 'last-edited', check_create=0)).next())
-        except StopIteration:
-            pass
-        #   we don't want all Systempages at hte beginning of the abandoned list
-        #    line = editlog.EditLogLine({})
-        #    line.pagename = page
-        #    line.ed_time = 0
-        #    line.comment = 'not edited'
-        #    line.action = ''
-        #    line.userid = ''
-        #    line.hostname = ''
-        #    line.addr = ''
-        #    last_edits.append(line)
-    last_edits.sort()
-
-    # set max size in days
-    max_days = min(int(request.form.get('max_days', [0])[0]), _DAYS_SELECTION[-1])
-    # default to _MAX_DAYS for useres without bookmark
-    if not max_days:
-        max_days = _MAX_DAYS
-    d['rc_max_days'] = max_days
-    
-    # give known user the option to extend the normal display
-    if request.user.valid:
-        d['rc_days'] = _DAYS_SELECTION
-    else:
-        d['rc_days'] = None
-    
-    d['rc_update_bookmark'] = d['rc_rss_link'] = None
-    request.write(request.theme.recentchanges_header(d))
-
-    length = len(last_edits)
-    
-    index = 0
-    last_index = 0
-    day_count = 0
-    
-    line = last_edits[index]
-    line.time_tuple = request.user.getTime(line.ed_time)
-    this_day = line.time_tuple[0:3]
-    day = this_day
-
-    while 1:
-
-        index += 1
-
-        if (index>length):
-            break    
-
-        if index < length:
-            line = last_edits[index]
-            line.time_tuple = request.user.getTime(line.ed_time)
-            day = line.time_tuple[0:3]
-
-        if (day != this_day) or (index==length):
-            d['bookmark_link_html'] = None
-            d['date'] = request.user.getFormattedDateWords(last_edits[last_index].ed_time)
-            request.write(request.theme.recentchanges_daybreak(d))
-            
-            for page in last_edits[last_index:index]:
-                request.write(format_page_edits(macro, [page], showComments, None))
-            last_index = index
-            day_count += 1
-            if (day_count >= max_days):
-                break
-
-    d['rc_msg'] = msg
-    request.write(request.theme.recentchanges_footer(d))
+#def print_abandoned(macro, args, **kw):
+#    request = macro.request
+#    _ = request.getText
+#    d = {}
+#    pagename = macro.formatter.page.page_name
+#    d['q_page_name'] = wikiutil.quoteWikiname(pagename)
+#    msg = None
+#
+#    pages = request.getPageList()
+#    last_edits = []
+#    for page in pages:
+#        try:
+#            last_edits.append(editlog.EditLog(
+#                wikiutil.getPagePath(page, 'last-edited', check_create=0)).next())
+#        except StopIteration:
+#            pass
+#        #   we don't want all Systempages at hte beginning of the abandoned list
+#        #    line = editlog.EditLogLine({})
+#        #    line.pagename = page
+#        #    line.ed_time = 0
+#        #    line.comment = 'not edited'
+#        #    line.action = ''
+#        #    line.userid = ''
+#        #    line.hostname = ''
+#        #    line.addr = ''
+#        #    last_edits.append(line)
+#    last_edits.sort()
+#
+#    # set max size in days
+#    max_days = min(int(request.form.get('max_days', [0])[0]), _DAYS_SELECTION[-1])
+#    # default to _MAX_DAYS for useres without bookmark
+#    if not max_days:
+#        max_days = _MAX_DAYS
+#    d['rc_max_days'] = max_days
+#    
+#    # give known user the option to extend the normal display
+#    if request.user.valid:
+#        d['rc_days'] = _DAYS_SELECTION
+#    else:
+#        d['rc_days'] = None
+#    
+#    d['rc_update_bookmark'] = d['rc_rss_link'] = None
+#    request.write(request.theme.recentchanges_header(d))
+#
+#    length = len(last_edits)
+#    
+#    index = 0
+#    last_index = 0
+#    day_count = 0
+#    
+#    line = last_edits[index]
+#    line.time_tuple = request.user.getTime(line.ed_time)
+#    this_day = line.time_tuple[0:3]
+#    day = this_day
+#
+#    while 1:
+#
+#        index += 1
+#
+#        if (index>length):
+#            break    
+#
+#        if index < length:
+#            line = last_edits[index]
+#            line.time_tuple = request.user.getTime(line.ed_time)
+#            day = line.time_tuple[0:3]
+#
+#        if (day != this_day) or (index==length):
+#            d['bookmark_link_html'] = None
+#            d['date'] = request.user.getFormattedDateWords(last_edits[last_index].ed_time)
+#            request.write(request.theme.recentchanges_daybreak(d))
+#            
+#            for page in last_edits[last_index:index]:
+#                request.write(format_page_edits(macro, [page], showComments, None))
+#            last_index = index
+#            day_count += 1
+#            if (day_count >= max_days):
+#                break
+#
+#    d['rc_msg'] = msg
+#    request.write(request.theme.recentchanges_footer(d))
     
 def execute(macro, args, formatter=None, **kw):
     if not formatter: formatter = macro.formatter

@@ -1,7 +1,6 @@
 # Imports
 import time, string, thread
 from LocalWiki import config, user, util, wikiutil, request
-from LocalWiki.logfile import editlog, eventlog
 import os
 from LocalWiki.PageEditor import PageEditor
 from LocalWiki.request import RequestBase

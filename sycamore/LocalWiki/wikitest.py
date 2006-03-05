@@ -18,7 +18,6 @@ def runTest(request):
     # object is already created
     import os, sys, xml
     from LocalWiki import config, version
-    from LocalWiki.logfile import editlog, eventlog
 
     request.write('Release %s\n' % version.release)
     request.write('Revision %s\n' % version.revision)
@@ -48,16 +47,6 @@ def runTest(request):
         else:
             path = os.path.abspath(path)
             request.write("    %s directory tests OK (set to '%s')\n" % (name, path))
-
-    # check eventlog access
-    log = eventlog.EventLog()
-    msg = log.sanityCheck()
-    if msg: request.write("*** %s\n" % msg)
-
-    # check editlog access
-    log = editlog.EditLog()
-    msg = log.sanityCheck()
-    if msg: request.write("*** %s\n" % msg)
 
     # keep some values to ourselves
     request.write("\nServer Environment:\n")

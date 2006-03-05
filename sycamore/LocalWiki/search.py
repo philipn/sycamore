@@ -2,14 +2,15 @@ import sys, string
 sys.path.extend(['/Library/Webserver/sycamore/installhtml/dwiki', '/Library/Webserver/sycamore/'])
 from LocalWiki import config, wikiutil
 from LocalWiki.Page import Page
-import xapian
+import xapian, re
+quotes_re = re.compile('"(?P<phrase>[^"]+)"')
 
 MAX_PROB_TERM_LENGTH = 64
 
-valid_characters = string.ascii_letters + string.digits
+#word_characters = string.letters + string.digits
 
 def _p_alnum(c):
-    return (c in valid_characters)
+    return c.isalnum()
 
 def _p_notalnum(c):
     return not _p_alnum(c)
@@ -30,21 +31,77 @@ class searchResult(object):
     self.page = page
 
 class Search(object):
-  def __init__(self, needle_list, request, p_start_loc=0, t_start_loc=0, num_results=10):
+  def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10):
     self.request = request
-    self.needle = needle_list
+    self.needles = needles
     self.p_start_loc = p_start_loc
     self.t_start_loc = t_start_loc
     self.num_results = 10
     self.text_database = xapian.Database(config.text_search_db_location)
     self.title_database = xapian.Database(config.title_search_db_location)
     self.stemmer = xapian.Stem("english")
-    self.terms = []
     self.text_results = [] # list of (percentage, page object, text data)
     self.title_results = [] # list of (percentage, page object, text data)
-    for term in needle_list:
-      self.terms.append(self.stemmer.stem_word(term.lower()))
-    self.query = xapian.Query(xapian.Query.OP_OR, self.terms)
+    self.terms = self._remove_junk(self._stem_terms(needles))
+    self.query = self._build_query(self.terms)
+
+  def _stem_terms(self, terms):
+    new_terms = []
+    for term in terms:
+      if type(term) == type([]):
+        new_terms.append(self._stem_terms(term))
+      else:
+        new_terms.append(self.stemmer.stem_word(term.lower()))
+    return new_terms
+    
+
+  def _build_query(self, terms, op=xapian.Query.OP_OR):
+    """builds a query out of the terms.  Takes care of things like "quoted text" properly"""
+    query = None
+    for term in terms:
+      if type(term) == type([]):
+        # an exactly-quoted sublist
+	exact_query = self._build_query(term, op=xapian.Query.OP_PHRASE)
+	if query: query = xapian.Query(op, query, exact_query)
+	else: query = xapian.Query(op, exact_query)
+      else:
+        if query: query = xapian.Query(op, query, xapian.Query(op, [term]))
+	else: query = xapian.Query(op, [term])
+
+    return query
+
+  def _remove_junk(self, terms):
+    # Cut each needle accordingly so that it returns good results. E.g. the user searches for "AM/PM" we want to cut this into "am" and "pm"
+    nice_terms = []
+    for term in terms:
+      if type(term) == type([]):
+        nice_terms.append(self._remove_junk(term))
+	continue
+
+      if not term.strip(): continue
+
+      exact_match = False
+      if term.isalnum():
+        nice_terms.append(term)
+        continue
+
+      if term.startswith('"') and term.endswith('"'):
+        # we have an exact-match quote thing
+        nice_terms.append(self._remove_junk(term.split(' '))[1:-1])
+        continue
+
+      i = 0
+      j = 0
+      for c in term:
+        if c.isalnum():
+          j += 1
+          continue
+        nice_terms.append(term[i:j])
+        i = j+1
+        j += 1
+      nice_terms.append(term[i:j])
+
+    return nice_terms
 
   def process(self):
     # processes the search
@@ -95,7 +152,6 @@ def _do_postings(doc, text, id, stemmer):
       if k == len(text) or not _p_alnum(text[k]):
           j = k
       if (j - i) <= MAX_PROB_TERM_LENGTH and j > i:
-      	  print term
           term = stemmer.stem_word(text[i:j].lower())
           doc.add_posting(term, pos)
           pos += 1
@@ -109,30 +165,51 @@ def index(page):
   text = page.page_name
   doc = xapian.Document()
   doc.set_data(text)
-  _do_postings(doc, text, page.page_name.lower(), stemmer)
+  _do_postings(doc, text, page.page_name, stemmer)
   database.replace_document("Q:%s" % page.page_name.lower(), doc)
 
   database = xapian.WritableDatabase(config.text_search_db_location, xapian.DB_CREATE_OR_OPEN)
   text = page.get_raw_body()
   doc = xapian.Document()
   doc.set_data(text)
-  _do_postings(doc, text, page.page_name.lower(), stemmer)
+  _do_postings(doc, text, page.page_name, stemmer)
   database.replace_document("Q:%s" % page.page_name.lower(), doc)
 
 def remove_from_index(page):
-  # removes the page from the index.  call this on page deletion.  all other page changes can just call index().
+  """removes the page from the index.  call this on page deletion.  all other page changes can just call index(). """
   database = xapian.WritableDatabase(config.text_search_db_location, xapian.DB_CREATE_OR_OPEN)
   database.delete_document("Q:%s" % page.page_name.lower())
   database = xapian.WritableDatabase(config.title_search_db_location, xapian.DB_CREATE_OR_OPEN)
   database.delete_document("Q:%s" % page.page_name.lower())
 
-
+def prepare_search_needle(needle):
+  """Basically just turns a string of "terms like this" and turns it into a form usable by Search(), paying attention to "quoted subsections" for exact matches."""
+  new_list = []
+  quotes = quotes_re.finditer(needle)
+  i = 0
+  had_quote = False
+  for quote in quotes:
+    had_quote = True
+    non_quoted_part = needle[i:quote.start()].strip().split(" ")
+    if non_quoted_part: new_list += non_quoted_part
+    i = quote.end()
+    new_list.append(quote.group('phrase').split(" "))
+  if had_quote: return new_list
+  else:return needle.split(" ")
+    
 # = Page()
 #index(p)
 #from LocalWiki import request
 #req = request.RequestDummy()
-#s = Search(['new'], req)
+#s = Search(['"edit me"'], req)
 #s.process()
+#print s.text_results, s.title_results
+#print "text"
+#for result in s.text_results:
+#  print result.title, result.data
+#print "title"
+#for result in s.title_results:
+#  print result.title, result.data
 #for obj in s.title_results:
 #  print obj.title
 #database = xapian.WritableDatabase(config.title_search_db_location, xapian.DB_CREATE_OR_OPEN)

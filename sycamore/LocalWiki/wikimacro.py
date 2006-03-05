@@ -18,7 +18,6 @@ from LocalWiki import action, config, macro, util
 from LocalWiki import wikiutil, wikiaction, i18n
 from LocalWiki.Page import Page
 from LocalWiki.util import pysupport
-from LocalWiki.logfile import editlog, eventlog
 
 #############################################################################
 ### Globals
@@ -256,12 +255,6 @@ class Macro:
 
         # add rss link
         index = ''
-        if 0: # if wikixml.ok: # XXX currently switched off (not implemented)
-            from LocalWiki import wikixml
-            img = self.request.theme.make_icon("rss")
-            index = index + self.formatter.url(
-                wikiutil.quoteWikiname(self.formatter.page.page_name) + "?action=rss_ti",
-                img, unescaped=1)
 
         qpagename = wikiutil.quoteWikiname(self.formatter.page.page_name)
         index = index + _make_index_key(index_letters, '<br> <a href="%s?allpages=%d">%s</a>&nbsp;| <a href="%s?action=titleindex">%s</a>&nbsp;| <a href="%s?action=titleindex&amp;mimetype=text/xml">%s</a>'% (qpagename, not allpages, (_('Include system pages'), _('Exclude system pages'))[allpages],

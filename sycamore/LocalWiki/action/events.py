@@ -289,7 +289,6 @@ def findMonth(month):
     return months[int(month)-1]
 
 def writeEvent(request, event_text, event_name, event_location, event_time_unix, posted_by):
-    from LocalWiki.logfile import editlog, eventlog
     event_text = unicode(event_text, "ascii", "replace")
     event_name = unicode(event_name, "ascii", "replace")
     event_location = unicode(event_location, "ascii", "replace")

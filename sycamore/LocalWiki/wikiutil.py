@@ -9,7 +9,7 @@
 # Imports
 import os, re, urllib, difflib, string
 from LocalWiki import config, util, wikidb
-from LocalWiki.util import filesys, pysupport
+from LocalWiki.util import pysupport
 import time
 
 # constants for page names
@@ -382,9 +382,9 @@ def getPageList(request, alphabetize=False, objects=False):
     result = []
     p = cursor.fetchone()
     while p:
-    	if not objects: result.append(p[0])
-	else: result.append(Page(p[0], request))
-    	p = cursor.fetchone()
+      if not objects: result.append(p[0])
+      else: result.append(Page(p[0], request))
+      p = cursor.fetchone()
 
     return result
 
@@ -481,27 +481,6 @@ def getHomePage(request, username=None):
         if pg.exists(): return pg
 
     return None
-
-
-def getPagePath(pagename, *args, **kw):
-    """
-    Get full path to a page-specific storage area. `args` can
-    contain additional path components that are added to the base path.
-
-    @param pagename: the page name
-    @param args: additional path components
-    @keyword check_create: ensures that the page storage area exists, excluding
-                           the additional path components (default is true).
-    @rtype: string
-    @return: the full path to the storage area
-    """
-    pagename = quoteFilename(pagename)
-
-    path = os.path.join(config.data_dir, "pages", pagename)
-    if kw.get('check_create', 1) and not os.path.exists(path): 
-        filesys.makeDirs(path)
-
-    return os.path.join(*((path,) + args))
 
 
 def AbsPageName(context, pagename):

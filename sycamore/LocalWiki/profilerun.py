@@ -3,7 +3,6 @@ from LocalWiki import action, config, macro, util
 from LocalWiki import version, wikiutil, wikiaction, i18n
 from LocalWiki.Page import Page
 from LocalWiki.util import pysupport
-from LocalWiki.logfile import editlog, eventlog
 
    
 def _macro_WordIndex(self, args):

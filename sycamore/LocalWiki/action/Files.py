@@ -16,7 +16,7 @@
 import os, mimetypes, time, urllib, string
 from LocalWiki import config, user, util, wikiutil, wikidb, caching
 from LocalWiki.Page import Page
-from LocalWiki.util import LocalWikiNoFooter, filesys
+from LocalWiki.util import LocalWikiNoFooter 
 from LocalWiki.widget.infobar import InfoBar
 import xml.dom.minidom
 

@@ -11,7 +11,6 @@ import os, time, urllib, string
 from LocalWiki import caching, config, user, util, wikiutil, wikidb, search
 from LocalWiki.Page import Page
 from LocalWiki.widget import html
-from LocalWiki.logfile import editlog, eventlog
 import LocalWiki.util.web
 import LocalWiki.util.mail
 import LocalWiki.util.datetime
@@ -659,53 +658,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	self.set_raw_body(text)
 
 
-    def _write_file(self, text):
-        """
-        Write the text to the page file (and make a backup of old page).
-        
-        @param text: text to save for this page
-        @rtype: int
-        @return: mtime of new page
-        """
-        from LocalWiki.util import filesys
-        is_deprecated = text[:11].lower() == "#deprecated"
-
-	#DBFIX need to KILL all file dependencies once we have the allPages table as well
-        # save to tmpfile
-        tmp_filename = self._tmp_filename()
-        tmp_file = open(tmp_filename, 'wb')
-        # XXX UNICODE fix needed
-        tmp_file.write(text)
-        tmp_file.close()
-        page_filename = self._text_filename()
-
-        if not os.path.isdir(config.backup_dir):
-            os.mkdir(config.backup_dir, 0777 & config.umask)
-            os.chmod(config.backup_dir, 0777 & config.umask)
-        log = editlog.EditLog(config.data_dir + '/pages/' + wikiutil.quoteFilename(self.page_name) + '/last-edited')
-	ed_time = 0
-        for pageline in log.lastline():
-                line = pageline
-		ed_time = line.ed_time
-                break
-	if not ed_time:
-		if os.path.exists(page_filename):
-			ed_time = os.path.getmtime(page_filename)
-		else:
-			ed_time = int(time.time())
-		
-        if os.path.isfile(page_filename) and not is_deprecated and self.do_revision_backup:
-            filesys.rename(page_filename, os.path.join(config.backup_dir,
-                wikiutil.quoteFilename(self.page_name) + '.' + str(int(ed_time))))
-
-        # set in-memory content
-        self.set_raw_body(text)
-
-        # replace old page by tmpfile
-        os.chmod(tmp_filename, 0666 & config.umask)
-        filesys.rename(tmp_filename, page_filename)
-        return os.path.getmtime(page_filename)
-
     #def build_index(self):
     #    """
     #    Builds the index with all the pages. . This should hopefully rarely be run.
@@ -727,7 +679,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         @keyword stripspaces: strip whitespace from line ends (default: 0)
         @keyword notify: send email notice tp subscribers (default: 0)
         @keyword comment: comment field (when preview is true)
-        @keyword action: action for editlog (default: SAVE)
+        @keyword action: action for log (default: SAVE)
         @rtype: string
         @return: error msg
         """

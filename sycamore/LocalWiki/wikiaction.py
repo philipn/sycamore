@@ -69,19 +69,17 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
                 twith = int(request.form.get('twith')[0])
         if request.form.get('pwith'):
                 pwith = int(request.form.get('pwith')[0])
-    # send title
-    wikiutil.send_title(request, _('Search results for "%s"') % (needle,))
-    
-    flex_needle = needle.lower()
-    flex_needle = re.sub(r"\"|\'", "", flex_needle)
-    flex_needle = re.sub("\-", " ", flex_needle)
-    needle_list = flex_needle.split(" ")
 
+    if needle[0] == needle[-1] == '"': printable_needle = needle[1:-1]
+    else: printable_needle = needle
+    # send title
+    wikiutil.send_title(request, _('Search results for "%s"') % (printable_needle,))
+    
     searchlog = open(config.data_dir + '/search.log','a')
     searchlog.write(needle + '\n')
     searchlog.close()
 
-    this_search = search.Search(needle_list, request, p_start_loc=pstart, t_start_loc=tstart, num_results=pwith+1) #, start_lock=)
+    this_search = search.Search(search.prepare_search_needle(needle), request, p_start_loc=pstart, t_start_loc=tstart, num_results=pwith+1) #, start_lock=)
     this_search.process()
     # don't display results they can't read
     title_hits = [title for title in this_search.title_results if request.user.may.read(title.page)]
@@ -90,14 +88,14 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     if len(title_hits) < 1:
             request.write('<h3>&nbsp;No title matches</h3>')
             request.write('<table class="dialogBox"><tr><td>\n') # start content div
-            request.write('The %s does not have any entries with the exact title "' % config.sitename+ needle + '" <br />')
-            request.write('Would you like to %s?' % (Page(needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
+            request.write('The %s does not have any entries with the exact title "' % config.sitename+ printable_needle + '" <br />')
+            request.write('Would you like to %s?' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
             request.write('</td></tr></table>\n')
     else:
             request.write('<h3>&nbsp;Title matches</h3>')
-            if not title_hits[0].title.lower() == needle.lower():
-                    request.write('<table class="dialogBox"><tr><td>The %s does not have any entries with the exact title "' % config.sitename + needle + '". <br />')
-                    request.write('Would you like to %s?</td></tr></table>' % (Page(needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
+            if not title_hits[0].title.lower() == printable_needle.lower():
+                    request.write('<table class="dialogBox"><tr><td>The %s does not have any entries with the exact title "' % config.sitename + printable_needle + '". <br />')
+                    request.write('Would you like to %s?</td></tr></table>' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
     request.write('<div id="content">\n') # start content div
     request.write('<ul>')
     if len(title_hits) > twith:
@@ -519,7 +517,6 @@ def do_info(pagename, request):
 
         request.write('<h2>%s</h2>\n' % _('Revision History'))
 
-        from LocalWiki.logfile import editlog
         from LocalWiki.util.dataset import TupleDataset, Column
 
 	has_history = False
