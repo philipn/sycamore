@@ -1,5 +1,5 @@
 import sys, string
-sys.path.extend(['/Library/Webserver/sycamore/installhtml/dwiki', '/Library/Webserver/sycamore/'])
+
 from LocalWiki import config, wikiutil
 from LocalWiki.Page import Page
 import xapian, re

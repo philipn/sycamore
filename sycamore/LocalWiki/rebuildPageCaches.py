@@ -1,5 +1,4 @@
 import sys, cStringIO
-sys.path.extend(['/usr/local/lib/python2.4/site-packages','/var/www/installhtml/dwiki'])
 from LocalWiki import wikiutil, config, request, caching, wikidb
 from LocalWiki.Page import Page
 

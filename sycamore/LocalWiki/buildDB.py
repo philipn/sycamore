@@ -1,12 +1,6 @@
 # Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
 import sys, os, shutil
 
-__directory__ = os.path.dirname(__file__)
-
-sys.path.extend(['/Library/Webserver/sycamore/installhtml/dwiki', '/Library/Webserver/sycamore',
-                 os.path.join(__directory__, '..'),
-                 os.path.join(__directory__, '..', 'installhtml', 'dwiki')])
-
 from LocalWiki import wikidb, config
 
 basic_pages = {}

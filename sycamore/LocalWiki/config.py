@@ -59,7 +59,6 @@ _cfg_defaults = {
     # mimetype values corresponding to allowed extensions added to it.
     'allowed_mimetypes': [],
     'allow_xslt': 0,
-    'app_dir': '/home/dwiki',
     'attachments': None, # {'dir': path, 'url': url-prefix, 'img_script': name of the image getting script}
     'auth_http_enabled': 0,
     'bang_meta': 0,
