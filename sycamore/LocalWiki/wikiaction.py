@@ -77,7 +77,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     flex_needle = re.sub("\-", " ", flex_needle)
     needle_list = flex_needle.split(" ")
 
-    searchlog = open(config.app_dir + '/search.log','a')
+    searchlog = open(config.data_dir + '/search.log','a')
     searchlog.write(needle + '\n')
     searchlog.close()
 
