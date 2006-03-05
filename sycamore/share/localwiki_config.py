@@ -39,9 +39,6 @@ web_root = abspath('.')
 # e.g. '' for the root, and '/mywiki' if it's in directory mywiki
 web_dir = ''
 
-# where the indexing applications are installed, etc
-app_dir = abspath('../util_apps')
-
 # this is where the theme css is stored
 #  this is relative to the web server's root
 url_prefix = '/wiki'
