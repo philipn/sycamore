@@ -121,10 +121,9 @@ class PageEditor(Page):
 	page_needle = self.page_name
         if config.allow_subpages and page_needle.count('/'):
           page_needle = '/' + page_needle.split('/')[-1]
-        link = '%s/%s?action=fullsearch&amp;value=%s&amp;literal=1&amp;case=1&amp;context=40' % (
+        link = '%s/%s?action=info&general=1' % (
          self.request.getScriptname(),
-         wikiutil.quoteWikiname(self.page_name),
-         urllib.quote_plus(page_needle, ''))
+         wikiutil.quoteWikiname(self.page_name))
 
         wikiutil.send_title(self.request,
             self.page_name,

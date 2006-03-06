@@ -936,10 +936,9 @@ def simple_send_title(request, pagename, msg='', strict_title=''):
    page_needle = pagename
    if config.allow_subpages and page_needle.count('/'):
      page_needle = '/' + page_needle.split('/')[-1]
-   link = '%s/%s?action=fullsearch&amp;value=%s&amp;literal=1&amp;case=1&amp;context=40' % (
+   link = '%s/%s?action=info&general=1' % (
      request.getScriptname(),
-     quoteWikiname(pagename),
-     urllib.quote_plus(page_needle, ''))
+     quoteWikiname(pagename))
 
    send_title(request, pagename, pagename=pagename, link=link, msg=msg, strict_title=strict_title)
 
