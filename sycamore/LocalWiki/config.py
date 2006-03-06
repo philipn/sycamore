@@ -272,6 +272,12 @@ for _action in allowed_actions:
 # define directories
 import os, sys
 data_dir = os.path.normpath(data_dir)
+
+if not os.path.exists(data_dir):
+    # we don't want to create intermediate directories because a funky
+    # data_dir could cause the unnecessary creation of a _lot_ of directories
+    os.mkdir(data_dir)
+
 moinmoin_dir = os.path.abspath(os.path.dirname(__file__))
 
 for _dirname in ('plugin'):

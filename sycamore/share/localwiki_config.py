@@ -15,7 +15,8 @@
     @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
     @license: GNU GPL, see COPYING for details.
 """
-from os.path import abspath, join
+import os.path
+__directory__ = os.path.dirname(os.path.abspath(__file__))
 
 # If you run several wikis on one host (commonly called a wiki farm),
 # uncommenting the following allows you to load global settings for
@@ -29,11 +30,10 @@ sitename = 'Local Wiki Default Install'
 interwikiname = None
 
 #no slashes at the end on these guys !!
-#data_dir = abspath('data')
-data_dir = '/Library/Webserver/sycamore/installhtml/dwiki/data'
+data_dir = os.path.join(__directory__, 'data')
 
 # this is the root where, say, a href="/" resolves to (considering whther or not you have a domain)
-web_root = abspath('.')
+web_root = os.path.join(__directory__, 'web')
 
 # this is what's after the url if your wiki is in a directory
 # e.g. '' for the root, and '/mywiki' if it's in directory mywiki
@@ -83,8 +83,7 @@ memcache_servers = ['127.0.0.1:11211']
 #  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)
 
 #location of the search dbs.  you probably shouldn't have to change this.
-text_search_db_location = join(data_dir, 'search', 'text')
-title_search_db_location = join(data_dir, 'search', 'title')
+search_db_location = os.path.join(data_dir, 'search')
 
 # Referer regular expression is used to filter out http referers from image viewing.
 # It's for stopping image hotlinking, basically.

@@ -1,4 +1,4 @@
-import sys, string
+import sys, string, os.path
 
 from LocalWiki import config, wikiutil
 from LocalWiki.Page import Page
@@ -37,8 +37,13 @@ class Search(object):
     self.p_start_loc = p_start_loc
     self.t_start_loc = t_start_loc
     self.num_results = 10
-    self.text_database = xapian.Database(config.text_search_db_location)
-    self.title_database = xapian.Database(config.title_search_db_location)
+
+    # load the databases
+    self.text_database = xapian.Database(
+        os.path.join(config.search_db_location, 'text'))
+    self.title_database = xapian.Database(
+        os.path.join(config.search_db_location, 'title'))
+
     self.stemmer = xapian.Stem("english")
     self.text_results = [] # list of (percentage, page object, text data)
     self.title_results = [] # list of (percentage, page object, text data)
@@ -161,14 +166,20 @@ def index(page):
   # Add page to the search index
   stemmer = xapian.Stem("english")
 
-  database = xapian.WritableDatabase(config.title_search_db_location, xapian.DB_CREATE_OR_OPEN)
+  database = xapian.WritableDatabase(
+      os.path.join(config.search_db_location, 'title'),
+      xapian.DB_CREATE_OR_OPEN)
+
   text = page.page_name
   doc = xapian.Document()
   doc.set_data(text)
   _do_postings(doc, text, page.page_name, stemmer)
   database.replace_document("Q:%s" % page.page_name.lower(), doc)
 
-  database = xapian.WritableDatabase(config.text_search_db_location, xapian.DB_CREATE_OR_OPEN)
+  database = xapian.WritableDatabase(
+      os.path.join(config.search_db_location, 'text'), 
+      xapian.DB_CREATE_OR_OPEN)
+
   text = page.get_raw_body()
   doc = xapian.Document()
   doc.set_data(text)
@@ -177,9 +188,16 @@ def index(page):
 
 def remove_from_index(page):
   """removes the page from the index.  call this on page deletion.  all other page changes can just call index(). """
-  database = xapian.WritableDatabase(config.text_search_db_location, xapian.DB_CREATE_OR_OPEN)
+  database = xapian.WritableDatabase(
+      os.path.join(config.search_db_location, 'title'),
+      xapian.DB_CREATE_OR_OPEN)
+
   database.delete_document("Q:%s" % page.page_name.lower())
-  database = xapian.WritableDatabase(config.title_search_db_location, xapian.DB_CREATE_OR_OPEN)
+
+  database = xapian.WritableDatabase(
+      os.path.join(config.search_db_location, 'text'),
+      xapian.DB_CREATE_OR_OPEN)
+
   database.delete_document("Q:%s" % page.page_name.lower())
 
 def prepare_search_needle(needle):

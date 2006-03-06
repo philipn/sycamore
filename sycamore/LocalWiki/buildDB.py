@@ -1,6 +1,6 @@
 # Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
 import sys, os, shutil
-
+import __init__ # woo hackmagic
 from LocalWiki import wikidb, config
 
 basic_pages = {}
@@ -569,11 +569,17 @@ def insert_basic_pages(cursor):
 def build_search_index():
   # builds the title and full text search indexes.
 
-  # let's first remove any search indexes that might be there
-  if os.path.exists(config.title_search_db_location):
-    shutil.rmtree(config.title_search_db_location)
-  if os.path.exists(config.text_search_db_location):
-    shutil.rmtree(config.text_search_db_location)
+  if not os.path.exists(config.search_db_location):
+    # create it if it doesn't exist, we don't want to create
+    # intermediates though
+    os.mkdir(config.search_db_location)
+
+  # prune existing db directories, do this explicitly in case third party
+  # extensions use this directory (they really shouldn't)
+  for db in ('title', 'text'):
+    dbpath = os.path.join(config.search_db_location, db)
+    if os.path.exists(dbpath):
+      shutil.rmtree(dbpath)
 
   print "Building search index..."
   from LocalWiki import request, wikiutil, search
@@ -583,13 +589,13 @@ def build_search_index():
     print "  %s added to search index." % page.page_name
     search.index(page)
 
-#db = wikidb.connect()
-#cursor = db.cursor()
-#init_db(cursor)
-#create_tables(cursor)
-#create_views(cursor)
-#create_other_stuff(cursor)
-#insert_basic_pages(cursor)
+db = wikidb.connect()
+cursor = db.cursor()
+init_db(cursor)
+create_tables(cursor)
+create_views(cursor)
+create_other_stuff(cursor)
+insert_basic_pages(cursor)
 build_search_index()
-#db.commit()
-#db.close()
+db.commit()
+db.close()
