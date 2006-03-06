@@ -118,9 +118,9 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
       request.write('<dl class="searchresult">')
 
       try:
-        needle_re = re.compile(needle, re.IGNORECASE)
+        needle_re = re.compile(printable_needle, re.IGNORECASE)
       except re.error:
-        needle = re.escape(needle)
+        needle = re.escape(printable_needle)
         needle_re = re.compile(needle, re.IGNORECASE)
 
       for full_hit in full_hits[0:pwith]:
@@ -132,6 +132,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         request.write('<p><table><tr><td width="40" valign="middle"><table id="progbar" cellspacing="0" cellpadding="0"><tr><td height="7" width="%d" bgcolor="%s"></td><td width="%d" bgcolor="#eeeeee"></td></tr></table></td><td>' % (full_hit.percentage/3, color, 33 - full_hit.percentage/3))
         request.write(full_hit.page.link_to(querystr='action=highlight&amp;value=%s' % urllib.quote_plus(needle)))
         request.write('</td></tr></table>\n')
+
         if context:
           fragments = []
           out = []

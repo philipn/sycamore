@@ -386,7 +386,7 @@ class User(object):
 	return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz_offset':self.tz_offset, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments}
 
 
-    def save(self):
+    def save(self, new_user=False):
         """
         Save user account data to user account file on disk.
 
@@ -397,7 +397,7 @@ class User(object):
 
         userdict = self.getUserdict()
 
-        if not self.anonymous:
+        if new_user:
 	  self.id = self._new_user_id()
  	  # account doesn't exist yet
 	  userdict['join_date'] = time.time()

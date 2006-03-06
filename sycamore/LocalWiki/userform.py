@@ -202,12 +202,12 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
 	      # they are still logged on and are trying to make a new account
 	      return _("Please log out before creating an account.")
             # Is this an existing user trying to change password, or a new user?
-            newuser = True
+            new_user = True
             if user.getUserId(theuser.name, self.request):
                 if theuser.name != self.request.user.name:
                     return _("User name already exists!")
                 else:
-                    newuser = False
+                    new_user = False
 
             # try to get the password and pw repeat
             password = form.get('password', [''])[0]
@@ -216,7 +216,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             # Check if password is given and matches with password repeat
             if password != password2:
                 return _("Passwords don't match!")
-            if not password and newuser:
+            if not password and new_user:
                 return _("Please specify a password!")
             if password:
                 theuser.enc_password = user.encodePassword(password)
@@ -274,7 +274,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             # further, name is required to be a WikiName (CamelCase!)
             # we also must forbid the username to match page_group_regex
             # see also LocalWiki/scripts/moin_usercheck.py
-            if config.acl_enabled and newuser:
+            if config.acl_enabled and new_user:
                 theuser.name = theuser.name.replace(' ','') # strip spaces, we don't allow them anyway
                 if not re.match("(?:[%(u)s][%(l)s]+){2,}" % {'u': config.upperletters, 'l': config.lowerletters}, theuser.name):
                     return _("Please enter your name like that: FirstnameLastname")
@@ -294,7 +294,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                         return _("This email already belongs to somebody else.")
 
             # save data and send cookie
-            theuser.save()
+            theuser.save(new_user=new_user)
             theuser.sendCookie(self.request)
             self.request.user = theuser
     
