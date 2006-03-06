@@ -84,7 +84,6 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     # don't display results they can't read
     title_hits = [title for title in this_search.title_results if request.user.may.read(title.page)]
     full_hits = [text for text in this_search.text_results if request.user.may.read(text.page)]
-
     if len(title_hits) < 1:
             request.write('<h3>&nbsp;No title matches</h3>')
             request.write('<table class="dialogBox"><tr><td>\n') # start content div
@@ -117,12 +116,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
       request.write('<div id="content">\n') # start content div
       request.write('<dl class="searchresult">')
 
-      try:
-        needle_re = re.compile(printable_needle, re.IGNORECASE)
-      except re.error:
-        needle = re.escape(printable_needle)
-        needle_re = re.compile(needle, re.IGNORECASE)
-
+      
       for full_hit in full_hits[0:pwith]:
         color = "#ff3333"
         if full_hit.percentage > 65:
@@ -134,34 +128,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         request.write('</td></tr></table>\n')
 
         if context:
-          fragments = []
-          out = []
-          pos = 0
-          # make the fragments so we can return intelligent looking results
-          #match = needle_re.search(text, pos) 
-          #pos = match.end()
-          k = 0
-	  text = full_hit.data
-          match = needle_re.search(text, pos)
-          while (match and k <= max_context):
-            pos = match.end()
-            fragments.append((
-                    text[match.start()-context:match.start()],
-                    text[match.start():match.end()],
-                    text[match.end():match.end()+context],
-                    ))
-            k = k + 1
-            match = needle_re.search(text, pos)
-      
-          for hit in fragments[0:max_context]:
-            #out.append('...%s<span>%s</span>%s...' % tuple(map(wikiutil.escape, hit)))
-            out.append('...%s<strong>%s</strong>%s...<br>' % (hit[0], hit[1], hit[2]))
-            request.write('\n'.join(out))
-            out = []
-          if k > max_context:
-            request.write('...')
-            request.write('</p>\n')
-
+	  print_context(this_search.terms, full_hit.data, request, context=context, max_context=max_context)
+          
       if len(full_hits) > pwith:
          request.write('<p>&nbsp;(<a href="%s?action=search&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
                         % (request.getScriptname(), urllib.quote_plus(needle), pstart+pwith, pwith))
@@ -170,6 +138,61 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
 
     wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
 
+def print_context(terms, text, request, context=40, max_context=10):
+ padding = 10 # how much context goes around matched areas
+ fragments = []
+ out = []
+ pos = 0
+ fixed_text = text.lower()
+ terms_with_location = []
+ for term in terms:
+   if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
+   else: term_string = term
+   found_loc = fixed_text.find(term_string)
+   while True:
+     if found_loc == -1: break
+     terms_with_location.append((term_string, found_loc))
+     rel_position = fixed_text[found_loc+len(term_string):].find(term_string)
+     if rel_position == -1:
+       break
+     found_loc += rel_position + len(term_string)
+ 
+ terms_with_location.sort(lambda x,y: cmp(x[1],y[1]))
+ i = 0
+ text_with_context = []
+ skip = False
+ while i < len(terms_with_location):
+   if not skip:
+     term = terms_with_location[i][0]
+     location = terms_with_location[i][1]
+     # first context
+     if not text_with_context:
+       if location > padding:
+         text_with_context.append(text[location-padding:location])
+     text_with_context.append('<strong>%s</strong>' % text[location:location+len(term)])
+   if i+1 < len(terms_with_location):
+     next_term = terms_with_location[i+1][0]
+     next_location = terms_with_location[i+1][1]
+     if next_location - location < context - padding:
+       text_with_context.append('%s<strong>%s</strong>' % (text[location+len(term):next_location], text[next_location:next_location+len(next_term)]))
+       i += 1
+       skip = True
+       continue
+     else:
+       text_with_context.append('%s...%s' % (text[location+len(term):location+len(term)+padding], text[next_location-len(next_term)-padding:next_location]))
+   else: # we are at the end of the list of terms
+     text_with_context.append('%s' % text[location+len(term):location+len(term)+context])
+   i += 1
+   skip = False
+
+ if location + padding + 1 < len(text):
+   text_with_context.append('...')
+
+ text_context = []
+
+ # pad the text with context with more context to the left and right, if needed
+       
+ request.write('<div class="textSearchResult">%s</div>' % ''.join(text_with_context))
 
 def do_titlesearch(pagename, request, fieldname='value'):
     _ = request.getText

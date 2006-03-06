@@ -145,7 +145,7 @@ def _do_postings(doc, text, id, stemmer):
   # unique id     
   # NOTE on unique id:  we assume this is unique and not creatable via the user.  We consider 'q:this' to split as q, this -- so this shouldn't be exploitable.
   # The reason we use such a unique id is that it's the easiest way to do this using xapian.
-  doc.add_term("Q:%s" % id)
+  doc.add_term("Q:%s" % id.lower())
 
   doc.add_value(0, id)
 
