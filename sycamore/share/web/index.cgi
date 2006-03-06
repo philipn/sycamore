@@ -9,8 +9,7 @@
 
 import sys, os
 __directory__ = os.path.dirname(__file__)
-sys.path.extend([os.path.join(__directory__, '..'),
-                 os.path.join(__directory__, 'dwiki')])
+sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
 
 from LocalWiki.support.wsgi_server.cgi_base import run_with_cgi
 #from LocalWiki.support.wsgi_server import swap 
