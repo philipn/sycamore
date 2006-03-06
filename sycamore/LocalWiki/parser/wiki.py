@@ -1,18 +1,17 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     LocalWiki - LocalWiki Wiki Markup Parser
 
-    @copyright: 2000, 2001, 2002 by Jürgen Hermann <jh@web.de>
+    @copyright: 2000, 2001, 2002 by JÃ¼rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
 import os, re
 import string
-from LocalWiki import config, wikimacro, wikiutil
+from LocalWiki import config, wikimacro, wikiutil, metadata
 from LocalWiki.Page import Page
 from LocalWiki.util import web
-
 
 #############################################################################
 ### LocalWiki Wiki Markup Parser
@@ -34,7 +33,8 @@ class Parser:
 
     # some common strings
     PARENT_PREFIX = wikiutil.PARENT_PREFIX
-    punct_pattern = re.escape('''"“”\'}]|:,.)?!''')
+    DEFINITION_OPERATOR = ':='
+    punct_pattern = re.escape('''"ââ\'}]|:,.)?!''')
     url_pattern = ('http|https|ftp|nntp|news|mailto|telnet|wiki|file|' +
             (config.url_schemas and '|' + '|'.join(config.url_schemas) or ''))
 
@@ -83,6 +83,7 @@ class Parser:
 (?P<alert>\/!\\)
 (?P<smiley>(?<=\s)(%(smiley)s)(?=\s))
 (?P<smileyA>^(%(smiley)s)(?=\s))
+(?P<definition>^(.*)%(def_op)s(.*)$)
 (?P<ent>[<>&])"""  % {
         'url': url_pattern,
         'punct': punct_pattern,
@@ -90,7 +91,8 @@ class Parser:
         'ol_rule': ol_rule,
         'dl_rule': dl_rule,
         'url_rule': url_rule,
-        'smiley': '|'.join(map(re.escape, config.smileys.keys()))}
+        'smiley': '|'.join(map(re.escape, config.smileys.keys())),
+        'def_op': DEFINITION_OPERATOR}
 
     def __init__(self, raw, request, **kw):
         self.raw = raw
@@ -856,6 +858,34 @@ class Parser:
         # call the macro
         return self.formatter.macro(self.macro, macro_name, args)
 
+    def definition(self, type, key, value):
+        d = []
+        if value:
+            typeKey = ' '.join((type, key))
+        else:
+            typeKey, value = type, key
+        
+        d.extend([self.formatter.definition_term(True), 
+                  typeKey,
+                  self.formatter.definition_term(False),
+                  self.formatter.definition_desc(True),
+                  value,
+                  self.formatter.definition_desc(False)])
+
+        return ''.join(d)
+
+    def _definition_repl(self, word):
+        typeKey, value = word.split(':=', 1)
+        if ' ' in typeKey:
+            type, key = typeKey.split(' ', 1)
+        else:
+            type, key, value = typeKey, value, False
+
+        if not self.formatter.isPreview():
+            result = metadata.addKey(self.formatter.page.page_name, type, 
+                                     key, value)
+
+        return self.definition(type, key, value)
 
     def highlight_text(self, text, **kw):
         if not self.hilite_re: return self.formatter.text(text)

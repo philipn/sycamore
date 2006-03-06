@@ -525,6 +525,25 @@ def create_tables(cursor):
      primary key (page_that_depends, source_page)
    );""")
 
+ if config.db_type == 'mysql':
+   cursor.execute("""create table metadata
+   (
+     pagename varchar(100),
+     type varchar(100),
+     name varchar(100),
+     value varchar(100),
+     primary key (pagename, type, name)
+   ) type=InnoDB;""")
+ elif config.db_type == 'postgres':
+   cursor.execute("""create table metadata
+   (
+     pagename varchar(100),
+     type varchar(100),
+     name varchar(100),
+     value varchar(100),
+     primary key (pagename, type, name)
+   );""")
+
  print "tables created"
 
 

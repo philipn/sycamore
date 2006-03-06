@@ -39,8 +39,10 @@ class Formatter(FormatterBase):
 	   
 
     def isPreview(self):
-        if self._preview: return True
-	else: return False
+        if self._preview: 
+            return True
+	else: 
+            return False
 
     def _langAttr(self):
         result = ''

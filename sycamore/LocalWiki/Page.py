@@ -749,7 +749,7 @@ class Page(object):
         if needsupdate:
 	    body = self.get_raw_body()
             from LocalWiki.formatter.text_python import Formatter
-            formatter = Formatter(request, ["page"], self.formatter)
+            formatter = Formatter(request, ["page"], self.formatter, preview=True)
 
 	    # need to do HTML parsing to get the pagelinks
 	    from LocalWiki.formatter.text_html import Formatter
