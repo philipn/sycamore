@@ -1,5 +1,11 @@
+-------------------
 Installing Sycamore
 -------------------
+
+:Authors:
+        David Reid
+
+:Version: 0.1
 
 Dependencies
 ============
@@ -11,13 +17,15 @@ Required
  * PIL >= 1.1.5 (http://pythonware.com/products/pil/)
  * diffutils >= 2.8.1 (http://gnu.org/software/diffutils/)
  
- * MySQL: 
-   * MySQL >= 5.0 (http://mysql.com/) 
-   * MySQLdb >= 1.2.1c3 ()
+ * MySQL:
+ 
+  - MySQL >= 5.0 (http://mysql.com/) 
+  - MySQLdb >= 1.2.1c3 ()
 
  * or PostgreSQL:
-   * PostgreSQL >= 7.4 (http://postgresql.org/)
-   * psycopg2 >= 2.0 (http://initd.org/projects/psycopg2)
+
+  - PostgreSQL >= 7.4 (http://postgresql.org/)
+  - psycopg2 >= 2.0 (http://initd.org/projects/psycopg2)
 
 Optional
 ~~~~~~~~
