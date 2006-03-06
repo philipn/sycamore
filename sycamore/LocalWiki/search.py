@@ -1,8 +1,8 @@
-import sys, string, os.path
+import sys, string, os.path, re
 
 from LocalWiki import config, wikiutil
 from LocalWiki.Page import Page
-import xapian, re
+
 quotes_re = re.compile('"(?P<phrase>[^"]+)"')
 
 MAX_PROB_TERM_LENGTH = 64
@@ -30,7 +30,7 @@ class searchResult(object):
     self.percentage = percentage
     self.page = page
 
-class Search(object):
+class SearchBase(object):
   def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10):
     self.request = request
     self.needles = needles
@@ -38,43 +38,9 @@ class Search(object):
     self.t_start_loc = t_start_loc
     self.num_results = 10
 
-    # load the databases
-    self.text_database = xapian.Database(
-        os.path.join(config.search_db_location, 'text'))
-    self.title_database = xapian.Database(
-        os.path.join(config.search_db_location, 'title'))
-
-    self.stemmer = xapian.Stem("english")
     self.text_results = [] # list of (percentage, page object, text data)
     self.title_results = [] # list of (percentage, page object, text data)
-    self.terms = self._remove_junk(self._stem_terms(needles))
-    self.query = self._build_query(self.terms)
-
-  def _stem_terms(self, terms):
-    new_terms = []
-    for term in terms:
-      if type(term) == type([]):
-        new_terms.append(self._stem_terms(term))
-      else:
-        new_terms.append(self.stemmer.stem_word(term.lower()))
-    return new_terms
     
-
-  def _build_query(self, terms, op=xapian.Query.OP_OR):
-    """builds a query out of the terms.  Takes care of things like "quoted text" properly"""
-    query = None
-    for term in terms:
-      if type(term) == type([]):
-        # an exactly-quoted sublist
-	exact_query = self._build_query(term, op=xapian.Query.OP_PHRASE)
-	if query: query = xapian.Query(op, query, exact_query)
-	else: query = xapian.Query(op, exact_query)
-      else:
-        if query: query = xapian.Query(op, query, xapian.Query(op, [term]))
-	else: query = xapian.Query(op, [term])
-
-    return query
-
   def _remove_junk(self, terms):
     # Cut each needle accordingly so that it returns good results. E.g. the user searches for "AM/PM" we want to cut this into "am" and "pm"
     nice_terms = []
@@ -108,29 +74,123 @@ class Search(object):
 
     return nice_terms
 
+if config.has_xapian:
+  import xapian
+  class XapianSearch(SearchBase):
+    def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10):
+      SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc, num_results)
+  
+      # load the databases
+      self.text_database = xapian.Database(
+          os.path.join(config.search_db_location, 'text'))
+      self.title_database = xapian.Database(
+          os.path.join(config.search_db_location, 'title'))
+  
+      self.stemmer = xapian.Stem("english")
+      self.terms = self._remove_junk(self._stem_terms(needles))
+      self.query = self._build_query(self.terms)
+  
+    def _stem_terms(self, terms):
+      new_terms = []
+      for term in terms:
+        if type(term) == type([]):
+          new_terms.append(self._stem_terms(term))
+        else:
+          new_terms.append(self.stemmer.stem_word(term.lower()))
+      return new_terms
+      
+  
+    def _build_query(self, terms, op=xapian.Query.OP_OR):
+      """builds a query out of the terms.  Takes care of things like "quoted text" properly"""
+      query = None
+      for term in terms:
+        if type(term) == type([]):
+          # an exactly-quoted sublist
+  	  exact_query = self._build_query(term, op=xapian.Query.OP_PHRASE)
+  	  if query: query = xapian.Query(op, query, exact_query)
+  	  else: query = xapian.Query(op, exact_query)
+        else:
+          if query: query = xapian.Query(op, query, xapian.Query(op, [term]))
+  	  else: query = xapian.Query(op, [term])
+  
+      return query
+  
+    def process(self):
+      # processes the search
+      enquire = xapian.Enquire(self.text_database)
+      enquire.set_query(self.query)
+      matches = enquire.get_mset(self.p_start_loc, self.num_results)
+      for match in matches:
+        title = match[xapian.MSET_DOCUMENT].get_value(0)
+        page = Page(title, self.request)
+        percentage = match[xapian.MSET_PERCENT]
+        data = match[xapian.MSET_DOCUMENT].get_data()
+        search_item = searchResult(title, data, percentage, page)
+        self.text_results.append(search_item)
+  
+      enquire = xapian.Enquire(self.title_database)
+      enquire.set_query(self.query)
+      matches = enquire.get_mset(self.t_start_loc, self.num_results)
+      for match in matches:
+        title = match[xapian.MSET_DOCUMENT].get_value(0)
+        page = Page(title, self.request)
+        percentage = match[xapian.MSET_PERCENT]
+        data = match[xapian.MSET_DOCUMENT].get_data()
+        search_item = searchResult(title, data, percentage, page)
+        self.title_results.append(search_item)
+
+class RegexpSearch(SearchBase):
+  def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10):
+    SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc, num_results)
+
+    self.terms = self._remove_junk(needles)
+    self.regexp = self._build_regexp(self.terms)
+
+  def _build_regexp(self, terms):
+    """builds a query out of the terms.  Takes care of things like "quoted text" properly"""
+    regexp = []
+    for term in terms:
+      if type(term) == type([]):
+        # an exactly-quoted sublist
+	regexp.append('%s' % ' '.join(term))
+      else:
+        regexp.append(term)
+
+    regexp = re.compile('|'.join(regexp), re.IGNORECASE)
+
+    return regexp
+
   def process(self):
     # processes the search
-    enquire = xapian.Enquire(self.text_database)
-    enquire.set_query(self.query)
-    matches = enquire.get_mset(self.p_start_loc, self.num_results)
-    for match in matches:
-      title = match[xapian.MSET_DOCUMENT].get_value(0)
-      page = Page(title, self.request)
-      percentage = match[xapian.MSET_PERCENT]
-      data = match[xapian.MSET_DOCUMENT].get_data()
-      search_item = searchResult(title, data, percentage, page)
-      self.text_results.append(search_item)
+    pagelist = wikiutil.getPageList(self.request, objects=True)
+    matches = []
+    for page in pagelist:
+      text = page.get_raw_body()
+      text_matches = self.regexp.findall(text)
+      if text_matches:
+        percentage = (len(text_matches)*1.0/len(text.split(' ')))*100
+	self.text_results.append(searchResult(page.page_name, text, percentage, page)) 
+      
+      title = page.page_name
+      title_matches = self.regexp.findall(title)
+      if title_matches:
+        percentage = (len(title_matches)*1.0/len(title.split(' ')))*100
+	self.title_results.append(searchResult(title, title, percentage, page))
 
-    enquire = xapian.Enquire(self.title_database)
-    enquire.set_query(self.query)
-    matches = enquire.get_mset(self.t_start_loc, self.num_results)
-    for match in matches:
-      title = match[xapian.MSET_DOCUMENT].get_value(0)
-      page = Page(title, self.request)
-      percentage = match[xapian.MSET_PERCENT]
-      data = match[xapian.MSET_DOCUMENT].get_data()
-      search_item = searchResult(title, data, percentage, page)
-      self.title_results.append(search_item)
+    # sort the title and text results by relevancy
+    self.title_results.sort(lambda x,y: cmp(y.percentage, x.percentage))
+    self.text_results.sort(lambda x,y: cmp(y.percentage, x.percentage))
+
+    # normalize the percentages.  still gives shit, but what can you expect from regexp..install xapian!
+    if self.title_results:
+      max_title_percentage = self.title_results[0].percentage
+      for title in self.title_results:
+        title.percentage = (title.percentage/max_title_percentage)*100
+
+    if self.text_results: 
+      max_text_percentage = self.text_results[0].percentage
+      for text in self.text_results:
+        text.percentage = (text.percentage/max_text_percentage)*100
 
 
 def _do_postings(doc, text, id, stemmer):
@@ -163,6 +223,7 @@ def _do_postings(doc, text, id, stemmer):
       i = j
 
 def index(page):
+  if not config.has_xapian: return
   # Add page to the search index
   stemmer = xapian.Stem("english")
 
@@ -188,6 +249,7 @@ def index(page):
 
 def remove_from_index(page):
   """removes the page from the index.  call this on page deletion.  all other page changes can just call index(). """
+  if not config.xapian: return
   database = xapian.WritableDatabase(
       os.path.join(config.search_db_location, 'title'),
       xapian.DB_CREATE_OR_OPEN)
@@ -214,33 +276,7 @@ def prepare_search_needle(needle):
     new_list.append(quote.group('phrase').split(" "))
   if had_quote: return new_list
   else:return needle.split(" ")
-    
-# = Page()
-#index(p)
-#from LocalWiki import request
-#req = request.RequestDummy()
-#s = Search(['"edit me"'], req)
-#s.process()
-#print s.text_results, s.title_results
-#print "text"
-#for result in s.text_results:
-#  print result.title, result.data
-#print "title"
-#for result in s.title_results:
-#  print result.title, result.data
-#for obj in s.title_results:
-#  print obj.title
-#database = xapian.WritableDatabase(config.title_search_db_location, xapian.DB_CREATE_OR_OPEN)
-#database.delete_document("Q:%s" % 'Front Page')
-#s = Search(['front'])
-#s.process()
-#print s.title_results, s.text_results
-#s = Search(['front'])
-#s.process()
-#print s.title_results, s.text_results
-#print s.__dict__
-#import time
-#index(p)
-#s = Search(['front'])
-#s.process()
-#print s.title_results, s.text_results
+
+
+if config.has_xapian: Search = XapianSearch
+else: Search = RegexpSearch

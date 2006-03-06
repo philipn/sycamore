@@ -89,6 +89,7 @@ _cfg_defaults = {
     'domain': 'localhost',
     'edit_locking': 'warn 10', # None, 'warn <timeout mins>', 'lock <timeout mins>'
     'edit_rows': 24,
+    'has_xapian': False,
     'hosts_deny': [],
     'html_head': '',
     'html_pagetitle': None,

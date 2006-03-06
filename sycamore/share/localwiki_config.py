@@ -82,6 +82,7 @@ memcache_servers = ['127.0.0.1:11211']
 # memcache_servers can be either ['server1:port', 'server2:port'] or given with weights as in
 #  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)
 
+has_xapian = True
 #location of the search dbs.  you probably shouldn't have to change this.
 search_db_location = os.path.join(data_dir, 'search')
 

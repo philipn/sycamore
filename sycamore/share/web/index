@@ -8,7 +8,7 @@
 """
 
 import sys, time, mimetypes, os
-sys.path.extend(['/Library/Webserver/sycamore','/Library/Webserver/sycamore/installhtml/dwiki'])
+sys.path.extend(['/Library/Webserver/sycamore','/Library/Webserver/sycamore/share'])
 
 from LocalWiki.support.wsgi_server import httpserver
 #from LocalWiki.support.wsgi_server import swap 

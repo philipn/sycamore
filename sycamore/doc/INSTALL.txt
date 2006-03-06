@@ -30,5 +30,5 @@ Required
 Optional
 ~~~~~~~~
 
- * xapian-core >= 0.9.4 (http://xapian.org) and xapian-bindings >= 0.9.4 (http://xapian.org).  Xapian provides fast, scalable and flexible search for Sycamore.
+ * xapian-core >= 0.9.4 (http://xapian.org) and xapian-bindings >= 0.9.4 (http://xapian.org).  Xapian provides fast, scalable and flexible search for Sycamore.  Your search on your wiki will suck and eat up lots of CPU/disk activity if you don't install this.
  * Memcached >= 1.1.12 and >= python-memcached 1.2_tummy6.  Memcached speeds up Sycamore by allowing it to cache objects in memory.

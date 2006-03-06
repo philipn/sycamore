@@ -587,6 +587,9 @@ def insert_basic_pages(cursor):
 
 def build_search_index():
   # builds the title and full text search indexes.
+  if not config.has_xapian:
+    print "You don't have Xapian installed...skipping configuration of search index."
+    return
 
   if not os.path.exists(config.search_db_location):
     # create it if it doesn't exist, we don't want to create
