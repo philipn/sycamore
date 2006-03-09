@@ -242,42 +242,10 @@ def resolve_wiki(request, wikiurl):
     @rtype: tuple
     @return: (wikitag, wikiurl, wikitail)
     """
-    # load map (once, and only on demand)
-    global _interwiki_list
-    if _interwiki_list is None:
-        _interwiki_list = {}
-        lines = []
-        
-        # order is important here, the local intermap file takes
-        # precedence over the shared one, and is thus read AFTER
-        # the shared one
-        intermap_files = config.shared_intermap
-        if not isinstance(intermap_files, type([])):
-            intermap_files = [intermap_files]
-        intermap_files.append(os.path.join(config.data_dir, "intermap.txt"))
 
-        for filename in intermap_files:
-            if filename and os.path.isfile(filename):
-                f = open(filename, "r")
-                lines.extend(f.readlines())
-                f.close()
+    from LocalWiki import wikidicts
 
-        for line in lines:
-            if not line or line[0] == '#': continue
-            try:
-                line = "%s %s/InterWiki" % (line, request.getScriptname()) 
-                wikitag, urlprefix, trash = line.split(None, 2)
-            except ValueError:
-                pass
-            else:
-                _interwiki_list[wikitag] = urlprefix
-
-        del lines
-
-        # add own wiki as "Self" and by its configured name
-        _interwiki_list['Self'] = request.getScriptname() + '/'
-        if config.interwikiname:
-            _interwiki_list[config.interwikiname] = request.getScriptname() + '/'
+    _interwiki_list = wikidicts.Dict(config.interwikimap,request)
 
     # split wiki url
     wikitag, tail = split_wiki(wikiurl)
@@ -286,7 +254,7 @@ def resolve_wiki(request, wikiurl):
     if wikitag and _interwiki_list.has_key(wikitag):
         return (wikitag, _interwiki_list[wikitag], tail, False)
     else:
-        return (wikitag, request.getScriptname(), "/InterWiki", True)
+        return (wikitag, request.getScriptname(),'/'+ config.interwikimap, True)
 
 
 #############################################################################
@@ -1178,3 +1146,4 @@ def send_footer(request, pagename, **keywords):
 
     request.write('\n\n') # the content does not always end with a newline
     request.write(request.theme.footer(d, **keywords))
+

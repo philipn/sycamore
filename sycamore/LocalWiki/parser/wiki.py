@@ -142,42 +142,27 @@ class Parser:
             url, text = url_and_text
 
         url = url[5:] # remove "wiki:"
+
+
         if text is None:
             tag, tail = wikiutil.split_wiki(url)
             if tag:
                 text = tail
+				
             else:
                 text = url
-                url = ""
-        #elif config.allow_subpages and url[0] == wikiutil.CHILD_PREFIX:
-            # fancy link to subpage [wiki:/SubPage text]
-        #    return self._word_repl(url, text)
-        elif Page(url, self.request).exists():
-            # fancy link to local page [wiki:LocalPage text]
-            return self._word_repl(url, text)
+	
+	tag, tail = wikiutil.split_wiki(url)
+	
+	if tag == tail == None:
+            if Page(url, self.request).exists():
+                # fancy link to local page [wiki:LocalPage text]
+                return self._word_repl(url, text)
+	    else:
+	        return self._word_repl(url, text)
 
-        wikitag, wikiurl, wikitail, wikitag_bad = wikiutil.resolve_wiki(self.request, url)
-        wikiurl = wikiutil.mapURL(wikiurl)
-        href = wikiutil.join_wiki(wikiurl, wikitail)
-
-        # check for image URL, and possibly return IMG tag
-        if not kw.get('pretty_url', 0) and wikiutil.isPicture(wikitail):
-            return self.formatter.image(src=href)
-
-        # link to self?
-        if wikitag is None:
-            return self._word_repl(wikitail)
-              
-        # return InterWiki hyperlink
-        if wikitag_bad:
-            html_class = 'badinterwiki'
-        else:
-            html_class = 'interwiki'
-        text = self.highlight_text(text) # also cgi.escapes if necessary
-
-        icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}) 
-        return self.formatter.url(href, icon + text,
-            title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class)
+        return self.formatter.interwikilink(url, text) #, kw)
+	
 
 
     #def attachment(self, url_and_text, **kw):
@@ -443,7 +428,6 @@ class Parser:
 
         # Traditional split on space
         words = word[1:-1].split(None, 1)
-        if len(words) == 1: words = words * 2
 
         if words[0][0] == '#':
             # anchor link
@@ -458,7 +442,10 @@ class Parser:
             text = self.formatter.image(title=words[1], alt=words[1], src=words[0])
         else:
             text = web.getLinkIcon(self.request, self.formatter, scheme)
-            text += self.highlight_text(words[1])
+            if len(words) == 1:
+	        text += self.highlight_text(words[0])
+            else:
+                text += self.highlight_text(words[1])
         return self.formatter.url(words[0], text, 'external', pretty_url=1, unescaped=1)
 
     def _bracket_link_repl(self, word):

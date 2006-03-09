@@ -104,6 +104,37 @@ class Formatter(FormatterBase):
 
         return str
 
+
+    def interwikilink(self, url, text, **kw):
+        wikitag, wikiurl, wikitail, wikitag_bad = wikiutil.resolve_wiki(self.request, url)
+        wikiurl = wikiutil.mapURL(wikiurl)
+        
+        
+        href = wikiutil.join_wiki(wikiurl, wikitail)
+
+        # check for image URL, and possibly return IMG tag
+        if not kw.get('pretty_url', 0) and wikiutil.isPicture(wikitail):
+            return self.formatter.image(src=href)
+            
+        # link to self?
+        if wikitag is None:
+            return self._word_repl(wikitail)
+              
+        # return InterWiki hyperlink
+        if wikitag_bad:
+            text = "No Interwiki Link for : " + wikitag
+            html_class = 'badinterwiki'
+        else:
+            html_class = 'interwiki'
+        
+   #     text = self.highlight_text(text) # also cgi.escapes if necessary
+            
+        icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag})
+        
+        return self.url(href, icon + text,
+            title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class)
+  
+ 
     def anchordef(self, id):
         return '<a id="%s"></a>' % id
 

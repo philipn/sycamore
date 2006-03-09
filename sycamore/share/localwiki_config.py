@@ -68,7 +68,7 @@ talk_pages = 1
 
 # MySQL database settings.
 db_type = 'mysql'
-db_name = 'wiki'
+db_name = 'wiki2'
 db_user = 'root'
 db_user_password = ''
 db_host = 'localhost'
@@ -130,3 +130,4 @@ acl_rights_default = "AdminGroup:admin,read,write,delete,revert TestMe:admin,rea
 
 mail_smarthost = "localhost"
 mail_from = "dont_respond@daviswiki.org"
+
