@@ -576,7 +576,7 @@ def send_viewfile(pagename, request):
 	   # let's see if the image was deleted, and if so we'll display it with a note about how it was removed.
 	   if not version:
 	   # grab the most recent version of the image
-             request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image), deleted_time, deleted_by from oldImages where attached_to_pagename=%(pagename)s and oldImages.name=%(filename)s and order by uploaded_time desc;", {'pagename':pagename, 'filename':filename})
+             request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image), deleted_time, deleted_by from oldImages where attached_to_pagename=%(pagename)s and oldImages.name=%(filename)s order by uploaded_time desc;", {'pagename':pagename, 'filename':filename})
 	   else:
 	     # let's grab the proper version of the image
 	     request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image), deleted_time, deleted_by from oldImages where attached_to_pagename=%(pagename)s and name=%(filename)s and uploaded_time=%(version_date)s order by uploaded_time desc;", {'pagename':pagename, 'filename':filename, 'version_date':version})

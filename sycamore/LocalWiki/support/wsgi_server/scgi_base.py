@@ -382,12 +382,12 @@ class BaseSCGIServer(object):
                                                     str(len(data))))
                     except:
                         pass
-                s = 'Status: %s\r\n' % status
+                s = ['Status: %s\r\n' % status]
                 for header in responseHeaders:
-                    s += '%s: %s\r\n' % header
-                s += '\r\n'
+                    s.append('%s: %s\r\n' % header)
+                s.append('\r\n')
                 try:
-                    request.stdout.write(s)
+                    request.stdout.write(''.join(s))
                 except socket.error, e:
                     if e[0] != errno.EPIPE:
                         raise
@@ -458,10 +458,18 @@ class BaseSCGIServer(object):
         # passes it in.)
         value += environ.get('PATH_INFO', '')
         if not value.startswith(scriptName):
+	  if not environ.get('PATH_INFO',''):
+	    # This happens when we have a <directory "/">.. being sent to an scgi in apache for some reason
+	    #value = scriptName + value
+	    environ['PATH_INFO'] = value
+	    environ['SCRIPT_NAME'] = ''
+	    return
+	  else: 
             self.logger.warning('scriptName does not match request URI')
 
-        environ['PATH_INFO'] = value[len(scriptName):]
+	environ['PATH_INFO'] = value[len(scriptName):]
         environ['SCRIPT_NAME'] = scriptName
+
 
     def error(self, request):
         """

@@ -67,10 +67,12 @@ class SearchBase(object):
         if c.isalnum():
           j += 1
           continue
-        nice_terms.append(term[i:j])
+        term_new = term[i:j].strip()
+        if term_new: nice_terms.append(term_new)
         i = j+1
         j += 1
-      nice_terms.append(term[i:j])
+      term_new = term[i:j].strip()
+      if term_new: nice_terms.append(term_new)
 
     return nice_terms
 
@@ -88,7 +90,8 @@ if config.has_xapian:
   
       self.stemmer = xapian.Stem("english")
       self.terms = self._remove_junk(self._stem_terms(needles))
-      self.query = self._build_query(self.terms)
+      if self.terms: self.query = self._build_query(self.terms)
+      else: self.query = None
   
     def _stem_terms(self, terms):
       new_terms = []
@@ -116,10 +119,11 @@ if config.has_xapian:
       return query
   
     def process(self):
+      if not self.query: return
       # processes the search
       enquire = xapian.Enquire(self.text_database)
       enquire.set_query(self.query)
-      matches = enquire.get_mset(self.p_start_loc, self.num_results)
+      matches = enquire.get_mset(self.p_start_loc, self.num_results+1)
       for match in matches:
         title = match[xapian.MSET_DOCUMENT].get_value(0)
         page = Page(title, self.request)
@@ -130,7 +134,7 @@ if config.has_xapian:
   
       enquire = xapian.Enquire(self.title_database)
       enquire.set_query(self.query)
-      matches = enquire.get_mset(self.t_start_loc, self.num_results)
+      matches = enquire.get_mset(self.t_start_loc, self.num_results+1)
       for match in matches:
         title = match[xapian.MSET_DOCUMENT].get_value(0)
         page = Page(title, self.request)
@@ -183,14 +187,22 @@ class RegexpSearch(SearchBase):
 
     # normalize the percentages.  still gives shit, but what can you expect from regexp..install xapian!
     if self.title_results:
+      i = 0
       max_title_percentage = self.title_results[0].percentage
+      self.title_results = self.title_results[self.t_start_loc:self.t_start_loc+self.num_results+1]
       for title in self.title_results:
+        if i > self.num_results: break
         title.percentage = (title.percentage/max_title_percentage)*100
+	i += 1
 
     if self.text_results: 
+      i = 0 
       max_text_percentage = self.text_results[0].percentage
+      self.text_results = self.text_results[self.p_start_loc:self.p_start_loc+self.num_results+1]
       for text in self.text_results:
+        if i > self.num_results: break
         text.percentage = (text.percentage/max_text_percentage)*100
+	i += 1
 
 
 def _do_postings(doc, text, id, stemmer):

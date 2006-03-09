@@ -183,12 +183,14 @@ def getImage(request, dict, deleted=False, thumbnail=False, version=0):
 
 def putImage(request, dict, thumbnail=False, do_delete=False):
   """
-  dict is a dictionary with possible keys: filename, filecontent, uploaded_time, uploaded_by, pagename, uploaded_by_ip, xsize, ysize, deleted_time, deleted_by, deleted_by_ip
+  Puts the image (found in dict) into the database. dict is a dictionary with possible keys: filename, filecontent, uploaded_time, uploaded_by, pagename, uploaded_by_ip, xsize, ysize, deleted_time, deleted_by, deleted_by_ip
   """
   from LocalWiki.wikiutil import quoteFilename
   # prep for insert of binary data
   if dict.has_key('filecontent'):
-    dict['filecontent'] = dbapi.Binary(dict['filecontent'])
+    raw_image = dict['filecontent']
+    uploaded_time = dict['uploaded_time']
+    dict['filecontent'] = dbapi.Binary(raw_image)
     
   if not thumbnail and not do_delete:
     request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, xsize, ysize) values (%(filename)s, %(filecontent)s, %(uploaded_time)s, %(uploaded_by)s, %(pagename)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s)", dict, isWrite=True)
@@ -217,7 +219,7 @@ def putImage(request, dict, thumbnail=False, do_delete=False):
       if not thumbnail: table = 'images'
       else: table = 'thumbnails'
       key = "%s:%s,%s" % (table, quoteFilename(dict['filename']), quoteFilename(dict['pagename'].lower()))
-      image_obj = (dict['filecontent'], dict['uploaded_time'])
+      image_obj = (raw_image, uploaded_time)
       request.mc.set(key, image_obj)
     else:
       key = "images:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['pagename'].lower()))

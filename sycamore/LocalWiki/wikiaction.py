@@ -42,6 +42,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         needle = request.form[fieldname][0]
     elif request.form.has_key('string'):
         needle = urllib.unquote_plus(request.form['string'][0])
+    elif request.form.has_key('text_new'):
+        needle = urllib.unquote_plus(request.form['text_new'][0])
     else: needle = ''
 
     try:
@@ -138,7 +140,10 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
 
     wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
 
+do_inlinesearch = do_search # for comptability to not break old urls in firefox extensions, etc.
+
 def print_context(terms, text, request, context=40, max_context=10):
+ """ Prints the search context surrounding a search result.  Makes found terms strong and shows some snippets."""
  padding = 10 # how much context goes around matched areas
  fragments = []
  out = []
