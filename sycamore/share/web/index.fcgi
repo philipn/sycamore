@@ -1,18 +1,19 @@
-#!/usr/bin/env python -OO
+#!/usr/bin/python -OO
 # -*- coding: iso-8859-1 -*-
 """
-    LocalWiki - FastCGI Driver Script
+    Sycamore - FastCGI Driver Script
 
     @copyright: 2006 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
 
-import sys, logging
-sys.path.extend(['/Library/Webserver/sycamore','/Library/Webserver/sycamore/installhtml/dwiki'])
+import sys, logging, os
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
 
-from LocalWiki.support.wsgi_server.fcgi import WSGIServer
-#from LocalWiki.support.wsgi_server import swap 
-from LocalWiki.request import RequestWSGI
+from Sycamore.support.wsgi_server.fcgi import WSGIServer
+#from Sycamore.support.wsgi_server import swap 
+from Sycamore.request import RequestWSGI
 from logging import NOTSET
 import profile, time
 

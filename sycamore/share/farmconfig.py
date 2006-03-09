@@ -11,7 +11,7 @@ import re, string
 blacklist_re = "|".join(map(lambda s: "%s" % s.strip(), blacklist.strip().split("\n")))
 blacklist_re = re.compile(blacklist_re)
 
-from LocalWiki.security import Permissions
+from Sycamore.security import Permissions
  
 class SecurityPolicy(Permissions):
     def save(self, editor, newtext, datestamp, **kw):

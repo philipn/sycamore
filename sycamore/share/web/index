@@ -1,29 +1,29 @@
-#!/usr/bin/env python -OO
+#!/usr/bin/python -OO
 # -*- coding: iso-8859-1 -*-
 """
-    LocalWiki - Standalone HTTP server
+    Sycamore - Standalone HTTP server
 
     @copyright: 2006 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
 
 import sys, time, mimetypes, os
-sys.path.extend(['/Library/Webserver/sycamore','/Library/Webserver/sycamore/share'])
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
+handle_static_files = False
 
-from LocalWiki.support.wsgi_server import httpserver
-#from LocalWiki.support.wsgi_server import swap 
-from LocalWiki.request import RequestWSGI
-from LocalWiki import config
+from Sycamore.support.wsgi_server import httpserver
+#from Sycamore.support.wsgi_server import swap 
+from Sycamore.request import RequestWSGI
+from Sycamore import config
 import profile, time
 
 def handle_request(env, start_response):
-  static_files_path = '%s/wiki' % config.web_dir
-  if env.get('QUERY_STRING', '') == 'profile':
-    profile.runctx('RequestWSGI(env,start_response).run()', globals(), locals(), 'prof.%s' % time.time())
-    return ['profile ran']
+  if handle_static_files:
+    static_files_path = '%s/wiki' % config.web_dir
 
   # because this is standalone we need to deal with the case of serving static files..  
-  elif env['PATH_INFO'].startswith(static_files_path) or env['PATH_INFO'] == ('%s/favicon.ico' % config.web_dir):
+  if handle_static_files and (env['PATH_INFO'].startswith(static_files_path) or env['PATH_INFO'] == ('%s/favicon.ico' % config.web_dir)):
     file_path = config.web_root + env['PATH_INFO']
     static_file = open(file_path, 'r')
     mimetype = mimetypes.guess_type(file_path)[0]
@@ -31,7 +31,6 @@ def handle_request(env, start_response):
     datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT'
     start_response('200 OK', [("Content-Type", mimetype), ("Last-Modified", datestring)])
     return static_file
-    
   else:
     request = RequestWSGI(env, start_response)
     return request.run()

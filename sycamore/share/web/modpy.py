@@ -16,11 +16,11 @@ sys.path.insert(0, '/var/www/dwiki')
 # Set threads flag, so other code can use proper locking.
 # TODO: It seems that modpy does not use threads, so we don't need to
 # set it here. Do we have another method to check this?
-from LocalWiki import config
+from Sycamore import config
 config.use_threads = 1
 del config
 
-from LocalWiki.request import RequestModPy
+from Sycamore.request import RequestModPy
 
 def handler(request):
    moinreq = RequestModPy(request)
