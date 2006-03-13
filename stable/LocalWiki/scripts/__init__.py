@@ -1,9 +1,0 @@
-# -*- coding: iso-8859-1 -*-
-"""
-    LocalWiki - Scripts
-
-    @copyright: 2001 by Jürgen Hermann <jh@web.de>
-    @license: GNU GPL, see COPYING for details.
-"""
-__version__ = "$Revision: 1.3 $"[11:-2]
-
