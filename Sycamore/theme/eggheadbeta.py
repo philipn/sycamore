@@ -122,7 +122,7 @@ class Theme(ThemeBase):
             else:
                 polite_html = ''
             html.append('<h1 style="clear: none; float: left;"><a title="%s" href="%s">%s</a></h1>%s' % (
-                _('Click here to do a full-text search for this title'),
+                _('Click here for general information about this page'),
                 d['title_link'],
                 wikiutil.escape(d['title_text']), polite_html))
 	    html.append(self.new_iconbar(d))
@@ -521,10 +521,8 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         dict.update(d)
         
         html = """
-<form method="POST" action="%(script_name)s/%(q_page_name)s">
+<form method="GET" action="%(script_name)s/%(q_page_name)s">
 <input type="hidden" name="action" value="search">
-<input type="hidden" name="context" value="40">
-<input type="hidden" name="button_new.x" value="0">
 %(search_html)s
 </form>
 """ % dict

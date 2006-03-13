@@ -150,7 +150,7 @@ class Theme(object):
         html = ['<div id="title">']
         if d['title_link']:
             html.append('<h1><a title="%s" href="%s">%s</a></h1>' % (
-                _('Click here to do a full-text search for this title'),
+                _('Click here to get more information about this page'),
                 d['title_link'],
                 wikiutil.escape(d['title_text'])))
         else:
@@ -484,7 +484,6 @@ class Theme(object):
 <form method="POST" action="%(script_name)s/%(q_page_name)s">
 <p>
 <input type="hidden" name="action" value="inlinesearch">
-<input type="hidden" name="context" value="40">
 %(find_page_html)s %(search_html)s %(navi_page_html)s
 </p>
 </form>

@@ -1033,11 +1033,12 @@ def send_title(request, text, **keywords):
     #    '<link rel="Index" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_title_index)) +
     #    '<link rel="Help" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_help_contents))
     #)
+    request.write("<script type=\"text/javascript\" src=\"%s/wiki/highlight.js\"></script>\n" % (config.web_dir))
 
     request.write("</head>\n")
 
     # start the <body>
-    bodyattr = []
+    bodyattr = ['onload="highlighter.highlight()"']
     if keywords.has_key('body_attr'):
         bodyattr.append(' %s' % keywords['body_attr'])
     if keywords.get('allow_doubleclick', 0) and not keywords.get('print_mode', 0) \
@@ -1052,7 +1053,7 @@ def send_title(request, text, **keywords):
     body_onload = keywords.get('body_onload', '')
     if body_onload:
         bodyattr.append(''' onload="%s"''' % body_onload)
-    request.write('\n<body%s>\n' % bodyattr)
+    request.write('\n<body %s>\n' % ''.join(bodyattr))
 
     # if in Print mode, emit the title and return immediately
     if keywords.get('print_mode', 0):
@@ -1076,7 +1077,7 @@ def send_title(request, text, **keywords):
     icon = request.theme.get_icon('searchbutton')
     searchfield = (
         '<input class="formfields" type="text" name="inline_string" value="%%(value)s" size="15" maxlength="50">'
-        '&nbsp;<input type="image" src="%(src)s" name="button_%%(type)s" alt="%(alt)s">'
+        '&nbsp;<input type="image" src="%(src)s" alt="%(alt)s">'
         ) % {
             'alt': icon[0],
             'src': icon[1],

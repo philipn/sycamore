@@ -50,10 +50,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         case = int(request.form['case'][0])
     except (KeyError, ValueError):
         case = 0
-    try:
-        context = int(request.form['context'][0])
-    except (KeyError, ValueError):
-        context = 0
+
+    context = 40
     max_context = 10 # only show first `max_context` contexts
 
     # check for sensible search term
@@ -126,7 +124,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         elif full_hit.percentage > 32:
           color = "#ffee55"
         request.write('<p><table><tr><td width="40" valign="middle"><table id="progbar" cellspacing="0" cellpadding="0"><tr><td height="7" width="%d" bgcolor="%s"></td><td width="%d" bgcolor="#eeeeee"></td></tr></table></td><td>' % (full_hit.percentage/3, color, 33 - full_hit.percentage/3))
-        request.write(full_hit.page.link_to(querystr='action=highlight&amp;value=%s' % urllib.quote_plus(needle)))
+        request.write(full_hit.page.link_to())
         request.write('</td></tr></table>\n')
 
         if context:
