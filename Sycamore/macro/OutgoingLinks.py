@@ -6,12 +6,9 @@ from Sycamore.Page import Page
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
 
-    db = wikidb.connect()
-    cursor = db.cursor()
+    cursor = macro.request.cursor
     cursor.execute("SELECT c.name, count(c.source_pagename) as cnt from (SELECT curPages.name, links.source_pagename from curPages left join links on links.source_pagename=curPages.name) as c group by c.name order by cnt;")
     results = cursor.fetchall()
-    cursor.close()
-    db.close()
    
     old_count = -1
     for entry in results:
