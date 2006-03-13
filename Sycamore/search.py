@@ -8,6 +8,19 @@ quotes_re = re.compile('"(?P<phrase>[^"]+)"')
 MAX_PROB_TERM_LENGTH = 64
 
 #word_characters = string.letters + string.digits
+def build_regexp(terms):
+  """builds a query out of the terms.  Takes care of things like "quoted text" properly"""
+  regexp = []
+  for term in terms:
+    if type(term) == type([]):
+      # an exactly-quoted sublist
+      regexp.append('%s' % ' '.join(term))
+    elif term:
+      regexp.append(term)
+
+  regexp = re.compile('|'.join(regexp), re.IGNORECASE)
+
+  return regexp
 
 def _p_alnum(c):
     return c.isalnum()
@@ -148,22 +161,9 @@ class RegexpSearch(SearchBase):
     SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc, num_results)
 
     self.terms = self._remove_junk(needles)
-    self.regexp = self._build_regexp(self.terms)
+    self.regexp = build_regexp(self.terms)
 
-  def _build_regexp(self, terms):
-    """builds a query out of the terms.  Takes care of things like "quoted text" properly"""
-    regexp = []
-    for term in terms:
-      if type(term) == type([]):
-        # an exactly-quoted sublist
-	regexp.append('%s' % ' '.join(term))
-      else:
-        regexp.append(term)
-
-    regexp = re.compile('|'.join(regexp), re.IGNORECASE)
-
-    return regexp
-
+  
   def process(self):
     # processes the search
     pagelist = wikiutil.getPageList(self.request, objects=True)

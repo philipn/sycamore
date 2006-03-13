@@ -245,11 +245,13 @@ def do_highlight(pagename, request):
     else:
         needle = ''
 
-    try:
-        needle_re = re.compile(needle, re.IGNORECASE)
-    except re.error:
-        needle = re.escape(needle)
-        needle_re = re.compile(needle, re.IGNORECASE)
+    needle_re = search.build_regexp(search.prepare_search_needle(needle))
+
+    #try:
+    #    needle_re = re.compile(needle, re.IGNORECASE)
+    #except re.error:
+    #    needle = re.escape(needle)
+    #    needle_re = re.compile(needle, re.IGNORECASE)
 
     Page(pagename, request).send_page(hilite_re=needle_re)
 
