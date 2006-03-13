@@ -1,4 +1,0 @@
-#acl AdminGroup:admin,read,write,revert,delete All:none
- * PhilipNeustrom
- * MikeIvanov
- * GrahamKolbeins

@@ -1,1 +1,0 @@
-#redirect Regan Residence Halls

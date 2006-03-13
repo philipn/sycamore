@@ -1,4 +1,0 @@
-= New things Jan 2005 =
- * ["Bookmarks"] -- A better way to track pages important to you!  Simply go to a page you want to keep track of, click "Info," and then click "Add to my wiki Bookmarks."  That's it!  Then you'll be able to keep a list of pages and easily see when they are updated ('''bolded''' when you haven't seen them since an update).
-
- * Thumbnails! -- Want to upload that nice, pretty, awesome photo you took, but you're bummed out that you have to shrink it down to post it in a page?  Well, just {{{[[Thumbnail]]}}} it!  Upload and image as usual (say, {{{image.jpg}}}), but then instead of using {{{attachment:image.jpg}}} you use {{{[[Thumbnail(image.jpg)]]}}}.  More info on ["How to:Thumbnails"].

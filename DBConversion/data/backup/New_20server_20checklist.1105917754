@@ -1,3 +1,0 @@
- * Try mod_python
- * Turn off every service we don't need
- * Setup automatic backup cronjob (per-day).  It should attempt to tar + gz all the site data and scp it to a couple offsite, stable locations.  Candidates?  codetoad@nasledov.org.. math.ucdavis.edu is good but we won't have accounts there for very long at all..

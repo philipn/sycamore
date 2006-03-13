@@ -1,2 +1,0 @@
-#acl AdminGroup:read,write,edit,admin,revert All:none
- * TestMe

@@ -1,7 +1,0 @@
- * Fix huge rename bug.
- * fix paul's shit.
- * Is the login stuff 100%? 
-    * make sure you can't login using the encrypted password (with {SHA} in front..)..
-      * make sure the email-password thing (old) doesn't work and the (new) system does work.
-    * need better logout thinger?
- * intuitive redirect labels (wikipedia)
