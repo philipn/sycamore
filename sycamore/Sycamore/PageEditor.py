@@ -178,8 +178,8 @@ class PageEditor(Page):
                 original_text = Page(self.page_name, self.request, prev_date=mtime).get_raw_body()
                 saved_text = Page(self.page_name, self.request).get_raw_body()
                 verynewtext, had_conflict = diff3.text_merge(original_text, saved_text, savetext,
-                marker1='----- /!\ Edit conflict! Other version: -----\n',
-	        marker2='----- /!\ Edit conflict! Your version: -----\n',
+	        marker1='----- /!\ Edit conflict! Your version: -----\n',
+                marker2='----- /!\ Edit conflict! Other version: -----\n',
                 marker3='----- /!\ End of edit conflict -----\n')
 
                 if had_conflict:
@@ -190,6 +190,8 @@ There was an <b>edit conflict between your changes!</b><p>Please review the conf
 	        else:
 		   conflict_msg = _("""%s
 Your changes were sucessfully merged!""" % conflict_msg)
+		   mtime = self.mtime()
+                   self.set_raw_body(verynewtext)
 
             if conflict_msg:
                 self.request.write('<div id="message">%s</div>' % conflict_msg)
