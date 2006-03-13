@@ -326,7 +326,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
         except KeyError:
             diff1_date = '-1'
 
-	if diff1_date:
+	if diff1_date > 0:
 	  version1 = page.date_to_version_number(diff1_date)
 
     if not version1 and not version2:
