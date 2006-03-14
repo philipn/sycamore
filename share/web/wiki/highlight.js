@@ -93,8 +93,7 @@ function SearchTermHighlighter()
 			style++;
 			if (style >= styles.length) style = 0;
 		}
-		if (this.legend) document.write('#sth_legend{border:1px solid #CCC;background:white;margin:0px;padding:5px;float:right;' 
-			+ 'font-size:x-small;}\n');
+		if (this.legend) document.write('#sth_legend{}\n');
 		document.write('</style>\n');
 		isInitialized = true;
 	}
@@ -229,7 +228,7 @@ function SearchTermHighlighter()
 			var content = document.getElementById("content");
 			var legend = content.insertBefore(document.createElement('DIV'), content.childNodes[0]);
 			legend.id = 'sth_legend';
-			var s = '<span class="' + searchTerms[0].cssClass + '"><a href="javascript:void(0);" onclick="highlighter.unhighlight()">remove highlighting</a></span>';
+			var s = '<div class="actionBoxes" style="float: right !important;"><span><span class="' + searchTerms[0].cssClass + '"><a href="javascript:void(0);" onclick="highlighter.unhighlight()">highlighting off</a></span></span></div>';
 			legend.innerHTML = s;
 		}
 	}
@@ -283,8 +282,8 @@ function SearchTermHighlighter()
 		this.color = color;
 		this.background = background;
 		this.fontWeight = fontWeight;
-		this.toString = function(){return 'color:' + this.color + ';background:' 
-			+ this.background + ';font-weight:' + this.fontWeight + ';'};
+		this.toString = function(){return 'color:' + this.color + '!important;background:' 
+			+ this.background + '!important;font-weight:' + this.fontWeight + '!important;border:none!important;margin:0!important;padding:0!important;'};
 	}
 }
 

@@ -256,6 +256,24 @@ a.tinyNonexistent:hover {
         color: green;
 }
 
+a.noBorder { text-decoration: none; }
+
+div.actionBoxes { padding-bottom: 15pt;
+}
+
+div.actionBoxes span { margin:0 3pt 0 0;
+        padding: 2pt 3pt 2pt 3pt;
+        float:left;
+        font-size: 8pt;
+        border:1px solid #CCC;
+        background:white;
+}
+
+div.actionBoxes a { text-decoration: none; } 
+
+span.actionBoxSelected { border: none !important;
+        font-weight:bold;
+}
 
 pre {
         border: 1px solid #CBCBCB;
@@ -266,8 +284,8 @@ pre {
 hr {
     background-color: #CBCBCB;
     color: #CBCBCB;
-	width: auto;
-	text-align: left;
+        width: auto;
+        text-align: left;
     margin: 10px 0px 10px 4px;
 }
 
@@ -387,16 +405,16 @@ div.textSearchResult { width: 70%; }
 
 .user {
         margin-top: 10px;
-	margin-right: 22px;
+        margin-right: 22px;
         text-align: center;
         color: white;
 }
 
 .loginbox {
         margin-top: 10px;
-	margin-right: 2px;
+        margin-right: 2px;
         text-align: center;
-	color: white;
+        color: white;
 }
 
 .user a {
@@ -477,7 +495,7 @@ margin-bottom: 0.25em;
 .dialogBox {
         clear: both;
         margin-left: 10pt;
-	margin-top: 5pt;
+        margin-top: 5pt;
         margin-bottom: 10pt;
         background-color: #EEEEEE;
         border: 1px solid #AAAAAA;
@@ -527,8 +545,10 @@ div.preview {
         padding: 0 .3em;
 }
 
+div.editInfo { margin-top: 10pt; }
+
 #useredits td {
-	   padding: 0 .3em;
+           padding: 0 .3em;
 }
 
 .rcdaybreak td {
