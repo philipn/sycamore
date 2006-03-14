@@ -194,6 +194,17 @@ text-decoration: none;
 
 td { padding: 1pt; } 
 
+td.pageIcon { font-size: 7pt;
+text-align: center;
+vertical-align: bottom;
+}
+
+td.pageIconSelected { font-size: 7pt;
+font-weight: bold;
+text-align: center;
+vertical-align: bottom;
+}
+
 .wikitable td {
 padding: 4pt;
 }
