@@ -1119,7 +1119,7 @@ def send_title(request, text, **keywords):
             if d[key]:
                 newdict['q_'+key] = quoteWikiname(d[key])
             else:
-                newdict['q_'+key] = None
+                newdict['q_'+key] = ''
     d.update(newdict)
 
     request.themedict = d # remember it for footer

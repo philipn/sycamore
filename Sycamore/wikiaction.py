@@ -60,7 +60,6 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
       return
     elif request.form.get('string'):
         needle = request.form.get('string')[0]
-        context = 40
         if request.form.get('tstart'):
                 tstart = int(request.form.get('tstart')[0])
         if request.form.get('pstart'):
@@ -164,7 +163,7 @@ def print_context(terms, text, request, context=40, max_context=10):
  i = 0
  text_with_context = []
  skip = False
- while i < len(terms_with_location):
+ while i < len(terms_with_location) and i < context:
    if not skip:
      term = terms_with_location[i][0]
      location = terms_with_location[i][1]
@@ -237,21 +236,21 @@ def do_titlesearch(pagename, request, fieldname='value'):
     wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
 
 
-def do_highlight(pagename, request):
-    if request.form.has_key('value'):
-        needle = request.form["value"][0]
-    else:
-        needle = ''
-
-    needle_re = search.build_regexp(search.prepare_search_needle(needle))
-
-    #try:
-    #    needle_re = re.compile(needle, re.IGNORECASE)
-    #except re.error:
-    #    needle = re.escape(needle)
-    #    needle_re = re.compile(needle, re.IGNORECASE)
-
-    Page(pagename, request).send_page(hilite_re=needle_re)
+#def do_highlight(pagename, request):
+#    if request.form.has_key('value'):
+#        needle = request.form["value"][0]
+#    else:
+#        needle = ''
+#
+#    needle_re = search.build_regexp(search.prepare_search_needle(needle))
+#
+#    #try:
+#    #    needle_re = re.compile(needle, re.IGNORECASE)
+#    #except re.error:
+#    #    needle = re.escape(needle)
+#    #    needle_re = re.compile(needle, re.IGNORECASE)
+#
+#    Page(pagename, request).send_page(hilite_re=needle_re)
 
 
 #############################################################################
@@ -466,7 +465,7 @@ def do_info(pagename, request):
     def general(page, pagename, request):
         _ = request.getText
 
-        request.write('<h2>%s</h2>\n' % _('General Information'))
+        #request.write('<h2>%s</h2>\n' % _('General Information'))
         
         # show page size
         request.write(("<p>%s</p>" % _("Page size: %d words (%d characters).")) % (page.human_size(), page.size()))
@@ -526,17 +525,20 @@ def do_info(pagename, request):
     def history(page, pagename, request):
 	def printNextPrev(request, pagename, last_version, offset_given):
 	  #prints the next and previous links, if they're needed
-	  html = '<p>'
+	  if last_version == 1 and not offset_given:
+	    return
+
+	  html = ['<p>']
 	  if last_version != 1:
-	    html += '[<a href="%s/%s?action=info&offset=%s">&larr;previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1)
+	    html.append('[<a href="%s/%s?action=info&offset=%s">&larr;previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1))
 	  else:
-	    html += '[&larr;previous edits | '
+	    html.append('[&larr;previous edits | ')
 	  if offset_given:
-	    html += '<a href="%s/%s?action=info&offset=%s">next edits&rarr;</a>]' % (request.getBaseURL(), pagename, offset_given-1) 
+	    html.append('<a href="%s/%s?action=info&offset=%s">next edits&rarr;</a>]' % (request.getBaseURL(), pagename, offset_given-1) )
 	  else:
-	    html += 'next edits&rarr;]'
-	  html += '</p>'
-	  request.write(html)
+	    html.append('next edits&rarr;]')
+	  html.append('</p>')
+	  request.write(''.join(html))
 
 
 
@@ -544,7 +546,7 @@ def do_info(pagename, request):
         from stat import ST_MTIME, ST_SIZE
         _ = request.getText
 
-        request.write('<h2>%s</h2>\n' % _('Revision History'))
+        #request.write('<h2>%s</h2>\n' % _('Revision History'))
 
         from Sycamore.util.dataset import TupleDataset, Column
 
@@ -666,7 +668,7 @@ def do_info(pagename, request):
         from Sycamore.formatter.text_html import Formatter
 
         request.write('<form method="GET" action="%s">\n' % (page.url()))
-        request.write('<div id="pageinfo">')
+        request.write('<div id="pageinfo" class="editInfo">')
         request.write('<input type="hidden" name="action" value="diff">\n')
 
 	if has_history:
