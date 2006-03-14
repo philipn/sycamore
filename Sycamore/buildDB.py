@@ -102,7 +102,7 @@ def create_tables(cursor):
      cachedText mediumblob,
      editTime double,
      cachedTime double,
-     userEdited char(19)
+     userEdited char(20)
      ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table curPages
@@ -112,7 +112,7 @@ def create_tables(cursor):
      cachedText bytea,
      editTime double precision,
      cachedTime double precision,
-     userEdited char(19)
+     userEdited char(20)
      );""")
 
  cursor.execute("CREATE INDEX curPages_userEdited on curPages (userEdited);")
@@ -122,7 +122,7 @@ def create_tables(cursor):
      name varchar(100),
      text mediumtext,
      editTime double,
-     userEdited char(19),
+     userEdited char(20),
      editType CHAR(30) CHECK (editType in ('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP')),
      comment varchar(81),
      userIP char(16),
@@ -134,7 +134,7 @@ def create_tables(cursor):
      name varchar(100),
      text text,
      editTime double precision,
-     userEdited char(19),
+     userEdited char(20),
      editType CHAR(30) CHECK (editType in ('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP')),
      comment varchar(81),
      userIP char(16),
@@ -147,7 +147,7 @@ def create_tables(cursor):
  if config.db_type == 'mysql':
    cursor.execute("""create table users
     (
-    id char(19) primary key,
+    id char(20) primary key,
     name varchar(100),
     email varchar(255),
     enc_password varchar(255),
@@ -173,7 +173,7 @@ def create_tables(cursor):
  elif config.db_type == 'postgres':
   cursor.execute("""create table users
     (
-    id char(19) primary key,
+    id char(20) primary key,
     name varchar(100),
     email varchar(255),
     enc_password varchar(255),
@@ -220,7 +220,7 @@ def create_tables(cursor):
    #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
    cursor.execute("""create table userSessions
    (
-   user_id char(19),
+   user_id char(20),
    session_id char(28),
    secret char(28),
    expire_time double,
@@ -230,7 +230,7 @@ def create_tables(cursor):
    #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
    cursor.execute("""create table userSessions
    (
-   user_id char(19),
+   user_id char(20),
    session_id char(28),
    secret char(28),
    expire_time double precision,
@@ -290,7 +290,7 @@ def create_tables(cursor):
    name varchar(100) not null,
    image mediumblob not null,
    uploaded_time double not null,
-   uploaded_by char(19),
+   uploaded_by char(20),
    attached_to_pagename varchar(255) not null,
    uploaded_by_ip char(16),
    xsize smallint,
@@ -303,7 +303,7 @@ def create_tables(cursor):
    name varchar(100) not null,
    image bytea not null,
    uploaded_time double precision not null,
-   uploaded_by char(19),
+   uploaded_by char(20),
    attached_to_pagename varchar(255) not null,
    uploaded_by_ip char(16),
    xsize smallint,
@@ -320,10 +320,10 @@ def create_tables(cursor):
    name varchar(100) not null,
    image mediumblob not null,
    uploaded_time double not null,
-   uploaded_by char(19),
+   uploaded_by char(20),
    attached_to_pagename varchar(255) not null,
    deleted_time double,
-   deleted_by char(19),
+   deleted_by char(20),
    uploaded_by_ip char(16),
    deleted_by_ip char(16),
    xsize smallint,
@@ -336,10 +336,10 @@ def create_tables(cursor):
    name varchar(100) not null,
    image bytea not null,
    uploaded_time double precision not null,
-   uploaded_by char(19),
+   uploaded_by char(20),
    attached_to_pagename varchar(255) not null,
    deleted_time double precision,
-   deleted_by char(19),
+   deleted_by char(20),
    uploaded_by_ip char(16),
    deleted_by_ip char(16),
    xsize smallint,
@@ -418,7 +418,7 @@ def create_tables(cursor):
      x varchar(100),
      y varchar(100),
      created_time double,
-     created_by char(19),
+     created_by char(20),
      created_by_ip char(16),
      id int,
      primary key (pagename, x, y)
@@ -430,7 +430,7 @@ def create_tables(cursor):
      x varchar(100),
      y varchar(100),
      created_time double precision,
-     created_by char(19),
+     created_by char(20),
      created_by_ip char(16),
      id int,
      primary key (pagename, x, y)
@@ -446,10 +446,10 @@ def create_tables(cursor):
      x varchar(100),
      y varchar(100),
      created_time double,
-     created_by char(19),
+     created_by char(20),
      created_by_ip char(16),
      deleted_time double,
-     deleted_by char(19),
+     deleted_by char(20),
      deleted_by_ip char(16),
      primary key (pagename, x, y, deleted_time)
    ) type=InnoDB;""")
@@ -460,10 +460,10 @@ def create_tables(cursor):
      x varchar(100),
      y varchar(100),
      created_time double precision,
-     created_by char(19),
+     created_by char(20),
      created_by_ip char(16),
      deleted_time double precision,
-     deleted_by char(19),
+     deleted_by char(20),
      deleted_by_ip char(16),
      primary key (pagename, x, y, deleted_time)
    );""")
