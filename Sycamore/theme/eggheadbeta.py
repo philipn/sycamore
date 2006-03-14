@@ -59,13 +59,17 @@ class Theme(ThemeBase):
     def editicon(self,d):
       editable = self.request.user.may.edit(d['page'])
       if editable:
-        return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
+        if self.isEdit(): status = 'Selected'
+	else: status = ''
+        return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
 	   '<img class="borderless" src="%s" hspace="8" alt="edit"/><br/>Edit'
 	      % self.img_url('edit.png')))
       else:  return ''
 
     def infoicon(self, d):
-       return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info',
+       if self.isInfo(): status = 'Selected' 
+       else: status = ''
+       return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info',
 	   '<img class="borderless" src="%s" hspace="8" alt="info"/><br/>Info'
 	      % self.img_url('info.png')))
 
@@ -77,22 +81,23 @@ class Theme(ThemeBase):
 
     def talkicon(self, d):
       if config.talk_pages:
+
         if self.is_talk_page(d):
 	   article_name = d['page_name'][:len(d['page_name'])-5]
-	   return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(article_name),
+	   return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(article_name),
 	   '<img class="borderless" src="%s" hspace="8" alt="article"/><br/>Article'
 	      % self.img_url('article.png')))
 	else:
 	  talk_page = Page(d['page_name']+'/Talk', self.request)
 	  if talk_page.exists():
-	    return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
+	    return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
 	     '<img class="borderless" src="%s" hspace="8" alt="talk"/><br/>Talk'
 	      % self.img_url('talk.png')))
 	  else:
 	    # if the viewer can't edit the talk page, let's spare them from looking at a useless link to an empty page:
 	    if not self.request.user.may.edit(talk_page):
 	      return ''
-	    return """<td style="font-size: 7pt;" align="center" valign="bottom">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
+	    return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
 	     '<img class="borderless" src="%s" hspace="8" alt="talk"/><br/>Talk'
 	      % self.img_url('talk.png')))
 
@@ -183,7 +188,7 @@ class Theme(ThemeBase):
         html.append('</ul>')
         return ''.join(html)
 
-    def isEdit(self, d):
+    def isEdit(self):
         """
 	Are we in the page editing interface?
 	"""
@@ -192,7 +197,7 @@ class Theme(ThemeBase):
 	else:
 	  return False
 
-    def isInfo(self, d):
+    def isInfo(self):
         """
 	Are we in the info interface?
 	"""
