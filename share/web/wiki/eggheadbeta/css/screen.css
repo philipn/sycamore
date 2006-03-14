@@ -269,7 +269,20 @@ a.tinyNonexistent:hover {
 
 a.noBorder { text-decoration: none; }
 
-div.actionBoxes { padding-bottom: 15pt;
+div.actionBoxes { padding-bottom: 15pt; }
+
+div.actionBoxes span { margin:0 3pt 0 0;
+        padding: 2pt 3pt 2pt 3pt;
+        float:left;
+        font-size: 8pt;
+        border:1px solid #CCC;
+        background:white;
+}
+
+div.actionBoxes a { text-decoration: none; } 
+
+span.actionBoxSelected { border: none !important;
+        font-weight:bold;
 }
 
 div.actionBoxes span { margin:0 3pt 0 0;
@@ -285,6 +298,44 @@ div.actionBoxes a { text-decoration: none; }
 span.actionBoxSelected { border: none !important;
         font-weight:bold;
 }
+
+div.lightTabsContainer {
+height: 1.55em;
+border-bottom: .05em solid #CCC;
+font-size: 8pt;
+}
+
+ul.lightTabs { display: inline;
+}
+
+li.lightTabs { display: inline;
+float: left;
+border: .05em solid #CCC;
+margin-right: 4pt; 
+padding-right: 3pt;
+padding-left: 3pt;
+padding-bottom: 0;
+margin-bottom: 0;
+}
+
+li.lightTabsActive { display: inline;
+float: left;
+border-top: .05em solid #CCC;
+border-right: .05em solid #CCC;
+border-left: .05em solid #CCC;
+border-bottom: .05em solid white;
+margin-right: 4pt; 
+padding-right: 3pt;
+padding-left: 3pt;
+padding-bottom: 0;
+margin-bottom: 0;
+}
+
+li.lightTabs a { text-decoration: none }
+
+div.lightTabsStart { float: left; width: 3pt;}
+
+div.lightTabsFin { clear: left; }
 
 pre {
         border: 1px solid #CBCBCB;
