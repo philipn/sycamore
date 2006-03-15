@@ -299,43 +299,25 @@ span.actionBoxSelected { border: none !important;
         font-weight:bold;
 }
 
-div.lightTabsContainer {
-height: 1.55em;
-border-bottom: .05em solid #CCC;
-font-size: 8pt;
-}
+#tabmenu {
+     border-bottom: 1px solid #CCC;
+     margin: 12pt 0px 0px 0px;
+     padding: 0;
+     z-index: 1;
+     font-size: 8pt;
+     padding-left: 10pt }
 
-ul.lightTabs { display: inline;
-}
+#tabmenu li {
+     display: inline;
+     overflow: hidden;
+     border: 1px solid #CCC;
+     padding: 2pt 5pt 0 5pt;
+     list-style-type: none;
+     border-bottom: none;}
 
-li.lightTabs { display: inline;
-float: left;
-border: .05em solid #CCC;
-margin-right: 4pt; 
-padding-right: 3pt;
-padding-left: 3pt;
-padding-bottom: 0;
-margin-bottom: 0;
-}
+#tabmenu li.active { border-bottom: 1px solid white !important; }
 
-li.lightTabsActive { display: inline;
-float: left;
-border-top: .05em solid #CCC;
-border-right: .05em solid #CCC;
-border-left: .05em solid #CCC;
-border-bottom: .05em solid white;
-margin-right: 4pt; 
-padding-right: 3pt;
-padding-left: 3pt;
-padding-bottom: 0;
-margin-bottom: 0;
-}
-
-li.lightTabs a { text-decoration: none }
-
-div.lightTabsStart { float: left; width: 3pt;}
-
-div.lightTabsFin { clear: left; }
+#tabmenu li a { text-decoration: none; }
 
 pre {
         border: 1px solid #CBCBCB;
@@ -505,13 +487,13 @@ div.textSearchResult { width: 70%; }
         clear: right;
 }
 
-ul {
+.wikipage ul {
     line-height: 1.5em;
     margin: 0.5em 0em 1.5em 4em;
     padding:0;
 }
 
-li {
+.wikipage li {
 margin-bottom: 0.25em;
 }
 
