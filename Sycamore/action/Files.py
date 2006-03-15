@@ -173,20 +173,20 @@ def get_filelist(request, pagename):
 def _get_filelist(request, pagename):
     _ = request.getText
     
-    str = ""
+    str = []
     baseurl = request.getScriptname()
     action = action_name
     urlpagename = wikiutil.quoteWikiname(pagename)
     files = get_filelist(request, pagename)
 
     if files:
-        str = str + _("<p>"
+        str.append(_("<p>"
             "To refer to images on a page, use <strong><tt>[[Image(filename)]]</tt></strong>, \n"
             "where filename is one of the file names below. \n"
             "Do <strong>NOT</strong> use the URL of the image directly \n"
             "since this is subject to change and can break easily.</p>"
-        )
-        str = str + "<ul>"
+        ))
+        str.append('<ul class="wikipage">')
 
                 
         for file in files:
@@ -204,14 +204,14 @@ def _get_filelist(request, pagename):
 
             #parmdict['viewlink'] = viewlink
             #parmdict['del_link'] = del_link
-            str = str + ('<li><a href="%(baseurl)s/%(urlpagename)s?action=%(action)s&amp;do=view&target=%(urlfile)s">%(file)s</a></li>') % parmdict
-        str = str + "</ul>"
+            str.append(('<li class="wikipage"><a href="%(baseurl)s/%(urlpagename)s?action=%(action)s&amp;do=view&target=%(urlfile)s">%(file)s</a></li>') % parmdict)
+        str.append("</ul>")
     else:
-        str = '%s<p>%s</p>' % (str, _("No images stored for %(pagename)s") % {'pagename': pagename})
+        str = ['%s<p>%s</p>' % (str, _("No images stored for %(pagename)s") % {'pagename': pagename})]
     
-    if _has_deleted_images(pagename, request): str += '[<a href="%s/%s?action=%s&amp;do=show_deleted">Page\'s deleted images</a>]' % (baseurl, urlpagename, action)
+    if _has_deleted_images(pagename, request): str.append('[<a href="%s/%s?action=%s&amp;do=show_deleted">Page\'s deleted images</a>]' % (baseurl, urlpagename, action))
 
-    return str
+    return ''.join(str)
         
     
 def error_msg(pagename, request, msg):
@@ -248,6 +248,7 @@ def send_uploadform(pagename, request):
 
     #request.write('<h2>' + _("Attached Images") + '</h2>')
     InfoBar(request, pagename).render()
+    request.write('<div id="tabPage">')
 
     request.write(_get_filelist(request, pagename))
 
@@ -345,7 +346,7 @@ def upload_form(pagename, request, msg=''):
     wikiutil.simple_send_title(request, pagename, msg=msg, strict_title='Images for "%s"' % pagename)
     request.write('<div id="content">')
     send_uploadform(pagename, request)
-    request.write('</div>')
+    request.write('</div></div>')
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 def send_title(request, desc, pagename, msg, title=''):
@@ -652,9 +653,10 @@ def view_file(pagename, request):
     # send body
     request.write('<div id="content">')
     InfoBar(request, pagename).render()
+    request.write('<div id="tabPage">')
 
     send_viewfile(pagename, request)
-    request.write('</div>')
+    request.write('</div></div>')
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 def show_deleted_images(pagename, request):
@@ -678,10 +680,12 @@ def show_deleted_images(pagename, request):
     # send body
     request.write('<div id="content">')
     InfoBar(request, pagename).render()
+    request.write('<div id="tabPage">')
+
 
     request.write('<p>These images have been <b>deleted</b> from the original page, which means they can\'t be included in the wiki anymore and are possibly (in some cases) subject to permanent deletion:</p>')
     request.write(text_list)
-    request.write('</div>')
+    request.write('</div></div>')
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 

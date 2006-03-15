@@ -696,13 +696,14 @@ def do_info(pagename, request):
     
     from Sycamore.widget.infobar import InfoBar
     InfoBar(request, pagename).render()
+    request.write('<div id="tabPage">')
 
     if show_general:
 	general(page, pagename, request)
     else:
 	history(page, pagename, request)
 
-    request.write('</div>\n') # end content div
+    request.write('</div></div>\n') # end tabPage div, content div
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 
