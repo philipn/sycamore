@@ -16,6 +16,11 @@ div.tabArea {
   color: #555555;
 }
 
+#tabPage {
+  border: 1px solid #CCC;
+  padding: 2pt 5pt 4pt 5pt;
+}
+
 span.floatLeft {
   margin: 10px 10px 10px 0px;
   float: left;
@@ -300,7 +305,6 @@ span.actionBoxSelected { border: none !important;
 }
 
 #tabmenu {
-     border-bottom: 1px solid #CCC;
      margin: 12pt 0px 0px 0px;
      padding: 0;
      z-index: 1;
@@ -496,6 +500,17 @@ div.textSearchResult { width: 70%; }
 .wikipage li {
 margin-bottom: 0.25em;
 }
+
+ul.wikipage {
+    line-height: 1.5em;
+    margin: 0.5em 0em 1.5em 4em;
+    padding:0;
+}
+
+li.wikipage {
+margin-bottom: 0.25em;
+}
+
 
 *[dir="rtl"] #pagetrail li:before {
         content: " ?";
