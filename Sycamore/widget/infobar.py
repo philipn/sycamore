@@ -16,8 +16,8 @@ class InfoBar(base.Widget):
 		["User's Info", 'action=userinfo', isUserPage],
 		['Add to wiki bookmarks', 'action=favorite', isNotSubscribed]]
 
-    before, after = '<li class="lightTabs">', '</li>'
-    before_active, after_active = '<li class="lightTabsActive">', '</li>'
+    before, after = '<li>', '</li>'
+    before_active, after_active = '<li class="active">', '</li>'
     seperator = ' '
 
     def __init__(self, request, pagename):
@@ -39,7 +39,7 @@ class InfoBar(base.Widget):
 	    self.request.write('%s%s%s' % (self.before, link, self.after))
 
     def render(self):
-	self.request.write('<div class="lightTabsContainer"><div class="lightTabsStart">&nbsp;</div><ul class="lightTabs">')
+	self.request.write('<ul id="tabmenu">')
 
 	for tab in self.infoTabs:
 	    if callable(tab[2]):
@@ -49,4 +49,4 @@ class InfoBar(base.Widget):
 	    self.render_link(tab)
 	    self.request.write(self.seperator)
 	
-	self.request.write('</ul></div><div class="lightTabsFin"></div>')
+	self.request.write('</ul>')

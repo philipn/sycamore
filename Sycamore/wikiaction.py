@@ -94,7 +94,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
             if not title_hits[0].title.lower() == printable_needle.lower():
                     request.write('<table class="dialogBox"><tr><td>The %s does not have any entries with the exact title "' % config.sitename + printable_needle + '". <br />')
                     request.write('Would you like to %s?</td></tr></table>' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
-    request.write('<div id="content">\n') # start content div
+    request.write('<div id="content" class="wikipage">\n') # start content div
     request.write('<ul>')
     if len(title_hits) > twith:
             for t_hit in title_hits[0:twith]:
@@ -112,7 +112,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
       request.write('<h3>&nbsp;No full text matches</h3>')
     else:
       request.write('<h3>&nbsp;Full text matches</h3>')
-      request.write('<div id="content">\n') # start content div
+      request.write('<div id="content" class="wikipage">\n') # start content div
       request.write('<dl class="searchresult">')
 
       
@@ -225,7 +225,7 @@ def do_titlesearch(pagename, request, fieldname='value'):
     hits = [Page(hit, request) for hit in hits]
     hits = filter(request.user.may.read, hits)
 
-    request.write('<div id="content">\n') # start content div
+    request.write('<div id="content" class="wikipage">\n') # start content div
     request.write('<ul>')
     for page in hits:
         request.write('<li>%s</li>' % page.link_to())
@@ -396,7 +396,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 
     edit_count = abs(oldcount1 - oldcount2)
 
-    l.append('<div id="content">\n') # start content div
+    l.append('<div id="content" class="wikipage">\n') # start content div
     l.append('<p><strong>')
 
     old_mtime = oldpage.mtime()
