@@ -22,6 +22,8 @@ div.tabArea {
   padding: 4pt 5pt 4pt 5pt;
 }
 
+#tabPage h3 { margin-top: 9pt;}
+
 span.floatLeft {
   margin: 10px 10px 10px 0px;
   float: left;
@@ -215,6 +217,13 @@ vertical-align: bottom;
 padding: 4pt;
 }
 
+.wikitable {
+  padding-top: 3pt;
+  padding-bottom: 4pt;
+  padding-right: 2pt;
+  padding-left: 2pt;
+}
+
 table { border-collapse: collapse; }
 
 table.inlinepage {
@@ -284,6 +293,10 @@ div.actionBoxes span { margin:0 3pt 0 0;
         border:1px solid #CCC;
         background:white;
 }
+
+td .actionBoxes { margin: 0 !important; padding: 0 !important; }
+
+td .actionBoxes span { margin: 6pt 0 0 0!important; }
 
 div.actionBoxes a { text-decoration: none; } 
 
