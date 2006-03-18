@@ -946,10 +946,17 @@ def send_title(request, text, **keywords):
     
     # search engine precautions / optimization:
     # if it is an action or edit/search, send query headers (noindex,nofollow):
-    crawl = 1 # by default, we want search engines to crawl us
+    crawl = True # by default, we want search engines to crawl us
     if request.query_string:
-	if request.query_string != 'action=show':
-		crawl = 0
+        crawl = False
+	if request.query_string == 'action=show':
+	  crawl = True
+	elif request.form.has_key('action'):
+	  # index the files attached to pages
+	  if request.form['action'][0] == 'Files':
+	    if request.form.has_key('do'):
+	      if request.form['do'][0] == 'view':
+	        crawl = True
 
     if (not crawl) or (request.request_method == 'POST'):
         user_head.append('''<meta name="robots" content="noindex,nofollow">\n''')
@@ -959,7 +966,6 @@ def send_title(request, text, **keywords):
     elif pagename in ['Front Page', 'Title Index',]:
         user_head.append('''<meta name="robots" content="index,follow">\n''')
     # if it is a normal page, index it, but do not follow the links, because
-    # there are a lot of illegal links (like actions) or duplicates:
     else:
         user_head.append('''<meta name="robots" content="index,follow">\n''')
         
@@ -1038,7 +1044,9 @@ def send_title(request, text, **keywords):
     request.write("</head>\n")
 
     # start the <body>
-    bodyattr = ['onload="highlighter.highlight()"']
+    if page.exists(): bodyattr = ['onload="highlighter.highlight()"'] # don't want them to see search highlighting on the 'create this page' page
+    else: bodyattr = []
+
     if keywords.has_key('body_attr'):
         bodyattr.append(' %s' % keywords['body_attr'])
     if keywords.get('allow_doubleclick', 0) and not keywords.get('print_mode', 0) \

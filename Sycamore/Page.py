@@ -163,16 +163,7 @@ class Page(object):
 
 	editTimeUnix, userEditedID = self.last_edit_info()
 	editTime = request.user.getFormattedDateTime(editTimeUnix)
-	if userEditedID:
-	  editUser = user.User(self.request, userEditedID)
-          editUser_text = user.getUserLink(self.request, editUser)
-
-          result = "(last edited %(time)s by %(editor)s)" % {
-                'time': editTime,
-                'editor': editUser_text,
-            }
-	else:
-	  result = "(last edited %(time)s)" % {
+	result = "(last edited %(time)s)" % {
                 'time': editTime,
             }
 
@@ -603,7 +594,7 @@ class Page(object):
                 page_needle = self.page_name
                 if config.allow_subpages and page_needle.count('/'):
                     page_needle = '/' + page_needle.split('/')[-1]
-                link = '%s/%s?action=info&general=1' % (
+                link = '%s/%s?action=info&links=1' % (
                     request.getScriptname(),
                     wikiutil.quoteWikiname(self.page_name))
 

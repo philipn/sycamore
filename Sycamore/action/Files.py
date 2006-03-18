@@ -207,7 +207,7 @@ def _get_filelist(request, pagename):
             str.append(('<li class="wikipage"><a href="%(baseurl)s/%(urlpagename)s?action=%(action)s&amp;do=view&target=%(urlfile)s">%(file)s</a></li>') % parmdict)
         str.append("</ul>")
     else:
-        str = ['%s<p>%s</p>' % (str, _("No images stored for %(pagename)s") % {'pagename': pagename})]
+        str = ['%s<p>%s</p>' % (''.join(str), _("No images stored for %(pagename)s") % {'pagename': pagename})]
     
     if _has_deleted_images(pagename, request): str.append('[<a href="%s/%s?action=%s&amp;do=show_deleted">Page\'s deleted images</a>]' % (baseurl, urlpagename, action))
 
@@ -286,7 +286,7 @@ Otherwise, if "Save as" is left blank, the original filename will be used (might
     'upload_button': _('Upload'),
 })
     request.write('<h3>' + _("How do I do this?") + '</h3>' +
-_("""Once you've selected a file on your hard disk, use "Save as" to name it whateveryouwant.png/jpg/gif.  Then click "Upload" to upload the file to the page.  But, <b>you have to tell the page where you want the image to go!</b>  So, just go into the page (edit it) and add the line <tt>[[Image(whatyounamedyourimage)]]</tt> where you want the image to appear.  That's it!</tt>"""))
+_("""<p>Once you've selected a file on your hard disk, use "Save as" to name it whateveryouwant.png/jpg/gif.  Then click "Upload" to upload the file to the page.  But, <b>you have to tell the page where you want the image to go!</b>  So, just go into the page (edit it) and add the line <tt>[[Image(whatyounamedyourimage)]]</tt> where you want the image to appear.  That's it!</p>"""))
 
 
 #############################################################################

@@ -20,7 +20,7 @@ class DataBrowserWidget(base.Widget):
         """
         self.data = dataset
 
-    def toHTML(self, table_attrs={}):
+    def toHTML(self, table_attrs={}, append=[]):
         fmt = self.request.formatter
 
         result = []
@@ -50,10 +50,19 @@ class DataBrowserWidget(base.Widget):
             result.append(fmt.table_row(0))
             row = self.data.next()
 
+	# deal with extra appended row, if we want a next/previous thing
+	if append:
+	    for entry in append:
+	      result.append(fmt.table_row(1))
+	      result.append(fmt.table_cell(1, attrs={'colspan':len(self.data.columns)}))
+	      result.append(entry)
+	      result.append(fmt.table_cell(0))
+	      result.append(fmt.table_row(0))
+
         result.append(fmt.table(0))
         return ''.join(result)
 
 
-    def render(self, attrs={}):
-        self.request.write(self.toHTML(table_attrs=attrs))
+    def render(self, attrs={}, append=[]):
+        self.request.write(self.toHTML(table_attrs=attrs, append=append))
 

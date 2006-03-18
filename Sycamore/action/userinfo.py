@@ -21,17 +21,16 @@ def display_bookmarks(request, userpage):
 def display_edits(request, userpage):
     def printNextPrev(request, pagename, last_edit, offset_given):
         #prints the next and previous links, if they're needed
-	html = ['<p>']
+	if last_edit == 1 and not offset_given: return 
+
+	html = []
 	if last_edit != 1:
-	    html.append('[<a href="%s/%s?action=userinfo&offset=%s">&larr;previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1))
-	else:
-	    html.append('[&larr;previous edits | ')
+	    html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=userinfo&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), pagename, offset_given+1))
 	if offset_given:
-	    html.append('<a href="%s/%s?action=userinfo&offset=%s">next edits&rarr;</a>]' % (request.getBaseURL(), pagename, offset_given-1))
-	else:
-	    html.append('next edits&rarr;]')
-	html.append('</p>')
-	request.write(''.join(html))
+	    html.append('<div class="actionBoxes" style="float: right !important;"><span><a href="%s/%s?action=userinfo&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), pagename, offset_given-1))
+	html.append('<div style="clear: both;"></div>')
+
+	return [''.join(html)]
 
 
     _ = request.getText
@@ -106,8 +105,7 @@ def display_edits(request, userpage):
 	request.formatter = Formatter(request)
 	edit_table = DataBrowserWidget(request)
 	edit_table.setData(edits)
-	edit_table.render()
-	printNextPrev(request, userpage, this_edit, offset_given)
+	edit_table.render(append=printNextPrev(request, userpage, this_edit, offset_given))
 	request.write('</div>')
     else:
 	request.write("<p>This user hasn't edited any pages.</p>")
@@ -120,14 +118,16 @@ def execute(pagename, request):
 
     wikiutil.simple_send_title(request, pagename, strict_title="User %s's information" % pagename)
 
+
     request.write('<div id="content">\n\n')
     InfoBar(request, pagename).render()
+    request.write('<div id="tabPage">')
 
-    request.write('<h2>Bookmarks</h2>\n')
+    request.write('<h3>Bookmarks</h3>\n')
     display_bookmarks(request, pagename)
 
-    request.write('<h2>Edits</h2>\n')
+    request.write('<h3>Edits</h3>\n')
     display_edits(request, pagename)
 
-    request.write('</div>')
+    request.write('</div></div>')
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)

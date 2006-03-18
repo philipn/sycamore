@@ -11,7 +11,7 @@ def isUserPage(request, pagename):
 class InfoBar(base.Widget):
     #Display, query args, should this be displayed
     infoTabs = [['Revision History', 'action=info', None],
-		['General Info', 'action=info&general=1', None],
+		['Links', 'action=info&links=1', None],
 		['Images', 'action=Files', None],
 		["User's Info", 'action=userinfo', isUserPage],
 		['Add to wiki bookmarks', 'action=favorite', isNotSubscribed]]

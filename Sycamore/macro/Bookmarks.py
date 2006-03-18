@@ -10,7 +10,7 @@
 
 # Imports
 import re, time, cStringIO, os, urllib
-from Sycamore import config, user, util, wikiutil, wikixml, wikidb
+from Sycamore import config, user, util, wikiutil, wikidb
 from Sycamore.widget.comments import Comment
 
 _DAYS_SELECTION = [1, 2, 3, 7]

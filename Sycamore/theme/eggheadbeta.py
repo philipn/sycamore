@@ -127,7 +127,7 @@ class Theme(ThemeBase):
             else:
                 polite_html = ''
             html.append('<h1 style="clear: none; float: left;"><a title="%s" href="%s">%s</a></h1>%s' % (
-                _('Click here for general information about this page'),
+                _('Click here for information about links to and from this page.'),
                 d['title_link'],
                 wikiutil.escape(d['title_text']), polite_html))
 	    html.append(self.new_iconbar(d))
@@ -201,7 +201,7 @@ class Theme(ThemeBase):
         """
 	Are we in the info interface?
 	"""
-	if self.request.form.has_key('action') and (self.request.form['action'][0] == 'info' or self.request.form['action'][0] == 'Files'):
+	if self.request.form.has_key('action') and (self.request.form['action'][0] == 'info' or self.request.form['action'][0] == 'Files' or self.request.form['action'][0] == 'userinfo'):
 	  return True
 	else:
 	  return False
@@ -359,6 +359,7 @@ class Theme(ThemeBase):
         """
         _ = self.request.getText
         html = []
+	actions_in_footer = False
         if keywords.get('editable', 1):
             editable = self.request.user.may.edit(d['page'])
 	    if editable:
@@ -368,21 +369,34 @@ class Theme(ThemeBase):
             html.append('<script language="JavaScript" type="text/javascript">\nvar donate2=new Image();donate2.src="%s";var donate=new Image();donate.src="%s";</script><div id="footer"><table width="100%%" border="0" cellspacing="0" cellpadding="0"><tr>' % (self.img_url('donate2.png'), self.img_url('donate.png')))
 	    # noedit is a keyword that tells us if we are in an area where an edit link just logically makes no sense, such as the info tab.
 	    if not keywords.get('noedit'):
-	      if editable:
+	        if editable:
+	          if d['last_edit_info']:
+	            html.append('<td align="left" width="50%">')
+	          else:
+	            html.append('<td align="left" width="24%">')
+	        else:
+	            html.append('<td align="left" width="50%">')
+                if editable:
+		    actions_in_footer = True
+                    html.append("%s" % (
+                        wikiutil.link_tag(self.request, d['q_page_name']+'?action=edit', _('Edit'))))
+
+		if not self.request.user.anonymous:
+		    if not self.request.user.isFavoritedTo(d['page_name']):
+		      actions_in_footer = True
+		      if editable:
+                        html.append(" or %s" % (
+                            wikiutil.link_tag(self.request, d['q_page_name']+'?action=favorite', _('Bookmark'))))
+		      else: 
+                        html.append("%s" % (
+                            wikiutil.link_tag(self.request, d['q_page_name']+'?action=favorite', _('Bookmark'))))
+
+                if actions_in_footer: html.append(' this page')
+
 	        if d['last_edit_info']:
-	          html.append('<td align="left" width="50%">')
-		else:
-	          html.append('<td align="left" width="15%">')
-	      else:
-	          html.append('<td align="left" width="50%">')
-              if editable:
-                  html.append("%s" % (
-                      wikiutil.link_tag(self.request, d['q_page_name']+'?action=edit', _('Edit'))))
-                  html.append(' this page')
-		  if d['last_edit_info']:
                     html.append(' %(last_edit_info)s' % d)
-              else:
-                html.append('Most pages are editable.  Please login to edit and add comments.</td>')
+		if not editable:
+                  html.append('Most pages are editable.</td>')
 	
 	    # if editing doesnt make sense then we have more room for the license note
 	    if not keywords.get('noedit'):

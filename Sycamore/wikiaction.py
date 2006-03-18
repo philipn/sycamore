@@ -462,64 +462,26 @@ def do_info(pagename, request):
         page.send_page()
         return
 
-    def general(page, pagename, request):
+    def links(page, pagename, request):
         _ = request.getText
 
-        #request.write('<h2>%s</h2>\n' % _('General Information'))
-        
-        # show page size
-        request.write(("<p>%s</p>" % _("Page size: %d words (%d characters).")) % (page.human_size(), page.size()))
-
-        # show SHA digest fingerprint
-        """
-        import sha
-        digest = sha.new(page.get_raw_body()).hexdigest().upper()
-        request.write('<p>%(label)s <tt>%(value)s</tt></p>' % {
-            'label': _("SHA digest of this page's content is:"),
-            'value': digest,
-            })
-        """
-
-        # show attachments (if allowed)
-        attachment_info = getHandler('Files', 'info')
-        if attachment_info: attachment_info(pagename, request)
-
-        #show people w/it as a favorite
-        ## (modify below)
-
-        # show subscribers
-        #subscribers = page.getFavorites(request,  include_self=1, return_users=1)
-        """
-        if subscribers:
-            request.write('<p>', _('The following people have this page as a Favorite:'))
-            for lang in subscribers.keys():
-                request.write('<br>')
-                for user in subscribers[lang]:
-                    # do NOT disclose email addr, only WikiName
-                    userhomepage = Page(user.name)
-                    if userhomepage.exists():
-                        request.write(userhomepage.link_to(request) + ' ')
-                    else:
-                        request.write(user.name + ' ')
-            request.write('</p>')
-        """
-
         # show links
-        links_from_page = page.getPageLinks(request)
-        if links_from_page:
-            request.write('<p>%s<br>' % _('This page links to the following pages:'))
-            for linkedpage in links_from_page:
-                request.write("%s%s " % (Page(linkedpage, request).link_to(), ",."[linkedpage == links_from_page[-1]]))
-            request.write("</p>")
-	else: request.write('<p>This page links to <b>no pages</b>.</p>')
-
 	links_to_page = page.getPageLinksTo()
+        request.write('<h3>%s</h3>' % _('Links to this page'))
         if links_to_page:
-            request.write('<p>%s<br>' % _('The following pages link to this page:'))
             for linkingpage in links_to_page:
                 request.write("%s%s " % (Page(linkingpage, request).link_to(), ",."[linkingpage == links_to_page[-1]]))
             request.write("</p>")
-	else: request.write('<p><b>No pages</b> link to this page.</p>')
+	else: request.write('<p>No pages link to this page.</p>')
+
+        links_from_page = page.getPageLinks(request)
+        request.write('<h3>%s</h3>' % _('Links from this page'))
+        if links_from_page:
+            for linkedpage in links_from_page:
+                request.write("%s%s " % (Page(linkedpage, request).link_to(), ",."[linkedpage == links_from_page[-1]]))
+            request.write("</p>")
+	else: request.write('<p>This page links to no pages.</p>')
+
 
 
     def history(page, pagename, request):
@@ -528,17 +490,14 @@ def do_info(pagename, request):
 	  if last_version == 1 and not offset_given:
 	    return
 
-	  html = ['<p>']
+	  html = []
 	  if last_version != 1:
-	    html.append('[<a href="%s/%s?action=info&offset=%s">&larr;previous edits</a> | ' % (request.getBaseURL(), pagename, offset_given+1))
-	  else:
-	    html.append('[&larr;previous edits | ')
+	    html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=info&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), pagename, offset_given+1))
 	  if offset_given:
-	    html.append('<a href="%s/%s?action=info&offset=%s">next edits&rarr;</a>]' % (request.getBaseURL(), pagename, offset_given-1) )
-	  else:
-	    html.append('next edits&rarr;]')
-	  html.append('</p>')
-	  request.write(''.join(html))
+	    html.append('<div class="actionBoxes" style="float: right !important;"><span><a href="%s/%s?action=info&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), pagename, offset_given-1))
+	  html.append('<div style="clear: both;"></div>')
+
+	  return [''.join(html)]
 
 
 
@@ -675,8 +634,7 @@ def do_info(pagename, request):
           request.formatter = Formatter(request)
           history_table = DataBrowserWidget(request)
           history_table.setData(history)
-          history_table.render()
-	  printNextPrev(request, pagename, last_version, offset_given)
+          history_table.render(append=printNextPrev(request, pagename, last_version, offset_given))
           request.write('</div>')
           request.write('\n</form>\n')
 	else:
@@ -692,14 +650,14 @@ def do_info(pagename, request):
 
     request.write('<div id="content">\n') # start content div
 
-    show_general = int(request.form.get('general', [0])[0]) != 0
+    show_links = int(request.form.get('links', [0])[0]) != 0
     
     from Sycamore.widget.infobar import InfoBar
     InfoBar(request, pagename).render()
     request.write('<div id="tabPage">')
 
-    if show_general:
-	general(page, pagename, request)
+    if show_links:
+	links(page, pagename, request)
     else:
 	history(page, pagename, request)
 
