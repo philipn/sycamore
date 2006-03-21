@@ -84,11 +84,13 @@ _cfg_defaults = {
     'db_pool_size': 50,
     'db_max_overflow': -1,
     'default_lang': 'en',
-    'default_logo': 'defaultlogo.png',
+    'image_logo': '',
     'default_markup': 'wiki',
     'domain': 'localhost',
+    'edit_agreement_text': '',
     'edit_locking': 'warn 10', # None, 'warn <timeout mins>', 'lock <timeout mins>'
     'edit_rows': 24,
+    'footer_buttons': [],
     'has_xapian': False,
     'hosts_deny': [],
     'html_head': '',
@@ -100,6 +102,7 @@ _cfg_defaults = {
     'interwikiname': None,
     'interwikimap': 'InterwikiMap',
     # XXX UNICODE fix
+    'license_text': '',
     'lowerletters': '0-9a-z\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf2\xf3\xf4\xf5\xf6\xf8\xf9\xfa\xfb\xfc\xfd\xff\xb5\xdf\xe7\xf0\xf1\xfe',
     'mail_login': None, # or "user pwd" if you need to use SMTP AUTH
     'mail_smarthost': None,
@@ -129,8 +132,6 @@ _cfg_defaults = {
     'page_group_regex': '[a-z]\s{0,1}Group$',
     'page_template_regex': 'Template$',
 
-    'page_license_enabled': 0,
-    'page_license_page': 'WikiLicense',
 
     # These icons will show in this order in the iconbar, unless they
     # are not relevant, e.g email icon when the wiki is not configured

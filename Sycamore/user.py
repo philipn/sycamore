@@ -116,7 +116,7 @@ class User(object):
 
     _checkbox_fields = [
          ('edit_on_doubleclick', lambda _: _('Open editor on double click')),
-         ('remember_me', lambda _: _('Remember login information forever (so you don\'t have to keep logging in)')),
+         ('remember_me', lambda _: _('Remember login information (so you don\'t have to keep logging in)')),
          ('disabled', lambda _: _('Disable this account forever')),
     ]
     _transient_fields =  ['id', 'valid', 'may', 'auth_username', 'trusted']

@@ -42,10 +42,11 @@ class Theme(ThemeBase):
         @return: banner html
         """
         if d['script_name']:
-            html = ['&nbsp;<a href="%(script_name)s">' % d]
+            html = ['&nbsp;<a class="nostyle" href="%(script_name)s">' % d]
         else:
-            html = ['&nbsp;<a href="%s/Front_Page">' % self.request.getScriptname()]
-        html.append('<img align="middle" src="%s/wiki/%s" border=0 alt="wiki logo"></a>' % (config.web_dir, config.default_logo))
+            html = ['&nbsp;<a class="nostyle" href="%s/Front_Page">' % self.request.getScriptname()]
+        if config.image_logo: html.append('<img align="middle" src="%s/wiki/%s" border=0 alt="wiki logo"></a>' % (config.web_dir, config.image_logo))
+	else: html.append('<div id="logo_text">%s</div></a>' % config.sitename)
         return ''.join(html)
 
     def new_iconbar(self, d):
@@ -149,18 +150,20 @@ class Theme(ThemeBase):
 	    html = """<form action="%s" method="POST">
 <input type="hidden" name="action" value="userform">
 <input type="hidden" name="logout" value="Logout">
-<table class="user" align="right" border="0" cellpadding="2"><tr><td>Welcome, %s<br/></td></tr><tr><td align="right"><a href="%s/User_Preferences"><img src="%s" class="actionButton" alt="settings"></a></td></tr>
-<tr><td align="right"><input type="image" name="Submit" value="Submit" src="%s" class="actionButton"></td></tr></table></form>""" % (self.request.getScriptname(), wikiutil.link_tag(self.request, self.request.user.name), self.request.getScriptname(), self.img_url('settings.png'), self.img_url('logout.png'))
+<div class="user_area">
+<table class="user" align="right"><tr><td>Welcome, %s<br/></td></tr><tr><td align="right"><a href="%s/User_Preferences"><img src="%s" class="actionButton" alt="settings"></a></td></tr>
+<tr><td align="right"><input type="image" name="Submit" value="Submit" src="%s" class="actionButton"></td></tr></table></div></form>""" % (self.request.getScriptname(), wikiutil.link_tag(self.request, self.request.user.name), self.request.getScriptname(), self.img_url('settings.png'), self.img_url('logout.png'))
         else:
             html = """<form action="%s/%s" method="POST">
 <input type="hidden" name="action" value="userform">
-<table width="225" border="0" cellspacing="2" cellpadding="0" class="loginbox">
+<div class="login_area">
+<table>
 <tr><td width="50%%" align="right" nowrap>User name:</td>
 <td colspan="2" align="left" nowrap><input class="formfields" size="22" name="username" type="text"></td> </tr> <tr>
 <td align="right">Password:</td>
 <td colspan="2" align="left" nowrap> <input class="formfields" size="22" type="password" name="password"> 
 <input type="hidden" name="login" value="Login">
-</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login" class="actionButton" alt="login"></td><td align="right"><a href="%s/User_Preferences"><img src="%s" class="actionButton" alt="new user"></a></td></tr></table></form>""" % (self.request.getScriptname(), d['q_page_name'], self.img_url('login.png'), self.request.getScriptname(), self.img_url('newuser.png'))
+</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login" class="actionButton" alt="login"></td><td align="right"><a href="%s/User_Preferences?new_user=1"><img src="%s" class="actionButton" alt="new user"></a></td></tr></table></div></form>""" % (self.request.getScriptname(), d['q_page_name'], self.img_url('login.png'), self.request.getScriptname(), self.img_url('newuser.png'))
 	    
         return html
 
@@ -395,21 +398,20 @@ class Theme(ThemeBase):
 
 	        if d['last_edit_info']:
                     html.append(' %(last_edit_info)s' % d)
-		if not editable:
-                  html.append('Most pages are editable.</td>')
-	
-	    # if editing doesnt make sense then we have more room for the license note
-	    if not keywords.get('noedit'):
-              license_text = """
-<!-- Creative Commons Licence --><font style="font-size:9px;">Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Creative Commons License</a>.  See %s.</font><!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/2.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/2.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->
-""" % (Page("Copyrights", self.request).link_to(know_status=True, know_status_exists=True))
-	    else:
-	      license_text = """
-<!-- Creative Commons Licence --><font style="font-size:9px;">Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Creative Commons License</a>.  See %s.</font><!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/2.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/2.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->
-""" % (Page("Copyrights", self.request).link_to(know_status=True, know_status_exists=True))
 	
             cc_button = '<a href="http://creativecommons.org/licenses/by/2.0/"><img alt="Creative Commons License" border="0" src="%s"/></a>' % self.img_url('cc.png')
-            html.append('<td align="center" valign="middle">%s</td><td align="center" valign="middle" width="190px">%s %s</td></tr></table></div><br>' % (license_text, cc_button, wikiutil.link_tag(self.request, 'Donate', _('<img name="rollover" onMouseOver="document.rollover.src=donate2.src;" onMouseOut="document.rollover.src=donate.src;" src="%s" border="0" alt="donate"/>' % self.img_url('donate.png')))))
+	    if config.license_text:
+	      if config.footer_buttons:
+                html.append('<td align="center" valign="middle"><div class="license">%s</div></td>' % config.license_text)
+                html.append('<td align="right" valign="middle" width="%spx" style="padding-right: 5px;">%s</td></tr></table></div>' % (len(config.footer_buttons)*100, ' '.join(config.footer_buttons)))
+	      else:
+                html.append('<td align="center" valign="middle"><div class="license">%s</div></td></tr></table></div>' % (config.license_text))
+	    else:
+	      if config.footer_buttons:
+                html.append('<td align="right" valign="middle" width="%spx" style="padding-right: 5px;">%s</td></tr></table></div>' % (len(config.footer_buttons)*100, ' '.join(config.footer_buttons)))
+	      else:
+                html.append('</tr></table></div>' % (cc_button))
+
         return ''.join(html)
         
     #def info_link(self, d):
@@ -494,12 +496,12 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         html = """
 %(config_header1_html)s
 <div id="banner">
-<table width="100%%" border="0" cellspacing="0" cellpadding="0">
+<table class="logo">
 <tr>
-<td height="72">
+<td class="logo_banner">
 %(banner_html)s
 </td>
-<td valign="top" width="230">
+<td class="user_banner" align="right" valign="top">
 %(username_html)s
 </td>
 </tr>
@@ -507,11 +509,11 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 %(navbar_html)s
 </div>
 <div id="title">
-<table width="100%%" border="0" cellspacing="0" cellpadding="0">
-<tr><td height="40" nowrap>
+<table>
+<tr><td class="title_text">
 %(title_html)s
 </td>
-<td width="100%%" align="right" valign="middle">
+<td class="search_form" width="100%%" align="right" valign="middle">
 %(search_form_html)s
 </td>
 </td></tr></table></div>

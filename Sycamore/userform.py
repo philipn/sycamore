@@ -419,6 +419,9 @@ class UserSettings:
         """ Create the complete HTML form code. """
         _ = self._
         self.make_form()
+	new_user = False
+	if self.request.form.has_key('new_user'):
+	  if self.request.form['new_user']: new_user = True
 
         # different form elements depending on login state
         html_uid = ''
@@ -430,18 +433,26 @@ class UserSettings:
                 ('logout', _('Logout')),
             ]
         else:
-            buttons = [
-                ("save", _('Create Profile')),
-            ]
+	    if new_user:
+              buttons = [
+                  ("save", _('Create Profile')),
+              ]
+	    else: 
+	       buttons = [
+                  ("login", _('Login')),
+              ]
 
         #self._table.append(html.Raw(html_uid))
         
-        self.make_row(_('Name'), [
+        if not self.request.user.valid:
+	  if not new_user: user_name_help_text = ''
+	  else: user_name_help_text = _('(Use FirstnameLastname. Please do not use nickname or business name.)')
+	  self.make_row(_('Name'), [
             html.INPUT(
                 type="text", size=32, name="username", value=self.request.user.name
             ),
-            ' ', _('(Use FirstnameLastname. Please do not use nickname or business name.)'),
-        ])
+            ' ', user_name_help_text,
+          ])
 
         self.make_row(_('Password'), [
             html.INPUT(
@@ -449,17 +460,20 @@ class UserSettings:
             )
         ])
 
-        self.make_row(_('Password repeat'), [
-            html.INPUT(
-                type="password", size=32, name="password2",
-            ),
-            ' ', _('(New User or password change)'),
-        ])
+	if self.request.user.valid: password_help_text = _('(password change)')
+	else: password_help_text = ''
+        if new_user or self.request.user.valid:
+	  self.make_row(_('Password repeat'), [
+              html.INPUT(
+                  type="password", size=32, name="password2",
+              ),
+              ' ', password_help_text,
+          ])
 
-        self.make_row(_('Email'), [
-            html.INPUT(
-                type="text", size=40, name="email", value=self.request.user.email
-            )])
+          self.make_row(_('Email'), [
+              html.INPUT(
+                  type="text", size=40, name="email", value=self.request.user.email
+              )])
 
         # show options only if already logged in
         if self.request.user.valid:

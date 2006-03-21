@@ -335,7 +335,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         #        _('Send mail notification'),
         #    ))
 
-        self.request.write('By clicking "Save Changes" you are agreeing to release your contribution under the <a href="http://creativecommons.org/licenses/by/2.0/">Creative Commons-By license</a>, unless noted otherwise. <b>Do not submit copyrighted work (including images) without permission.</b>  For more information, see <a href="%s/Copyrights">Copyrights</a>.' % relative_dir)
+        if config.edit_agreement_text: self.request.write(config.edit_agreement_text)
 
         badwords_re = None
         if preview is not None:
