@@ -240,7 +240,7 @@ table.inlinepage a { text-decoration: none;}
 a:link {
         background-color: inherit;
         color: #000088;
-}
+ }
 
 a:visited {
         background-color: inherit;
@@ -375,6 +375,9 @@ div.textSearchResult { width: 70%; }
         margin: 0 .5em;
 }
 
+#logo_text { font-size: 28pt; color: white !important; text-decoration: none !important; padding-left: 8pt; }
+a.nostyle { text-decoration: none !important; }
+
 #content {
         margin-top: 10px;
         margin-left: 10px;
@@ -395,6 +398,11 @@ div.textSearchResult { width: 70%; }
         font-size: 160%;
 }
 
+td.title_text { white-space: nowrap; vertical-align: middle;}
+td.user_banner { height: 70px; }
+
+td.user_banner table { margin: 5px !important; }
+
 #banner {
         margin: 0px;
         padding-top: 0px;
@@ -402,8 +410,21 @@ div.textSearchResult { width: 70%; }
         background-color: #000000;
         background-image: url(../img/floater.png);
         background-repeat: no-repeat;
+	font-size: 10pt;
         background-position: 15px; 
 }
+
+table.logo {
+ width: 100%;
+ border: 0;
+}
+
+table.logo td { padding-top: 0;
+padding-bottom: 0;
+margin: 0;
+}
+
+td.logo_banner { padding: 0; vertical-align: middle; }
 
 #search {
         text-align: center;
@@ -466,18 +487,35 @@ div.textSearchResult { width: 70%; }
 }
 
 .user {
-        margin-top: 10px;
-        margin-right: 22px;
         text-align: center;
+	font-size: 10pt;
         color: white;
 }
 
-.loginbox {
-        margin-top: 10px;
-        margin-right: 2px;
-        text-align: center;
+.user_area {
         color: white;
+	height: 75px;
+	padding: 0;
 }
+.user_area table {
+	vertical-align: top;
+        text-align: center;
+}
+
+.user_area td { padding: 2px !important; margin: 0 !important;}
+
+.login_area {
+        color: white;
+	height: 75px;
+	padding: 0;
+}
+.login_area table {
+	vertical-align: top;
+        text-align: center;
+}
+
+.login_area td { padding: 1px !important; margin: 0 !important;}
+
 
 .user a {
         margin-top: 10px;
@@ -564,6 +602,8 @@ margin-bottom: 0.25em;
         background-color: #EEEEEE;
         border: 1px dashed #AAAAAA;
 }
+
+#footer .license { font-size: 9px; }
 
 .dialogBox {
         clear: both;

@@ -43,8 +43,8 @@ web_dir = ''
 #  this is relative to the web server's root
 url_prefix = '/wiki'
 
-#displayed logo in our theme !!!! WOOO!!! Change this for a DIFFERENT LOGO!!
-default_logo = 'syclogo.png'
+#displayed logo. If you don't want an image logo, comment this out and the sitename will be used as a text-based logo.
+#image_logo = 'syclogo.png'
 
 # the phrase displayed in the title on the front page
 #catchphrase = 'The definitive resource for Davis, California'
@@ -66,6 +66,16 @@ domain = 'localhost'
 # turn to 0 if you want to disable the built-in talk-page theme stuff
 talk_pages = 1
 
+# This is the license text that appears in the page footer.  If you don't want a license, comment this out.  You'll want to make the <a href="copyrightpage"> yourself.
+license_text = """<!-- Creative Commons Licence -->Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Creative Commons License</a>.  See <a href="/index.cgi/Copyrights">Copyrights</a>.<!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/2.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/2.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->"""
+
+# This will be shown under "save changes" in the wiki editor.  If you're going to use a license then it's good to have a small snippet of text that they see when saving.
+edit_agreement_text = """By clicking "Save Changes" you are agreeing to release your contribution under the <a href="http://creativecommons.org/licenses/by/2.0/">Creative Commons-By license</a>, unless noted otherwise. <b>Do not submit copyrighted work (including images) without permission.</b>  For more information, see <a href="/index.cgi/Copyrights">Copyrights</a>."""
+
+
+# These are the buttons that appear to the right in the footer.
+footer_buttons = ["""<a href="http://creativecommons.org/licenses/by/2.0/"><img alt="Creative Commons License" border="0" src="/wiki/eggheadbeta/img/cc.png"/></a>""", """<a href="/index.cgi/Donate"><img name="rollover" onMouseOver="document.rollover.src=donate2.src;" onMouseOut="document.rollover.src=donate.src;" src="/wiki/eggheadbeta/img/donate.png" border="0" alt="donate"/></a>"""]
+
 # MySQL database settings.
 db_type = 'mysql'
 db_name = 'wiki'
@@ -77,7 +87,7 @@ db_host = 'localhost'
 diff3_location = '/usr/bin/diff3'
 
 #Memcache settings.  This is if you want a high-performance wiki.
-memcache = True 
+memcache = True
 memcache_servers = ['127.0.0.1:11211']
 # memcache_servers can be either ['server1:port', 'server2:port'] or given with weights as in
 #  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)
