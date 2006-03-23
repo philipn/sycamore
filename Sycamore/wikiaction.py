@@ -720,10 +720,10 @@ def do_edit(pagename, request):
         PageEditor(pagename, request).sendEditor()
     else:
         _ = request.getText
-        Page(pagename, request).send_page(msg = _('Invalid pagename: Only the characters A-Z, a-z, 0-9, "$", "&", ",", ".", "!", "\'", ":", ";", " ", "/", "-", "(", ")" are allowed in page names.'))
+        Page(pagename, request).send_page(msg = _('Invalid pagename: the character "?" is not allowed in page names.'))
 
 def isValidPageName(name):
-    return not re.search('[^A-Za-z\-0-9 $&\.\,:;/\'\!\(\)]',name)
+    return not re.search('\?', name)
 
 def do_savepage(pagename, request):
     from Sycamore.PageEditor import PageEditor

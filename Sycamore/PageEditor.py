@@ -85,7 +85,7 @@ class PageEditor(Page):
 
         form = self.request.form
         _ = self._
-        self.request.http_headers([("Content-Type", "text/html")] + self.request.nocache)
+        self.request.http_headers([("Content-Type", "text/html; charset=%s" % config.charset)] + self.request.nocache)
         msg = None
         preview = kw.get('preview', None)
         emit_anchor = not kw.get('staytop', 0)

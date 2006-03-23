@@ -66,7 +66,7 @@ _cfg_defaults = {
     'caching_formats' : ['text_html'],
     'catchphrase': 'The definitive resource for Davis, California',
     'changed_time_fmt': '%H:%M',
-    'charset': 'iso-8859-1',
+    'charset': 'utf-8',
     # if you have gdchart, add something like
     # chart_options = {'width': 720, 'height': 540}
     'chart_options': None,

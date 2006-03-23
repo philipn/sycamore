@@ -788,7 +788,7 @@ class RequestWSGI(RequestBase):
           # send http headers and get the write callable
 	  all_headers = more_headers + self.user_headers
 	  if not all_headers:
-	    all_headers = [("Content-Type", "text/html")]
+	    all_headers = [("Content-Type", "text/html; charset=%s" % config.charset)]
 
 	  if not self.status:
 	    self.status = '200 OK'
