@@ -6,6 +6,8 @@ from Sycamore.Page import Page
 quotes_re = re.compile('"(?P<phrase>[^"]+)"')
 
 MAX_PROB_TERM_LENGTH = 64
+DIVIDERS = '0123456789!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+DIVIDERS_RE = r"""0123456789!"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~"""
 
 #word_characters = string.letters + string.digits
 def build_regexp(terms):
@@ -14,19 +16,41 @@ def build_regexp(terms):
   for term in terms:
     if type(term) == type([]):
       # an exactly-quoted sublist
-      regexp.append('%s' % ' '.join(term))
+      regexp.append('(((%s)|^)%s((%s)|$))' % (DIVIDERS_RE, ' '.join(term), DIVIDERS_RE))
     elif term:
-      regexp.append(term)
+      regexp.append('([%s]|^|\s)%s([%s]|$|\s)' % (DIVIDERS_RE, term, DIVIDERS_RE))
 
-  regexp = re.compile('|'.join(regexp), re.IGNORECASE)
+  regexp = re.compile('|'.join(regexp), re.IGNORECASE|re.UNICODE)
 
   return regexp
 
-def _p_alnum(c):
-    return c.isalnum()
+def find_num_matches(regexp, text):
+  """
+  Finds the number of occurances of regexp in text
+  """
+  i = 0
+  loc = 0
+  found = regexp.search(text)
+  while found:
+    i += 1
+    loc += found.end()
+    found = regexp.search(text[loc:])
 
-def _p_notalnum(c):
-    return not _p_alnum(c)
+  return i
+
+def isdivider(w):
+  """
+  Does w contain a character/is a character that's a divider.  Examples are:  :,/-  etc.
+  """
+  for c in w:
+    if c in DIVIDERS: return True
+  return False
+
+def _p_divider(c):
+    return isdivider(c)
+
+def _p_notdivider(c):
+    return not _p_divider(c)
 
 def _p_notplusminus(c):
     return c != '+' and c != '-'
@@ -65,19 +89,19 @@ class SearchBase(object):
       if not term.strip(): continue
 
       exact_match = False
-      if term.isalnum():
+      if not isdivider(term):
         nice_terms.append(term)
         continue
 
       if term.startswith('"') and term.endswith('"'):
         # we have an exact-match quote thing
-        nice_terms.append(self._remove_junk(term.split(' '))[1:-1])
+        nice_terms.append(self._remove_junk(term.split())[1:-1])
         continue
 
       i = 0
       j = 0
       for c in term:
-        if c.isalnum():
+        if not isdivider(c):
           j += 1
           continue
         term_new = term[i:j].strip()
@@ -170,15 +194,15 @@ class RegexpSearch(SearchBase):
     matches = []
     for page in pagelist:
       text = page.get_raw_body()
-      text_matches = self.regexp.findall(text)
+      text_matches = find_num_matches(self.regexp, text)
       if text_matches:
-        percentage = (len(text_matches)*1.0/len(text.split(' ')))*100
+        percentage = (text_matches*1.0/len(text.split()))*100
 	self.text_results.append(searchResult(page.page_name, text, percentage, page)) 
       
       title = page.page_name
-      title_matches = self.regexp.findall(title)
+      title_matches = find_num_matches(self.regexp, title)
       if title_matches:
-        percentage = (len(title_matches)*1.0/len(title.split(' ')))*100
+        percentage = (title_matches*1.0/len(title.split()))*100
 	self.title_results.append(searchResult(title, title, percentage, page))
 
     # sort the title and text results by relevancy
@@ -223,10 +247,10 @@ def _do_postings(doc, text, id, stemmer):
 
   i = 0
   while i < len(text):
-      i = _find_p(text, i, _p_alnum)
-      j = _find_p(text, i, _p_notalnum)
+      i = _find_p(text, i, _p_notdivider)
+      j = _find_p(text, i, _p_divider)
       k = _find_p(text, j, _p_notplusminus)
-      if k == len(text) or not _p_alnum(text[k]):
+      if k == len(text) or not _p_notdivider(text[k]):
           j = k
       if (j - i) <= MAX_PROB_TERM_LENGTH and j > i:
           term = stemmer.stem_word(text[i:j].lower())
@@ -282,12 +306,12 @@ def prepare_search_needle(needle):
   had_quote = False
   for quote in quotes:
     had_quote = True
-    non_quoted_part = needle[i:quote.start()].strip().split(" ")
+    non_quoted_part = needle[i:quote.start()].strip().split()
     if non_quoted_part: new_list += non_quoted_part
     i = quote.end()
-    new_list.append(quote.group('phrase').split(" "))
+    new_list.append(quote.group('phrase').split())
   if had_quote: return new_list
-  else:return needle.split(" ")
+  else:return needle.split()
 
 
 if config.has_xapian: Search = XapianSearch

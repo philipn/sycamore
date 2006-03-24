@@ -134,6 +134,7 @@ def real_connect():
       d['passwd'] = config.db_user_password
   if config.db_socket:
     d['unix_socket'] = config.db_socket
+
   
   db = dbapi.connect(**d)
   
