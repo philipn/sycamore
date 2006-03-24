@@ -93,15 +93,6 @@ class Page(object):
         result = self.cursor.fetchone()
         return result[0]
 
-    def _tmp_filename(self):
-        """
-        The name of the temporary file used while saving.
-        
-        @rtype: string
-        @return: temporary filename (complete path + filename)
-        """
-        rnd = random.randint(0,1000000000)
-        return os.path.join(config.text_dir, ('#%s.%d#' % (wikiutil.quoteFilename(self.page_name), rnd)))
 
     def edit_info(self):
       # Returns returns user edited and mtime for the page's version
@@ -109,38 +100,12 @@ class Page(object):
       if not self.prev_date:
         if not self.exists():
           return None
+            
+      # get page info from cache or database
+      from Sycamore import caching
+      return caching.pageInfo(self).edit_info
 
-      if self.prev_date: key = "%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), self.prev_date)
-      else: key = wikiutil.quoteFilename(self.page_name.lower())
-
-      # check per-request cache
-      if self.request.req_cache['page_edit_info'].has_key(key):
-        return self.request.req_cache['page_edit_info'][key] 
-      # check memcache
-      if config.memcache:
-        edit_info = self.request.mc.get("page_edit_info:%s" % key)
-        if edit_info:
-          self.request.req_cache['page_edit_info'][key] = edit_info
-          return edit_info
-
-      if not self.prev_date:
-        self.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':self.page_name})
-        result = self.cursor.fetchone()
-        editTimeUnix = result[0]
-        editUserID = result[1]
-      else:
-        self.cursor.execute("SELECT userEdited from allPages where name=%(page_name)s and editTime=%(date)s", {'page_name':self.page_name, 'date':self.prev_date})
-        result = self.cursor.fetchone()
-	editUserID = result[0]
-	editTimeUnix = self.prev_date
-
-      edit_info = (editTimeUnix, editUserID)
-      self.request.req_cache['page_edit_info'][key] = edit_info
-      if config.memcache:
-        self.request.mc.add("page_edit_info:%s" % key, edit_info)
-
-      return edit_info
-
+      
     def last_edit_info(self):
        """
        Returns info about the last edit on the page.
@@ -221,22 +186,12 @@ class Page(object):
         return False
 
     def hasMapPoints(self):
-      has_points = False
-      if config.memcache:
-        has_points = self.request.mc.get("has_map:%s" % wikiutil.quoteFilename(self.page_name.lower()))
-	if has_points is not None:
-	  return has_points
-	else:
-	  has_points = False
-      self.cursor.execute("SELECT count(pagename) from mapPoints where pagename=%(page_name)s", {'page_name':self.page_name})
-      result = self.cursor.fetchone()
-      if result:
-        if result[0]:
-          has_points = True
-      if config.memcache:
-        self.request.mc.add("has_map:%s" % wikiutil.quoteFilename(self.page_name.lower()), has_points)
+      from Sycamore import caching
+      if not self.prev_date:
+        return caching.pageInfo(self).has_map
+      else: 
+        return caching.pageInfo(Page(self.page_name, self.request)).has_map
 
-      return has_points	
 
     def human_size(self):
 	"""
@@ -294,35 +249,9 @@ class Page(object):
       """
       Returns the meta text of a page.  This includes things that start iwth # at the beginning of page's text, such as #acl and #redirect.
       """
-      meta_text = False
-      if self.request.req_cache['meta_text'].has_key((self.page_name, self.mtime())):
-        return self.request.req_cache['meta_text'][(self.page_name, self.mtime())]
-      if config.memcache:
-        meta_text = self.request.mc.get("meta_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.mtime())))
-        if meta_text is not None:
-	  self.request.req_cache['meta_text'][(self.page_name, self.mtime())] = meta_text
-	  return meta_text
-
-      body = self.get_raw_body()
-      body = body.split('\n')
-      meta_text = []
-      for line in body:
-	if line:
-	  if line[0] == '#':
-	    meta_text.append(line)
-	  else:
-	    break
-	else:
-	  break
-
-      meta_text = '\n'.join(meta_text)
-
-      self.request.req_cache['meta_text'][(self.page_name, self.mtime())] = meta_text
-      if config.memcache:
-        self.request.mc.add("meta_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.mtime())), meta_text)
-
-      return meta_text
-        
+      from Sycamore import caching
+      return caching.pageInfo(self).meta_text
+              
     
     def get_raw_body(self):
         """
@@ -554,26 +483,6 @@ class Page(object):
                     wikiutil.quoteWikiname(pi_redirect),
                     urllib.quote_plus(self.page_name, ''),))
                 return
-            elif verb == "pragma":
-                # store a list of name/value pairs for general use
-                try:
-                    key, val = args.split(' ', 1)
-                except (ValueError, TypeError):
-                    pass
-                else:
-                    request.setPragma(key, val)
-            elif verb == "form":
-                # ignore form PIs on non-form pages
-                if not wikiutil.isFormPage(self.page_name):
-                    continue
-
-                # collect form definitions
-                if not wikiform:
-                    from Sycamore import wikiform
-                    pi_formtext.append('<table border="1" cellspacing="1" cellpadding="3">\n'
-                        '<form method="POST" action="%s">\n'
-                        '<input type="hidden" name="action" value="formtest">\n' % self.url(request))
-                pi_formtext.append(wikiform.parseDefinition(request, args, pi_formfields))
             elif verb == "acl":
                 # We could build it here, but there's no request.
                 pass

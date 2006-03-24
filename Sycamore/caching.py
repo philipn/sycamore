@@ -50,28 +50,10 @@ class CacheEntry:
 
     def content_info(self):
         page_cache = None
-	if self.request.req_cache['page_cache'].has_key(self.key):
-	  return self.request.req_cache['page_cache'][self.key]
-    	if config.memcache:
-	  page_cache = self.request.mc.get("page_cache:%s" % wikiutil.quoteFilename(self.key.lower()))
-	if not page_cache:
-          self.request.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(key)s", {'key':self.key})
-          result = self.request.cursor.fetchone()
-	  if result:
-	    if result[0] and result[1]:
-	      text = wikidb.binaryToString(result[0])
-	      cached_time = result[1]
-	      page_cache = (text, cached_time)
-	    else:
-	      page_cache = ('', 0)
-	  else:
-	    page_cache = ('', 0)
-	  if config.memcache:
-	    self.request.mc.add("page_cache:%s" % wikiutil.quoteFilename(self.key.lower()), page_cache)
-	self.request.req_cache['page_cache'][self.key] = page_cache
+	page = Page(self.key, self.request)
+        return pageInfo(page).cached_text
 
-	return page_cache
-
+	
     def content(self):
       return self.content_info()[0]
 
@@ -121,3 +103,86 @@ def depend_on_me(pagename, request):
   #if config.memcache:
   #  request.mc.add("page_deps:%s" % wikiutil.quoteFilename(pagename), page_deps)
   return page_deps
+
+class pageInfoObj(object):
+  def __init__(self, edit_info, cached_text, meta_text, has_map=None):
+    self.edit_info = edit_info
+    self.cached_text = cached_text
+    self.meta_text = meta_text
+    self.has_map = has_map
+
+def pageInfo(page):
+  """
+  Gets a group of related items for a page: last edited information, page cached text, meta-text (such as #redirect), and has_map.
+  Returns an object with attributes edit_info, cached_text, meta_text, has_map.
+  """
+  pagename_key = wikiutil.quoteFilename(page.page_name.lower())
+  if page.prev_date: key = "%s,%s" % (pagename_key, page.prev_date)
+  else: key = pagename_key
+
+  # check per-request cache
+  if page.request.req_cache['page_info'].has_key(key):
+    return page.request.req_cache['page_info'][key]
+  
+  # check memcache
+  if config.memcache:
+    page_info = page.request.mc.get("page_info:%s" % key)
+    if page_info:
+      page.request.req_cache['page_info'][key] = page_info
+      return page_info
+
+  # memcache failed, this means we have to get all the information from the database
+
+  # last edit information
+  if not page.prev_date:
+    page.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':page.page_name})
+    result = page.cursor.fetchone()
+    editTimeUnix = result[0]
+    editUserID = result[1]
+  else:
+    page.cursor.execute("SELECT userEdited from allPages where name=%(page_name)s and editTime=%(date)s", {'page_name':page.page_name, 'date':page.prev_date})
+    result = page.cursor.fetchone()
+    editUserID = result[0]
+    editTimeUnix = page.prev_date
+  edit_info = (editTimeUnix, editUserID)
+
+  # cached text
+  cached_text = ('', 0)
+  if not page.prev_date:
+    page.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(key)s", {'key':key})
+    result = page.request.cursor.fetchone()
+    if result:
+      if result[0] and result[1]:
+        text = wikidb.binaryToString(result[0])
+        cached_time = result[1]
+        cached_text = (text, cached_time)
+
+  # meta_text
+  meta_text = False
+  body = page.get_raw_body()
+  body = body.split('\n')
+  meta_text = []
+  for line in body:
+    if line:
+      if line[0] == '#':
+        meta_text.append(line)
+      else:
+        break
+    else:
+      break
+  meta_text = '\n'.join(meta_text)
+
+  has_map = False
+  if not page.prev_date:
+    page.cursor.execute("SELECT count(pagename) from mapPoints where pagename=%(page_name)s", {'page_name':page.page_name})
+    result = page.cursor.fetchone()
+    if result:
+      if result[0]:
+        has_points = True
+  else: has_map = None
+
+  page_info = pageInfoObj(edit_info, cached_text, meta_text, has_map)
+
+  if config.memcache:
+    page.request.mc.add("page_info:%s" % key, page_info)
+  return page_info
