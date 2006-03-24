@@ -58,13 +58,15 @@ class CacheEntry:
       return self.content_info()[0]
 
     def clear(self):
+        key = wikiutil.quoteFilename(self.key.lower())
+        if self.request.req_cache['page_info'].has_key(key):
+          del self.request.req_cache['page_info'][key]
         #clears the content of the cache regardless of whether or not the page needs an update
 	self.request.cursor.execute("UPDATE curPages set cachedText=NULL, cachedTime=NULL where name=%(key)s", {'key':self.key}, isWrite=True)
 	if config.memcache:
-	  self.request.mc.delete("page_cache:%s" % wikiutil.quoteFilename(self.key.lower()))
-	  self.request.mc.delete("page_edit_info:%s" % wikiutil.quoteFilename(self.key.lower()))
-	  self.request.mc.delete("pagename:%s" % wikiutil.quoteFilename(self.key.lower()))
-	  self.request.mc.delete("page_text:%s" % wikiutil.quoteFilename(self.key.lower()))
+	  self.request.mc.delete("page_info:%s" % key)
+	  self.request.mc.delete("pagename:%s" % key)
+	  self.request.mc.delete("page_text:%s" % key)
 	  #self.request.mc.delete("page_deps:%s" % wikiutil.quoteFilename(self.key))
 
 def dependency(depend_pagename, source_pagename, request):
@@ -149,7 +151,7 @@ def pageInfo(page):
   # cached text
   cached_text = ('', 0)
   if not page.prev_date:
-    page.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(key)s", {'key':key})
+    page.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(page)s", {'page':page.page_name})
     result = page.request.cursor.fetchone()
     if result:
       if result[0] and result[1]:
@@ -185,4 +187,6 @@ def pageInfo(page):
 
   if config.memcache:
     page.request.mc.add("page_info:%s" % key, page_info)
+
+  page.request.req_cache['page_info'][key] = page_info
   return page_info
