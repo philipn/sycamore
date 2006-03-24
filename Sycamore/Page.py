@@ -249,8 +249,10 @@ class Page(object):
       """
       Returns the meta text of a page.  This includes things that start iwth # at the beginning of page's text, such as #acl and #redirect.
       """
-      from Sycamore import caching
-      return caching.pageInfo(self).meta_text
+      if self.exists():
+        from Sycamore import caching
+        return caching.pageInfo(self).meta_text
+      else: return ''
               
     
     def get_raw_body(self):

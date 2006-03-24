@@ -135,44 +135,50 @@ def pageInfo(page):
 
   # memcache failed, this means we have to get all the information from the database
 
-  # last edit information
-  if not page.prev_date:
-    page.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':page.page_name})
-    result = page.cursor.fetchone()
-    editTimeUnix = result[0]
-    editUserID = result[1]
-  else:
-    page.cursor.execute("SELECT userEdited from allPages where name=%(page_name)s and editTime=%(date)s", {'page_name':page.page_name, 'date':page.prev_date})
-    result = page.cursor.fetchone()
-    editUserID = result[0]
-    editTimeUnix = page.prev_date
-  edit_info = (editTimeUnix, editUserID)
+  # last edit information 
+  if page.exists():
+    if not page.prev_date:
+      page.cursor.execute("SELECT editTime, userEdited from curPages where name=%(page_name)s", {'page_name':page.page_name})
+      result = page.cursor.fetchone()
+      editTimeUnix = result[0]
+      editUserID = result[1]
+    else:
+      page.cursor.execute("SELECT userEdited from allPages where name=%(page_name)s and editTime=%(date)s", {'page_name':page.page_name, 'date':page.prev_date})
+      result = page.cursor.fetchone()
+      editUserID = result[0]
+      editTimeUnix = page.prev_date
+    edit_info = (editTimeUnix, editUserID)
 
-  # cached text
-  cached_text = ('', 0)
-  if not page.prev_date:
-    page.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(page)s", {'page':page.page_name})
-    result = page.request.cursor.fetchone()
-    if result:
-      if result[0] and result[1]:
-        text = wikidb.binaryToString(result[0])
-        cached_time = result[1]
-        cached_text = (text, cached_time)
+    # cached text
+    cached_text = ('', 0)
+    if not page.prev_date:
+      page.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(page)s", {'page':page.page_name})
+      result = page.request.cursor.fetchone()
+      if result:
+        if result[0] and result[1]:
+          text = wikidb.binaryToString(result[0])
+          cached_time = result[1]
+          cached_text = (text, cached_time)
 
-  # meta_text
-  meta_text = False
-  body = page.get_raw_body()
-  body = body.split('\n')
-  meta_text = []
-  for line in body:
-    if line:
-      if line[0] == '#':
-        meta_text.append(line)
+    # meta_text
+    meta_text = False
+    body = page.get_raw_body()
+    body = body.split('\n')
+    meta_text = []
+    for line in body:
+      if line:
+        if line[0] == '#':
+          meta_text.append(line)
+        else:
+          break
       else:
         break
-    else:
-      break
-  meta_text = '\n'.join(meta_text)
+    meta_text = '\n'.join(meta_text)
+  else:
+   # set some defaults.  These shouldn't be accessed.
+   edit_info = None
+   cached_text = None
+   meta_text = None
 
   has_map = False
   if not page.prev_date:
