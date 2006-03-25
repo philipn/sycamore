@@ -46,13 +46,28 @@ def isdivider(w):
     if c in DIVIDERS: return True
   return False
 
+def iswhitespace(w):
+  return not (w.strip() == w)
+
+def isdivider_or_whitespace(w):
+  return isdivider(w) or iswhitespace(w)
+
+def notdivider_or_whitespace(w):
+  return not isdivider_or_whitespace(w)
+
+def _p_isalnum(c):
+  return c.isalnum()
+
+def _p_notalnum(c):
+  return not _p_isalnum(c)
+
 def _p_divider(c):
     return isdivider(c)
 
 def _p_notdivider(c):
     return not _p_divider(c)
 
-def _p_notplusminus(c):
+def notplusminus(c):
     return c != '+' and c != '-'
 
 def _find_p(string, start, predicate):
@@ -247,10 +262,10 @@ def _do_postings(doc, text, id, stemmer):
 
   i = 0
   while i < len(text):
-      i = _find_p(text, i, _p_notdivider)
-      j = _find_p(text, i, _p_divider)
-      k = _find_p(text, j, _p_notplusminus)
-      if k == len(text) or not _p_notdivider(text[k]):
+      i = _find_p(text, i, notdivider_or_whitespace)
+      j = _find_p(text, i, isdivider_or_whitespace)
+      k = _find_p(text, j, notplusminus)
+      if k == len(text) or not notdivider_or_whitespace(text[k]):
           j = k
       if (j - i) <= MAX_PROB_TERM_LENGTH and j > i:
           term = stemmer.stem_word(text[i:j].lower())
