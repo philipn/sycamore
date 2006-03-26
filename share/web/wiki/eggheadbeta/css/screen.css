@@ -401,7 +401,7 @@ a.nostyle { text-decoration: none !important; }
         font-size: 160%;
 }
 
-.title_text { vertical-align: middle;}
+.title_text { vertical-align: middle; height: 30pt; }
 .title_text td { vertical-align: middle;}
 td.user_banner { height: 70px; }
 
