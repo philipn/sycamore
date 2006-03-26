@@ -958,16 +958,18 @@ def send_title(request, text, **keywords):
 	      if request.form['do'][0] == 'view':
 	        crawl = True
 
+    user_head.append("""<meta http-equiv="Content-Type" content="text/html; charset=%s">\n""" % config.charset)
+
     if (not crawl) or (request.request_method == 'POST'):
-        user_head.append('''<meta name="robots" content="noindex,nofollow">\n''')
+        user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
     elif not page.exists():
-	user_head.append('''<meta name="robots" content="noindex,nofollow">\n''')
+	user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
     # if it is a special page, index it and follow the links:
     elif pagename in ['Front Page', 'Title Index',]:
-        user_head.append('''<meta name="robots" content="index,follow">\n''')
+        user_head.append("""<meta name="robots" content="index,follow">\n""")
     # if it is a normal page, index it, but do not follow the links, because
     else:
-        user_head.append('''<meta name="robots" content="index,follow">\n''')
+        user_head.append("""<meta name="robots" content="index,follow">\n""")
         
     if keywords.has_key('pi_refresh') and keywords['pi_refresh']:
         user_head.append('<meta http-equiv="refresh" content="%(delay)d;URL=%(url)s">' % keywords['pi_refresh'])

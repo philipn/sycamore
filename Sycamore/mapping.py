@@ -117,15 +117,6 @@ def update_points(mapPoints, request, pagename=None):
         cursor.execute("INSERT into oldMapPointCategories (pagename, x, y, deleted_time, id) values (%(pagename)s, %(x)s, %(y)s, %(time_now)s, %(old_category)s)", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category}, isWrite=True)
       cursor.execute("DELETE from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename, 'x':x, 'y':y}, isWrite=True)
   
-    # update the memcache accordingly
-    if config.memcache:
-      cursor.execute("SELECT count(pagename) from mapPoints where pagename=%(pagename)s", {'pagename': pagename})
-      num_points = cursor.fetchone()
-      if not num_points:
-        request.mc.set("has_map:%s" % quoteFilename(pagename.lower()), False)
-      else:
-        if not num_points[0]: 
-          request.mc.set("has_map:%s" % quoteFilename(pagename.lower()), False)
-	else:
-          request.mc.set("has_map:%s" % quoteFilename(pagename.lower()), True)
-
+    # clear the memcache accordingly
+    key = wikiutil.quoteFilename(pagename.lower())
+    request.mc.delete("page_info:%s" % key)
