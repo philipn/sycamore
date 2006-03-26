@@ -54,6 +54,8 @@ def imgSend(request):
   if mimetype:
     # we're good to go to output the image
     datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
+    # images are usually compressed anyway, so let's not bother gziping
+    request.do_gzip = False
     request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring)])
     #output image
     request.write(image)

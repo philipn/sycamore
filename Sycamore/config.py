@@ -84,6 +84,7 @@ _cfg_defaults = {
     'db_pool_size': 50,
     'db_max_overflow': -1,
     'default_lang': 'en',
+    'do_gzip': True,
     'image_logo': '',
     'default_markup': 'wiki',
     'domain': 'localhost',

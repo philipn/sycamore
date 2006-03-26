@@ -509,12 +509,12 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 %(navbar_html)s
 </div>
 <div id="title">
+<div class="search_form">
+%(search_form_html)s
+</div>
 <table>
 <tr><td class="title_text">
 %(title_html)s
-</td>
-<td class="search_form" width="100%%" align="right" valign="middle">
-%(search_form_html)s
 </td>
 </td></tr></table></div>
 %(config_header2_html)s

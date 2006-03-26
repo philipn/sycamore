@@ -10,12 +10,12 @@
 import os, time, sys
 from Sycamore import config, wikiutil, wikidb, user, i18n
 from Sycamore.util import SycamoreNoFooter, web
-import cPickle
+import cPickle, cStringIO, gzip
 if config.memcache:
   from Sycamore.support import MemcachePool
 
 #############################################################################
-### Timing
+### Misc
 #############################################################################
 
 class Clock:
@@ -40,6 +40,7 @@ class Clock:
         for timing in self.timings.items():
             outlist.append("%s = %.3fs" % timing)
         return outlist
+
 
 
 #############################################################################
@@ -112,6 +113,7 @@ class RequestBase(object):
             @param env: the environment to use
         """
         self.http_accept_language = env.get('HTTP_ACCEPT_LANGUAGE', 'en')
+        self.http_accept_encoding = env.get('HTTP_ACCEPT_ENCODING', '')
         self.server_name = env.get('SERVER_NAME', 'localhost')
         self.server_port = env.get('SERVER_PORT', '80')
         self.http_host = env.get('HTTP_HOST','localhost')
@@ -139,6 +141,14 @@ class RequestBase(object):
         self.auth_username = None
         if config.auth_http_enabled and env.get('AUTH_TYPE','') == 'Basic':
             self.auth_username = env.get('REMOTE_USER','')
+
+        # should we compress output?
+	self.do_gzip = False
+	if config.do_gzip:
+	  for encoding in self.http_accept_encoding.split(','):
+	    if encoding.lower() == 'gzip':
+	      self.do_gzip = True
+	      break
 
 ##        f=open('/tmp/env.log','a')
 ##        f.write('---ENV\n')
@@ -332,6 +342,15 @@ class RequestBase(object):
     def getUserAgent(self):
         """ Get the user agent. """
         return self.http_user_agent
+
+    def compress(self, data):
+      """Return gzip'ed data."""
+      zbuf = cStringIO.StringIO()
+      zfile = gzip.GzipFile(mode='wb', fileobj=zbuf, compresslevel=9)
+      zfile.write(data)
+      zfile.close()
+
+      return zbuf.getvalue()
 
     def db_connect(self):
       self.db = wikidb.connect()
@@ -734,7 +753,11 @@ class RequestWSGI(RequestBase):
     def flush(self):
         """ Flush output stream.
         """
-	self.wsgi_output(''.join(self.output_buffer))
+	if self.do_gzip:
+	  return  # Don't know if it's possible to sent gzip'ed content in chunks
+	else:
+  	  self.wsgi_output(''.join(self.output_buffer))
+
 	self.output_buffer = []
 
     def finish(self, had_error=False, dont_do_db=False):
@@ -744,7 +767,11 @@ class RequestWSGI(RequestBase):
         """
 	if not self.sent_headers: self.http_headers()
 	# we return a list as per the WSGI spec
-        return self.output_buffer
+	if self.do_gzip:
+	  compressed_content = self.compress(''.join(self.output_buffer))
+	  return [compressed_content] # WSGI spec wants a list returned
+	else:
+          return self.output_buffer
 
 
     #############################################################################
@@ -789,6 +816,9 @@ class RequestWSGI(RequestBase):
 	  all_headers = more_headers + self.user_headers
 	  if not all_headers:
 	    all_headers = [("Content-Type", "text/html; charset=%s" % config.charset)]
+
+          if self.do_gzip:
+	    all_headers.append(("Content-encoding", "gzip"))
 
 	  if not self.status:
 	    self.status = '200 OK'
