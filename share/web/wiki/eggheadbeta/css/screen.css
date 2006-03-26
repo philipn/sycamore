@@ -146,6 +146,8 @@ a.smalltab:hover {
   color: #000088;
 }
 
+.search_form { white-space: nowrap; float: right; vertical-align: middle; padding: 0; margin: 5pt 2pt 4pt 4pt;}
+
 a.smalltab.smallactiveTab, a.smalltab.smallactiveTab:hover, a.smalltab.smallactiveTab:visited {
   font-size: 10px;
   background-color: #ccddff;
@@ -204,7 +206,8 @@ td { padding: 1pt; }
 
 td.pageIcon { font-size: 7pt;
 text-align: center;
-vertical-align: bottom;
+vertical-align: top;
+padding-top: 2pt;
 }
 
 td.pageIconSelected { font-size: 7pt;
@@ -398,7 +401,8 @@ a.nostyle { text-decoration: none !important; }
         font-size: 160%;
 }
 
-td.title_text { white-space: nowrap; vertical-align: middle;}
+.title_text { vertical-align: middle;}
+.title_text td { vertical-align: middle;}
 td.user_banner { height: 70px; }
 
 td.user_banner table { margin: 5px !important; }
