@@ -89,7 +89,7 @@ class Page(object):
 
     def date_to_version_number(self, date):
         # Returns the version number of a given date of this page
-        self.cursor.execute("SELECT count(editTime) from allPages where name=%(page_name)s and editTime<=%(date)s;", {'page_name':self.page_name, 'date':repr(date)})
+        self.cursor.execute("SELECT count(editTime) from allPages where name=%(page_name)s and editTime<=%(date)s;", {'page_name':self.page_name, 'date':date})
         result = self.cursor.fetchone()
         return result[0]
 
