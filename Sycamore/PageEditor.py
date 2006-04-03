@@ -221,19 +221,10 @@ Your changes were sucessfully merged!""" % conflict_msg)
             raw_body = self.get_raw_body()
 
         # send text above text area
-        template_param = ''
-        if form.has_key('template'):
-            template_param = '&amp;template=' + form['template'][0]
-        self.request.write(_('<div class="pageEditInfo">editor size:'))
-        self.request.write('<a href="%s&amp;rows=%d&amp;cols=60%s">%s</a>' % (
-            base_uri, text_rows + 10, template_param, '+'))
-        self.request.write(',<a href="%s&amp;rows=%s&amp;cols=60%s">%s</a>' % (
-            base_uri, text_rows - 10, template_param, '-'))
-
-        self.request.write('</div>')
+        
         
         # button toolbar
-        self.request.write('<p>')
+        self.request.write('<div id="editArea">')
 	self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.user.theme_name, 'img', 'buttons')))
 	if self.request.user.name:
 	  self.request.write("""<script type=\"text/javascript\">var userPageLink = '["%s"]';</script>""" % (self.request.user.name))
@@ -269,9 +260,22 @@ Your changes were sucessfully merged!""" % conflict_msg)
         # Print the editor textarea and the save button
         self.request.write('<textarea id="savetext" name="savetext" rows="%d" cols="%d" style="width:100%%">%s</textarea>'
             % (text_rows, text_cols, wikiutil.escape(raw_body)))
-        self.request.write('</p>')
 
-        self.request.write("""<p> %s<br><input type="text" class="formfields" name="comment" value="%s" size="%d" maxlength="80" style="width:100%%"></p>""" %
+       # tell them contents loaded from a template, if they were
+        template_param = ''
+        if form.has_key('template'):
+            template_param = '&amp;template=' + form['template'][0]
+       # draw edit size links
+        self.request.write(_('<div class="pageEditInfo">editor size:'))
+        self.request.write('<a href="%s&amp;rows=%d&amp;cols=60%s">%s</a>' % (
+            base_uri, text_rows + 10, template_param, '+'))
+        self.request.write(',<a href="%s&amp;rows=%s&amp;cols=60%s">%s</a>' % (
+            base_uri, text_rows - 10, template_param, '-'))
+        self.request.write('</div>')
+
+        self.request.write('</p>') # close textarea
+
+        self.request.write("""<div id="editComment"> %s<br><input type="text" class="formfields" name="comment" value="%s" size="%d" maxlength="80" style="width:100%%"></div>""" %
                 (_("<font size=\"+1\">Please comment about this change:</font>"), wikiutil.escape(kw.get('comment', ''), 1), text_cols))
 
         # category selection
@@ -290,7 +294,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         save_button_text = _('Save Changes')
         cancel_button_text = _('Cancel')
         
-        self.request.write("</p>")
+        self.request.write("</div>")
             
 
 #        if config.page_license_enabled:
@@ -316,7 +320,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
           mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, self.page_name, relative_dir)
         
         self.request.write('''
-<table border="0" cellspacing="0"><tr height="30"><td nowrap><font size="3">
+<table id="editButtonRow"><tr height="30"><td nowrap><font size="3">
 <input type="submit" class="bigbutton" name="button_preview" value="%s">
 <input type="submit" class="formbutton" name="button_save" value="%s">
 <input type="submit" class="formbutton" name="button_cancel" value="%s">

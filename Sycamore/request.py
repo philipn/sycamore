@@ -819,6 +819,7 @@ class RequestWSGI(RequestBase):
 
           if self.do_gzip:
 	    all_headers.append(("Content-encoding", "gzip"))
+	    all_headers.append(("Vary", "Accept-Encoding"))
 
 	  if not self.status:
 	    self.status = '200 OK'

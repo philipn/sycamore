@@ -509,11 +509,11 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 %(navbar_html)s
 </div>
 <div id="title">
-<div class="search_form">
+<div id="search_form">
 %(search_form_html)s
 </div>
 <table>
-<tr><td class="title_text">
+<tr id="iconRow"><td id="title_text">
 %(title_html)s
 </td>
 </td></tr></table></div>
