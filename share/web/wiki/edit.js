@@ -12,11 +12,15 @@ if (is_safari) {
 // Figure out if it's a new version of Safari or not
   index = clientPC.lastIndexOf('safari');
   version_number = clientPC.substring(index+7);
-  if (version_number > 314) {
+  //index = version_number.firstIndexOf('.')
+  if (index) {
+    index = version_number.indexOf('.')
+    version_number = version_number.substring(0, index);
+  }
+  if (version_number >= 314) {
     is_modern_safari=true;
   }
 }
-
 
 var is_khtml = (navigator.vendor == 'KDE' || ( document.childNodes && !document.all && !navigator.taintEnabled ));
 if (clientPC.indexOf('opera')!=-1) {
@@ -28,18 +32,22 @@ if (clientPC.indexOf('opera')!=-1) {
 // Un-trap us from framesets
 if( window.top != window ) window.top.location = window.location;
 
-document.writeln("<div id='toolbar'>");
-addButton('bold.png','Bold text','\'\'\'','\'\'\'','Bold text'); 
-addButton('italic.png','Italic text','\'\'','\'\'','Italic text');
-addButton('extlink.png','External link','[',']','http://www.example.com');
-addButton('head.png','Headline','\n= ',' =\n','Headline text');
-addButton('hline.png','Horizontal line (use sparingly)','\n-----\n','','');
-addButton('center.png','Center','-->','<--','');
-addButton('sig.png','Signature','',' --' + userPageLink,'');
-addButton('image.png','Attached image','\n[[Image(',')]]','photo.jpg');
-addButton('plain.png','Ignore wiki formatting','{{{','}}}','Insert non-formatted text here');
-addInfobox('Click a button to get an example text','Please enter the text you want to be formated.\\nIt will be shown in the info box for copy and pasting.\\nExample:\\n$1\\nwill become:\\n$2');
-document.writeln("</div>");
+innerHTML = "<div id='toolbar'>";
+innerHTML += addButton('bold.png','Bold text','\'\'\'','\'\'\'','Bold text'); 
+innerHTML += addButton('italic.png','Italic text','\'\'','\'\'','Italic text');
+innerHTML += addButton('extlink.png','External link','[',']','http://www.example.com');
+innerHTML += addButton('head.png','Headline','\n= ',' =\n','Headline text');
+innerHTML += addButton('hline.png','Horizontal line (use sparingly)','\n-----\n','','');
+innerHTML += addButton('center.png','Center','-->','<--','');
+innerHTML += addButton('sig.png','Signature','',' --' + userPageLink,'');
+innerHTML += addButton('image.png','Attached image','\n[[Image(',')]]','photo.jpg');
+innerHTML += addButton('plain.png','Ignore wiki formatting','{{{','}}}','Insert non-formatted text here');
+innerHTML += addInfobox('Click a button to get an example text','Please enter the text you want to be formated.\\nIt will be shown in the info box for copy and pasting.\\nExample:\\n$1\\nwill become:\\n$2');
+innerHTML += "</div>";
+document.getElementById('search_form').innerHTML = '';
+document.getElementById('iconRow').innerHTML += '<td class="toolbarSize"></td>';
+
+document.getElementById('title').innerHTML += innerHTML;
 
 function addInfobox(infoText,text_alert) {
 	alertText=text_alert;
@@ -47,17 +55,18 @@ function addInfobox(infoText,text_alert) {
 
 	var re=new RegExp("\\\\n","g");
 	alertText=alertText.replace(re,"\n");
+        var returnString = "";
 
 	// if no support for changing selection, add a small copy & paste field
 	// document.selection is an IE-only property. The full toolbar works in IE and
 	// Gecko-based browsers.
 	if(!document.selection && !is_gecko && !is_modern_safari) {
  		infoText=escapeQuotesHTML(infoText);
-	 	document.write("<form name='infoform' id='infoform'>"+
+	 	returnString += "<form name='infoform' id='infoform'>"+
 			"<input size=80 id='infobox' name='infobox' value=\""+
-			infoText+"\" READONLY></form>");
+			infoText+"\" READONLY></form>";
  	}
-
+        return returnString;
 }
 
 
@@ -70,6 +79,7 @@ function addButton(imageFile, speedTip, tagOpen, tagClose, sampleText) {
 	tagClose=escapeQuotes(tagClose);
 	sampleText=escapeQuotes(sampleText);
 	var mouseOver="";
+        var buttonString="";
 
 	// we can't change the selection, so we show example texts
 	// when moving the mouse instead, until the first button is clicked
@@ -81,12 +91,12 @@ function addButton(imageFile, speedTip, tagOpen, tagClose, sampleText) {
 		mouseOver = "onMouseover=\"if(!noOverwrite){document.infoform.infobox.value='"+tagOpen+sampleText+tagClose+"'};\"";
 	}
 
-	document.write("<a href=\"javascript:insertTags");
-	document.write("('"+tagOpen+"','"+tagClose+"','"+sampleText+"');\">");
+	buttonString += "<a href=\"javascript:insertTags";
+	buttonString += "('"+tagOpen+"','"+tagClose+"','"+sampleText+"');\">";
 
-        document.write("<img src=\""+buttonRoot+"/"+imageFile+"\" border=\"0\" ALT=\""+speedTip+"\" TITLE=\""+speedTip+"\""+mouseOver+">");
-	document.write("</a>");
-	return;
+        buttonString += "<img src=\""+buttonRoot+"/"+imageFile+"\" border=\"0\" ALT=\""+speedTip+"\" TITLE=\""+speedTip+"\""+mouseOver+">";
+	buttonString += "</a>";
+	return buttonString;
 }
 
 function escapeQuotes(text) {
