@@ -17,7 +17,23 @@
    background-color: #555555;
 }
 
-.toolbarSize { width: 260px; }
+#toolbarWithInfo {
+   vertical-align: bottom;
+   float: right;
+   position: relative;
+   margin-right: 15pt;
+   top: -42px;
+}
+
+#toolbarWithInfo a {
+    margin: 1px;
+}
+
+#toolbarWithInfo a:hover {
+   background-color: #555555;
+}
+
+.toolbarSize { width: 232px; }
 
 div.tabArea {
   font-size: 11px;
@@ -203,9 +219,9 @@ a.smalltab.smallactiveTab, a.smalltab.smallactiveTab:hover, a.smalltab.smallacti
 }
 
 body {
-        margin:0;
-        padding:0;
-        font-family:  Verdana, sans-serif;
+    margin:0;
+    padding:0;
+    font-family:  Verdana, sans-serif;
     font-size: 13px;
     background: White;
     font-weight: normal;

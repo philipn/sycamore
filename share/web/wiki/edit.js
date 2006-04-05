@@ -32,7 +32,7 @@ if (clientPC.indexOf('opera')!=-1) {
 // Un-trap us from framesets
 if( window.top != window ) window.top.location = window.location;
 
-innerHTML = "<div id='toolbar'>";
+innerHTML = '';
 innerHTML += addButton('bold.png','Bold text','\'\'\'','\'\'\'','Bold text'); 
 innerHTML += addButton('italic.png','Italic text','\'\'','\'\'','Italic text');
 innerHTML += addButton('extlink.png','External link','[',']','http://www.example.com');
@@ -42,10 +42,19 @@ innerHTML += addButton('center.png','Center','-->','<--','');
 innerHTML += addButton('sig.png','Signature','',' --' + userPageLink,'');
 innerHTML += addButton('image.png','Attached image','\n[[Image(',')]]','photo.jpg');
 innerHTML += addButton('plain.png','Ignore wiki formatting','{{{','}}}','Insert non-formatted text here');
-innerHTML += addInfobox('Click a button to get an example text','Please enter the text you want to be formated.\\nIt will be shown in the info box for copy and pasting.\\nExample:\\n$1\\nwill become:\\n$2');
+
+infoBox = addInfobox('Click a button to get an example text','Please enter the text you want to be formated.\\nIt will be shown in the info box for copy and pasting.\\nExample:\\n$1\\nwill become:\\n$2');
+if (!infoBox) {
+  innerHTML = '<div id="toolbar">' + innerHTML;
+}
+else {
+  innerHTML = '<div id="toolbarWithInfo">' + innerHTML + infoBox;
+}
+
 innerHTML += "</div>";
-document.getElementById('search_form').innerHTML = '';
-document.getElementById('iconRow').innerHTML += '<td class="toolbarSize"></td>';
+
+document.getElementById('search_form').innerHTML = '&nbsp;';
+//document.getElementById('iconRow').innerHTML += '<td class="toolbarSize"></td>';
 
 document.getElementById('title').innerHTML += innerHTML;
 
@@ -62,8 +71,9 @@ function addInfobox(infoText,text_alert) {
 	// Gecko-based browsers.
 	if(!document.selection && !is_gecko && !is_modern_safari) {
  		infoText=escapeQuotesHTML(infoText);
-	 	returnString += "<form name='infoform' id='infoform'>"+
-			"<input size=80 id='infobox' name='infobox' value=\""+
+                returnString += '<div style="clear:right;"></div>';
+	 	returnString += "<form style=\"position: absolute; display:inline;\" name='infoform' id='infoform'>"+
+			"<input id='infobox' class=\"toolbarSize\" name='infobox' value=\""+
 			infoText+"\" READONLY></form>";
  	}
         return returnString;
@@ -209,4 +219,67 @@ function akeytt() {
         }
     }
 }
+// editor resizing. opera might not work?
+var agt=navigator.userAgent.toLowerCase(); 
+function sizeTextField(id,e)
+{
+  var rows = 0;
+  var t = document.getElementById(id);
+  set_rows = t.rows;
+  field_width = t.clientWidth; //with of textarea in px
 
+  if (e.type.toLowerCase() == 'keypress')
+  {
+    if (e.keyCode != 13) //13 is return key
+    {
+      return;
+    }
+    rows = 1;
+  }
+
+  var added_new_rows = false;
+  //if (e.type.toLowerCase() == 'keypress' || e.type.toLowerCase() == 'onload')
+  text_lines = t.value.split('\n');
+  for (x = 0; x < text_lines.length; x++)
+  {
+    text = text_lines[x];
+
+    var hidden_div = document.createElement("div");
+    hidden_div.setAttribute('style','visibility:hidden;font-size:110%;display:inline;white-space:nowrap;position:absolute;');
+    hidden_div.appendChild(document.createTextNode(text));
+    document.getElementById('content').appendChild(hidden_div);
+    total_char_width = hidden_div.clientWidth;
+    document.getElementById('content').removeChild(hidden_div);
+    if (total_char_width > field_width)
+    {
+      rows += Math.ceil(total_char_width/(field_width));
+      added_new_rows = true;
+    }
+    else
+    {
+      rows += 1;
+    }
+
+  }
+  if (rows > t.rows)
+  {
+    added_new_rows = true;
+  }
+  if (added_new_rows)
+  {
+    t.rows = rows + 3;
+  }
+  //scan through the textarea and calculate the total width of all characters.
+  //divide this by the width of the area to obtain the number of rows for the area, roughly.
+  
+  //convert width in px to number of columns (characters)
+  
+  //lines = t.value.split('\n');
+  //b=1;
+  //for (x = 0; x < lines.length; x++)
+  //  {
+  //    if (lines[x].length >= t.cols) b+= Math.floor(lines[x].length/t.cols);
+  //  }
+  //b+= lines.length;
+  //if (b > t.rows && agt.indexOf('opera') == -1) t.rows = b;
+}
