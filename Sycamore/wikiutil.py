@@ -1046,8 +1046,7 @@ def send_title(request, text, **keywords):
     request.write("</head>\n")
 
     # start the <body>
-    if page.exists(): bodyattr = ['onload="highlighter.highlight()"'] # don't want them to see search highlighting on the 'create this page' page
-    else: bodyattr = []
+    bodyattr = []
 
     if keywords.has_key('body_attr'):
         bodyattr.append(' %s' % keywords['body_attr'])

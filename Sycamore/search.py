@@ -1,4 +1,4 @@
-import sys, string, os.path, re
+import sys, string, os.path, re, time
 
 from Sycamore import config, wikiutil
 from Sycamore.Page import Page
@@ -135,8 +135,7 @@ if config.has_xapian:
       SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc, num_results)
   
       # load the databases
-      self.text_database = xapian.Database(
-          os.path.join(config.search_db_location, 'text'))
+      self.text_database = xapian.Database(xapian.remote_open('127.0.0.1', 3332))
       self.title_database = xapian.Database(
           os.path.join(config.search_db_location, 'title'))
   
@@ -175,12 +174,14 @@ if config.has_xapian:
       # processes the search
       enquire = xapian.Enquire(self.text_database)
       enquire.set_query(self.query)
+      t0 = time.time()
       matches = enquire.get_mset(self.p_start_loc, self.num_results+1)
+      t1 = time.time()
       for match in matches:
         title = match[xapian.MSET_DOCUMENT].get_value(0)
         page = Page(title, self.request)
         percentage = match[xapian.MSET_PERCENT]
-        data = match[xapian.MSET_DOCUMENT].get_data()
+        data = page.get_raw_body()
         search_item = searchResult(title, data, percentage, page)
         self.text_results.append(search_item)
   
@@ -191,7 +192,7 @@ if config.has_xapian:
         title = match[xapian.MSET_DOCUMENT].get_value(0)
         page = Page(title, self.request)
         percentage = match[xapian.MSET_PERCENT]
-        data = match[xapian.MSET_DOCUMENT].get_data()
+        data = page.page_name
         search_item = searchResult(title, data, percentage, page)
         self.title_results.append(search_item)
 
@@ -284,7 +285,7 @@ def index(page):
 
   text = page.page_name
   doc = xapian.Document()
-  doc.set_data(text)
+  #doc.set_data(text)
   _do_postings(doc, text, page.page_name, stemmer)
   database.replace_document("Q:%s" % page.page_name.lower(), doc)
 
@@ -294,7 +295,7 @@ def index(page):
 
   text = page.get_raw_body()
   doc = xapian.Document()
-  doc.set_data(text)
+  #doc.set_data(text)
   _do_postings(doc, text, page.page_name, stemmer)
   database.replace_document("Q:%s" % page.page_name.lower(), doc)
 

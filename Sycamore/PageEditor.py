@@ -130,6 +130,7 @@ class PageEditor(Page):
             pagename=self.page_name,
 	    link=link,
 	    strict_title='Editing "%s"' % self.page_name,
+            body_onload="sizeTextField('savetext',event);"
         )
         
         self.request.write('<div id="content">\n') # start content div
@@ -258,7 +259,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write('<input type="hidden" name="datestamp" value="%s">' % (repr(mtime)))
 
         # Print the editor textarea and the save button
-        self.request.write('<textarea id="savetext" name="savetext" rows="%d" cols="%d" style="width:100%%">%s</textarea>'
+        self.request.write("""<textarea id="savetext" onChange="sizeTextField('savetext',event);" onSelect="sizeTextField('savetext',event);" onPaste="sizeTextField('savetext',event);" onFocus="sizeTextField('savetext',event);" onKeyPress="sizeTextField('savetext',event);" onClick="sizeTextField('savetext',event);" name="savetext" rows="%d" cols="%d" style="width:100%%;">%s</textarea>"""
             % (text_rows, text_cols, wikiutil.escape(raw_body)))
 
        # tell them contents loaded from a template, if they were
