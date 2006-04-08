@@ -562,7 +562,10 @@ class Page(object):
         lang_attr = request.theme.content_lang_attr()
 	if self.hilite_re:
 		request.write('<table width="100%%"><tr><td align="right">[<strong class="highlight">%s</strong>]</td></tr></table>' % self.link_to(text="highlighting off"))
-        request.write('<div id="%s" %s class="wikipage">\n' % (content_id, lang_attr))
+        if not self.preview:
+          request.write('<div id="%s" class="%s wikipage" %s>\n' % (content_id, content_id, lang_attr))
+        else:
+          request.write('<div class="%s wikipage" %s>\n' % (content_id, lang_attr))
         
         # new page?
         if not self.exists() and not content_only and not self.prev_date:

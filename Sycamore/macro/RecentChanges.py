@@ -318,7 +318,7 @@ def execute(macro, args, formatter=None, **kw):
 
     # add rss link
     d['rc_rss_link'] = None
-    d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="/%s%sRecent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><a title="Recent Changes RSS Feed" href="/%s%sRecent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a>' % (config.relative_dir, add_on, config.relative_dir, add_on)
+    d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="/%s%sRecent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><div style="float:right;"><a title="Recent Changes RSS Feed" href="/%s%sRecent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (config.relative_dir, add_on, config.relative_dir, add_on)
         #img = request.theme.make_icon("rss")
         #d['rc_rss_link'] = macro.formatter.url(
         #    wikiutil.quoteWikiname(macro.formatter.page.page_name) + "?action=rss_rc",

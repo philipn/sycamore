@@ -133,7 +133,7 @@ class PageEditor(Page):
             body_onload="sizeTextField('savetext',event);"
         )
         
-        self.request.write('<div id="content">\n') # start content div
+        self.request.write('<div id="content" class="content">\n') # start content div
         
         # get request parameters
 	text_rows = None
@@ -214,10 +214,10 @@ Your changes were sucessfully merged!""" % conflict_msg)
             # "template" parameter contains the name of the template page
             template_page = wikiutil.unquoteWikiname(form['template'][0])
             raw_body = Page(template_page, self.request).get_raw_body()
-            if raw_body:
-                self.request.write(_("[Content of new page loaded from %s]") % (template_page,), '<br>')
-            else:
-                self.request.write(_("[Template %s not found]") % (template_page,), '<br>')
+            #if raw_body:
+            #    self.request.write('%s<br/>' % (_("[Content of new page loaded from %s]") % template_page))
+            #else:
+            #    self.request.write('%s<br/>' % (_("[Template %s not found]") % (template_page)))
         else:
             raw_body = self.get_raw_body()
 
@@ -234,7 +234,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	  
         self.request.write("<script type=\"text/javascript\" src=\"%s/wiki/edit.js\"></script>" % (config.web_dir))
         # send form
-        self.request.write('<form name="editform" method="post" action="%s/%s#preview">' % (
+        self.request.write('<form name="editform" id="editform" method="post" action="%s/%s#preview">' % (
             self.request.getScriptname(),
             wikiutil.quoteWikiname(self.page_name),
             ))
@@ -262,12 +262,12 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write("""<textarea id="savetext" onChange="sizeTextField('savetext',event);" onSelect="sizeTextField('savetext',event);" onPaste="sizeTextField('savetext',event);" onFocus="sizeTextField('savetext',event);" onKeyPress="sizeTextField('savetext',event);" onClick="sizeTextField('savetext',event);" name="savetext" rows="%d" cols="%d" style="width:100%%;">%s</textarea>"""
             % (text_rows, text_cols, wikiutil.escape(raw_body)))
 
-       # tell them contents loaded from a template, if they were
+       # make sure we keep the template notice on a resize of the editor
         template_param = ''
         if form.has_key('template'):
             template_param = '&amp;template=' + form['template'][0]
        # draw edit size links
-        self.request.write(_('<div class="pageEditInfo">editor size:'))
+        self.request.write(_('<div class="pageEditInfo" id="editorSize">editor size:'))
         self.request.write('<a href="%s&amp;rows=%d&amp;cols=60%s">%s</a>' % (
             base_uri, text_rows + 10, template_param, '+'))
         self.request.write(',<a href="%s&amp;rows=%s&amp;cols=60%s">%s</a>' % (
@@ -276,7 +276,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         self.request.write('</p>') # close textarea
 
-        self.request.write("""<div id="editComment"> %s<br><input type="text" class="formfields" name="comment" value="%s" size="%d" maxlength="80" style="width:100%%"></div>""" %
+        self.request.write("""<div id="editComment" id="editorResizeButtons"> %s<br><input type="text" class="formfields" name="comment" value="%s" size="%d" maxlength="80" style="width:100%%"></div>""" %
                 (_("<font size=\"+1\">Please comment about this change:</font>"), wikiutil.escape(kw.get('comment', ''), 1), text_cols))
 
         # category selection
@@ -383,6 +383,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.theme.emit_custom_html(config.page_footer1)
         self.request.theme.emit_custom_html(config.page_footer2)
 
+        self.request.write('</body></html>') 
 
     def sendCancel(self, newtext, datestamp):
         """

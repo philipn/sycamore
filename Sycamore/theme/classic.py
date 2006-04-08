@@ -656,11 +656,11 @@ class Theme(object):
         @return: recentchanges header html
         """
         _ = self.request.getText
-        html = '<div class="recentchanges" %s>\n' % self.ui_lang_attr()
-        html += '<table cellspacing="0" width="100%%"><tr>\n'
-        html += '<td>'
+
+        html = ['<div class="recentchanges" %s>\n<table cellspacing="0" width="100%%"><tr>\n<td>' % self.ui_lang_attr()]
+
         if d['rc_update_bookmark']:
-            html += "%(rc_update_bookmark)s %(rc_curr_bookmark)s<br>" % d
+            html.append("%(rc_update_bookmark)s %(rc_curr_bookmark)s<br>" % d)
         if d['rc_days']:
             days = []
             for day in d['rc_days']:
@@ -672,14 +672,14 @@ class Theme(object):
                             '%s?max_days=%d' % (d['q_page_name'], day),
                             str(day)))
             days = ' | '.join(days)
-            html += (_("Show all changes in the last %s days.") % (days,))
+            html.append((_("Show all changes in the last %s days.") % (days,)))
         if self.request.user.valid and d['show_comments_html']:
-            html += ' ' + d['show_comments_html']
+            html.append(' ' + d['show_comments_html'])
         if d['rc_rss_link']:
-            html += '</td><td align="right" width="30">%s\n' % d['rc_rss_link']
-        html += '</td></tr>\n</div>\n'
-        html += '<table>\n'
-        return html
+            html.append('<td><td align="right" width="30">%s\n' % d['rc_rss_link'])
+
+        html.append('</td></tr>\n</div>\n<table>\n')
+        return ''.join(html)
 
     def recentchanges_footer(self, d):
         """

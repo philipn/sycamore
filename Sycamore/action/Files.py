@@ -344,7 +344,7 @@ def upload_form(pagename, request, msg=''):
 
     request.http_headers()
     wikiutil.simple_send_title(request, pagename, msg=msg, strict_title='Images for "%s"' % pagename)
-    request.write('<div id="content">')
+    request.write('<div id="content" class="content">')
     send_uploadform(pagename, request)
     request.write('</div></div>')
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
@@ -651,7 +651,7 @@ def view_file(pagename, request):
     wikiutil.simple_send_title(request, pagename, strict_title='Image \'%s\' on "%s"' % (filename, pagename))
 
     # send body
-    request.write('<div id="content">')
+    request.write('<div id="content" class="content">')
     InfoBar(request, pagename).render()
     request.write('<div id="tabPage">')
 
@@ -678,7 +678,7 @@ def show_deleted_images(pagename, request):
     wikiutil.simple_send_title(request, pagename, strict_title='Deleted images for "%s"' % pagename)
 
     # send body
-    request.write('<div id="content">')
+    request.write('<div id="content" class="content">')
     InfoBar(request, pagename).render()
     request.write('<div id="tabPage">')
 

@@ -378,7 +378,7 @@ class Theme(ThemeBase):
 	          else:
 	            html.append('<td align="left" width="24%">')
 	        else:
-	            html.append('<td align="left" width="50%">')
+	            html.append('<td align="left" width="10%">')
                 if editable:
 		    actions_in_footer = True
                     html.append("%s" % (
@@ -582,7 +582,7 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 	# I guess this is probably the best place for this now
 	self.request.user.checkFavorites(d['page_name'])
 
-	return self.edittext_link(d, **keywords)
+	return "%s<br/>" % self.edittext_link(d, **keywords)
         
 def execute(request):
     """
