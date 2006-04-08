@@ -9,12 +9,13 @@
    top: -26px;
 }
 
-#toolbar a {
+#toolbar a img {
     margin: 1px;
+    border-bottom: 1px solid #ccddff;
 }
 
-#toolbar a:hover {
-   background-color: #555555;
+#toolbar a img:hover {
+   border-bottom: 1px solid #555555;
 }
 
 #toolbarWithInfo {
@@ -372,7 +373,7 @@ span.actionBoxSelected { border: none !important;
      list-style-type: none;
      border-bottom: none;}
 
-#tabmenu li.active { border-bottom: 1pt solid white !important; }
+#tabmenu li.active { border-bottom: 1.1pt solid white !important; }
 
 #tabmenu li a { text-decoration: none; }
 
@@ -417,12 +418,14 @@ div.textSearchResult { width: 70%; }
 #logo_text { font-size: 28pt; color: white !important; text-decoration: none !important; padding-left: 8pt; }
 a.nostyle { text-decoration: none !important; }
 
-#content {
+.content {
         margin-top: 10px;
         margin-left: 10px;
         margin-right: 10px;
         margin-bottom: 20px;
 }
+
+# content {}
 
 #title {
         background: #ccddff;

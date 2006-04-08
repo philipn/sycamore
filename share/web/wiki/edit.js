@@ -7,6 +7,7 @@ var is_gecko = ((clientPC.indexOf('gecko')!=-1) && (clientPC.indexOf('spoofer')=
                 && (clientPC.indexOf('khtml') == -1) && (clientPC.indexOf('netscape/7.0')==-1));
 var is_safari = ((clientPC.indexOf('applewebkit')!=-1) && (clientPC.indexOf('spoofer')==-1));
 var is_modern_safari = false;
+var can_alter_textarea = true;
 
 if (is_safari) {
 // Figure out if it's a new version of Safari or not
@@ -75,6 +76,7 @@ function addInfobox(infoText,text_alert) {
 	 	returnString += "<form style=\"position: absolute; display:inline;\" name='infoform' id='infoform'>"+
 			"<input id='infobox' class=\"toolbarSize\" name='infobox' value=\""+
 			infoText+"\" READONLY></form>";
+                can_alter_textarea = false;
  	}
         return returnString;
 }
@@ -104,7 +106,7 @@ function addButton(imageFile, speedTip, tagOpen, tagClose, sampleText) {
 	buttonString += "<a href=\"javascript:insertTags";
 	buttonString += "('"+tagOpen+"','"+tagClose+"','"+sampleText+"');\">";
 
-        buttonString += "<img src=\""+buttonRoot+"/"+imageFile+"\" border=\"0\" ALT=\""+speedTip+"\" TITLE=\""+speedTip+"\""+mouseOver+">";
+        buttonString += "<img src=\""+buttonRoot+"/"+imageFile+"\" ALT=\""+speedTip+"\" TITLE=\""+speedTip+"\""+mouseOver+">";
 	buttonString += "</a>";
 	return buttonString;
 }
@@ -219,6 +221,39 @@ function akeytt() {
         }
     }
 }
+
+function findPosX(obj)
+{
+    var curleft = 0;
+    if (obj.offsetParent)
+    {
+        while (obj.offsetParent)
+        {
+            curleft += obj.offsetLeft
+            obj = obj.offsetParent;
+        }
+    }
+    else if (obj.x)
+        curleft += obj.x;
+    return curleft;
+}
+
+function findPosY(obj)
+{
+    var curtop = 0;
+    if (obj.offsetParent)
+    {
+        while (obj.offsetParent)
+        {
+            curtop += obj.offsetTop
+            obj = obj.offsetParent;
+        }
+    }
+    else if (obj.y)
+        curtop += obj.y;
+    return curtop;
+}
+
 // editor resizing. opera might not work?
 var agt=navigator.userAgent.toLowerCase(); 
 function sizeTextField(id,e)
@@ -230,7 +265,7 @@ function sizeTextField(id,e)
 
   if (e.type.toLowerCase() == 'keypress')
   {
-    if (e.keyCode != 13) //13 is return key
+    if (e.keyCode != 13 || e.which != 13) //13 is return key
     {
       return;
     }
@@ -238,7 +273,6 @@ function sizeTextField(id,e)
   }
 
   var added_new_rows = false;
-  //if (e.type.toLowerCase() == 'keypress' || e.type.toLowerCase() == 'onload')
   text_lines = t.value.split('\n');
   for (x = 0; x < text_lines.length; x++)
   {
@@ -265,21 +299,38 @@ function sizeTextField(id,e)
   {
     added_new_rows = true;
   }
+
   if (added_new_rows)
   {
-    t.rows = rows + 3;
+    t.rows = rows + 4;
   }
-  //scan through the textarea and calculate the total width of all characters.
-  //divide this by the width of the area to obtain the number of rows for the area, roughly.
-  
-  //convert width in px to number of columns (characters)
-  
-  //lines = t.value.split('\n');
-  //b=1;
-  //for (x = 0; x < lines.length; x++)
-  //  {
-  //    if (lines[x].length >= t.cols) b+= Math.floor(lines[x].length/t.cols);
-  //  }
-  //b+= lines.length;
-  //if (b > t.rows && agt.indexOf('opera') == -1) t.rows = b;
+  else if ((t.rows - rows) < 3)
+  {
+     t.rows +=1 ;
+  }
+
+  if (e.type.toLowerCase() == 'load')
+  {
+    if (can_alter_textarea)
+    {
+      document.getElementById('editform').removeChild(document.getElementById('editorSize'));
+      document.write('<html>'+document.getElementById('editorSize').innerHTML+'</html>');
+    }
+
+    // make sure we scroll attention to the preview area
+    if (document.getElementById('preview').innerHTML)
+    {
+      if (is_safari)
+      {
+        // Safari (last checked 2.0.3) has an 'never stops loading' issue when doing window.location.href = '#stuff'
+        goto_location_x = findPosX(document.getElementById('preview'));
+        goto_location_y = findPosY(document.getElementById('preview'));
+        window.scrollTo(goto_location_x, goto_location_y);
+      }
+      else {
+        window.location.href = '#preview';
+      }
+    }
+  }
+
 }
