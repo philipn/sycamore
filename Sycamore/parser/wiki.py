@@ -829,8 +829,9 @@ class Parser:
 
     def _macro_repl(self, word):
         """Handle macros ([[macroname]])."""
-        macro_name = word[2:-2]
-        #self.inhibit_p = 1 # fixes UserPreferences, but makes new trouble!
+        macro_name = word[2:-2].lower()
+	
+	#self.inhibit_p = 1 # fixes UserPreferences, but makes new trouble!
 
         # check for arguments
         args = None
@@ -964,9 +965,9 @@ class Parser:
         if config.allow_numeric_entities:
             rules = r'(?P<ent_numeric>&#\d{1,5};)|' + rules
 
-        scan_re = re.compile(rules)
-        number_re = re.compile(self.ol_rule)
-        term_re = re.compile(self.dl_rule)
+        scan_re = re.compile(rules,re.IGNORECASE)
+        number_re = re.compile(self.ol_rule,re.IGNORECASE)
+        term_re = re.compile(self.dl_rule,re.IGNORECASE)
         indent_re = re.compile("^\s*")
         eol_re = re.compile(r'\r?\n')
 
