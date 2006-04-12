@@ -2,28 +2,31 @@
 
 /* content styles */
 #toolbar {
-   vertical-align: bottom;
-   float: right;
-   position: relative;
    margin-right: 15pt;
-   top: -26px;
+   text-align: right;
+   vertical-align: bottom;
+   white-space: nowrap;
 }
 
 #toolbar a img {
     margin: 1px;
     border-bottom: 1px solid #ccddff;
+    _border-bottom: 0px;
 }
 
 #toolbar a img:hover {
    border-bottom: 1px solid #555555;
+   _border-bottom: 0px;
 }
 
+.toolbarPaddingStart { padding-left: 10px; }
+.toolbarPaddingEnd { padding-right: 2px; }
+
 #toolbarWithInfo {
-   vertical-align: bottom;
-   float: right;
-   position: relative;
    margin-right: 15pt;
-   top: -42px;
+   text-align: right;
+   vertical-align: bottom;
+   white-space: nowrap;
 }
 
 #toolbarWithInfo a {
@@ -34,7 +37,7 @@
    background-color: #555555;
 }
 
-.toolbarSize { width: 232px; }
+.toolbarSize { width: 234px; font-size: 4px;}
 
 div.tabArea {
   font-size: 11px;
@@ -46,6 +49,8 @@ div.tabArea {
 #tabPage {
   border: 1pt solid #CCC;
   border-bottom: 1px solid #CCC !important;
+  position: relative;
+  z-index: 0;
   padding: 4pt 5pt 4pt 5pt;
 }
 
@@ -184,7 +189,16 @@ a.smalltab:hover {
   color: #000088;
 }
 
-#search_form { white-space: nowrap; float: right; vertical-align: middle; padding: 0; margin: 5pt 2pt 4pt 13pt;}
+#search_form { 
+margin: 5pt 2pt 4pt 13pt;
+vertical-align: middle;
+text-align: right;
+white-space: nowrap;
+}
+
+#search_form form {
+padding-left: 10px;
+}
 
 a.smalltab.smallactiveTab, a.smalltab.smallactiveTab:hover, a.smalltab.smallactiveTab:visited {
   font-size: 10px;
@@ -240,7 +254,22 @@ h1 a, h2 a, h3 a{
 text-decoration: none;
 }
 
+.editBarIcon
+{
+  height: 24px;
+  width: 24px;
+}
+
 td { padding: 1pt; } 
+
+#iconRow td.pageIcon
+{
+  padding-right: 10px;
+}
+#iconRow td.pageIconSelected
+{
+  padding-right: 10px;
+}
 
 td.pageIcon { font-size: 7pt;
 text-align: center;
@@ -368,14 +397,17 @@ span.actionBoxSelected { border: none !important;
 #tabmenu li {
      display: inline;
      overflow: hidden;
+     margin-right: 2pt; 
      border: 1px solid #CCC;
-     padding: 2pt 5pt 0 5pt;
+     padding: 2pt 4pt 0 5pt;
      list-style-type: none;
+     position: relative;
+     z-index: 1;
      border-bottom: none;}
 
-#tabmenu li.active { border-bottom: 1.1pt solid white !important; }
+#tabmenu li.active { border-bottom: 1.1pt solid white !important; padding-top: 2pt;}
 
-#tabmenu li a { text-decoration: none; }
+#tabmenu li a { text-decoration: none; padding-top: 0pt;}
 
 pre {
         border: 1px solid #CBCBCB;
@@ -430,18 +462,21 @@ a.nostyle { text-decoration: none !important; }
 #title {
         background: #ccddff;
         border-bottom: 1px dashed #AAAAAA;
-        padding-top: 4pt;
-        padding-bottom: 4pt;
+        padding-top: 2pt;
+        padding-bottom: 2pt;
+	vertical-align: middle;
+	width: 100%;
 }
-
+#title_area_table { width: 100%; }
 #title h1 {
         margin: 0;
         margin-left: 10px;
         font-size: 160%;
 }
+#title td { padding: 3pt 0 3pt 0; } 
 
-#title_text { vertical-align: middle; height: 30pt; }
-#title_text td { vertical-align: middle;}
+#title_text { vertical-align: middle; height: 30pt; } 
+#title_text td { vertical-align: middle; }
 td.user_banner { height: 70px; }
 
 td.user_banner table { margin: 5px !important; }
@@ -702,15 +737,12 @@ div.preview {
 }
 
 #editArea {
-  position: relative;
-  top: -11px;
 }
 #editComment { margin-top: 2px; }
 #editButtonRow {
    border: 0;
    padding: 0;
-   position: relative;
-   top: -4px;
+   margin-top: 4px;
 }
 
 div.editInfo { margin-top: 10pt; }

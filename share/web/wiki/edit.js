@@ -33,31 +33,57 @@ if (clientPC.indexOf('opera')!=-1) {
 // Un-trap us from framesets
 if( window.top != window ) window.top.location = window.location;
 
-innerHTML = '';
-innerHTML += addButton('bold.png','Bold text','\'\'\'','\'\'\'','Bold text'); 
-innerHTML += addButton('italic.png','Italic text','\'\'','\'\'','Italic text');
-innerHTML += addButton('extlink.png','External link','[',']','http://www.example.com');
-innerHTML += addButton('head.png','Headline','\n= ',' =\n','Headline text');
-innerHTML += addButton('hline.png','Horizontal line (use sparingly)','\n-----\n','','');
-innerHTML += addButton('center.png','Center','-->','<--','');
-innerHTML += addButton('sig.png','Signature','',' --' + userPageLink,'');
-innerHTML += addButton('image.png','Attached image','\n[[Image(',')]]','photo.jpg');
-innerHTML += addButton('plain.png','Ignore wiki formatting','{{{','}}}','Insert non-formatted text here');
+toolbar_td = document.createElement('td');
+toolbar_innerHTML = '';
+toolbar_innerHTML += '<span class="toolbarPaddingStart"></span>';
+toolbar_innerHTML += addButton('bold.png','Bold text','\'\'\'','\'\'\'','Bold text'); 
+toolbar_innerHTML += addButton('italic.png','Italic text','\'\'','\'\'','Italic text');
+toolbar_innerHTML += addButton('extlink.png','External link','[',']','http://www.example.com');
+toolbar_innerHTML += addButton('head.png','Headline','\n= ',' =\n','Headline text');
+toolbar_innerHTML += addButton('hline.png','Horizontal line (use sparingly)','\n-----\n','','');
+toolbar_innerHTML += addButton('center.png','Center','-->','<--','');
+toolbar_innerHTML += addButton('sig.png','Signature','',' --' + userPageLink,'');
+toolbar_innerHTML += addButton('image.png','Attached image','\n[[Image(',')]]','photo.jpg');
+toolbar_innerHTML += addButton('plain.png','Ignore wiki formatting','{{{','}}}','Insert non-formatted text here');
 
 infoBox = addInfobox('Click a button to get an example text','Please enter the text you want to be formated.\\nIt will be shown in the info box for copy and pasting.\\nExample:\\n$1\\nwill become:\\n$2');
+
+toolbar_innerHTML += '<span class="toolbarPaddingEnd"></span>';
 if (!infoBox) {
-  innerHTML = '<div id="toolbar">' + innerHTML;
+  toolbar_td.setAttribute('id', 'toolbar');
+  toolbar_td.innerHTML = toolbar_innerHTML;
 }
 else {
-  innerHTML = '<div id="toolbarWithInfo">' + innerHTML + infoBox;
+  toolbar_td.setAttribute('id', 'toolbarWithInfo');
+  toolbar_td.innerHTML = toolbar_innerHTML + infoBox;
 }
 
-innerHTML += "</div>";
-
-document.getElementById('search_form').innerHTML = '&nbsp;';
+//toolbar_padding = document.createElement('td');
+//toolbar_padding.className = 'toolbarSize';
+//toolbar_padding.innerHTML = '&nbsp;';
+//document.getElementById('iconRow').appendChild(toolbar_padding);
 //document.getElementById('iconRow').innerHTML += '<td class="toolbarSize"></td>';
+title_element = document.getElementById('title');
+title_body = title_element.getElementsByTagName("tbody").item(0);
+title_row = title_body.getElementsByTagName("tr").item(0);
+//document.getElementById('search_form').innerHTML = '&nbsp;';
+title_row.removeChild(document.getElementById('search_form'));
+title_row.appendChild(toolbar_td);
 
-document.getElementById('title').innerHTML += innerHTML;
+//title_element.innerHTML += toolbar_innerHTML;
+//title_element.appendChild(document.createTextNode(toolbar_innerHTML));
+//title_element.appendChild(document.createTextNode(toolbar_innerHTML));
+//title_height = document.getElementById('title').offsetHeight + 10;
+//title_text_parent = ((document.getElementById('title_text')).offsetParent);
+//title_height = title_text_parent.offsetHeight;
+
+//toolbar_div = document.getElementById(toolbar_id);
+//try {
+//  toolbar_div.style.cssText('top: '+title_height+'px;');
+//}
+//catch (e) {
+//  toolbar_div.setAttribute('style', 'top: '+title_height+'px;');
+//}
 
 function addInfobox(infoText,text_alert) {
 	alertText=text_alert;
@@ -74,7 +100,7 @@ function addInfobox(infoText,text_alert) {
  		infoText=escapeQuotesHTML(infoText);
                 returnString += '<div style="clear:right;"></div>';
 	 	returnString += "<form style=\"position: absolute; display:inline;\" name='infoform' id='infoform'>"+
-			"<input id='infobox' class=\"toolbarSize\" name='infobox' value=\""+
+			"<input id='infobox' style=\"margin-top: 1px;\" class=\"toolbarSize\" name='infobox' value=\""+
 			infoText+"\" READONLY></form>";
                 can_alter_textarea = false;
  	}
@@ -106,7 +132,7 @@ function addButton(imageFile, speedTip, tagOpen, tagClose, sampleText) {
 	buttonString += "<a href=\"javascript:insertTags";
 	buttonString += "('"+tagOpen+"','"+tagClose+"','"+sampleText+"');\">";
 
-        buttonString += "<img src=\""+buttonRoot+"/"+imageFile+"\" ALT=\""+speedTip+"\" TITLE=\""+speedTip+"\""+mouseOver+">";
+        buttonString += "<img src=\""+buttonRoot+"/"+imageFile+"\" ALT=\""+speedTip+"\" TITLE=\""+speedTip+"\""+mouseOver+" class=\"editBarIcon\" style=\"behavior: url('" + urlPrefix + "/pngbehavior.htc');\">";
 	buttonString += "</a>";
 	return buttonString;
 }
@@ -279,7 +305,13 @@ function sizeTextField(id,e)
     text = text_lines[x];
 
     var hidden_div = document.createElement("div");
-    hidden_div.setAttribute('style','visibility:hidden;font-size:110%;display:inline;white-space:nowrap;position:absolute;');
+    try {
+      hidden_div.style.cssText('visibility:hidden;font-size:110%;display:inline;white-space:nowrap;position:absolute;');
+    }
+    catch (e)
+    {
+      hidden_div.setAttribute('style','visibility:hidden;font-size:110%;display:inline;white-space:nowrap;position:absolute;');
+    }
     hidden_div.appendChild(document.createTextNode(text));
     document.getElementById('content').appendChild(hidden_div);
     total_char_width = hidden_div.clientWidth;
@@ -314,23 +346,28 @@ function sizeTextField(id,e)
     if (can_alter_textarea)
     {
       document.getElementById('editform').removeChild(document.getElementById('editorSize'));
-      document.write('<html>'+document.getElementById('editorSize').innerHTML+'</html>');
     }
 
     // make sure we scroll attention to the preview area
-    if (document.getElementById('preview').innerHTML)
-    {
-      if (is_safari)
+    try {
+      if (document.getElementById('preview'))
       {
-        // Safari (last checked 2.0.3) has an 'never stops loading' issue when doing window.location.href = '#stuff'
-        goto_location_x = findPosX(document.getElementById('preview'));
-        goto_location_y = findPosY(document.getElementById('preview'));
-        window.scrollTo(goto_location_x, goto_location_y);
-      }
-      else {
-        window.location.href = '#preview';
-      }
+        if (is_safari)
+        {
+          // Safari (last checked 2.0.3) has an 'never stops loading' issue when doing window.location.href = '#stuff'
+          goto_location_x = findPosX(document.getElementById('preview'));
+          goto_location_y = findPosY(document.getElementById('preview'));
+          window.scrollTo(goto_location_x, goto_location_y);
+        }
+        else {
+          window.location.href = '#preview';
+        }
+      } 
     }
+   catch (e)
+   {
+
+   }
   }
 
 }

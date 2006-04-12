@@ -3,6 +3,7 @@
 /* content styles */
 
 html {
+	height: 100%;
 	margin:0;
 	padding:0;
 	background-color: white;
@@ -45,6 +46,11 @@ li.gap {
 dt {
     font-weight: normal;
 }
+
+img.transparentImg
+{
+ behavior: url("/wiki/pngbehavior.htc"); 
+}
     
 a img {
 	border: 0;
@@ -56,6 +62,7 @@ a img.border {
 
 img {
 	border: 1px solid #000000;
+        behavior: url("pngbehavior.htc");
 }
 img.photo {
 	border: 2px solid #ff0000;
@@ -94,9 +101,6 @@ pre {
     white-space: pre-wrap;
     width: auto;
     overflow: auto;
-}
-
-#content {
 }
 
 .footnotes ul {
