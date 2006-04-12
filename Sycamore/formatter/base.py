@@ -161,6 +161,7 @@ class FormatterBase:
     
     def macro(self, macro_obj, name, args):
         # call the macro
+	name = name.lower()
         return macro_obj.execute(name, args, formatter=self) 
 
     def processor(self, processor_name, lines):

@@ -132,7 +132,7 @@ class Macro:
         else:
             return ["time"]
 
-    def _macro_TitleSearch(self, args, formatter=None):
+    def _macro_titlesearch(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         return self._m_search("titlesearch")
 
@@ -157,7 +157,7 @@ class Macro:
             '<input type="submit" value="%s">'
             '%s</form>') % (type, wikiutil.escape(default, quote=1), _("Go"), boxes))
 
-    def _macro_GoTo(self, args, formatter=None):
+    def _macro_goto(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         
         _ = self._
@@ -165,7 +165,7 @@ class Macro:
         <input type="submit" value="%s">
         </form>""" % _("Go"))
 
-    def _macro_WordIndex(self, args, formatter=None):
+    def _macro_wordindex(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         """
         index_letters = []
@@ -218,7 +218,7 @@ class Macro:
         return 'Word Index has been disabled.'
 
     
-    def _macro_TitleIndex(self, args, formatter=None):
+    def _macro_titleindex(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         """
         import hotshot, hotshot.stats 
@@ -279,7 +279,7 @@ class Macro:
 #return 'Temporarily disabled.'
 
 
-    def _macro_InterWiki(self, args, formatter=None):
+    def _macro_interwiki(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         from cStringIO import StringIO
 
@@ -302,7 +302,7 @@ class Macro:
         return self.formatter.rawHTML(buf.getvalue())
 
 
-    def _macro_SystemInfo(self, args):
+    def _macro_systeminfo(self, args):
 	"""
         import operator, sys
         from cStringIO import StringIO
@@ -364,18 +364,18 @@ class Macro:
 	return self.formatter.rawHTML('<i>System Info macro is turned off.  It uses too much CPU to be actively used, so if you\'re an admin and want to use it for a minute, then edit wikimacro.py and turn it on.  Otherwise, leave it off! :)</i>')
 
 
-    def _macro_PageCount(self, args, formatter=None):
+    def _macro_pagecount(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         return formatter.text("%d" % (len(wikiutil.getPageList(self.request)),))
 
 
-    def _macro_Icon(self, args, formatter=None):
+    def _macro_icon(self, args, formatter=None):
         if not formatter: formatter = self.formatter
 	self.request.formatter = formatter
         icon = args.lower()
         return self.request.theme.make_icon(icon, actionButton=True)
 
-    def _macro_PageList(self, args, formatter=None):
+    def _macro_pagelist(self, args, formatter=None):
         import re
         if not formatter: formatter = self.formatter
         _ = self._
@@ -435,25 +435,25 @@ class Macro:
                     _("Bad timestamp '%s'") % (args,), e)
         return format_date(tm)
 
-    def _macro_Date(self, args, formatter=None):
+    def _macro_date(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         return self.__get_Date(args, self.request.user.getFormattedDate)
 
-    def _macro_DateTime(self, args, formatter=None):
+    def _macro_datetime(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         return self.__get_Date(args, self.request.user.getFormattedDateTime)
 
 
-    def _macro_UserPreferences(self, args, formatter=None):
+    def _macro_userpreferences(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         from Sycamore import userform
         return formatter.rawHTML(userform.getUserForm(self.request))
 
-    def _macro_Anchor(self, args, formatter=None):
+    def _macro_anchor(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         return formatter.anchordef(args or "anchor")
 
-    def _macro_MailTo(self, args, formatter=None):
+    def _macro_mailto(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         from Sycamore.util.mail import decodeSpamSafeEmail
 
@@ -486,7 +486,7 @@ class Macro:
         return result
 
 
-    def _macro_GetVal(self, args, formatter=None):
+    def _macro_getval(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         page,key = args.split(',')
         d = self.request.dicts.dict(page)
