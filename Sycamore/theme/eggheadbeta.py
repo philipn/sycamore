@@ -62,17 +62,15 @@ class Theme(ThemeBase):
       if editable:
         if self.isEdit(): status = 'Selected'
 	else: status = ''
-        return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
-	   '<img class="borderless" src="%s" hspace="8" alt="edit"/><br/>Edit'
-	      % self.img_url('edit.png')))
+	return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
+	   '%s<br/>Edit' % self.make_icon('edit', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
       else:  return ''
 
     def infoicon(self, d):
        if self.isInfo(): status = 'Selected' 
        else: status = ''
        return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info',
-	   '<img class="borderless" src="%s" hspace="8" alt="info"/><br/>Info'
-	      % self.img_url('info.png')))
+	   '%s<br/>Info' % self.make_icon('info', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
 
     def is_talk_page(self, d):
        if len(d['page_name']) >= 5:
@@ -86,21 +84,18 @@ class Theme(ThemeBase):
         if self.is_talk_page(d):
 	   article_name = d['page_name'][:len(d['page_name'])-5]
 	   return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(article_name),
-	   '<img class="borderless" src="%s" hspace="8" alt="article"/><br/>Article'
-	      % self.img_url('article.png')))
+	   '%s<br/>Article' % self.make_icon('article', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
 	else:
 	  talk_page = Page(d['page_name']+'/Talk', self.request)
 	  if talk_page.exists():
 	    return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-	     '<img class="borderless" src="%s" hspace="8" alt="talk"/><br/>Talk'
-	      % self.img_url('talk.png')))
+	   '%s<br/>Talk' % self.make_icon('talk', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
 	  else:
 	    # if the viewer can't edit the talk page, let's spare them from looking at a useless link to an empty page:
 	    if not self.request.user.may.edit(talk_page):
 	      return ''
-	    return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-	     '<img class="borderless" src="%s" hspace="8" alt="talk"/><br/>Talk'
-	      % self.img_url('talk.png')))
+ 	    return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
+	   '%s<br/>Talk' % self.make_icon('talk', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
 
 
     def mapicon(self, d):
@@ -127,7 +122,7 @@ class Theme(ThemeBase):
 </div>' % d['polite_msg']
             else:
                 polite_html = ''
-            html.append('<h1 style="clear: none; float: left;"><a title="%s" href="%s">%s</a></h1>%s' % (
+            html.append('<td id="title_text"><h1><a title="%s" href="%s">%s</a></h1>%s</td>' % (
                 _('Click here for information about links to and from this page.'),
                 d['title_link'],
                 wikiutil.escape(d['title_text']), polite_html))
@@ -509,14 +504,18 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 %(navbar_html)s
 </div>
 <div id="title">
-<div id="search_form">
-%(search_form_html)s
-</div>
-<table>
-<tr id="iconRow"><td id="title_text">
+<table id="title_area_table">
+<tr>
+<td>
+<table id="title_table">
+<tr id="iconRow">
 %(title_html)s
+</tr></table>
 </td>
-</td></tr></table></div>
+<td id="search_form">
+%(search_form_html)s
+</td>
+</tr></table></div>
 %(config_header2_html)s
 %(applet_html)s
 %(msg_html)s

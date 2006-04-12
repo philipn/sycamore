@@ -30,8 +30,10 @@ class Theme(object):
         'help':       ("%(page_help_contents)s", "moin-help.png",   12, 11),
         'find':       ("%(page_find_page)s",     "moin-search.png", 12, 12),
         'diff':       ("Diffs",                  "moin-diff.png",   47, 15),
-        'info':       ("Info",                   "moin-info.png",   12, 11),
-        'edit':       ("Edit",                   "moin-edit.png",   27, 15),
+        'info':       ("Info",                   "info.png",   24, 24),
+        'edit':       ("Edit",                   "edit.png",   24, 24),
+        'talk':       ("Talk",                   "talk.png",   24, 24),
+        'article':    ("Article",             "article.png",   24, 24),
         'unsubscribe':("Unsubscribe",            "moin-unsubscribe.png",  14, 10),
         'subscribe':  ("Subscribe",              "moin-subscribe.png",14, 10),
         'raw':        ("Raw",                    "moin-raw.png",    12, 13),
@@ -208,7 +210,7 @@ class Theme(object):
                 ret = ("", icon, "", "")
         return (ret[0], self.img_url(ret[1])) + ret[2:]
    
-    def make_icon(self, icon, vars=None, actionButton=False):
+    def make_icon(self, icon, vars=None, actionButton=False, style=None):
         """
         This is the central routine for making <img> tags for icons!
         All icons stuff except the top left logo, smileys and search
@@ -232,14 +234,21 @@ class Theme(object):
 	    if actionButton: 
               tag = self.request.formatter.image(html_class="actionButton", src=img, alt=alt, width=w, height=h)
 	    else:
-              tag = self.request.formatter.image(html_class="borderless", src=img, alt=alt, width=w, height=h)
+    	      if style:
+                tag = self.request.formatter.image(html_class="borderless", src=img, alt=alt, width=w, height=h, style=style)
+	      else: 
+                tag = self.request.formatter.image(html_class="borderless", src=img, alt=alt, width=w, height=h)
         except AttributeError: # XXX FIXME if we have no formatter or no request 
             if actionButton:
 	      tag = '<img class="actionButton" src="%s" alt="%s" width="%s" height="%s">' % (
                 img, alt, w, h)
 	    else: 
-	      tag = '<img class="borderless" src="%s" alt="%s" width="%s" height="%s">' % (
-                img, alt, w, h)
+              if style:
+	        tag = '<img class="borderless" src="%s" alt="%s" width="%s" height="%s" style="%s">' % (
+                  img, alt, w, h, style)
+	      else:
+	        tag = '<img class="borderless" src="%s" alt="%s" width="%s" height="%s" style="%s">' % (
+                  img, alt, w, h, style)
 
         return tag
 
