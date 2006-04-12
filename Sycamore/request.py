@@ -780,10 +780,11 @@ class RequestWSGI(RequestBase):
 
     def getScriptname(self):
         """ Return the scriptname part of the URL ('/path/to/my.cgi'). """
-        name = self.script_name
-        if name == '/':
-            return ''
-        return name
+        return config.relative_dir
+        #name = self.script_name
+        #if name == '/':
+        #    return ''
+        #return name
 
 
     def getPathinfo(self):
