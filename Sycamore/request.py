@@ -84,7 +84,7 @@ class RequestBase(object):
             self.theme = wikiutil.importPlugin('theme', theme_name)(self)
 
         self.args = None
-        self.form = None
+        self.form = {}
         self.logger = None
         self.pragma = {}
         self.mode_getpagelinks = 0
@@ -780,7 +780,7 @@ class RequestWSGI(RequestBase):
 
     def getScriptname(self):
         """ Return the scriptname part of the URL ('/path/to/my.cgi'). """
-        return config.relative_dir
+	return config.relative_dir
         #name = self.script_name
         #if name == '/':
         #    return ''

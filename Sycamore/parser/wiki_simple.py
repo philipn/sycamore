@@ -699,7 +699,7 @@ class Parser:
 
     def _macro_repl(self, word):
         """Handle macros ([[macroname]])."""
-        macro_name = word[2:-2]
+        macro_name = word[2:-2].lower()
         #self.inhibit_p = 1 # fixes UserPreferences, but makes new trouble!
 
         # check for arguments
