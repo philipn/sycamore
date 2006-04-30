@@ -95,10 +95,11 @@ def _fixArgs(args):
     # is args a sequence?
     #if type(args) == type([]) or type(args) == type((1,)):
     #  args = map(fixValue, args)
+    new_args = {}
     for k, v in args.iteritems():
-      args[k] = fixValue(v) 
+      new_args[k] = fixValue(v) 
         
-    return args
+    return new_args
 
 def _floatToString(f):
   # converts a float to the proper length of double that mysql uses.
@@ -148,25 +149,26 @@ def getImage(request, dict, deleted=False, thumbnail=False, version=0):
   """
   from Sycamore.wikiutil import quoteFilename
   image_obj = False
+  dict['page_name'] = dict['page_name'].lower()
 
   # let's assemble the query and key if we use memcache
   if not deleted and not thumbnail and not version:
     if config.memcache:
-      key = "images:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']).lower())
+      key = "images:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']))
     query = "SELECT image, uploaded_time from images where name=%(filename)s and attached_to_pagename=%(page_name)s"
   elif thumbnail:
     if config.memcache:
-      key = "thumbnails:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']).lower())
+      key = "thumbnails:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']))
     query = "SELECT image, last_modified from thumbnails where name=%(filename)s and attached_to_pagename=%(page_name)s"
   elif deleted:
     if not version:
       # default behavior is to grab the latest backup version of the image
       if config.memcache:
-        key = "oldimages:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']).lower())
+        key = "oldimages:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']))
       query = "SELECT image, uploaded_time from oldImages where name=%(filename)s and attached_to_pagename=%(page_name)s order by uploaded_time desc;"
     elif version:
       if config.memcache:
-        key = "oldimages:%s,%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']).lower(), version)
+        key = "oldimages:%s,%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']), version)
       query = "SELECT image, uploaded_time from oldImages where name=%(filename)s and attached_to_pagename=%(page_name)s and uploaded_time=%(image_version)s"
 
   if config.memcache:
@@ -231,39 +233,69 @@ def putImage(request, dict, thumbnail=False, do_delete=False):
       request.mc.delete(key)
 
   # rebuild the page cache
-  from Sycamore import caching
-  from Sycamore.Page import Page
-  caching.CacheEntry(dict['pagename'], request).clear()
-  Page(dict['pagename'], request).buildCache()
+  if not request.generating_cache:
+    from Sycamore import caching
+    from Sycamore.Page import Page
+    caching.CacheEntry(dict['pagename'], request).clear()
+    Page(dict['pagename'], request).buildCache()
 
 def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor=''):
   # betta' with this line object so we can move away from array indexing
   def addQueryConditions(view, query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor):
-    query.append("(SELECT %(view)s.name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+    add_query = []
+    if per_page_limit and userFavoritesFor:
+       add_query.append("""
+       SELECT groupedChanges.name as name, groupedChanges.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from
+      (
+          SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime from %(view)s, userFavorites as f, users as u where u.name=f.username and f.page=%(view)s.name and u.id=%%(userFavoritesFor)s group by %(view)s.name
+      ) as groupedChanges, %(view)s where groupedChanges.name=%(view)s.name and groupedChanges.changeTime=%(view)s.changeTime and groupedChanges.changeTime is not NULL
+      """ % {'view': view} )
+    elif view != 'pageChanges':
+       add_query.append("(SELECT %(view)s.name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+    elif per_page_limit:
+       add_query.append("(SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+    else: 
+       add_query.append("(SELECT %(view)s.propercased_name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
     printed_where = False
-    if userFavoritesFor:
-      printed_where = True
-      query.append(', userFavorites as f, users as u where u.name=f.username and f.page=%s.name' % view)
-      query.append(' and u.id=%(userFavoritesFor)s')
-    elif page:
-      query.append(' where name=%(pagename)s')
+    if page and not userFavoritesFor:
+      add_query.append(' where %(view)s.name=%%(pagename)s and %(view)s.changeTime is not NULL' % {'view':view})
       printed_where = True
 
     if max_days_ago:
       if not printed_where:
-        query.append(' where changeTime >= %(max_days_ago)s')
+        add_query.append(' where changeTime >= %(max_days_ago)s')
 	printed_where = True
       else:
-        query.append(' and changeTime >= %(max_days_ago)s')
-    if per_page_limit:
-      query.append(" order by changeTime desc limit %s" % per_page_limit)
+        add_query.append(' and changeTime >= %(max_days_ago)s')
+    #if per_page_limit:
+    #  query.append(" group by %(view)s.name, %(view)s.id, %(view)s.editType, %(view)s.comment, %(view)s.userIP" % {'view':view})
     if total_changes_limit and not per_page_limit:
-      query.append(" order by changeTime desc limit %s" % total_changes_limit)
-    query.append(')')
+      if not printed_where:
+        add_query.append(" where changeTime is not NULL order by changeTime desc limit %s)" % total_changes_limit)
+      else:
+        add_query.append(" and changeTime is not NULL order by changeTime desc limit %s)" % total_changes_limit)
+
+    elif not total_changes_limit and per_page_limit:
+      pass
+    elif page:
+      add_query.append(')')
+    else:
+      add_query.append(')')
+    
+    if not userFavoritesFor and not total_changes_limit:
+      if view != 'pageChanges' and view != 'eventChanges':
+        query += ['(SELECT name, changeTime, id, editType, comment, userIP from (SELECT max(allPages.editTime), allPages.propercased_name as name, cC.changeTime as changeTime,  cC.id as id, cC.editType as editType, cC.comment as comment, cC.userIP as userIP from '] + add_query + [' as cC, allPages where allPages.name=cC.name group by allPages.propercased_name, cC.changeTime, cC.id, cC.editType, cC.comment, cC.userIP) as cC_proper)']
+      else:    
+        query += add_query
+    else:
+        query += add_query
 
   def buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor):
     # we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
-    query = ['SELECT * from (']
+    if per_page_limit:
+      query = ['SELECT distinct on (name) name, changeTime, id, editType, comment, userIP from ( SELECT * from ( ']
+    else:
+      query = ['SELECT name, changeTime, id, editType, comment, userIP from (']
     printed_where = False
     addQueryConditions('pageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
     query.append(' UNION ')
@@ -286,11 +318,11 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     if total_changes_limit: query.append(' limit %(limit)s) as result')
     else:
       if per_page_limit:
-        query.append(' order by changeTime desc) as result')
+	query.append(""" ) as sortedChanges order by changeTime desc ) as result""")
       else:
         query.append(') as result')
 
-      if per_page_limit: query.append(' group by name asc')
+      #if per_page_limit: query.append(' group by name')
 
     return ''.join(query)
 
@@ -298,7 +330,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     def __init__(self, edit_tuple):
       self.pagename = edit_tuple[0]
       self.ed_time = edit_tuple[1]
-      self.action = edit_tuple[3]
+      self.action = edit_tuple[3].strip()
       self.comment = edit_tuple[4]
       self.userid = edit_tuple[2]
       self.host = edit_tuple[5]
@@ -322,6 +354,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   # b/c oldest_time is the same until it's a new day, this statement caches well
   # so, let's compile all the different types of changes together!
   query = buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
+  #print query % {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page}
   request.cursor.execute(query, {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page})
  
   edit = request.cursor.fetchone()
@@ -329,3 +362,19 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     lines.append(line(edit))
     edit = request.cursor.fetchone()
   return lines
+
+def getPageCount(request):
+   """
+   Returns the number of current (alive, not deleted) pages in the wiki.
+   """
+   page_count = None
+   if config.memcache:
+     # check memcache
+     page_count = request.mc.get('active_page_count')
+   if page_count is None:
+     cursor = request.cursor
+     cursor.execute("SELECT count(name) from curPages")
+     page_count = cursor.fetchone()[0]
+     if config.memcache:
+       request.mc.add('active_page_count', page_count)
+   return page_count

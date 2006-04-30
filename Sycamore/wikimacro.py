@@ -23,10 +23,10 @@ from Sycamore.util import pysupport
 ### Globals
 #############################################################################
 
-names = ["TitleSearch", "WordIndex", "TitleIndex",
-         "GoTo", "InterWiki", "SystemInfo", "PageCount", "UserPreferences",
+names = ["titlesearch", "wordindex", "titleindex",
+         "goto", "interwiki", "systeminfo", "pagecount", "userpreferences",
          # Macros with arguments
-         "Icon", "PageList", "Date", "DateTime", "Anchor", "MailTo", "GetVal",
+         "icon", "pagelist", "date", "datetime", "anchor", "mailto", "getval",
 ]
 
 # external macros
@@ -232,7 +232,8 @@ class Macro:
         html = []
         index_letters = []
         allpages = int(self.form.get('allpages', [0])[0]) != 0
-        pages = wikiutil.getPageList(self.request, alphabetize=True)
+        pages = wikiutil.getPageList(self.request, alphabetize=False)
+	pages.sort()
         #list(wikiutil.getPageList(config.text_dir))
         # pages = filter(self.request.user.may.read, pages)
         #if not allpages:
@@ -302,7 +303,7 @@ class Macro:
         return self.formatter.rawHTML(buf.getvalue())
 
 
-    def _macro_systeminfo(self, args):
+    def _macro_systeminfo(self, args, formatter):
 	"""
         import operator, sys
         from cStringIO import StringIO
@@ -365,8 +366,9 @@ class Macro:
 
 
     def _macro_pagecount(self, args, formatter=None):
+        from Sycamore import wikidb
         if not formatter: formatter = self.formatter
-        return formatter.text("%d" % (len(wikiutil.getPageList(self.request)),))
+        return formatter.text("%d" % (wikidb.getPageCount(self.request),))
 
 
     def _macro_icon(self, args, formatter=None):

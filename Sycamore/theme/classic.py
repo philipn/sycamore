@@ -296,7 +296,7 @@ class Theme(object):
         if d['msg']:
             _ = self.request.getText
             d.update({'link_text': _('Clear message'),})
-            clear_msg_link = '<a href="%(script_name)s/%(q_page_name)s?action=show">%(link_text)s</a>' % d
+            clear_msg_link = """<a onClick="return hideMessage('message');" href="%(script_name)s/%(q_page_name)s?action=show">%(link_text)s</a>""" % d
             d.update({'clear_msg_link': clear_msg_link,})
             html = ('\n<div id="message">\n'
                     '<p>%(msg)s</p><p>%(clear_msg_link)s</p></div>') % d

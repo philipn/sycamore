@@ -76,6 +76,7 @@ _cfg_defaults = {
     'datetime_fmt': '%Y-%m-%d %H:%M:%S',
     'diff3_location': '/usr/bin/diff3',
     'db_name': 'wiki',
+    'db_charset': 'utf-8',
     'db_host': 'localhost',
     'db_type': 'postgres',
     'db_user': 'root',
@@ -111,6 +112,7 @@ _cfg_defaults = {
     'max_macro_size': 50,
     'memcache': False,
     'memcache_servers': [],
+    'noindex_everywhere': False,
     'nonexist_qm': 0,
 
     'page_credits': """<a href="http://dev.daviswiki.org">Sycamore Powered</a><br>

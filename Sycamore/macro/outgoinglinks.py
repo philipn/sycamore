@@ -7,7 +7,7 @@ def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
 
     cursor = macro.request.cursor
-    cursor.execute("SELECT c.name, count(c.source_pagename) as cnt from (SELECT curPages.name, links.source_pagename from curPages left join links on links.source_pagename=curPages.name) as c group by c.name order by cnt;")
+    cursor.execute("SELECT c.propercased_name, count(c.source_pagename) as cnt from (SELECT curPages.propercased_name, links.source_pagename from curPages left join links on links.source_pagename=curPages.name) as c group by c.propercased_name order by cnt;")
     results = cursor.fetchall()
    
     old_count = -1

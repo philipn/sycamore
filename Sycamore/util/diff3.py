@@ -26,6 +26,7 @@ def text_merge(old, other, new,
   diff3_result = os.popen("%s %s -L mine%s %s -L old%s %s -L yours%s --merge" % (config.diff3_location, myfile.name, random_num, oldfile.name, random_num, otherfile.name, random_num), 'r')
   my_marker = "<<<<<<< mine%s\n" % random_num
   old_marker = "||||||| old%s\n" % random_num
+  old_marker2 = "<<<<<<< old%s\n" % random_num
   your_marker = ">>>>>>> yours%s\n" % random_num
   divider_marker = "=======\n"
   final_output = []
@@ -34,7 +35,7 @@ def text_merge(old, other, new,
     if line == my_marker:
       had_conflict = True
       final_output.append(marker1)
-    elif line == old_marker:
+    elif line == old_marker or line == old_marker2:
       # ignore this part for brevity
       ignore = True
     elif line == divider_marker: 

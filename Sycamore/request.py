@@ -98,10 +98,13 @@ class RequestBase(object):
         self.i18n = i18n
         self.lang = i18n.requestLanguage(self) 
         self.getText = lambda text, i18n=self.i18n, request=self, lang=self.lang: i18n.getText(text, request, lang)
+	self.pagename = None
+	self.pagename_propercased = None
 
         # XXX Removed call to i18n.adaptcharset()
   
         #self.opened_logs = 0 # XXX for what do we need that???
+	self.generating_cache = False
 
         self.reset()
 
@@ -347,6 +350,10 @@ class RequestBase(object):
       """Return gzip'ed data."""
       zbuf = cStringIO.StringIO()
       zfile = gzip.GzipFile(mode='wb', fileobj=zbuf, compresslevel=9)
+      if type(data) == unicode:
+	data = data.encode('utf-8')
+      else:
+        data = data.decode(config.db_charset).encode('utf-8')
       zfile.write(data)
       zfile.close()
 
@@ -400,6 +407,7 @@ class RequestBase(object):
 
 	    pagename = self.recodePageName(pagename)
             oldlink = self.recodePageName(oldlink)
+	    self.pagename = pagename
 
 	    pagename_propercased = ''
 	    oldlink_propercased = ''
@@ -410,7 +418,7 @@ class RequestBase(object):
 	      if oldlink_exists_name: oldlink_propercased = oldlink_exists_name
 
 	      if pagename_propercased:
-	        self.pagename = pagename_propercased
+	        self.pagename_propercased = pagename_propercased
 	      else:
 	        self.pagename = pagename
 
@@ -455,12 +463,8 @@ class RequestBase(object):
 
 	    #The following "if" is to deal with the switchover to urls with Page_names_like_this.
             if config.domain and (config.domain == "daviswiki.org" or config.domain == "rocwiki.org") and self.http_referer.find(config.domain) == -1:
-                  if pagename and pagename_propercased:
-                     pagename = pagename_propercased
-                  elif oldlink and oldlink_propercased:
-                     pagename = oldlink_propercased
-            elif pagename and pagename_propercased:
-                pagename = pagename_propercased
+                  if oldlink and oldlink_propercased:
+                     pagename = oldlink
 
             #if self.form.has_key('filepath') and self.form.has_key('noredirect'):
             #    # looks like user wants to save a drawing

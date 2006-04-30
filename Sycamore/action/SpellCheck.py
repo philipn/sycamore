@@ -48,7 +48,7 @@ def _getWordsFiles():
 
 
 def _loadWordsFile(request, dict, filename):
-    request.clock.start('spellread')
+    #request.clock.start('spellread')
     # XXX UNICODE fix needed. the dictionaries should be encoded in config.charset.
     # if they are not, we can recode them before use.
     file = open(filename, 'rt')
@@ -61,7 +61,7 @@ def _loadWordsFile(request, dict, filename):
                 for word in words: dict[word] = ''
     finally:
         file.close()
-    request.clock.stop('spellread')
+    #request.clock.stop('spellread')
 
 
 def _loadDict(request):
@@ -77,7 +77,7 @@ def _loadDict(request):
     if dbhash and os.path.exists(cachename):
         wordsdict = dbhash.open(cachename, "r")
     else:
-        request.clock.start('dict.cache')
+        #request.clock.start('dict.cache')
         wordsfiles = _getWordsFiles()
         if dbhash:
             wordsdict = dbhash.open(cachename, 'n', 0666 & config.umask)
@@ -88,7 +88,7 @@ def _loadDict(request):
             _loadWordsFile(request, wordsdict, wordsfile)
 
         if dbhash: wordsdict.sync()
-        request.clock.stop('dict.cache')
+        #request.clock.stop('dict.cache')
 
     return wordsdict
 
@@ -127,11 +127,11 @@ def checkSpelling(page, request, own_form=1):
     wordsdict = _loadDict(request)
 
     localwords = {}
-    lsw_page = Page(config.page_local_spelling_words, request.cursor)
+    lsw_page = Page(config.page_local_spelling_words, request)
     if lsw_page.exists(): _loadWordsFile(request, localwords, lsw_page._text_filename())
 
     # init status vars & load page
-    request.clock.start('spellcheck')
+    #request.clock.start('spellcheck')
     badwords = {}
     text = page.get_raw_body()
 
@@ -198,7 +198,7 @@ def checkSpelling(page, request, own_form=1):
         badwords_re = None
         msg = _("No spelling errors found!")
 
-    request.clock.stop('spellcheck')
+    #request.clock.stop('spellcheck')
 
     return badwords, badwords_re, msg
 

@@ -48,7 +48,7 @@ import re
 from Sycamore import config
 from Sycamore import wikiutil
 #from Sycamore.i18n import _
-import Sycamore.macro.Include
+import Sycamore.macro.include
 
 _arg_level = r',\s*(?P<level>\d+)'
 _arg_sort = r'(,\s*sort=(?P<sort>(ascending|descending)))?'
@@ -96,8 +96,8 @@ def execute(macro, text, args,  formatter=None):
         hits = hits[:int(max_items)]
 
     for inc_name in hits:
-        params = '%s,"%s",%s' % (inc_name,inc_name, level)
-        ret = ret +"<p>"+ Sycamore.macro.Include.execute(macro, params, formatter) +"\n"
+        params = '%s,"%s",%s' % (inc_name.lower(),inc_name, level)
+        ret = ret +"<p>"+ Sycamore.macro.include.execute(macro, params, formatter) +"\n"
 
     # return include text
     return ret

@@ -16,7 +16,7 @@ Dependencies = ["pages"]
 def showUsers(request):
   if request.form.has_key("show_users"):
     if request.form["show_users"][0] == "true":
-      return true
+      return True
     else: return False
   else:
     return False
@@ -36,9 +36,9 @@ def execute(macro, args, formatter=None):
     _guard = 1
     cursor = macro.request.cursor
     if showUsers(macro.request):
-      cursor.execute("SELECT curPages.name from curPages left join links on links.source_pagename=curPages.name where links.source_pagename is NULL")
+      cursor.execute("SELECT curPages.propercased_name from curPages left join links on links.destination_pagename=curPages.name where links.destination_pagename is NULL")
     else:
-      cursor.execute("SELECT curPages.name from curPages left join links on links.source_pagename=curPages.name left join users on users.name=curPages.name where links.source_pagename is NULL and users.name is NULL")
+      cursor.execute("SELECT curPages.propercased_name from curPages left join links on links.destination_pagename=curPages.name left join users on users.name=curPages.name where links.destination_pagename is NULL and users.name is NULL")
      
     orphanednames_result = cursor.fetchall()
     _guard = 0
@@ -63,9 +63,9 @@ def execute(macro, args, formatter=None):
 
     pagename = macro.request.getPathinfo()[1:] # usually 'Orphaned Pages' or something such
     if not showUsers(macro.request):
-      macro.request.write('<div style="float: right;">[%s]</div>' % wikiutil.link_tag(macro.request, pagename + "?show_users=true", "show users"))
+      macro.request.write('<div style="float: right;"><div class="actionBoxes"><span>%s</span></div></div>' % wikiutil.link_tag(macro.request, pagename + "?show_users=true", "show users"))
     else:
-      macro.request.write('<div style="float: right;">[%s]</div>' % wikiutil.link_tag(macro.request, pagename, "hide users"))
+      macro.request.write('<div style="float: right;"><div class="actionBoxes"><span>%s</span></div></div>' % wikiutil.link_tag(macro.request, pagename, "hide users"))
 
     macro.request.write(macro.formatter.heading(2, 'Orphans'))
     macro.request.write(macro.formatter.bullet_list(1))

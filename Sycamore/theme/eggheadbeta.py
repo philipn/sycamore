@@ -147,7 +147,7 @@ class Theme(ThemeBase):
 <input type="hidden" name="logout" value="Logout">
 <div class="user_area">
 <table class="user" align="right"><tr><td>Welcome, %s<br/></td></tr><tr><td align="right"><a href="%s/User_Preferences"><img src="%s" class="actionButton" alt="settings"></a></td></tr>
-<tr><td align="right"><input type="image" name="Submit" value="Submit" src="%s" class="actionButton"></td></tr></table></div></form>""" % (self.request.getScriptname(), wikiutil.link_tag(self.request, self.request.user.name), self.request.getScriptname(), self.img_url('settings.png'), self.img_url('logout.png'))
+<tr><td align="right"><input type="image" name="Submit" value="Submit" src="%s" class="actionButton"></td></tr></table></div></form>""" % (self.request.getScriptname(), wikiutil.link_tag(self.request, self.request.user.propercased_name), self.request.getScriptname(), self.img_url('settings.png'), self.img_url('logout.png'))
         else:
             html = """<form action="%s/%s" method="POST">
 <input type="hidden" name="action" value="userform">
@@ -222,15 +222,16 @@ class Theme(ThemeBase):
 
 	# so our formatting here looks nicer :)
         if d['page_name']:
-            if d['page_name'] == "Front Page":
+	    lower_page_name = d['page_name'].lower()
+            if lower_page_name == "front page":
               front_class += ' activeTab'
-            elif d['page_name'] == "Recent Changes":
+            elif lower_page_name == "recent changes":
               recent_class += ' activeTab'
-            elif d['page_name'] == "Map":
+            elif lower_page_name == "map":
               map_class += ' activeTab'
-            elif d['page_name'] == "People":
+            elif lower_page_name == "people":
               people_class += ' activeTab'
-            elif d['page_name'] == "Bookmarks" and self.request.user.valid:
+            elif lower_page_name == "bookmarks" and self.request.user.valid:
               bookmarks_class += ' activeTab'
             else:
               other_page_html = '<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a>' % d
@@ -380,7 +381,7 @@ class Theme(ThemeBase):
                         wikiutil.link_tag(self.request, d['q_page_name']+'?action=edit', _('Edit'))))
 
 		if not self.request.user.anonymous:
-		    if not self.request.user.isFavoritedTo(d['page_name']):
+		    if not self.request.user.isFavoritedTo(d['lower_page_name']):
 		      actions_in_footer = True
 		      if editable:
                         html.append(" or %s" % (
@@ -468,11 +469,11 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         @return: page header html
         """
         title_str = '"%s"' %  d['title_text']
-	if d['page_name'] and d['page'].hasMapPoints() and not self.isEdit(d):
+	if d['page_name'] and d['page'].hasMapPoints() and not self.isEdit():
            self.showapplet = True
         apphtml = ''
         if self.showapplet:
-           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, d['script_name'], d['title_text'], d['script_name'])
+           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, d['script_name'], d['page_name'], d['script_name'])
         dict = {
             'config_header1_html': self.emit_custom_html(config.page_header1),
             'config_header2_html': self.emit_custom_html(config.page_header2),
@@ -578,8 +579,7 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         @return: page footer html
         """
 
-	# I guess this is probably the best place for this now
-	self.request.user.checkFavorites(d['page_name'])
+	self.request.user.checkFavorites(d['lower_page_name'])
 
 	return "%s<br/>" % self.edittext_link(d, **keywords)
         

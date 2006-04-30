@@ -195,7 +195,7 @@ def escape(s, quote=None):
 ### InterWiki
 #############################################################################
 
-_interwiki_list = None
+_interwiki_list = {}
 
 def split_wiki(wikiurl):
     """
@@ -345,8 +345,8 @@ def getPageList(request, alphabetize=False, objects=False):
     """
     if objects: from Sycamore.Page import Page
     cursor = request.cursor
-    if not alphabetize: cursor.execute("SELECT name from curPages")
-    else: cursor.execute("SELECT name from curPages order by name")
+    if not alphabetize: cursor.execute("SELECT propercased_name from curPages")
+    else: cursor.execute("SELECT propercased_name from curPages order by name")
     result = []
     p = cursor.fetchone()
     while p:
@@ -960,7 +960,9 @@ def send_title(request, text, **keywords):
 
     user_head.append("""<meta http-equiv="Content-Type" content="text/html; charset=%s">\n""" % config.charset)
 
-    if (not crawl) or (request.request_method == 'POST'):
+    if config.noindex_everywhere:
+        user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
+    elif (not crawl) or (request.request_method == 'POST'):
         user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
     elif not page.exists():
 	user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
@@ -1109,7 +1111,8 @@ def send_title(request, text, **keywords):
 	'script_name': request.getScriptname(),
         'site_name': config.sitename,
         'page': page,             # necessary???
-        'page_name': pagename or '',
+        'page_name': page.proper_name(),
+	'lower_page_name': page.page_name.lower(),
         'page_user_prefs': "User Preferences",
 	'polite_msg': keywords.get('polite_msg', ''),
         'user_name': request.user.name,

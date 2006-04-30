@@ -38,6 +38,8 @@ class Parser:
     url_pattern = ('http|https|ftp|nntp|news|mailto|telnet|wiki|file|' +
             (config.url_schemas and '|' + '|'.join(config.url_schemas) or ''))
 
+    EOL_RE = re.compile(r'\r?\n')
+
     # some common rules
     word_rule = r'(?:(?<![%(l)s])|^)%(parent)s(?:%(subpages)s(?:[%(u)s][%(l)s]+){2,})+(?![%(u)s%(l)s]+)' % {
         'u': config.upperletters,
@@ -359,7 +361,7 @@ class Parser:
         if not text:
 	    text = word
         # if a simple, self-referencing link, emit it as plain text
-	if word == self.formatter.page.page_name:
+	if word.lower() == self.formatter.page.page_name:
             return text 
         if config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
             word = self.formatter.page.page_name + word
@@ -438,7 +440,7 @@ class Parser:
         #if scheme in self.attachment_schemas:
         #    return self.attachment(words, pretty_url=1)
 
-        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]) and (words[0] is words[1]):
+        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]) and len(words) == 2 and (words[0] is words[1]):
             text = self.formatter.image(title=words[1], alt=words[1], src=words[0])
         else:
             text = web.getLinkIcon(self.request, self.formatter, scheme)
@@ -829,7 +831,7 @@ class Parser:
 
     def _macro_repl(self, word):
         """Handle macros ([[macroname]])."""
-        macro_name = word[2:-2].lower()
+        macro_name = word[2:-2]
 	
 	#self.inhibit_p = 1 # fixes UserPreferences, but makes new trouble!
 
@@ -838,6 +840,8 @@ class Parser:
         if macro_name.count("("):
             macro_name, args = macro_name.split('(', 1)
             args = args[:-1]
+
+        macro_name = macro_name.lower()
 
         # create macro instance
         if self.macro is None:
@@ -898,6 +902,12 @@ class Parser:
 
         result.append(self.formatter.text(text[lastpos:]))
         return ''.join(result)
+
+    def get_page_lines(self): 
+        # get text and replace TABs
+        rawtext = self.raw.expandtabs()
+        self.lines = self.EOL_RE.split(rawtext)
+	return self.lines
 
     def scan(self, scan_re, line):
         """ scans the line for wiki syntax and replaces the
@@ -969,14 +979,10 @@ class Parser:
         number_re = re.compile(self.ol_rule,re.IGNORECASE)
         term_re = re.compile(self.dl_rule,re.IGNORECASE)
         indent_re = re.compile("^\s*")
-        eol_re = re.compile(r'\r?\n')
-
-        # get text and replace TABs
-        rawtext = self.raw.expandtabs()
 
         # go through the lines
         self.lineno = 0
-        self.lines = eol_re.split(rawtext)
+        self.lines = self.get_page_lines()
         self.line_is_empty = 0
 
         for line in self.lines:
@@ -1105,6 +1111,6 @@ class Parser:
 
 	# check for pending footnotes
         if getattr(self.request, 'footnotes', None):
-          from Sycamore.macro.FootNote import emit_footnotes
+          from Sycamore.macro.footnote import emit_footnotes
           self.request.write(emit_footnotes(self.request, self.formatter))
 

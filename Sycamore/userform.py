@@ -193,9 +193,10 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             theuser = user.User(self.request)
     
             # try to get the name, if name is empty or missing, return an error msg
-            try:
-                theuser.name = form['username'][0].replace('\t', ' ').strip()
-            except KeyError:
+	    if form.has_key('username') and form['username'].replace('\t', '').strip():
+                theuser.propercased_name = form['username'][0].replace('\t', ' ').strip()
+                theuser.name = theuser.propercased_name.lower()
+	    elif form.has_key('username'):
                 return _("Please enter a user name!")
     
     	    if self.request.user.name and (self.request.user.name != theuser.name):
@@ -275,9 +276,10 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             # we also must forbid the username to match page_group_regex
             # see also Sycamore/scripts/moin_usercheck.py
             if config.acl_enabled and new_user:
-                theuser.name = theuser.name.replace(' ','') # strip spaces, we don't allow them anyway
-                if not re.match("(?:[%(u)s][%(l)s]+){2,}" % {'u': config.upperletters, 'l': config.lowerletters}, theuser.name):
-                    return _("Please enter your name like that: FirstnameLastname")
+                theuser.propercased_name = theuser.propercased_name.replace(' ','') # strip spaces, we don't allow them anyway
+                theuser.name = theuser.propercased_name.lower()
+                if not re.match("(?:[%(u)s][%(l)s]+){2,}" % {'u': config.upperletters, 'l': config.lowerletters}, theuser.propercased_name):
+                    return _("Please enter your name like this: FirstnameLastname")
                 if re.search(config.page_group_regex, theuser.name):
                     return _("You must not use a group name as your user name.")
                 if not theuser.email or not re.match(".+@.+\..{2,}", theuser.email):

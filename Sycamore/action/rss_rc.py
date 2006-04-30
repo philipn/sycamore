@@ -29,7 +29,7 @@ def execute(pagename, request):
 </rss>
       """ % (config.sitename, config.domain, add_on, config.relative_dir,  config.sitename)
       # get normal recent changes 
-      changes = wikidb.getRecentChanges(request, total_changes_limit = 100)
+      changes = wikidb.getRecentChanges(request, total_changes_limit=100)
     elif pagename.lower() == 'bookmarks':
       if request.form.has_key('user'):
         username = urllib.unquote_plus(request.form['user'][0])
@@ -50,25 +50,27 @@ def execute(pagename, request):
 </rss>
       """ % (pagename, config.sitename, config.domain, add_on, config.relative_dir, wikiutil.quoteWikiname(pagename), pagename, config.sitename)
       # get page-specific recent changes 
-      changes = wikidb.getRecentChanges(request, total_changes_limit = 100, page=pagename)
+      changes = wikidb.getRecentChanges(request, total_changes_limit=100, page=pagename.lower())
 
     rss_dom = xml.dom.minidom.parseString(rss_init_text)
     channel = rss_dom.getElementsByTagName("channel")[0]
     for line in changes:
+      if line.ed_time == None: line.ed_time = 0
       line.comment = Comment(request, line.comment, line.action, line.pagename).render()
       item = rss_dom.createElement("item")
       item_guid = rss_dom.createElement("guid")
       item_guid.appendChild(rss_dom.createTextNode("%s, %s" % (line.ed_time, wikiutil.quoteWikiname(line.pagename))))
       item_description = rss_dom.createElement("description")
       if line.action in ['SAVE', 'SAVENEW', 'RENAME', 'COMMENT_MACRO', 'SAVE/REVERT', 'DELETE']:
-        version2 = Page(line.pagename, request, prev_date=line.ed_time).version
+        version2 = Page(line.pagename, request, prev_date=line.ed_time).get_version()
         version1 = version2 - 1
         description = "%s %s" % (line.comment, do_diff(line.pagename, request, in_wiki_interface=False, text_mode=True, version1=version1, version2=version2))
       else:
         description = line.comment
-      item_description.appendChild(rss_dom.createTextNode(description))
+
+      item_description.appendChild(rss_dom.createTextNode(description.decode(config.db_charset)))
       item_title = rss_dom.createElement("title")
-      item_title.appendChild(rss_dom.createTextNode(line.pagename))
+      item_title.appendChild(rss_dom.createTextNode(line.pagename.decode(config.db_charset)))
       item.appendChild(item_title)
       item_link = rss_dom.createElement("link")
       item_link.appendChild(rss_dom.createTextNode("http://%s/%s%s%s" % (config.domain, config.relative_dir, add_on, wikiutil.quoteWikiname(line.pagename))))
@@ -82,6 +84,6 @@ def execute(pagename, request):
       item.appendChild(item_description)
       channel.appendChild(item)
 
-    the_xml = rss_dom.toprettyxml()
+    the_xml = rss_dom.toxml()
     request.http_headers()
     request.write(the_xml)

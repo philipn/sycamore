@@ -1,7 +1,6 @@
 # -*- coding: iso-8859-1 -*-
-import time, re
+import time, re, calendar
 from Sycamore import wikiutil, wikiform, config, wikidb
-import xml.dom.minidom
 from cStringIO import StringIO
 from Sycamore.Page import Page
 
@@ -32,7 +31,11 @@ def execute(macro, args, formatter=None):
     old_date = ''
     events = []
     # clear events that have passed
-    macro.request.cursor.execute("DELETE from events where DATE(FROM_UNIXTIME(event_time))<DATE(FROM_UNIXTIME(%(timenow)s))", {'timenow':time.time()})
+    yesterday_struct = time.gmtime(time.time()-60*60*24)
+    yesterday = list(yesterday_struct[0:3]) + [0,0,0,0,0,0]
+    yesterday = calendar.timegm(yesterday)
+    macro.request.cursor.execute("SELECT event_name, event_time from events where event_time<%(yesterday)s", {'yesterday':yesterday})
+    macro.request.cursor.execute("DELETE from events where event_time<%(yesterday)s", {'yesterday':yesterday})
     macro.request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events order by event_time")
     result = macro.request.cursor.fetchone()
     while result:
@@ -56,7 +59,7 @@ def execute(macro, args, formatter=None):
 		event_name = event[5]
 	 	# we store it as a general time and we convert it to a local time..
 		event_time_unix = event[1]
-		event_time_struct = time.gmtime(event_time_unix)
+		event_time_struct = time.gmtime(event_time_unix+macro.request.user.tz_offset)
 		year = event_time_struct[0]
 		month = event_time_struct[1]
 		day = event_time_struct[2]
@@ -97,7 +100,8 @@ def execute(macro, args, formatter=None):
                 processed_name = doParse(event_name,macro)
                 month_dict = { 1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
                 string_month = month_dict[month]
-                if (macro.request.user.may.admin(Page("Events Board", macro.request)) or posted_by == macro.request.user.name) and not do_mini: 
+                events_page = Page("Events Board", macro.request)
+                if (macro.request.user.may.admin(events_page) or posted_by == macro.request.user.name) and not do_mini: 
                         if date == old_date:
                             htmltext.append('<ul>\n<h4 id="head-%s">%s</h4>\n'
                                   '<a href="/%s%sEvents_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s<br>\n'
@@ -112,11 +116,14 @@ def execute(macro, args, formatter=None):
                                     '<b>Location:</b> %s<br>\n'
                                     '%s&nbsp;&nbsp;(Posted by <a href="/%s%s%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,year,id, processed_name,config.relative_dir,add_on, id,ptime,processed_location,processed_text,config.relative_dir,add_on,posted_by,posted_by))
                 elif do_mini:
-                    event_unix_time = time.mktime((int(year), int(month), int(day), 0, 0, 0, 0, 0, 0))
+		    #event_time_unix = event[1]
+               	    #event_time_struct = time.gmtime(event_time_unix+macro.request.user.tz_offset)
+		    #event_time_struct = time.gmtime(event_time_unix+macro.request.user.tz_offset)
+                    #event_unix_time = time.mktime((int(year), int(month), int(day), 0, 0, 0, 0, 0, 0))
                     unix_day = time.mktime((0, 0, 1, 0, 0, 0, 0, 0, 0)) - time.mktime((0,0,0,0,0,0,0,0,0))
                     unix_hour = time.mktime((0, 0, 0, 1, 0, 0, 0, 0, 0)) - time.mktime((0,0,0,0,0,0,0,0,0))
-                    unix_now = time.time() + (config.tz_offset * unix_hour)
-                    if event_unix_time <= unix_now + unix_day and time.gmtime(unix_now)[2] == int(day):
+                    unix_now = time.time()
+                    if event_time_unix <= unix_now + unix_day and event_time_struct[2] == int(current_day):
                     # same day, let's print it!
                         are_events_today = True
                         htmltext.append('\n<p>%s [<a href="/%s%sEvents_Board#head-%s">info</a>]</p>\n'
@@ -223,12 +230,13 @@ def datetoday(day, month, year):
 
 def doParse(text, macro):
    if not text: return ''
-   text = re.sub('[\n]', ' [[BR]]', text)
-   Parser = wikiutil.importPlugin("parser", "wiki", "Parser")
-   buffer = StringIO()
-   macro.request.redirect(buffer)
-   parser = Parser(text,macro.request)
-   parser.format(macro.formatter)
-   macro.request.redirect()
-   formatted_text = buffer.getvalue()
-   return formatted_text
+   return wikiutil.wikifyString(text, macro.request, macro.formatter.page)
+   #text = re.sub('[\n]', ' [[BR]]', text)
+   #Parser = wikiutil.importPlugin("parser", "wiki", "Parser")
+   #buffer = StringIO()
+   #macro.request.redirect(buffer)
+   #parser = Parser(text,macro.request)
+   #parser.format(macro.formatter)
+   #macro.request.redirect()
+   #formatted_text = buffer.getvalue()
+   #return formatted_text

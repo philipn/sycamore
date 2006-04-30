@@ -50,27 +50,30 @@ def execute(macro, args, formatter=None):
     wanted = []
     cursor = macro.request.cursor
     if showUsers(macro.request):
-      cursor.execute("SELECT destination_pagename, source_pagename from links left join curPages on (destination_pagename=curPages.name) where curPages.name is NULL order by destination_pagename")
+      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name from (SELECT destination_pagename_propercased, source_pagename from links left join curPages on (destination_pagename=curPages.name) where curPages.name is NULL) as wanted, curPages as c where c.name=source_pagename order by destination_pagename_propercased")
     else:
-      cursor.execute("SELECT destination_pagename, source_pagename from links left join curPages on (destination_pagename=curPages.name) left join users on (destination_pagename=users.name) where curPages.name is NULL and users.name is NULL order by destination_pagename")
+      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name from (SELECT destination_pagename_propercased, source_pagename from links left join curPages on (destination_pagename=curPages.name) left join users on (destination_pagename=users.name) where curPages.name is NULL and users.name is NULL) as wanted, curPages as c where c.name=source_pagename order by destination_pagename_propercased")
       
     wanted_results = cursor.fetchall()
     if wanted_results:
       # we have wanted pages
-      old_pagename = wanted_results[0][0]
+      old_pagename_propercased = wanted_results[0][0]
+      old_pagename = old_pagename_propercased.lower()
       num_links = 0
       links = []
       for w_result in wanted_results:
-        new_pagename = w_result[0]
+        new_pagename_propercased = w_result[0]
+	new_pagename = new_pagename_propercased.lower()
 	if old_pagename == new_pagename:
 	  num_links += 1
 	  links.append(w_result[1])
 	else:
-	   wanted.append((old_pagename, num_links, links))
+	   wanted.append((old_pagename_propercased, num_links, links))
 	   num_links = 1
 	   links = [w_result[1]]
-	   old_pagename = new_pagename
-      wanted.append((old_pagename, num_links, links))
+	   old_pagename_propercased = new_pagename_propercased
+	   old_pagename = old_pagename_propercased.lower()
+      wanted.append((old_pagename_propercased, num_links, links))
     else:
         macro.request.write("<p>%s</p>" % _("No wanted pages in this wiki."))
 	return ''
@@ -82,9 +85,9 @@ def execute(macro, args, formatter=None):
     most_wanted.sort(comparey_alpha)
     pagename = macro.request.getPathinfo()[1:] # usually 'Wanted Page' or something such
     if not showUsers(macro.request):
-      html.append('<div style="float: right;">[%s]</div>' % wikiutil.link_tag(macro.request, pagename + "?show_users=true", "show users"))
+      html.append('<div style="float: right;"><div class="actionBoxes"><span>%s</span></div></div>' % wikiutil.link_tag(macro.request, pagename + "?show_users=true", "show users"))
     else:
-      html.append('<div style="float: right;">[%s]</div>' % wikiutil.link_tag(macro.request, pagename, "hide users"))
+      html.append('<div style="float: right;"><div class="actionBoxes"><span>%s</span></div></div>' % wikiutil.link_tag(macro.request, pagename, "hide users"))
     html.append("""<p>The "most" wanted pages based upon the number of links made from other pages (bigger means more wanted):</p>
     <div style="margin-top: 0px; margin-left: auto; margin-right: auto; width: 760px; text-align: left; vertical-align: top;padding-left: 7px; padding-right: 7px;">
     <p style="padding: 15px;  line-height: 1.45; margin-top: 0; padding-left: 7px; padding-right: 7px; width: 760px; solid 1px #eee; background: #f5f5f5; border: 1px solid rgb(170, 170, 170); ">""")
@@ -110,7 +113,7 @@ def execute(macro, args, formatter=None):
     for name, links, source_pagenames in wanted:
         macro.request.write('<li value="%s">' % links)
 	macro.request.write(Page(name, macro.request).link_to(know_status=True, know_status_exists=False) + ": ")
-	macro.request.write(Page(source_pagenames[0], macro.request).link_to())
+	macro.request.write(Page(source_pagenames[0], macro.request).link_to(know_status=True, know_status_exists=True))
 	if len(source_pagenames) > 1:
 	  for p in source_pagenames[1:-1]:
             macro.request.write(", " + Page(p, macro.request).link_to(know_status=True, know_status_exists=True))

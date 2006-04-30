@@ -293,7 +293,7 @@ class Parser:
 	    text = word
         # if a simple, self-referencing link, emit it as plain text
         if self.is_a_page:
-	  if word == self.formatter.page.page_name:
+	  if word.lower() == self.formatter.page.page_name:
             return text 
         if config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
             word = self.formatter.page.page_name + word
@@ -373,7 +373,8 @@ class Parser:
         if scheme in self.attachment_schemas:
             return self.attachment(words, pretty_url=1)
 
-        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]) and (words[0] is words[1]):
+        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]) and len(words) == 2 and (words[0] is words[1]):
+          if len(words) == 2 and (words[0] is words[1]):
             text = self.formatter.image(title=words[1], alt=words[1], src=words[0])
         else:
             text = web.getLinkIcon(self.request, self.formatter, scheme)
@@ -699,7 +700,7 @@ class Parser:
 
     def _macro_repl(self, word):
         """Handle macros ([[macroname]])."""
-        macro_name = word[2:-2].lower()
+        macro_name = word[2:-2]
         #self.inhibit_p = 1 # fixes UserPreferences, but makes new trouble!
 
         # check for arguments
@@ -707,6 +708,7 @@ class Parser:
         if macro_name.count("("):
             macro_name, args = macro_name.split('(', 1)
             args = args[:-1]
+            macro_name = macro_name.lower()
 
         # create macro instance
         if self.macro is None:

@@ -22,6 +22,6 @@ def execute(macro, args, formatter=None):
                 '<input class="formfields" type="text" name="comment_text" size="75">\n'
                 '<input type="hidden" name="button" value="Add Comment">\n'
                 '<input class="formbutton" type="submit" name="button" value="Add Comment">\n'
-                '</form>' % (title, relative_dir, macro.formatter.page.page_name))
+                '</form>' % (title, relative_dir, macro.formatter.page.proper_name()))
 
     return formatter.rawHTML(''.join(text))

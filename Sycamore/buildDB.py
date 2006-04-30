@@ -1,6 +1,7 @@
 # Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
 import sys, os, shutil
 import __init__ # woo hackmagic
+sys.path.extend(['/home/philip/lib/python'])
 from Sycamore import wikidb, config
 
 basic_pages = {}
@@ -83,58 +84,63 @@ def create_tables(cursor):
  if config.db_type == 'mysql':
    cursor.execute("""create table curPages
      (
-     name varchar(100) primary key,
+     name varchar(100) primary key not null,
      text mediumtext,
      cachedText mediumblob,
      editTime double,
      cachedTime double,
-     userEdited char(20)
+     userEdited char(20),
+     propercased_name varchar(100) not null 
      ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table curPages
      (
-     name varchar(100) primary key,
+     name varchar(100) primary key not null,
      text text,
      cachedText bytea,
      editTime double precision,
      cachedTime double precision,
-     userEdited char(20)
+     userEdited char(20),
+     propercased_name varchar(100) not null
      );""")
 
  cursor.execute("CREATE INDEX curPages_userEdited on curPages (userEdited);")
  if config.db_type == 'mysql':
    cursor.execute("""create table allPages
      (
-     name varchar(100),
+     name varchar(100) not null,
      text mediumtext,
      editTime double,
      userEdited char(20),
      editType CHAR(30) CHECK (editType in ('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP')),
-     comment varchar(81),
+     comment varchar(194),
      userIP char(16),
+     propercased_name varchar(100) not null,
      primary key(name, editTime)
      ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table allPages
      (
-     name varchar(100),
+     name varchar(100) not null,
      text text,
      editTime double precision,
      userEdited char(20),
      editType CHAR(30) CHECK (editType in ('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP')),
-     comment varchar(81),
-     userIP char(16),
+     comment varchar(194),
+     userIP inet,
+     propercased_name varchar(100) not null,
      primary key (name, editTime)
      );""")
 
  cursor.execute("CREATE INDEX allPages_userEdited on allPages (userEdited);")
  cursor.execute("CREATE INDEX allPages_userIP on allPages (userIP);")
+ cursor.execute("CREATE INDEX editTime on allPages (editTime);")
 
  if config.db_type == 'mysql':
    cursor.execute("""create table users
     (
-    id char(20) primary key,
-    name varchar(100),
+    id char(20) primary key not null,
+    name varchar(100) unique not null,
     email varchar(255),
     enc_password varchar(255),
     language varchar(80),
@@ -154,13 +160,14 @@ def create_tables(cursor):
     last_edit_date double,
     rc_bookmark double,
     rc_showcomments tinyint default 1,
-    tz_offset int
+    tz_offset int,
+    propercased_name varchar(100) not null
     ) type=InnoDB;""")
  elif config.db_type == 'postgres':
   cursor.execute("""create table users
     (
-    id char(20) primary key,
-    name varchar(100),
+    id char(20) primary key not null,
+    name varchar(100) unique not null,
     email varchar(255),
     enc_password varchar(255),
     language varchar(80),
@@ -180,7 +187,8 @@ def create_tables(cursor):
     last_edit_date double precision,
     rc_bookmark double precision,
     rc_showcomments smallint default 1,
-    tz_offset int
+    tz_offset int,
+    propercased_name varchar(100) not null
     );""")
 
  cursor.execute("CREATE INDEX users_name on users (name);")
@@ -188,16 +196,16 @@ def create_tables(cursor):
  if config.db_type == 'mysql':
    cursor.execute("""create table userFavorites
    (
-   username varchar(100),
-   page varchar(100),
+   username varchar(100) not null,
+   page varchar(100) not null,
    viewTime double,
    primary key (username, page)
    ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table userFavorites
    (
-   username varchar(100),
-   page varchar(100),
+   username varchar(100) not null,
+   page varchar(100) not null,
    viewTime double precision,
    primary key (username, page)
    );""")
@@ -206,9 +214,9 @@ def create_tables(cursor):
    #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
    cursor.execute("""create table userSessions
    (
-   user_id char(20),
-   session_id char(28),
-   secret char(28),
+   user_id char(20) not null,
+   session_id char(28) not null,
+   secret char(28) not null,
    expire_time double,
    primary key (user_id, session_id)
    )type=MyISAM;""")
@@ -216,9 +224,9 @@ def create_tables(cursor):
    #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
    cursor.execute("""create table userSessions
    (
-   user_id char(20),
-   session_id char(28),
-   secret char(28),
+   user_id char(20) not null,
+   session_id char(28) not null,
+   secret char(28) not null,
    expire_time double precision,
    primary key (user_id, session_id)
    );""")
@@ -228,40 +236,42 @@ def create_tables(cursor):
  if config.db_type == 'mysql':
    cursor.execute("""create table links
    (
-   source_pagename varchar(100),
-   destination_pagename varchar(100),
+   source_pagename varchar(100) not null,
+   destination_pagename varchar(100) not null,
+   destination_pagename_propercased varchar(100) not null,
    primary key (source_pagename, destination_pagename)
    ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table links
    (
-   source_pagename varchar(100),
-   destination_pagename varchar(100),
+   source_pagename varchar(100) not null,
+   destination_pagename varchar(100) not null,
+   destination_pagename_propercased varchar(100) not null,
    primary key (source_pagename, destination_pagename)
    );""")
 
  if config.db_type == 'mysql':
    cursor.execute("""create table events
    (
-   uid mediumint primary key,
-   event_time double,
+   uid mediumint primary key not null,
+   event_time double not null,
    posted_by varchar(100),
-   text mediumtext,
-   location mediumtext,
-   event_name mediumtext,
+   text mediumtext not null,
+   location mediumtext not null,
+   event_name mediumtext not null,
    posted_by_ip char(16),
    posted_time double 
    ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table events
    (
-   uid int primary key,
-   event_time double precision,
+   uid int primary key not null,
+   event_time double precision not null,
    posted_by varchar(100),
-   text text,
-   location text,
-   event_name text,
-   posted_by_ip char(16),
+   text text not null,
+   location text not null,
+   event_name text not null,
+   posted_by_ip inet,
    posted_time double precision
    );""")
 
@@ -275,7 +285,7 @@ def create_tables(cursor):
    (
    name varchar(100) not null,
    image mediumblob not null,
-   uploaded_time double not null,
+   uploaded_time double,
    uploaded_by char(20),
    attached_to_pagename varchar(255) not null,
    uploaded_by_ip char(16),
@@ -288,10 +298,10 @@ def create_tables(cursor):
    (
    name varchar(100) not null,
    image bytea not null,
-   uploaded_time double precision not null,
+   uploaded_time double precision,
    uploaded_by char(20),
    attached_to_pagename varchar(255) not null,
-   uploaded_by_ip char(16),
+   uploaded_by_ip inet,
    xsize smallint,
    ysize smallint,
    primary key (name, attached_to_pagename)
@@ -326,8 +336,8 @@ def create_tables(cursor):
    attached_to_pagename varchar(255) not null,
    deleted_time double precision,
    deleted_by char(20),
-   uploaded_by_ip char(16),
-   deleted_by_ip char(16),
+   uploaded_by_ip inet,
+   deleted_by_ip inet,
    xsize smallint,
    ysize smallint,
    primary key (name, attached_to_pagename, uploaded_time)
@@ -342,9 +352,9 @@ def create_tables(cursor):
    (              
    xsize smallint,
    ysize smallint,
-   name varchar(100),
-   attached_to_pagename varchar(100),
-   image mediumblob,
+   name varchar(100) not null,
+   attached_to_pagename varchar(100) not null,
+   image mediumblob not null,
    last_modified double,
    primary key (name, attached_to_pagename)
    ) type=MyISAM;""")
@@ -354,9 +364,9 @@ def create_tables(cursor):
    (              
    xsize smallint,
    ysize smallint,
-   name varchar(100),
-   attached_to_pagename varchar(100),
-   image bytea,
+   name varchar(100) not null,
+   attached_to_pagename varchar(100) not null,
+   image bytea not null,
    last_modified double precision,
    primary key (name, attached_to_pagename)
    );""")
@@ -364,45 +374,45 @@ def create_tables(cursor):
  if config.db_type == 'mysql':
    cursor.execute("""create table imageCaptions
    (
-    image_name varchar(100),
-    attached_to_pagename varchar(100),
+    image_name varchar(100) not null,
+    attached_to_pagename varchar(100) not null,
     linked_from_pagename varchar(100),
-    caption text,
+    caption text not null,
     primary key (image_name, attached_to_pagename, linked_from_pagename)
    ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table imageCaptions
    (
-    image_name varchar(100),
-    attached_to_pagename varchar(100),
+    image_name varchar(100) not null,
+    attached_to_pagename varchar(100) not null,
     linked_from_pagename varchar(100),
-    caption text,
+    caption text not null,
     primary key (image_name, attached_to_pagename, linked_from_pagename)
    );""")
 
  if config.db_type == 'mysql':
    cursor.execute("""create table mapCategoryDefinitions
    (
-   id int,
+   id int not null,
    img varchar(100),
-   name varchar(100),
+   name varchar(100) not null,
    primary key (id)
    ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table mapCategoryDefinitions
    (
-   id int,
+   id int not null,
    img varchar(100),
-   name varchar(100),
+   name varchar(100) not null,
    primary key (id)
    );""")
 
  if config.db_type == 'mysql':
    cursor.execute("""create table mapPoints
    (
-     pagename varchar(100),
-     x varchar(100),
-     y varchar(100),
+     pagename varchar(100) not null,
+     x varchar(100) not null,
+     y varchar(100) not null,
      created_time double,
      created_by char(20),
      created_by_ip char(16),
@@ -412,12 +422,12 @@ def create_tables(cursor):
  elif config.db_type == 'postgres':
    cursor.execute("""create table mapPoints
    (
-     pagename varchar(100),
-     x varchar(100),
-     y varchar(100),
+     pagename varchar(100) not null,
+     x varchar(100) not null,
+     y varchar(100) not null,
      created_time double precision,
      created_by char(20),
-     created_by_ip char(16),
+     created_by_ip inet,
      id int,
      primary key (pagename, x, y)
    );""")
@@ -428,9 +438,9 @@ def create_tables(cursor):
  if config.db_type == 'mysql':
    cursor.execute("""create table oldMapPoints
    (
-     pagename varchar(100),
-     x varchar(100),
-     y varchar(100),
+     pagename varchar(100) not null,
+     x varchar(100) not null,
+     y varchar(100) not null,
      created_time double,
      created_by char(20),
      created_by_ip char(16),
@@ -442,15 +452,15 @@ def create_tables(cursor):
  elif config.db_type == 'postgres':
    cursor.execute("""create table oldMapPoints
    (
-     pagename varchar(100),
-     x varchar(100),
-     y varchar(100),
+     pagename varchar(100) not null,
+     x varchar(100) not null,
+     y varchar(100) not null,
      created_time double precision,
      created_by char(20),
-     created_by_ip char(16),
+     created_by_ip inet,
      deleted_time double precision,
      deleted_by char(20),
-     deleted_by_ip char(16),
+     deleted_by_ip inet,
      primary key (pagename, x, y, deleted_time)
    );""")
 
@@ -459,39 +469,39 @@ def create_tables(cursor):
  if config.db_type == 'mysql':
    cursor.execute("""create table mapPointCategories
    (
-     pagename varchar(100),
-     x varchar(100),
-     y varchar(100),
-     id int,
+     pagename varchar(100) not null,
+     x varchar(100) not null,
+     y varchar(100) not null,
+     id int not null,
      primary key (pagename, x, y, id)
    ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table mapPointCategories
      (
-       pagename varchar(100),
-       x varchar(100),
-       y varchar(100),
-       id int,
+       pagename varchar(100) not null,
+       x varchar(100) not null,
+       y varchar(100) not null,
+       id int not null,
        primary key (pagename, x, y, id)
      );""")
  
  if config.db_type == 'mysql':
    cursor.execute("""create table oldMapPointCategories
    (
-     pagename varchar(100),
-     x varchar(100),
-     y varchar(100),
-     id int,
+     pagename varchar(100) not null,
+     x varchar(100) not null,
+     y varchar(100) not null,
+     id int not null,
      deleted_time double,
      primary key (pagename, x, y, id, deleted_time)
    ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table oldMapPointCategories
    (
-     pagename varchar(100),
-     x varchar(100),
-     y varchar(100),
-     id int,
+     pagename varchar(100) not null,
+     x varchar(100) not null,
+     y varchar(100) not null,
+     id int not null,
      deleted_time double precision,
      primary key (pagename, x, y, id, deleted_time)
    );""")
@@ -499,15 +509,15 @@ def create_tables(cursor):
  if config.db_type == 'mysql':
    cursor.execute("""create table pageDependencies
    (
-     page_that_depends varchar(100),
-     source_page varchar(100),
+     page_that_depends varchar(100) not null,
+     source_page varchar(100) not null,
      primary key (page_that_depends, source_page)
    ) type=InnoDB;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table pageDependencies
    (
-     page_that_depends varchar(100),
-     source_page varchar(100),
+     page_that_depends varchar(100) not null,
+     source_page varchar(100) not null,
      primary key (page_that_depends, source_page)
    );""")
 
@@ -535,14 +545,25 @@ def create_tables(cursor):
 
 def create_views(cursor):
  print "creating views..."
- cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
- cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;")
- cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
- cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;")
- cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP from allPages;")
- cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, mapPoints.created_by_ip as userIP from mapPoints;")
- cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
- cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;")
+ if config.db_type == 'mysql':
+   cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
+   cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;")
+   cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
+   cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;")
+   cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP, propercased_name from allPages;")
+   cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, mapPoints.created_by_ip as userIP from mapPoints;")
+   cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
+   cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;")
+ elif config.db_type == 'postgres':
+   cursor.execute("CREATE VIEW eventChanges as SELECT char 'Events Board' as name, events.posted_time as changeTime, users.id as id, char 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
+   cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, char 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;")
+   cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, char 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
+   cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, char 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;")
+   cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP, propercased_name from allPages;")
+   cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, char 'SAVEMAP' as editType, char ''as comment, mapPoints.created_by_ip as userIP from mapPoints;")
+   cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, char 'SAVEMAP' as editType, char '' as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
+   cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, char 'SAVEMAP' as editType, char '' as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;")
+
  print "views created"
 
 def create_other_stuff(cursor):
@@ -567,8 +588,8 @@ def create_other_stuff(cursor):
 def insert_basic_pages(cursor):
  print "inserting basic pages..."
  for pagename, pagetext in basic_pages.iteritems():
-   cursor.execute("insert into curPages values (%(pagename)s, %(pagetext)s, NULL, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, NULL);", {'pagename':pagename, 'pagetext':pagetext})
-   cursor.execute("insert into allPages values (%(pagename)s, %(pagetext)s, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, 'SAVENEW', 'System page', NULL);", {'pagename':pagename, 'pagetext':pagetext})
+   cursor.execute("INSERT into curPages (name, text, cachedText, editTime, cachedTime, userEdited, propercased_name) values (%(pagename)s, %(pagetext)s, NULL, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, NULL, %(propercased_name)s);", {'pagename':pagename.lower(), 'pagetext':pagetext, 'propercased_name':pagename})
+   cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP, propercased_name) values (%(pagename)s, %(pagetext)s, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, 'SAVENEW', 'System page', NULL, %(propercased_name)s);", {'pagename':pagename.lower(), 'pagetext':pagetext, 'propercased_name':pagename})
  print "basic pages inserted"
 
 def build_search_index():
@@ -597,13 +618,14 @@ def build_search_index():
     print "  %s added to search index." % page.page_name
     search.index(page)
 
-db = wikidb.connect()
-cursor = db.cursor()
-init_db(cursor)
-create_tables(cursor)
-create_views(cursor)
-create_other_stuff(cursor)
-insert_basic_pages(cursor)
-build_search_index()
-db.commit()
-db.close()
+if __name__ == '__main__':
+  db = wikidb.connect()
+  cursor = db.cursor()
+  #init_db(cursor)
+  #create_tables(cursor)
+  create_views(cursor)
+  #create_other_stuff(cursor)
+  #insert_basic_pages(cursor)
+  #build_search_index()
+  db.commit()
+  db.close()

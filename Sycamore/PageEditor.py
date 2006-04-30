@@ -89,11 +89,12 @@ class PageEditor(Page):
         msg = None
         preview = kw.get('preview', None)
         emit_anchor = not kw.get('staytop', 0)
+ 	proper_name = self.proper_name()
 
         from Sycamore.formatter.text_html import Formatter
         self.request.formatter = Formatter(self.request, store_pagelinks=1, preview=preview)
 
-        base_uri = "%s?action=edit" % wikiutil.quoteWikiname(self.page_name)
+        base_uri = "%s/%s?action=edit" % (self.request.getScriptname(), wikiutil.quoteWikiname(self.proper_name()))
         backto = form.get('backto', [None])[0]
         if backto:
             base_uri += '&amp;' + util.web.makeQueryString(backto=backto)
@@ -125,13 +126,20 @@ class PageEditor(Page):
          self.request.getScriptname(),
          wikiutil.quoteWikiname(self.page_name))
 
+#        wikiutil.send_title(self.request,
+#            self.proper_name(),
+#            pagename=self.page_name,
+#	    link=link,
+#	    strict_title='Editing "%s"' % self.proper_name(),
+#            body_onload="sizeTextField('savetext',event);"
+#        )
         wikiutil.send_title(self.request,
-            self.page_name,
+            self.proper_name(),
             pagename=self.page_name,
 	    link=link,
-	    strict_title='Editing "%s"' % self.page_name,
-            body_onload="sizeTextField('savetext',event);"
+           strict_title='Editing "%s"' % self.proper_name()
         )
+
         
         self.request.write('<div id="content" class="content">\n') # start content div
         
@@ -228,7 +236,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write('<div id="editArea">')
 	self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.user.theme_name, 'img', 'buttons')))
 	if self.request.user.name:
-	  self.request.write("""<script type=\"text/javascript\">var userPageLink = '["%s"]';</script>""" % (self.request.user.name))
+	  self.request.write("""<script type=\"text/javascript\">var userPageLink = '["%s"]';</script>""" % (self.request.user.propercased_name))
 	else:
 	  self.request.write("""<script type=\"text/javascript\">var userPageLink = '%s';</script>""" % (self.request.remote_addr))
 	  
@@ -236,7 +244,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         # send form
         self.request.write('<form name="editform" id="editform" method="post" action="%s/%s#preview">' % (
             self.request.getScriptname(),
-            wikiutil.quoteWikiname(self.page_name),
+            wikiutil.quoteWikiname(proper_name),
             ))
 
         self.request.write(str(html.INPUT(type="hidden", name="action", value="savepage")))
@@ -259,8 +267,11 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write('<input type="hidden" name="datestamp" value="%s">' % (repr(mtime)))
 
         # Print the editor textarea and the save button
-        self.request.write("""<textarea id="savetext" onChange="sizeTextField('savetext',event);" onSelect="sizeTextField('savetext',event);" onPaste="sizeTextField('savetext',event);" onFocus="sizeTextField('savetext',event);" onKeyPress="sizeTextField('savetext',event);" onClick="sizeTextField('savetext',event);" name="savetext" rows="%d" cols="%d" style="width:100%%;">%s</textarea>"""
+        #self.request.write("""<textarea id="savetext" onChange="sizeTextField('savetext',event);" onSelect="sizeTextField('savetext',event);" onPaste="sizeTextField('savetext',event);" onFocus="sizeTextField('savetext',event);" onKeyPress="sizeTextField('savetext',event);" onClick="sizeTextField('savetext',event);" name="savetext" rows="%d" cols="%d" style="width:100%%;">%s</textarea>"""
+        #    % (text_rows, text_cols, wikiutil.escape(raw_body)))
+	self.request.write("""<textarea id="savetext" name="savetext" rows="%d" cols="%d" style="width:100%%;">%s</textarea>"""
             % (text_rows, text_cols, wikiutil.escape(raw_body)))
+
 
        # make sure we keep the template notice on a resize of the editor
         template_param = ''
@@ -332,7 +343,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 <input type="button" class="formbutton" onClick="location.href='%s/%s?action=DeletePage'" value="Delete">
 <input type="button" class="formbutton" onClick="location.href='%s/%s?action=Rename'" value="Rename">&nbsp;&nbsp;</td></tr></table>
 %s
-''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, relative_dir, wikiutil.quoteWikiname(self.page_name), button_spellcheck, relative_dir, wikiutil.quoteWikiname(self.page_name), relative_dir, wikiutil.quoteWikiname(self.page_name),mapHtml))
+''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, relative_dir, wikiutil.quoteWikiname(proper_name), button_spellcheck, relative_dir, wikiutil.quoteWikiname(proper_name), relative_dir, wikiutil.quoteWikiname(proper_name),mapHtml))
 
         #if config.mail_smarthost:
         #    self.request.write('''<input type="checkbox" name="notify" value="1"%s><label>%s</label>''' % (
@@ -420,7 +431,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	self.request.cursor.execute("DELETE from curPages where name=%(page_name)s", {'page_name':self.page_name}, isWrite=True)
 	from Sycamore import caching, search
 	cache = caching.CacheEntry(self.page_name, self.request)
-	cache.clear()
+	cache.clear(type='page save delete')
 	self.request.req_cache['pagenames'][self.page_name] = False
 
 	# remove entry from the search databases
@@ -633,30 +644,36 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
     #    return backuppage.url(self.request)
 
-    def _write_to_db(self, text, action, comment, ip):
+    def _write_to_db(self, text, action, comment, ip, proper_name):
 	"""
 	Write the text to the page tables in the database.
 	"""
 	ourtime = time.time()
-	self.request.cursor.execute("SELECT name from curPages where name=%(page_name)s", {'page_name':self.page_name})
+	self.request.cursor.execute("SELECT name, propercased_name from curPages where name=%(page_name)s", {'page_name':self.page_name})
 	exists = self.request.cursor.fetchone()
+        if not proper_name:
+           if exists: proper_name = exists[1]
+	   else: proper_name = self.given_name
+ 
         if not self.request.user.id:
-            user_id = 'anon:%s' % ip
+            user_id = 'anon:%s' % i
         else:
             user_id = self.request.user.id
 
 	if exists:
-		self.request.cursor.execute("UPDATE curPages set name=%(page_name)s, text=%(text)s, editTime=%(ourtime)s, userEdited=%(id)s where name=%(page_name)s", {'page_name': self.page_name, 'text': text, 'ourtime': ourtime, 'id': user_id}, isWrite=True)
+		self.request.cursor.execute("UPDATE curPages set name=%(page_name)s, text=%(text)s, editTime=%(ourtime)s, userEdited=%(id)s, propercased_name=%(proper_name)s where name=%(page_name)s", {'page_name': self.page_name, 'text': text, 'ourtime': ourtime, 'id': user_id, 'proper_name':proper_name}, isWrite=True)
 	else:
-		self.request.cursor.execute("INSERT into curPages values (%(page_name)s, %(text)s, NULL, %(ourtime)s, NULL, %(id)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':user_id}, isWrite=True)
+		self.request.cursor.execute("INSERT into curPages (name, text, cachedText, editTime, cachedTime, userEdited, propercased_name) values (%(page_name)s, %(text)s, NULL, %(ourtime)s, NULL, %(id)s, %(proper_name)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':user_id, 'proper_name':proper_name}, isWrite=True)
 
 	# then we need to update the allPages table for Recent Changes and page-centric Info.
 
-	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s)", {'page_name':self.page_name, 'text':text, 'ourtime':ourtime, 'id':user_id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip}, isWrite=True)
+	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP, propercased_name) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s, %(proper_name)s)", {'page_name':self.page_name, 'proper_name':proper_name, 'text':text, 'ourtime':ourtime, 'id':user_id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip}, isWrite=True)
 
 	import caching
 	cache = caching.CacheEntry(self.page_name, self.request)
-	cache.clear()
+        if exists: type = 'page save'
+	else: type = 'page save new'
+	cache.clear(type=type)
 	# clear possible dependencies (e.g. [[Include]])
 	for pagename in caching.depend_on_me(self.page_name, self.request):
 	  caching.CacheEntry(pagename, self.request).clear()
@@ -687,6 +704,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         @keyword notify: send email notice tp subscribers (default: 0)
         @keyword comment: comment field (when preview is true)
         @keyword action: action for log (default: SAVE)
+        @keyword proper_name: properly-cased pagename (for renames)
         @rtype: string
         @return: error msg
         """
@@ -703,6 +721,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
             newtext = self._expand_variables(newtext)
 
         msg = ""
+	merged_changes = False
         if not self.request.user.may.save(self, newtext, datestamp, **kw):
             msg = _('You are not allowed to edit this page!')
             raise self.AccessDenied, msg
@@ -710,7 +729,20 @@ Your changes were sucessfully merged!""" % conflict_msg)
             msg = _('You cannot save empty pages.')
             raise self.EmptyPage, msg
         elif datestamp != '0' and datestamp < self.mtime():
-            raise self.EditConflict, msg
+            from Sycamore.util import diff3
+ 	    savetext = newtext
+            original_text = Page(self.page_name, self.request, prev_date=datestamp).get_raw_body()
+            saved_text = self.get_raw_body()
+            verynewtext, had_conflict = diff3.text_merge(original_text, saved_text, savetext,
+                 marker1='----- /!\ Edit conflict! Other version: -----\n',
+                 marker2='----- /!\ Edit conflict! Your version: -----\n',
+                 marker3='----- /!\ End of edit conflict -----\n')
+            msg = _("""Someone else changed this page while you were editing.""")
+	    if had_conflict:
+               raise self.EditConflict, (msg, verynewtext)
+	    merged_changes = True
+	    msg = _("""%s Your changes were successfully merged! """ % msg)
+	    newtext = verynewtext
         elif newtext == self.get_raw_body() and not self._rename_lowercase_condition():
             msg = _('You did not change the page content, not saved!')
             raise self.Unchanged, msg
@@ -724,9 +756,10 @@ Your changes were sucessfully merged!""" % conflict_msg)
                 raise self.NoAdmin, msg
             
         # save only if no error occured (msg is empty)
-        if not msg:
+        if not msg or merged_changes:
             # set success msg
-            msg = _("Thank you for your changes. Your attention to detail is appreciated. ")
+	    if not merged_changes:
+              msg = _("Thank you for your changes. Your attention to detail is appreciated. ")
 
             # determine action for edit logging
             action = kw.get('action', 'SAVE')
@@ -734,7 +767,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
                 action = 'SAVENEW'
                
             # write the page file
-            mtime = self._write_to_db(newtext, action, kw.get('comment',''), self.request.remote_addr)
+            mtime = self._write_to_db(newtext, action, kw.get('comment',''), self.request.remote_addr, kw.get('proper_name',None))
 
             if self._acl_cache.has_key(self.page_name):
                 del self._acl_cache[self.page_name]
@@ -757,8 +790,8 @@ Your changes were sucessfully merged!""" % conflict_msg)
             return msg
 
     def _rename_lowercase_condition(self):
-        given_name = self.page_name 
-	current_name = self.getName()
+        given_name = self.given_name
+	current_name = self.proper_name()
 	# implies existance
 	if current_name:
 	  if (current_name != given_name) and (current_name.lower() == given_name.lower()):

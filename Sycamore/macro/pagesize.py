@@ -16,12 +16,12 @@ def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
 
     # get list of pages and their objects
-    pages = wikiutil.getPageDict(self.request)
+    pages = wikiutil.getPageDict(macro.request)
 
     # get sizes and sort them
     sizes = []
     for name, page in pages.items():
-        if macro.request.user.may.read(name):
+        if macro.request.user.may.read(page):
             sizes.append((page.size(), page))
     sizes.sort()
     sizes.reverse()

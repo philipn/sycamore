@@ -47,6 +47,7 @@ def getUserId(searchName, request):
     @return: the corresponding user ID or None
     """
     if not searchName: return ''
+    searchName = searchName.lower()
 
     cursor = request.cursor
     id = ''
@@ -59,7 +60,7 @@ def getUserId(searchName, request):
       cursor.execute("SELECT id from users where name=%(username)s", {'username':searchName})
       result = cursor.fetchone()
       if result:
-        id = result[0]
+        id = result[0].strip()
         if config.memcache: request.mc.add('users_id:%s' % searchName, id)
 
     request.req_cache['users_id'][searchName] = id
@@ -70,7 +71,7 @@ def getUserLink(request, userObject):
         return userObject.ip
     else:
         from Sycamore import Page
-        return Page.Page(userObject.name, request).link_to()
+        return Page.Page(userObject.propercased_name, request).link_to()
 
 def getUserIdentification(request, username=None):
     """ 
@@ -142,7 +143,8 @@ class User(object):
         else:
             self.auth_username = ""
 
-        self.name = name
+	self.propercased_name = name
+        self.name = self.propercased_name.lower()
         if not password:
             self.enc_password = ""
         else:
@@ -248,11 +250,11 @@ class User(object):
 	  if config.memcache:
 	    result = self.request.mc.get('users:%s' % self.id)
 	  if not result:
-	    self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark from users where id=%(userid)s", {'userid':self.id})
+	    self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark, propercased_name from users where id=%(userid)s", {'userid':self.id})
 	    data = self.request.cursor.fetchone()
 	    if data:
               user_data = {'enc_password': ''}
-              user_data['name'] = data[0] 
+              user_data['name'] = data[0]
 	      user_data['email'] = data[1]
 	      user_data['enc_password'] = data[2]
 	      user_data['language'] = data[3]
@@ -264,8 +266,9 @@ class User(object):
 	      user_data['edit_on_doubleclick'] = data[9]
 	      user_data['theme_name'] = data[10]
 	      user_data['last_saved'] = data[11]
-	      user_data['tz_offset'] = data[12]
+	      user_data['tz_offset'] = data[12] or config.tz_offset
 	      user_data['rc_bookmark'] = data[13]
+	      user_data['propercased_name'] = data[14]
 	      result = user_data
 	      if config.memcache: self.request.mc.add('users:%s' % self.id, result)
 
@@ -307,7 +310,7 @@ class User(object):
 	  if config.memcache:
 	    user_data = self.request.mc.get('users:%s' % self.id)
 	  if not user_data:
-	    self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark, rc_showcomments from users where id=%(userid)s", {'userid':self.id})
+	    self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark, rc_showcomments, propercased_name from users where id=%(userid)s", {'userid':self.id})
 	    data = self.request.cursor.fetchone()
 
             user_data = {'enc_password': ''}
@@ -323,9 +326,10 @@ class User(object):
 	    user_data['edit_on_doubleclick'] = data[9]
 	    user_data['theme_name'] = data[10]
 	    user_data['last_saved'] = data[11]
-	    user_data['tz_offset'] = data[12]
+	    user_data['tz_offset'] = data[12] or config.tz_offset
 	    user_data['rc_bookmark'] = data[13]
 	    user_data['rc_showcomments'] = data[14]
+	    user_data['propercased_name'] = data[15]
 
 	    if config.memcache: self.request.mc.add('users:%s' % self.id, user_data)
 
@@ -382,8 +386,8 @@ class User(object):
       return id
 
     def getUserdict(self):
-       #Returns dictionary of all relevant user values -- essentially an entire user's relevant information
-	return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz_offset':self.tz_offset, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments}
+        #Returns dictionary of all relevant user values -- essentially an entire user's relevant information
+	return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz_offset':self.tz_offset, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments, 'propercased_name': self.propercased_name}
 
 
     def save(self, new_user=False):
@@ -393,7 +397,7 @@ class User(object):
         This saves all member variables, except "id" and "valid" and
         those starting with an underscore.
         """
-        self.last_saved = str(time.time())
+        self.last_saved = time.time()
 
         userdict = self.getUserdict()
 
@@ -402,11 +406,11 @@ class User(object):
  	  # account doesn't exist yet
 	  userdict['join_date'] = time.time()
 	  userdict['id'] = self.id
-	  self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz_offset) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz_offset)s)", userdict, isWrite=True)
+	  self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz_offset, propercased_name) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz_offset)s, %(propercased_name)s)", userdict, isWrite=True)
 	  if config.memcache:
 	    self.request.mc.set("users:%s" % self.id, userdict)
 	else:
-	  self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz_offset=%(tz_offset)s where id=%(id)s", userdict, isWrite=True)
+	  self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz_offset=%(tz_offset)s, propercased_name=%(propercased_name)s where id=%(id)s", userdict, isWrite=True)
 	  if config.memcache:
 	    self.request.mc.set("users:%s" % self.id, userdict)
 		
@@ -463,7 +467,7 @@ class User(object):
 	import random
 	secret = hash(str(random.random()))
 
-	sessionid = hash(str(time.time()) + str(self.id))
+	sessionid = hash(str(time.time()) + str(self.id)).strip()
 	# clear possibly old expired sessions
 	self.request.cursor.execute("DELETE from userSessions where user_id=%(id)s and expire_time>=%(timenow)s", {'id':self.id, 'timenow':time.time()}, isWrite=True)
 	# add our new session
@@ -488,8 +492,8 @@ class User(object):
     def isValidCookieDough(self, cookiestring):
         stored_secret = False
 	split_string = cookiestring.split(',')
-	userid = split_string[0]
-	sessionid = split_string[1]
+	userid = split_string[0].strip()
+	sessionid = split_string[1].strip()
 	secret = split_string[2]
 	if config.memcache:
 	  key = "userSessions:%s,%s" % (userid, sessionid)
@@ -550,6 +554,14 @@ class User(object):
 	else: 
             return datetime.tmtuple(tm + config.tz_offset)
 
+    def userTimeToUTC(self, time_tuple):
+        """
+        Converts a users' time tuple into UTC.
+	@return: tm unix timestamp in UTC
+	"""
+	import calendar
+	unix_time = calendar.timegm(time_tuple)
+	return unix_time - self.tz_offset
 
     def getFormattedDate(self, tm):
         """
@@ -611,7 +623,7 @@ class User(object):
         """
         if self.valid:
             if not tm: tm = time.time()
-	    self.request.cursor.execute("UPDATE users set rc_bookmark=%(timenow)s where id=%(userid)s", {'timenow':str(tm), 'userid':self.id}, isWrite=True)
+	    self.request.cursor.execute("UPDATE users set rc_bookmark=%(timenow)s where id=%(userid)s", {'timenow':tm, 'userid':self.id}, isWrite=True)
 	    self.rc_bookmark = tm
 	    if config.memcache:
 	      self.request.mc.set("users:%s" % self.id, self.getUserdict())
@@ -632,22 +644,12 @@ class User(object):
         """
         Get favorites bookmark timestamp.
 
-        @rtype: int
+        @rtype: float
         @return: bookmark time (UTC UNIX timestamp) or None
         """
-        #if self.valid and os.path.exists(self.__filename() + ".favbookmark"):
-        #    try:
-        #        return int(open(self.__filename() + ".favbookmark", 'r').readline())
-        #    except (OSError, ValueError):
-        #        return None
-        #return None
-        #index = string.find(self.favorited_pages, pagename + "*")
-        #return int(self.favorited_pages[index + len(pagename + "*"):index + 10 + len(pagename + "*")])
-        #import re
-        #from Sycamore import wikiutil
-	if self.favorites.has_key(pagename):
-	  return self.favorites[pagename]
-	else: return None
+        if self.favorites.has_key(pagename): return self.favorites[pagename]
+
+	return None
 
     def delBookmark(self):
         """
@@ -727,7 +729,6 @@ class User(object):
 	  return favs
 	if config.memcache:
 	  favs = self.request.mc.get("userFavs:%s" % self.id)
-	  self.request.req_cache['userFavs'][self.id] = favs  
 	if not favs:
 	  favs = {}
 	  self.request.cursor.execute("SELECT page, viewTime from userFavorites where username=%(username)s order by page asc", {'username': self.name})
@@ -865,52 +866,52 @@ class User(object):
         return False
 
 
-    def addTrail(self, pagename):
-        """
-        Add page to trail.
-        
-        @param pagename: the page name to add to the trail
-        """
-        if self.valid:
-            # load trail if not known
-            self.getTrail()      
-            
-            # don't append tail to trail ;)
-            if self._trail and self._trail[-1] == pagename: return
+    #def addTrail(self, pagename):
+    #    """
+    #    Add page to trail.
+    #    
+    #    @param pagename: the page name to add to the trail
+    #    """
+    #    if self.valid:
+    #        # load trail if not known
+    #        self.getTrail()      
+    #        
+    #        # don't append tail to trail ;)
+    #        if self._trail and self._trail[-1] == pagename: return
 
-            # append new page, limiting the length
-            self._trail = filter(lambda p, pn=pagename: p != pn, self._trail)
-            self._trail = self._trail[-(self._MAX_TRAIL-1):]
-            self._trail.append(pagename)
+    #        # append new page, limiting the length
+    #        self._trail = filter(lambda p, pn=pagename: p != pn, self._trail)
+    #        self._trail = self._trail[-(self._MAX_TRAIL-1):]
+    #        self._trail.append(pagename)
 
-            # save new trail
-            # XXX UNICODE fix needed, encode as utf-8
-            trailfile = open(self.__filename() + ".trail", "w")
-            trailfile.write('\n'.join(self._trail))
-            trailfile.close()
-            try:
-                os.chmod(self.__filename() + ".trail", 0666 & config.umask)
-            except OSError:
-                pass
+    #        # save new trail
+    #        # XXX UNICODE fix needed, encode as utf-8
+    #        trailfile = open(self.__filename() + ".trail", "w")
+    #        trailfile.write('\n'.join(self._trail))
+    #        trailfile.close()
+    #        try:
+    #            os.chmod(self.__filename() + ".trail", 0666 & config.umask)
+    #        except OSError:
+    #            pass
 
 
-    def getTrail(self):
-        """
-        Return list of recently visited pages.
-        
-        @rtype: list
-        @return: pages in trail
-        """
-        if self.valid \
-                and not self._trail \
-                and os.path.exists(self.__filename() + ".trail"):
-            try:
-                # XXX UNICODE fix needed, decode from utf-8
-                self._trail = open(self.__filename() + ".trail", 'r').readlines()
-            except (OSError, ValueError):
-                self._trail = []
-            else:
-                self._trail = filter(None, map(string.strip, self._trail))
-                self._trail = self._trail[-self._MAX_TRAIL:]
-        return self._trail
+    #def getTrail(self):
+    #    """
+    #    Return list of recently visited pages.
+    #    
+    #    @rtype: list
+    #    @return: pages in trail
+    #    """
+    #    if self.valid \
+    #            and not self._trail \
+    #            and os.path.exists(self.__filename() + ".trail"):
+    #        try:
+    #            # XXX UNICODE fix needed, decode from utf-8
+    #            self._trail = open(self.__filename() + ".trail", 'r').readlines()
+    #        except (OSError, ValueError):
+    #            self._trail = []
+    #        else:
+    #            self._trail = filter(None, map(string.strip, self._trail))
+    #            self._trail = self._trail[-self._MAX_TRAIL:]
+    #    return self._trail
 

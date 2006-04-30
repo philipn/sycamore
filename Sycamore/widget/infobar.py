@@ -10,11 +10,11 @@ def isUserPage(request, pagename):
 
 class InfoBar(base.Widget):
     #Display, query args, should this be displayed
-    infoTabs = [['Revision History', 'action=info', None],
+    infoTabs = [['Revision History', 'action=info', None, '&offset='],
 		['Links', 'action=info&links=1', None],
-		['Images', 'action=Files', None],
-		["User's Info", 'action=userinfo', isUserPage],
-		['Add to wiki bookmarks', 'action=favorite', isNotSubscribed]]
+		['Images', 'action=Files', None, True], # last "True" -> has sub-areas
+		["User's Info", 'action=userinfo', isUserPage]
+	       ]
 
     before, after = '<li>', '</li>'
     before_active, after_active = '<li class="active">', '</li>'
@@ -29,6 +29,14 @@ class InfoBar(base.Widget):
 
 	if self.request.query_string == tab[1]:
 	    link = _(tab[0])
+	    self.request.write('%s%s%s' % (self.before_active, link, self.after_active))
+
+	
+        elif len(tab) == 4 and tab[3] and self.request.query_string.startswith(tab[1]) and (tab[3] is True or self.request.query_string[len(tab[1]):].startswith(tab[3])):
+ 	    link = wikiutil.link_tag(self.request, 
+				     '%s?%s' % (wikiutil.quoteWikiname(self.pagename), 
+					       tab[1]), _(tab[0]))
+
 	    self.request.write('%s%s%s' % (self.before_active, link, self.after_active))
 
 	else:

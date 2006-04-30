@@ -26,6 +26,9 @@ from Sycamore import config, util, wikiutil, user, search
 from Sycamore.Page import Page
 from Sycamore.util import SycamoreNoFooter, pysupport
 
+NOT_ALLOWED_CHARS = '><?#[]{}|'
+NOT_ALLOWED_CHARS_ESCAPED = re.escape(NOT_ALLOWED_CHARS)
+
 #############################################################################
 ### Search
 #############################################################################
@@ -150,6 +153,7 @@ def print_context(terms, text, request, context=40, max_context=10):
  for term in terms:
    if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
    else: term_string = term
+   term_string = term_string.lower()
    found_loc = fixed_text.find(term_string)
    while True:
      if found_loc == -1: break
@@ -263,6 +267,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
         or date1 and date2 parameters
     """
     l = []
+    lower_pagename = pagename.lower()
     page = Page(pagename, request)
     if not request.user.may.read(page):
         page.send_page()
@@ -286,7 +291,6 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
             version2 = None
     except KeyError:
         version2 = None 
-
     
     if version1:
       if not diff1_date: diff1_date = repr(Page(pagename, request).version_number_to_date(version1))
@@ -298,32 +302,32 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
       try:
           diff1_date = request.form['date1'][0]
           try:
-              diff1_date = diff1_date
+              diff1_date = float(diff1_date)
           except StandardError:
-              diff1_date = '0'
+              diff1_date = 0
       except KeyError:
-          diff1_date = '-1'
+          diff1_date = -1
 
     if not diff2_date:
       try:
           diff2_date = request.form['date2'][0]
           try:
-              diff2_date = diff2_date
+              diff2_date = float(diff2_date)
           except StandardError:
-              diff2_date = '0'
+              diff2_date = 0
       except KeyError:
-          diff2_date = '0'
+          diff2_date = 0
 
     
-    if diff1_date == '-1' and diff2_date == '0':
+    if diff1_date == -1 and diff2_date == 0:
         try:
             diff1_date = request.form['date'][0]
             try:
-                diff1_date = diff1_date
+                diff1_date = float(diff1_date)
             except StandardError:
-                diff1_date = '-1'
+                diff1_date = -1
         except KeyError:
-            diff1_date = '-1'
+            diff1_date = -1
 
 	if diff1_date > 0:
 	  version1 = page.date_to_version_number(diff1_date)
@@ -347,10 +351,11 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     
     if in_wiki_interface:
       request.http_headers()
-      wikiutil.send_title(request, _('Differences for "%s"') % (pagename,), pagename=pagename)
+      wikiutil.send_title(request, _('Differences for "%s"') % (page.proper_name(),), pagename=pagename)
     else:
-      l.append("Differences for %s" % (pagename))
+      l.append("Differences for %s" % (page.proper_name()))
   
+    # keep the order standardized	
     if (float(diff1_date)>0 and float(diff2_date)>0 and float(diff1_date)>float(diff2_date)) or \
        (float(diff1_date)==0 and float(diff2_date)>0):
         diff1_date,diff2_date = diff2_date,diff1_date
@@ -363,9 +368,8 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     olddate1 = diff1_date
     olddate2 = diff2_date
 
-    if diff1_date == '-1':
-	# we want editTime as a string for precision purposes
-	request.cursor.execute("SELECT editTime from allPages where name=%(pagename)s order by editTime desc limit 2", {'pagename':pagename})
+    if diff1_date == -1:
+	request.cursor.execute("SELECT editTime from allPages where name=%(pagename)s order by editTime desc limit 2", {'pagename':lower_pagename})
 	result = request.cursor.fetchall()
 	if len(result) >= 2:
 	   first_olddate = result[1][0]
@@ -380,11 +384,12 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     else:
         if olddate1:
             oldpage = Page(pagename, request, prev_date=olddate1)
+	    oldpage.make_exact_prev_date() # we allow for an approximate/from-period date param for now
         else:
             oldpage = Page("$EmptyPage$", request) # XXX: ugly hack
             oldpage.set_raw_body("")    # avoid loading from db
             
-    if diff2_date is None:
+    if not diff2_date:
         newpage = Page(pagename, request)
         # oldcount2 is still on init value 0
     else:
@@ -415,13 +420,22 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     this_edit = []
 
     if version1:
-      previous_user_link = user.getUserLink(request, user.User(request, id=oldpage.edit_info()[1]))
+      previous_user_link = '<i>unknown</i>'
+      this_user_link = '<i>unknown</i>'
+      oldpage_user_id = oldpage.edit_info()[1]
+      if oldpage_user_id:
+        previous_user_link = user.getUserLink(request, user.User(request, id=oldpage_user_id))
       previous_edit.append('<div>version %s (%s by %s)</div>' % (old_version, oldpage.mtime_printable(old_mtime), previous_user_link))
-      this_user_link = user.getUserLink(request, user.User(request, id=newpage.edit_info()[1]))
+      newpage_user_id = newpage.edit_info()[1]
+      if newpage_user_id:
+        this_user_link = user.getUserLink(request, user.User(request, id=newpage_user_id))
       this_edit.append('<div>version %s (%s by %s)</div>' % (new_version, newpage.mtime_printable(new_mtime), this_user_link))
     else:
+      this_user_link = '<i>unknown</i>'
+      newpage_user_id = newpage.edit_info()[1]
       previous_edit.append('<div>version 0</div>')
-      this_user_link = user.getUserLink(request, user.User(request, id=newpage.edit_info()[1]))
+      if newpage_user_id:
+        this_user_link = user.getUserLink(request, user.User(request, id=newpage_user_id))
       this_edit.append('<div>version %s (%s by %s)</div>' % (1, newpage.mtime_printable(), this_user_link))
   
     if edit_count > 1:
@@ -455,6 +469,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 
 
 def do_info(pagename, request):
+    lower_pagename = pagename.lower()
     page = Page(pagename, request)
 
     if not request.user.may.read(page):
@@ -492,9 +507,9 @@ def do_info(pagename, request):
 
 	  html = []
 	  if last_version != 1:
-	    html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=info&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), pagename, offset_given+1))
+	    html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=info&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), wikiutil.quoteWikiname(pagename), offset_given+1))
 	  if offset_given:
-	    html.append('<div class="actionBoxes" style="float: right !important;"><span><a href="%s/%s?action=info&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), pagename, offset_given-1))
+	    html.append('<div class="actionBoxes" style="float: right !important;"><span><a href="%s/%s?action=info&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), wikiutil.quoteWikiname(pagename), offset_given-1))
 	  html.append('<div style="clear: both;"></div>')
 
 	  return [''.join(html)]
@@ -530,12 +545,12 @@ def do_info(pagename, request):
 	   # so they see a consistent version of the page between page forward/back
 	   offset = offset_given*100 - offset_given
         may_revert = request.user.may.revert(page)
-	request.cursor.execute("SELECT count(editTime) from allPages where name=%(pagename)s", {'pagename':pagename})
+	request.cursor.execute("SELECT count(editTime) from allPages where name=%(pagename)s", {'pagename':lower_pagename})
 	count_result = request.cursor.fetchone()
 	if count_result: versions = count_result[0]
-	request.cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%(pagename)s order by editTime desc limit 100 offset %(offset)s", {'pagename':pagename, 'offset':offset})
+	request.cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%(pagename)s order by editTime desc limit 100 offset %(offset)s", {'pagename':lower_pagename, 'offset':offset})
 	result = request.cursor.fetchall()
-	request.cursor.execute("SELECT editTime from curPages where name=%(pagename)s", {'pagename':pagename})
+	request.cursor.execute("SELECT editTime from curPages where name=%(pagename)s", {'pagename':lower_pagename})
 	currentpage_editTime_result = request.cursor.fetchone()
 	if currentpage_editTime_result: currentpage_editTime = currentpage_editTime_result[0]
 	else: currentpage_editTime = 0
@@ -605,8 +620,8 @@ def do_info(pagename, request):
 	    from Sycamore.widget.comments import Comment
 	    comment = Comment(request, comment, editType, pagename).render()
    	    
-	    if entry[2]:
-	    	editUser = user.User(request, entry[2])
+	    if entry[2] and entry[2].strip():
+	    	editUser = user.User(request, entry[2].strip())
             	editUser_text = user.getUserLink(request, editUser)
 		editUser_text = '<span title="%s">' % userIP + editUser_text + '</span>'
 	    else: editUser_text = '<i>none</i>'
@@ -645,8 +660,9 @@ def do_info(pagename, request):
     qpagename = wikiutil.quoteWikiname(pagename)
 
     request.http_headers()
+    proper_pagename = page.proper_name()
 
-    wikiutil.simple_send_title(request, pagename, strict_title='Info for "%s"' % pagename)
+    wikiutil.simple_send_title(request, proper_pagename, strict_title='Info for "%s"' % proper_pagename)
 
     request.write('<div id="content" class="content">\n') # start content div
 
@@ -720,10 +736,14 @@ def do_edit(pagename, request):
         PageEditor(pagename, request).sendEditor()
     else:
         _ = request.getText
-        Page(pagename, request).send_page(msg = _('Invalid pagename: the character "?" is not allowed in page names.'))
+        msg = _('Invalid pagename: the characters %s are not allowed in page names.')
+        not_allowed = ' '.join(NOT_ALLOWED_CHARS)
+        msg = msg % not_allowed
+
+        Page(pagename, request).send_page(msg = msg)
 
 def isValidPageName(name):
-    return not re.search('\?', name)
+    return not re.search('[%s]' % NOT_ALLOWED_CHARS_ESCAPED, name)
 
 def do_savepage(pagename, request):
     from Sycamore.PageEditor import PageEditor
@@ -780,19 +800,11 @@ def do_savepage(pagename, request):
             savemsg = pg.saveText(savetext, datestamp,
                                   stripspaces=rstrip, notify=notify,
                                   comment=comment)
-        except pg.EditConflict, msg:
-            from Sycamore.util import diff3
-            original_text = Page(pg.page_name, request, prev_date=datestamp).get_raw_body()
-            saved_text = pg.get_raw_body()
-            verynewtext, had_conflict = diff3.text_merge(original_text, saved_text, savetext, 
-                 marker1='----- /!\ Edit conflict! Other version: -----\n',
-                 marker2='----- /!\ Edit conflict! Your version: -----\n',
-                 marker3='----- /!\ End of edit conflict -----\n')
-            if had_conflict:
-                msg = _("""Someone else changed this page while you were editing.
-There was an <b>edit conflict between your changes!</b> Please review the conflicts and merge the changes.""")
-                request.form['datestamp'] = [pg.mtime()]
-                pg.sendEditor(msg=msg, comment=request.form.get('comment', [''])[0],
+        except pg.EditConflict, (msg, verynewtext):
+            msg = _("""%s.
+There was an edit conflict between your changes!</b> Please review the conflicts and merge the changes.""" % msg)
+            request.form['datestamp'] = [pg.mtime()]
+            pg.sendEditor(msg=msg, comment=request.form.get('comment', [''])[0],
                               preview=verynewtext, staytop=1, had_conflict=True)
 	    return
         except pg.SaveError, msg:
@@ -803,7 +815,7 @@ There was an <b>edit conflict between your changes!</b> Please review the confli
             pg = Page(backto, request)
 
 	# clear request cache so that the user sees the page as existing
-	request.req_cache['pagenames'][pagename.lower()] = pagename
+	request.req_cache['pagenames'][pagename.lower()] = pg.proper_name()
         pg.send_page(msg=savemsg, send_headers=False)
         #request.http_redirect(pg.url())
 
@@ -815,10 +827,10 @@ def do_favorite(pagename, request):
 
     page = Page(pagename, request)
     if request.form.has_key('delete'):
-       removed_pagename = wikiutil.unquoteWikiname(request.form.get('delete')[0])
+       removed_pagename = wikiutil.unquoteWikiname(request.form.get('delete')[0]).lower()
        request.user.favorites = request.user.getFavorites()
        request.user.delFavorite(removed_pagename)
-       msg = _("Page '%s' removed from Bookmarks" % removed_pagename)
+       msg = _("Page '%s' removed from Bookmarks" % Page(removed_pagename, request).proper_name())
 
     elif not request.user.may.read(page):
         msg = _("You are not allowed to bookmark a page you can't read.")
@@ -834,7 +846,7 @@ def do_favorite(pagename, request):
               
     # Favorite current page
     else:
-        if request.user.favoritePage(pagename):
+        if request.user.favoritePage(pagename.lower()):
             request.user.save()
         msg = _('You have added this page to your wiki Bookmarks!')
               

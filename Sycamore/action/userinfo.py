@@ -14,7 +14,7 @@ def display_bookmarks(request, userpage):
   bookmarks = theuser.getFavoriteList()
   request.write('<div class="userFavoritesList">')
   for pagename in bookmarks:
-    request.write('<span class="userFavoriteItem">%s</span>' % Page(pagename, request).link_to())
+    request.write('<span class="userFavoriteItem">%s</span>' % Page(pagename, request).link_to(guess_case=True))
   request.write('</div>')
   
 
@@ -119,7 +119,7 @@ def execute(pagename, request):
     wikiutil.simple_send_title(request, pagename, strict_title="User %s's information" % pagename)
 
 
-    request.write('<div id="content">\n\n')
+    request.write('<div id="content" class="content">\n\n')
     InfoBar(request, pagename).render()
     request.write('<div id="tabPage">')
 

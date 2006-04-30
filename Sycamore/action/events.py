@@ -1,5 +1,5 @@
 # Imports
-import time,string
+import time,string, calendar
 import os
 from Sycamore import config, user, util, wikiutil, wikidb
 from Sycamore.PageEditor import PageEditor
@@ -59,14 +59,14 @@ def execute(pagename, request):
 	    uid = request.form.get('uid')[0]
 	    request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
 	    name = request.cursor.fetchone()[0]
-	    request.cursor.execute("DELETE from events where uid=%(uid)s", {'uid':uid})
+	    request.cursor.execute("DELETE from events where uid=%(uid)s", {'uid':uid}, isWrite=True)
             msg = 'Event "%s" <b>deleted</b>!' % name
 
         elif request.form.get('del')[0] == "1":
             uid = request.form.get('uid')[0]
 	    request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
 	    name = request.cursor.fetchone()[0]
-	    request.cursor.execute("DELETE from events where uid=%(uid)s and posted_by=%(username)s", {'uid':uid, 'username':request.user.name})
+	    request.cursor.execute("DELETE from events where uid=%(uid)s and posted_by=%(username)s", {'uid':uid, 'username':request.user.name}, isWrite=True)
             msg = 'Event "%s" <b>deleted</b>!' % name
 
 
@@ -94,7 +94,7 @@ def execute(pagename, request):
     
            # WE NEED TO VALIDATE THE TEXT AND THE OTHER FIELDS
            if isValid(event_text,event_name,event_location,month,day,hour,minute,year) and not hasPassed(month,day,hour,minute,year,request):
-              event_time_unix = time.mktime((year, month, day, hour, minute, 0, 0, 0, -1))
+              event_time_unix = request.user.userTimeToUTC((year, month, day, hour, minute, 0, 0, 0, -1))
               writeEvent(request,event_text,event_name,event_location,event_time_unix,posted_by)
               msg = _('Your event has been added!')
            elif hasPassed(month,day,hour,minute,year,request):
@@ -105,7 +105,7 @@ def execute(pagename, request):
     else:
         msg = _('Please fill out all fields of the form.')
         
-    return page.send_page(request, msg)
+    return page.send_page(msg)
 
 def doRSS(request, add_on):
     #set up the RSS file
@@ -289,12 +289,6 @@ def findMonth(month):
     return months[int(month)-1]
 
 def writeEvent(request, event_text, event_name, event_location, event_time_unix, posted_by):
-    event_text = unicode(event_text, "ascii", "replace")
-    event_name = unicode(event_name, "ascii", "replace")
-    event_location = unicode(event_location, "ascii", "replace")
-    event_text = event_text.encode("ascii", "replace")
-    event_location = event_location.encode("ascii", "replace")
-    event_name = event_name.encode("ascii", "replace")
     request.cursor.execute("SELECT max(uid) from events")
     max_id = 0
     result = request.cursor.fetchone()
@@ -302,7 +296,7 @@ def writeEvent(request, event_text, event_name, event_location, event_time_unix,
      if result[0]: max_id = result[0]
     id = max_id + 1
     posted_time = time.time()
-    request.cursor.execute("INSERT into events (uid, event_time, posted_by, text, location, event_name, posted_time, posted_by_ip) values (%(id)s, %(event_time_unix)s, %(posted_by)s, %(event_text)s, %(event_location)s, %(event_name)s, %(posted_time)s, %(userip)s)", {'id':id, 'event_time_unix':event_time_unix, 'posted_by':posted_by, 'event_text':event_text, 'event_location':event_location, 'event_name':event_name, 'posted_time':posted_time, 'userip':request.remote_addr})
+    request.cursor.execute("INSERT into events (uid, event_time, posted_by, text, location, event_name, posted_time, posted_by_ip) values (%(id)s, %(event_time_unix)s, %(posted_by)s, %(event_text)s, %(event_location)s, %(event_name)s, %(posted_time)s, %(userip)s)", {'id':id, 'event_time_unix':event_time_unix, 'posted_by':posted_by, 'event_text':event_text, 'event_location':event_location, 'event_name':event_name, 'posted_time':posted_time, 'userip':request.remote_addr}, isWrite=True)
 
      
 def doParse(text, request):

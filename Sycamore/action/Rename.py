@@ -85,8 +85,7 @@ def execute(pagename, request):
 		    # copy images over
 		    copy_images(pagename, newpagename, request)
 
-                os.spawnl(os.P_NOWAIT, config.app_dir + '/remove_from_index', config.app_dir + '/remove_from_index', wikiutil.quoteFilename(pagename))
-                newpage.saveText(pagetext, '0', comment='Renamed from "%s"%s' % (pagename, renamecomment), action="RENAME")
+                newpage.saveText(pagetext, '0', comment='Renamed from "%s"%s' % (pagename, renamecomment), action="RENAME", proper_name="newpagename")
 
 		# clear cache so images show up
 		key = newpagename

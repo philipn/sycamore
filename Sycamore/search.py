@@ -135,7 +135,8 @@ if config.has_xapian:
       SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc, num_results)
   
       # load the databases
-      self.text_database = xapian.Database(xapian.remote_open('127.0.0.1', 3332))
+      self.text_database = xapian.Database(
+          os.path.join(config.search_db_location, 'text'))
       self.title_database = xapian.Database(
           os.path.join(config.search_db_location, 'title'))
   
@@ -301,7 +302,7 @@ def index(page):
 
 def remove_from_index(page):
   """removes the page from the index.  call this on page deletion.  all other page changes can just call index(). """
-  if not config.xapian: return
+  if not config.has_xapian: return
   database = xapian.WritableDatabase(
       os.path.join(config.search_db_location, 'title'),
       xapian.DB_CREATE_OR_OPEN)

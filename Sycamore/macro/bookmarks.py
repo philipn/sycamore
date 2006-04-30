@@ -2,15 +2,14 @@
 """
     Sycamore - Bookmarks.  I started by modifying the Sycamore RecentChanges.
 
-    Parameter "ddiffs" by Ralf Zosel <ralf@zosel.com>, 04.12.2003.
-
-    @copyright: 2005 Philip Neustrom <philipn@gmail.com>
+    @copyright: 2005-2006 Philip Neustrom <philipn@gmail.com>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
 import re, time, cStringIO, os, urllib
 from Sycamore import config, user, util, wikiutil, wikidb
+from Sycamore.Page import Page
 from Sycamore.widget.comments import Comment
 
 _DAYS_SELECTION = [1, 2, 3, 7]
@@ -29,6 +28,7 @@ def execute(macro, args, formatter=None, **kw):
     request = macro.request
     _ = request.getText
     pagename = macro.formatter.page.page_name
+    pagename_propercased = macro.formatter.page.proper_name()
     cursor = request.cursor
 
     tnow = time.time()
@@ -57,7 +57,7 @@ def execute(macro, args, formatter=None, **kw):
       if config.relative_dir: add_on = '/'
       else: add_on = ''
 
-    rss_html = '<link rel=alternate type="application/rss+xml" href="/%s%s%s?action=rss_rc&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Bookmarks RSS Feed" href="/%s%s%s?action=rss_rc&amp;user=%s" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(pagename), urllib.quote_plus(request.user.name), request.user.name, request.user.name, config.relative_dir, add_on, wikiutil.quoteWikiname(pagename), urllib.quote_plus(request.user.name))
+    rss_html = '<link rel=alternate type="application/rss+xml" href="/%s%s%s?action=rss_rc&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Bookmarks RSS Feed" href="/%s%s%s?action=rss_rc&amp;user=%s" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.name), request.user.name, request.user.name, config.relative_dir, add_on, wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.name))
     request.write(rss_html)
     request.write('<table>')
     if not local_favoriteList:
@@ -76,25 +76,25 @@ def execute(macro, args, formatter=None, **kw):
 
           if page_line.ed_time > bookmark:
             # We do bold
-            line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<strong style="font-size: 10px;">[<a href="/%s%s' % (config.relative_dir, add_on) + wikiutil.quoteWikiname(page_line.pagename) + '?action=diff&date2=0&date1=' + str(bookmark) + '">diff</a>]</strong> &nbsp;' +  formatter.pagelink(page_line.pagename)
+            line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<strong style="font-size: 10px;">[<a href="/%s%s' % (config.relative_dir, add_on) + wikiutil.quoteWikiname(page_line.pagename) + '?action=diff&date=' + repr(bookmark) + '">diff</a>]</strong> &nbsp;' +  Page(page_line.pagename, request).link_to(guess_case=True)
             line_of_text = line_of_text + " &nbsp;" + '<b><span align="right" style="font-size: 12px;">' + 'last modified '
             line_of_text = line_of_text + '%s %s' % (find_month[day[1]], day[2])
             line_of_text = line_of_text + time.strftime(" at %I:%M %p by</span></b>", page_line.time_tuple) + '<span class="faveditor">'
             if page_line.comment:
-              line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (formatter.pagelink(user.User(request, page_line.userid).name), page_line.comment)
+              line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (page_line.getEditor(request), page_line.comment)
             else:
-              line_of_text = line_of_text + ' %s</span>' % (formatter.pagelink(user.User(request, page_line.userid).name))
+              line_of_text = line_of_text + ' %s</span>' % (page_line.getEditor(request))
             line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s%sBookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(page_line.pagename)) + '</td></tr>'
 
           else:
              # We don't do bold
-            line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<font style="font-size: 10px;">[<a href="/%s%s' % (config.relative_dir, add_on) + wikiutil.quoteWikiname(page_line.pagename) + '?action=diff">diff</a>]</font> &nbsp;' + formatter.pagelink(page_line.pagename) + ' &nbsp;<span align="right" class="favtime">last modified '
+            line_of_text = '<tr><td valign="center" class="rcpagelink">' + '<font style="font-size: 10px;">[<a href="/%s%s' % (config.relative_dir, add_on) + wikiutil.quoteWikiname(page_line.pagename) + '?action=diff">diff</a>]</font> &nbsp;' + Page(page_line.pagename, request).link_to(guess_case=True) + ' &nbsp;<span align="right" class="favtime">last modified '
             line_of_text = line_of_text + '%s %s' % (find_month[day[1]], day[2]) 
             line_of_text = line_of_text + time.strftime(" at %I:%M %p by</span>", page_line.time_tuple) + '<span class="faveditor">'
             if page_line.comment:
-              line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (formatter.pagelink(user.User(request, page_line.userid).name), page_line.comment)
+              line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (page_line.getEditor(request), page_line.comment)
             else:
-               line_of_text = line_of_text + ' %s</span>' % (formatter.pagelink(user.User(request, page_line.userid).name))
+               line_of_text = line_of_text + ' %s</span>' % (page_line.getEditor(request))
 
             line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="/%s%sBookmarks?action=favorite&delete=%s">Remove</a>]</span>' % (config.relative_dir, add_on, wikiutil.quoteWikiname((page_line.pagename)))
             line_of_text = line_of_text + '</td></tr>'

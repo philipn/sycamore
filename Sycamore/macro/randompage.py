@@ -29,17 +29,17 @@ def execute(macro, args, formatter):
 	page = Page(pagename, macro.request)
         if macro.request.user.may.read(page):
             pages.append(page)
-        all_pages.remove(page)
+        #all_pages.remove(page)
 
     # return a single page link
-    if links == 1: return macro.formatter.pagelink(pages[0], generated=1)
+    if links == 1: return macro.formatter.pagelink(pages[0].page_name, generated=1)
 
     # return a list of page links
     pages.sort()
     result = macro.formatter.bullet_list(1)
-    for name in pages:
+    for page in pages:
         result = result + macro.formatter.listitem(1)
-        result = result + macro.formatter.pagelink(name, generated=1)
+        result = result + macro.formatter.pagelink(page.page_name, generated=1)
         result = result + macro.formatter.listitem(0)
     result = result + macro.formatter.bullet_list(0)
 

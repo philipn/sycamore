@@ -76,7 +76,7 @@ class Permissions:
         """
         return self.getACL(page).may(self.request, self.name, "revert")
 
-    def admin(self, pagename, **kw):
+    def admin(self, page, **kw):
         """ Check whether user may administrate this page.
 
             `kw` allows passing more information without breaking user

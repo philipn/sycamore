@@ -30,6 +30,7 @@ class FormatterBase:
         self._store_pagelinks = kw.get('store_pagelinks', 0)
 	self._preview = kw.get('preview', 0)
         self.pagelinks = []
+        self.pagelinks_propercased = []
         self.in_p = 0
         self.in_pre = 0
 
@@ -58,9 +59,10 @@ class FormatterBase:
     
     def pagelink(self, pagename, text=None, **kw):
         if kw.get('generated', 0): return
-	ignore_case_pagelinks = [p.lower() for p in self.pagelinks]
-        if self._store_pagelinks and pagename.lower() not in ignore_case_pagelinks:
-            self.pagelinks.append(pagename)
+        lower_pagename = pagename.lower()
+        if self._store_pagelinks and lower_pagename not in self.pagelinks:
+            self.pagelinks.append(lower_pagename)
+            self.pagelinks_propercased.append(pagename)
 
     def url(self, url, text=None, css=None, **kw):
         raise NotImplementedError

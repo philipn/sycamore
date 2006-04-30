@@ -21,7 +21,7 @@ def pointsToXML(cursor):
   
     point_id = 1 # we give ID to the applet but we don't need it.  not sure why the applet does..
     pages = points_dom.createElement("pages")
-    cursor.execute("SELECT m.pagename, m.x, m.y, c.id from mapPoints as m, mapPointCategories as c where m.pagename=c.pagename and m.x=c.x and m.y=c.y order by m.pagename;")
+    cursor.execute("SELECT curPages.propercased_name, m.x, m.y, c.id from mapPoints as m, mapPointCategories as c, curPages where curPages.name=c.pagename and m.x=c.x and m.y=c.y order by curPages.propercased_name;")
     pages_points = cursor.fetchall()
     points_cat_dict = {}
     for pagename, x, y, cat_id in pages_points:
@@ -50,5 +50,5 @@ def pointsToXML(cursor):
     return points_dom.toprettyxml()
 
 def execute(pagename, request):
-  request.http_headers(["Content-Type: application/xml"])
+  request.http_headers([("Content-Type", "application/xml")])
   request.write(pointsToXML(request.cursor))

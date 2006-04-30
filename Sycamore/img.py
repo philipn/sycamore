@@ -53,6 +53,7 @@ def imgSend(request):
   
   if mimetype:
     # we're good to go to output the image
+    if modified_time_unix is None: modified_time_unix = 0
     datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
     # images are usually compressed anyway, so let's not bother gziping
     request.do_gzip = False

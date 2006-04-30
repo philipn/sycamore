@@ -31,6 +31,7 @@ _args_re_pattern = r'^(?P<name>[^,]+)(%s%s(%s)?%s%s%s%s%s%s)?$' % (
 
 TITLERE = re.compile("^(?P<heading>\s*(?P<hmarker>=+)\s.*\s(?P=hmarker))$",
                      re.M)
+
 def extract_titles(body):
     titles = []
     for title, _ in TITLERE.findall(body):
@@ -123,6 +124,10 @@ def execute(macro, text, args, formatter=None):
       elif macro.request.user.may.edit(inc_page):
          result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), heading, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
 
+    if this_page._macroInclude_pagelist.has_key(inc_name):
+      if this_page._macroInclude_pagelist[inc_name] > caching.MAX_DEPENDENCY_DEPTH:
+	 return '<em>Maximum include depth exceeded.</em>'
+         
     # set or increment include marker
     this_page._macroInclude_pagelist[inc_name] = \
         this_page._macroInclude_pagelist.get(inc_name, 0) + 1
@@ -136,7 +141,7 @@ def execute(macro, text, args, formatter=None):
     # note that our page now depends on the content of the included page
     if not formatter.isPreview():
       # this means we're in the caching formatter
-      caching.dependency(this_page.page_name, inc_name, macro.request)
+      caching.dependency(this_page.page_name, inc_name.lower(), macro.request)
     # output formatted
     buffer = cStringIO.StringIO()
     formatter.request.redirect(buffer)
@@ -149,8 +154,7 @@ def execute(macro, text, args, formatter=None):
               
     # decrement or remove include marker
     if this_page._macroInclude_pagelist[inc_name] > 1:
-        this_page._macroInclude_pagelist[inc_name] = \
-            this_page._macroInclude_pagelist[inc_name] - 1
+        this_page._macroInclude_pagelist[inc_name] -= 1
     else:
         del this_page._macroInclude_pagelist[inc_name]
 

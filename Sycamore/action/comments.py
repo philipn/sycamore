@@ -2,6 +2,7 @@
 import time, string, thread
 from Sycamore import config, user, util, wikiutil, request
 import os
+from Sycamore.Page import Page
 from Sycamore.PageEditor import PageEditor
 from Sycamore.request import RequestBase
 from Sycamore.user import User
@@ -42,7 +43,7 @@ def execute(pagename, request):
               if request.user.anonymous:
                   userId = request.user.ip
               else:
-                  userId = '["' + request.user.name + '"]'
+                  userId = '["' + request.user.propercased_name + '"]'
 
               now = time.time()
 	      now_formatted = request.user.getFormattedDateTime(now, global_time=True)
