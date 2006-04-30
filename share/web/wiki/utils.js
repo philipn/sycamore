@@ -15,6 +15,14 @@ function fitPic() {\
                                 self.focus();\
 };";
 ///////////END STRING
+function hideMessage(id)
+{
+  if (!document.getElementById) return true;
+  msg = document.getElementById(id);
+  msg.parentNode.removeChild(msg);
+  return false;
+}
+
 
 function imgPopup(caption, imgUrl)
 {

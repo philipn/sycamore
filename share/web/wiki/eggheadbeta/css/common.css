@@ -109,7 +109,8 @@ pre {
 }
 
 .footnotes li {
-	list-style: none;
+        font-size: 80%;
+        list-style: none;
 }
 
 /* eye catchers */

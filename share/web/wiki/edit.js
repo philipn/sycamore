@@ -280,68 +280,26 @@ function findPosY(obj)
     return curtop;
 }
 
-// editor resizing. opera might not work?
-var agt=navigator.userAgent.toLowerCase(); 
-function sizeTextField(id,e)
+function alter_textarea()
 {
-  var rows = 0;
-  var t = document.getElementById(id);
+  document.getElementById('content').removeChild(hidden_div);
+  if (global_rows > set_rows)
+  {
+    t.rows = global_rows + 6;
+  }
+  else if ((set_rows - global_rows) < 2) //makes sure that we have some padding between the bottom of the textarea and the bottom of the text
+  {
+     t.rows += 2;
+  }
+  else
+  {
+     t.rows = set_rows;
+  } 
+
   set_rows = t.rows;
-  field_width = t.clientWidth; //with of textarea in px
-
-  if (e.type.toLowerCase() == 'keypress')
-  {
-    if (e.keyCode != 13 || e.which != 13) //13 is return key
-    {
-      return;
-    }
-    rows = 1;
-  }
-
-  var added_new_rows = false;
-  text_lines = t.value.split('\n');
-  for (x = 0; x < text_lines.length; x++)
-  {
-    text = text_lines[x];
-
-    var hidden_div = document.createElement("div");
-    try {
-      hidden_div.style.cssText('visibility:hidden;font-size:110%;display:inline;white-space:nowrap;position:absolute;');
-    }
-    catch (e)
-    {
-      hidden_div.setAttribute('style','visibility:hidden;font-size:110%;display:inline;white-space:nowrap;position:absolute;');
-    }
-    hidden_div.appendChild(document.createTextNode(text));
-    document.getElementById('content').appendChild(hidden_div);
-    total_char_width = hidden_div.clientWidth;
-    document.getElementById('content').removeChild(hidden_div);
-    if (total_char_width > field_width)
-    {
-      rows += Math.ceil(total_char_width/(field_width));
-      added_new_rows = true;
-    }
-    else
-    {
-      rows += 1;
-    }
-
-  }
-  if (rows > t.rows)
-  {
-    added_new_rows = true;
-  }
-
-  if (added_new_rows)
-  {
-    t.rows = rows + 4;
-  }
-  else if ((t.rows - rows) < 3)
-  {
-     t.rows +=1 ;
-  }
-
-  if (e.type.toLowerCase() == 'load')
+  
+  
+  if (event_type == 'load')
   {
     if (can_alter_textarea)
     {
@@ -366,8 +324,102 @@ function sizeTextField(id,e)
     }
    catch (e)
    {
-
+      var do_nothing;
    }
   }
+}
+
+function calc_line()
+{
+
+  if (current_line < text_lines.length)
+  {
+    for (processed_lines=0; (processed_lines < 20) && (current_line < text_lines.length); processed_lines++)
+    {
+       rows = 0;
+       text = text_lines[current_line];
+       hidden_div.innerHTML = text;
+       total_char_width = hidden_div.clientWidth;
+
+       if (total_char_width > field_width)
+       {
+         rows += Math.ceil(total_char_width/(field_width));
+         added_new_rows = true;
+       }
+       else
+       {
+         rows += 1;
+       }
+
+       current_line += 1;
+       global_rows += rows;
+       //document.getElementsByTagName('body')[0].innerHTML += global_rows + " ";
+    }
+	
+
+    setTimeout('calc_line()', 30);
+    //calc_line();
+  }
+  else
+  {
+    alter_textarea();
+  }
+
+  return global_rows;
+}
+
+var current_line = 0;
+var text_lines = [];
+var field_width = 0;
+var global_rows = 0;
+var hidden_div = document.createElement("div");
+var t;
+var event_type;
+var rows;
+var set_rows;
+var added_new_rows = false;
+var textarea_rows;
+
+// editor resizing. opera might not work?
+var agt=navigator.userAgent.toLowerCase(); 
+function sizeTextField(id,passed_event)
+{
+  rows = 0;
+  event_type = passed_event.type.toLowerCase();
+  t = document.getElementById(id);
+  set_rows = t.rows;
+  field_width = t.clientWidth; //width of textarea in px
+  added_new_rows = false;
+  current_line = 0;
+  global_rows = 0;
+
+  if (event_type == 'load')  // let's set a big textarea and then make it small (probably).  less browser 'pop'
+  {
+    t.rows = 1000;
+  }
+
+
+  if (event_type == 'keypress')
+  {
+    if (passed_event.keyCode != 13 || passed_event.which != 13) //13 is return key
+    {
+      return;
+    }
+    rows = 1;
+  }
+
+  text_lines = t.value.split('\n');
+  try
+  {
+      hidden_div.style.cssText('visibility:hidden;font-size:110%;display:inline;white-space:nowrap;position:absolute;');
+  }
+  catch (e)
+  {
+      hidden_div.setAttribute('style','visibility:hidden;font-size:110%;display:inline;white-space:nowrap;position:absolute;');
+  }
+  document.getElementById('content').appendChild(hidden_div);
+
+  calc_line(); // async call
+  
 
 }
