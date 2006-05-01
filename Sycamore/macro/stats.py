@@ -57,7 +57,7 @@ def execute(macro, args, formatter=None):
        cursor = macro.request.cursor
        if sort_by == 'join_date':
          cursor.execute("SELECT propercased_name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date, join_date IS NULL AS join_isnull from users where name!='' order by join_isnull ASC, %s desc" % sort_by)
-       else if sort_by == 'last_edit_date':
+       elif sort_by == 'last_edit_date':
          cursor.execute("SELECT propercased_name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date, last_edit_date IS NULL AS edit_isnull from users where name!='' order by edit_isnull ASC, %s desc" % sort_by)
        else:
          cursor.execute("SELECT propercased_name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users where name!='' order by %s desc" % sort_by)
