@@ -55,7 +55,13 @@ def execute(macro, args, formatter=None):
 	 if sort_by not in ['edit_count', 'created_count', 'join_date', 'file_count', 'last_edit_date']: sort_by = 'edit_count'
        list = []
        cursor = macro.request.cursor
-       cursor.execute("SELECT propercased_name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users where name!='' order by %s desc" % sort_by)
+       if sort_by == 'join_date':
+         cursor.execute("SELECT propercased_name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date, join_date IS NULL AS join_isnull from users where name!='' order by join_isnull ASC, %s desc" % sort_by)
+       else if sort_by == 'last_edit_date':
+         cursor.execute("SELECT propercased_name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date, last_edit_date IS NULL AS edit_isnull from users where name!='' order by edit_isnull ASC, %s desc" % sort_by)
+       else:
+         cursor.execute("SELECT propercased_name, join_date, created_count, edit_count, file_count, last_page_edited, last_edit_date from users where name!='' order by %s desc" % sort_by)
+
        user_stats = cursor.fetchall()
 
        htmltext.append('<p><h2>User Statistics</h2></p><table width=100%% border=0><tr><td><b>User</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=edit_count">Edits</a>&nbsp;&nbsp;</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=created_count">Pages Created</a>&nbsp;&nbsp;</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=file_count">Images Contributed</a>&nbsp;&nbsp;</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=join_date">Date Joined</a>&nbsp;&nbsp;</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=last_edit_date">Last Edit</a>&nbsp;&nbsp;</b></td><td><b>Last Page Edited&nbsp;&nbsp;</b></td></tr>' %(config.relative_dir, add_on, config.relative_dir, add_on, config.relative_dir, add_on, config.relative_dir, add_on, config.relative_dir, add_on))
