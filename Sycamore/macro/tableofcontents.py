@@ -48,9 +48,10 @@ def execute(macro, args, formatter=None):
         newindent = len(match.group(1))
         if newindent > maxdepth: continue
         if newindent < mindepth: continue
-        if not indent:
-            baseindent = newindent - 1
-            indent = baseindent
+        # Why was this here vvv
+        #if not indent:
+        #    baseindent = newindent - 1
+        #    indent = baseindent
 
         # Close lists
         for i in range(0,indent-newindent):
