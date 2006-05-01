@@ -91,7 +91,7 @@ def create_tables(cursor):
      cachedTime double,
      userEdited char(20),
      propercased_name varchar(100) not null 
-     ) type=InnoDB;""")
+     ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table curPages
      (
@@ -117,7 +117,7 @@ def create_tables(cursor):
      userIP char(16),
      propercased_name varchar(100) not null,
      primary key(name, editTime)
-     ) type=InnoDB;""")
+     ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table allPages
      (
@@ -162,7 +162,7 @@ def create_tables(cursor):
     rc_showcomments tinyint default 1,
     tz_offset int,
     propercased_name varchar(100) not null
-    ) type=InnoDB;""")
+    ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
   cursor.execute("""create table users
     (
@@ -200,7 +200,7 @@ def create_tables(cursor):
    page varchar(100) not null,
    viewTime double,
    primary key (username, page)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table userFavorites
    (
@@ -219,7 +219,7 @@ def create_tables(cursor):
    secret char(28) not null,
    expire_time double,
    primary key (user_id, session_id)
-   )type=MyISAM;""")
+   )type=MyISAM CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
    cursor.execute("""create table userSessions
@@ -240,7 +240,7 @@ def create_tables(cursor):
    destination_pagename varchar(100) not null,
    destination_pagename_propercased varchar(100) not null,
    primary key (source_pagename, destination_pagename)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table links
    (
@@ -261,7 +261,7 @@ def create_tables(cursor):
    event_name mediumtext not null,
    posted_by_ip char(16),
    posted_time double 
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table events
    (
@@ -292,7 +292,7 @@ def create_tables(cursor):
    xsize smallint,
    ysize smallint,
    primary key (name, attached_to_pagename)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table images
    (
@@ -325,7 +325,7 @@ def create_tables(cursor):
    xsize smallint,
    ysize smallint,
    primary key (name, attached_to_pagename, uploaded_time)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table oldImages
    (
@@ -357,7 +357,7 @@ def create_tables(cursor):
    image mediumblob not null,
    last_modified double,
    primary key (name, attached_to_pagename)
-   ) type=MyISAM;""")
+   ) type=MyISAM CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    #throw-away and easily regenerated data
    cursor.execute("""create table thumbnails
@@ -379,7 +379,7 @@ def create_tables(cursor):
     linked_from_pagename varchar(100),
     caption text not null,
     primary key (image_name, attached_to_pagename, linked_from_pagename)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table imageCaptions
    (
@@ -397,7 +397,7 @@ def create_tables(cursor):
    img varchar(100),
    name varchar(100) not null,
    primary key (id)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table mapCategoryDefinitions
    (
@@ -418,7 +418,7 @@ def create_tables(cursor):
      created_by_ip char(16),
      id int,
      primary key (pagename, x, y)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table mapPoints
    (
@@ -448,7 +448,7 @@ def create_tables(cursor):
      deleted_by char(20),
      deleted_by_ip char(16),
      primary key (pagename, x, y, deleted_time)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table oldMapPoints
    (
@@ -474,7 +474,7 @@ def create_tables(cursor):
      y varchar(100) not null,
      id int not null,
      primary key (pagename, x, y, id)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table mapPointCategories
      (
@@ -494,7 +494,7 @@ def create_tables(cursor):
      id int not null,
      deleted_time double,
      primary key (pagename, x, y, id, deleted_time)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table oldMapPointCategories
    (
@@ -512,7 +512,7 @@ def create_tables(cursor):
      page_that_depends varchar(100) not null,
      source_page varchar(100) not null,
      primary key (page_that_depends, source_page)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table pageDependencies
    (
@@ -529,7 +529,7 @@ def create_tables(cursor):
      name varchar(100),
      value varchar(100),
      primary key (pagename, type, name)
-   ) type=InnoDB;""")
+   ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
    cursor.execute("""create table metadata
    (

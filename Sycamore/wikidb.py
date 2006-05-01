@@ -11,7 +11,7 @@
 # Imports
 from Sycamore import config
 from Sycamore.support import pool
-import time
+import time, array
 
 if config.db_type == 'mysql':
   dbapi = __import__("MySQLdb")
@@ -24,6 +24,20 @@ max_overflow = config.db_max_overflow
 Binary = dbapi.Binary
 dbapi = pool.manage(dbapi, pool_size=pool_size, max_overflow=max_overflow)
 dbapi.Binary = Binary
+
+def fixBinaryUp(item):
+  def doFixUp(i):
+    if type(i) == array.array:
+      return i.tostring()
+    return i
+
+  if config.db_type != 'mysql':
+    return item
+      
+  if type(item) == tuple:
+    return [ doFixUp(i) for i in item ]
+  return doFixUp(item)
+      
 
 class WikiDB(object):
   def __init__(self, db):
@@ -65,11 +79,17 @@ class WikiDBCursor(object):
   #def executemany(self, query, args):
   #  self.db_cursor.executemany(query, args)
 
-  def fetchone(self):
-    return self.db_cursor.fetchone()
+  def fetchone(self, fixBinary=False):
+    if not fixBinary:
+      return self.db_cursor.fetchone()
+    else:
+      return fixBinaryUp(self.db_cursor.fetchone())
 
-  def fetchall(self):
-    return self.db_cursor.fetchall()
+  def fetchall(self, fixBinary=False):
+    if not fixBinary:
+      return self.db_cursor.fetchall()
+    else:
+      return fixBinaryUp(self.db_cursor.fetchall())
 
   def close(self):
     if self.db_cursor:
@@ -111,6 +131,7 @@ def binaryToString(b):
   if config.db_type == 'postgres':
     return str(b)
   elif config.db_type == 'mysql':
+    if not hasattr(b, 'tostring'): return b
     return b.tostring()
 
 def connect():
@@ -357,10 +378,11 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   #print query % {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page}
   request.cursor.execute(query, {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page})
  
-  edit = request.cursor.fetchone()
+  edit = request.cursor.fetchone(fixBinary=True)
+  
   while edit:
     lines.append(line(edit))
-    edit = request.cursor.fetchone()
+    edit = request.cursor.fetchone(fixBinary=True)
   return lines
 
 def getPageCount(request):

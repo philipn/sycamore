@@ -16,6 +16,7 @@ Dependencies = []
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
 
+    # A regular expression that borders on incomprehensible
     heading = re.compile(r"^\s*(?P<hmarker>=+)\s*(.*)\s*(?P=hmarker)")
     result = []
     baseindent = 0
@@ -39,7 +40,7 @@ def execute(macro, args, formatter=None):
         # FIXME this also finds "headlines" in {{{ code sections }}}:
         match = heading.match(line)
         if not match: continue
-        title_text = match.group(2)
+        title_text = match.group(2).strip() # A slightly questionable strip
         titles.setdefault(title_text, 0)
         titles[title_text] += 1
 
