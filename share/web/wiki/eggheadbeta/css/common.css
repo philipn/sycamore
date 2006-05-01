@@ -98,7 +98,7 @@ dt {
 
 pre {
     padding: .5em;
-    white-space: pre-wrap;
+    white-space: pre;
     width: auto;
     overflow: auto;
 }
