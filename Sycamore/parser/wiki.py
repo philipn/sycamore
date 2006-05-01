@@ -35,7 +35,7 @@ class Parser:
     PARENT_PREFIX = wikiutil.PARENT_PREFIX
     DEFINITION_OPERATOR = ':='
     punct_pattern = re.escape('''"ââ\'}]|:,.)?!''')
-    url_pattern = ('http|https|ftp|nntp|news|mailto|telnet|wiki|file|' +
+    url_pattern = ('http|https|ftp|nntp|news|mailto|telnet|wiki|file' +
             (config.url_schemas and '|' + '|'.join(config.url_schemas) or ''))
 
     EOL_RE = re.compile(r'\r?\n')
