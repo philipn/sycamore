@@ -335,7 +335,7 @@ def isImageOnPage(pagename, filename, cursor):
 ### Page storage helpers
 #############################################################################
 
-def getPageList(request, alphabetize=False, objects=False):
+def getPageList(request, alphabetize=False, objects=False, lowercase=False):
     """
     List all pages, except for "CVS" directories,
     hidden files (leading '.') and temp files (leading '#')
@@ -346,8 +346,12 @@ def getPageList(request, alphabetize=False, objects=False):
     """
     if objects: from Sycamore.Page import Page
     cursor = request.cursor
-    if not alphabetize: cursor.execute("SELECT propercased_name from curPages")
-    else: cursor.execute("SELECT propercased_name from curPages order by name")
+
+    if lowercase: type_of_name = 'name'
+    else: type_of_name = 'propercased_name'
+
+    if not alphabetize: cursor.execute("SELECT %s from curPages" % type_of_name)
+    else: cursor.execute("SELECT %s from curPages order by name" % type_of_name)
     result = []
     p = cursor.fetchone()
     while p:

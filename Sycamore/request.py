@@ -206,12 +206,12 @@ class RequestBase(object):
         self.pragma[key.lower()] = value
 
 
-    def getPageList(self):
+    def getPageList(self, alphabetize=True, lowercase=False, objects=False):
         """ A cached version of wikiutil.getPageList().
             Also, this list is always sorted.
         """
         if self._all_pages is None:
-            self._all_pages = wikiutil.getPageList(self, alphabetize=True)
+            self._all_pages = wikiutil.getPageList(self, alphabetize=alphabetize, lowercase=lowercase, objects=objects)
         return self._all_pages
 
     def redirect(self, file=None):

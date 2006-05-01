@@ -253,7 +253,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         # generate default content
         if not raw_body:
-            raw_body = _('Describe %s here.') % (self.page_name,)
+            raw_body = _('Describe %s here.') % (self.proper_name(),)
 
         # replace CRLF with LF
         raw_body = self._normalize_text(raw_body)

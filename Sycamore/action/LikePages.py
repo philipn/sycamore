@@ -56,8 +56,8 @@ def findMatches(pagename, request,
     _ = request.getText
 
     # get page lists
-    pagelist = request.getPageList()
-    lowerpages = [p.lower() for p in pagelist]
+    pagelist = request.getPageList(lowercase=True)
+    lowerpages = pagelist
     similar = difflib.get_close_matches(pagename.lower(), lowerpages, 10) 
 
     # figure the start and end words
@@ -131,7 +131,7 @@ def _showMatchGroup(request, matches, keys, match, title):
                 page = Page(key, request)
                 request.write('<li><a href="%s/%s">%s</a>' % (
                     request.getScriptname(),
-                    wikiutil.quoteWikiname(page.page_name),
-                    page.page_name))
+                    wikiutil.quoteWikiname(page.proper_name()),
+                    page.proper_name()))
         request.write("</ul>")
 

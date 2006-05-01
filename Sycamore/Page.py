@@ -774,11 +774,11 @@ class Page(object):
             self.formatter.paragraph(0))
 
         # list similar pages that already exist
-        start, end, matches = LikePages.findMatches(self.page_name, request)
+        start, end, matches = LikePages.findMatches(self.proper_name(), request)
         if matches and not isinstance(matches, type('')):
             request.write(self.formatter.rule() + '<p>' +
                 _('The following pages with similar names already exist...') + '</p>')
-            LikePages.showMatches(self.page_name, request, start, end, matches)
+            LikePages.showMatches(self.proper_name(), request, start, end, matches)
 
     def buildCache(self):
         """
