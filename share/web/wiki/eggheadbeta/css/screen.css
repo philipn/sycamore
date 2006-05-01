@@ -435,7 +435,7 @@ span.userFavoriteItem
   padding: 0 10px 0 0;
 }
 
-div.textSearchResult { width: 70%; } 
+.textSearchResult { margin-left:45px;width: 70%; } 
 
 #logo {
         float: left;
@@ -453,11 +453,11 @@ a.nostyle { text-decoration: none !important; }
 }
 
 #title {
-	height:4em;
+        min-height: 51px; 
         background: #ccddff;
         border-bottom: 1px dashed #AAAAAA;
-        padding-top: 2pt;
-        padding-bottom: 2pt;
+        padding-top: 0pt;
+        padding-bottom: 0pt;
 	vertical-align: middle;
 	width: 100%;
 }
@@ -678,7 +678,8 @@ margin-bottom: 0.25em;
 
 .dialogBox td { padding: 10px; }
 
-#progbar {
+
+.progbar {
         border-left: 1px solid #bbbbbb;
         border-top: 1px solid #bbbbbb;
         border-bottom: 1px solid #888888;
@@ -792,9 +793,12 @@ div.editInfo { margin-top: 10pt; }
 
 .diff {
         width:100%;
-        margin-bottom:40px;
         border: 1px solid gray;
+	margin-bottom: 4px;
+	margin-top: 2px;
 }
+
+.diff td { border: 1px solid black; padding: 4px 2px 4px 2px; }
 
 .diff-item { width:50%; }
 
