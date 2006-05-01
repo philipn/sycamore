@@ -28,7 +28,8 @@ def execute(macro, args, formatter):
         # store footnote and emit number
         idx = len(formatter.request.footnotes)
         fn_id = "-%s-%s" % (sha.new(args).hexdigest(), idx)
-    	args = wikiutil.wikifyString(args, formatter.request, formatter.page, formatter=formatter)
+	#if formatter.isPreview():
+    	#  args = wikiutil.wikifyString(args, formatter.request, formatter.page, formatter=formatter, doCache=False)
         formatter.request.footnotes.append((args, fn_id))
         return "%s%s%s" % (
             formatter.sup(1),
@@ -42,15 +43,13 @@ def execute(macro, args, formatter):
 def emit_footnotes(request, formatter):
     # emit collected footnotes
     if request.footnotes:
-        result = []
-        formatter.rawHTML('<div class="footnotes"><div></div><ul>')
+        request.write(formatter.rawHTML('<div class="footnotes"><div></div><ul>'))
         for idx in range(len(request.footnotes)):
             fn_id = request.footnotes[idx][1]
             fn_no = formatter.anchorlink('fnref' + fn_id, str(idx+1), id = 'fndef' + fn_id)
 
-            formatter.rawHTML('<li><span>%s</span>' % fn_no)
-            formatter.rawHTML(request.footnotes[idx][0])
-            formatter.rawHTML('</li>')
-        formatter.rawHTML('</ul></div>')
+            request.write(formatter.rawHTML('<li><span>%s</span>' % fn_no))
+	    request.write(wikiutil.wikifyString(request.footnotes[idx][0], formatter.request, formatter.page, formatter=formatter))
+ 	    request.write(formatter.rawHTML('</li>'))
+        request.write(formatter.rawHTML('</ul></div>'))
         request.footnotes = []
-
