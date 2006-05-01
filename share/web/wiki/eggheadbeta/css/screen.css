@@ -792,6 +792,8 @@ div.editInfo { margin-top: 10pt; }
 
 .diff {
         width:100%;
+        margin-bottom:40px;
+        border: 1px solid gray;
 }
 
 .diff-item { width:50%; }
