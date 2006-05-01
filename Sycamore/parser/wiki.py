@@ -1112,5 +1112,5 @@ class Parser:
 	# check for pending footnotes
         if getattr(self.request, 'footnotes', None):
           from Sycamore.macro.footnote import emit_footnotes
-          self.request.write(emit_footnotes(self.request, self.formatter))
+          emit_footnotes(self.request, self.formatter)
 

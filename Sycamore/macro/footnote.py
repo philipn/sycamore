@@ -43,19 +43,14 @@ def emit_footnotes(request, formatter):
     # emit collected footnotes
     if request.footnotes:
         result = []
-        result.append('<div class="footnotes">')
-        result.append('<div></div><ul>')
+        formatter.rawHTML('<div class="footnotes"><div></div><ul>')
         for idx in range(len(request.footnotes)):
             fn_id = request.footnotes[idx][1]
             fn_no = formatter.anchorlink('fnref' + fn_id, str(idx+1), id = 'fndef' + fn_id)
 
-            result.append('<li><span>')
-            result.append(fn_no + '</span> ')
-            result.append(request.footnotes[idx][0])
-            result.append('</li>')
-        result.append('</ul></div>')
+            formatter.rawHTML('<li><span>%s</span>' % fn_no)
+            formatter.rawHTML(request.footnotes[idx][0])
+            formatter.rawHTML('</li>')
+        formatter.rawHTML('</ul></div>')
         request.footnotes = []
-        return ''.join(result)
-
-    return ''
 

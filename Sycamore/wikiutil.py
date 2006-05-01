@@ -61,7 +61,7 @@ def simpleStrip(request, text):
     text = re.sub(r'\<[^\>]+\>', r'', text)
     return text
 
-def wikifyString(text, request, page, doCache=True, formatter=None):
+def wikifyString(text, request, page, doCache=True, formatter=None, strong=False):
   import cStringIO
   # easy to turng wiki markup string into html
   # only use this in macros, etc.
@@ -81,7 +81,8 @@ def wikifyString(text, request, page, doCache=True, formatter=None):
     doCache = False
     py_formatter = Formatter(request)
 
-  Parser = importPlugin("parser", "wiki_simple", "Parser")
+  if strong: Parser = importPlugin("parser", "wiki", "Parser")
+  else: Parser = importPlugin("parser", "wiki_simple", "Parser")
 
   html_formatter.setPage(page)
   buffer = cStringIO.StringIO()

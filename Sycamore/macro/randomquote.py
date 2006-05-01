@@ -46,7 +46,14 @@ def execute(macro, args, formatter=None):
                 macro.formatter.highlight(0))
                 
     quote = random.choice(quotes)
-    quote = wikiutil.wikifyString(quote, macro.request, macro.formatter.page)
+
+    # FIXME : : THIS IS A HACK AND I HATE IT -SO MUCH- 
+    #macro.request.write("Rwrite " + quote.lower() + "\n")
+    #macro.request.write("Rfind " + str(quote.find("RandomQuote")) + "\n")
+
+    if quote.lower().find("randomquote") == -1:
+        quote = wikiutil.wikifyString(quote, macro.request, page, strong=True)
+
     import re
     quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)
     
