@@ -61,7 +61,7 @@ def simpleStrip(request, text):
     text = re.sub(r'\<[^\>]+\>', r'', text)
     return text
 
-def wikifyString(text, request, page, doCache=True, formatter=None, strong=False):
+def wikifyString(text, request, page, doCache=True, formatter=None, delays=None, strong=False):
   import cStringIO
   # easy to turng wiki markup string into html
   # only use this in macros, etc.
@@ -72,6 +72,7 @@ def wikifyString(text, request, page, doCache=True, formatter=None, strong=False
     html_formatter = Formatter(request) 
     py_formatter = formatter
   else:
+    doCache = False
     from Sycamore.formatter.text_python import Formatter
     if formatter:
       html_formatter = formatter
@@ -97,10 +98,12 @@ def wikifyString(text, request, page, doCache=True, formatter=None, strong=False
     buffer = cStringIO.StringIO()
     request.redirect(buffer)
     parser = Parser(text, request)
+    py_formatter.delays = delays
     parser.format(py_formatter)
     request.redirect()
     text = buffer.getvalue()
     buffer.close()
+
     return text
   else:
     text = buffer.getvalue()

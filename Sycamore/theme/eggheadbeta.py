@@ -129,7 +129,7 @@ class Theme(ThemeBase):
 	    html.append(self.new_iconbar(d))
 	    
         else:
-            html.append('<h1>%s</h1>' % wikiutil.escape(d['title_text']))
+            html.append('<td id="title_text"><h1>%s</h1></td>' % wikiutil.escape(d['title_text']))
         return ''.join(html)
 
     def username(self, d):
