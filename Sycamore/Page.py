@@ -233,7 +233,8 @@ class Page(object):
         @return: mtime of page (or 0 if page does not exist)
         """
 	if not self.prev_date:
-	   return self.last_edit_info()[0]
+	   if self.last_edit_info(): return self.last_edit_info()[0]
+	   return 0
         else:
 	  self.cursor.execute("SELECT editTime from allPages where name=%(page_name)s and editTime <= %(prev_date)s order by editTime desc limit 1;", {'page_name':self.page_name, 'prev_date':self.prev_date})
         result = self.cursor.fetchone()
