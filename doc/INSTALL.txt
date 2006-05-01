@@ -20,12 +20,12 @@ Required
  * MySQL:
  
   - MySQL >= 5.0 (http://mysql.com/) 
-  - MySQLdb >= 1.2.1c3 ()
+  - MySQLdb >= 1.2.1c3 (http://sourceforge.net/projects/mysql-python) python MySQL module
 
  * or PostgreSQL:
 
   - PostgreSQL >= 7.4 (http://postgresql.org/)
-  - psycopg2 >= 2.0 (http://initd.org/projects/psycopg2)
+  - psycopg2 >= 2.0 (http://initd.org/projects/psycopg2) python PostgreSQL module
 
 Optional
 ~~~~~~~~
