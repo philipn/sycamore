@@ -15,10 +15,11 @@ sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
 
 from Sycamore.support.wsgi_server.fcgi import WSGIServer
 from Sycamore.request import RequestWSGI
+from Sycamore.request import basic_handle_request
 
 def handle_request(env, start_response):
     request = RequestWSGI(env, start_response)
     return request.run()
     
 if __name__ == '__main__':
-    WSGIServer(handle_request, bindAddress=('localhost', 8882)).run()
+    WSGIServer(basic_handle_request, bindAddress=('localhost', 8882)).run()

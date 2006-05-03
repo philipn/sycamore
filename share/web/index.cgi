@@ -10,19 +10,13 @@
 import sys, os
 __directory__ = os.path.dirname(__file__)
 sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
+# you may need to put something like this here if you don't have the required python modules in your path:
+#sys.path.extend(['/home/philip/lib/python/'])
 
 from Sycamore.support.wsgi_server.cgi_base import run_with_cgi
-#from Sycamore.support.wsgi_server import swap 
 from Sycamore.request import RequestWSGI
+from Sycamore.request import basic_handle_request
 
 os.environ["FCGI_FORCE_CGI"] = 'Y'
 
-def handle_request(env, start_response):
-  if env.get('QUERY_STRING', '') == 'profile':
-    profile.runctx('RequestWSGI(env,start_response).run()', globals(), locals(), 'prof.%s' % time.time())
-    return ['profile ran']
-  else:
-    request = RequestWSGI(env, start_response)
-    return request.run()
-
-run_with_cgi(handle_request)
+run_with_cgi(basic_handle_request)
