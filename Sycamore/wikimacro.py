@@ -157,83 +157,17 @@ class Macro:
             '<input type="submit" value="%s">'
             '%s</form>') % (type, wikiutil.escape(default, quote=1), _("Go"), boxes))
 
-    def _macro_goto(self, args, formatter=None):
-        if not formatter: formatter = self.formatter
-        
-        _ = self._
-        return self.formatter.rawHTML("""<form method="get"><input name="goto" size="30">
-        <input type="submit" value="%s">
-        </form>""" % _("Go"))
-
-    def _macro_wordindex(self, args, formatter=None):
-        if not formatter: formatter = self.formatter
-        """
-        index_letters = []
-        s = ''
-        pages = wikiutil.getPageList(config.text_dir)
-        #pages = filter(self.request.user.may.read, pages)
-        map = {}
-        # XXX UNICODE re.UNICODE ?
-        word_re = re.compile('[%s][%s]+' % (config.upperletters, config.lowerletters))
-        for name in pages:
-            if not wikiutil.isSystemPage(self.request, name):
-                for word in word_re.findall(name):
-                    try:
-                        if not map[word].count(name):
-                            map[word].append(name)
-                    except KeyError:
-                        map[word] = [name]
-
-        all_words = map.keys()
-        all_words.sort()
-        last_letter = None
-        html = []
-        for word in all_words:
-            # XXX UNICODE - sense????
-            if wikiutil.isUnicodeName(word): continue
-
-            letter = word[0]
-            if letter <> last_letter:
-                #html.append(self.formatter.anchordef()) # XXX no text param available!
-                html.append('<a name="%s">\n<h3>%s</h3>\n' % (wikiutil.quoteWikiname(letter), letter))
-                last_letter = letter
-            if letter not in index_letters:
-                index_letters.append(letter)
-
-            html.append(self.formatter.strong(1))
-            html.append(word)
-            html.append(self.formatter.strong(0))
-            html.append(self.formatter.bullet_list(1))
-            links = map[word]
-            links.sort()
-            last_page = None
-            for name in links:
-                if name == last_page: continue
-                html.append(self.formatter.listitem(1))
-                html.append(Page(name).link_to(self.request))
-                html.append(self.formatter.listitem(0))
-            html.append(self.formatter.bullet_list(0))
-        return '%s%s' % (_make_index_key(index_letters), ''.join(html))
-        """
-        return 'Word Index has been disabled.'
-
     
     def _macro_titleindex(self, args, formatter=None):
         if not formatter: formatter = self.formatter
-        """
-        import hotshot, hotshot.stats 
-        prof = hotshot.Profile("/var/www/html/profile.output")
-        #benchtime, stones = prof.runcall(Macro.test, self)
-        prof.runcall(Macro.test, self)
-        prof.close()
-        #self.test()
-        """
         _ = self._
         html = []
         index_letters = []
         allpages = int(self.form.get('allpages', [0])[0]) != 0
         pages = wikiutil.getPageList(self.request, alphabetize=False)
-	pages.sort()
+  	pages_deco = [ (pagename.lower(), pagename) for pagename in pages ]
+	pages_deco.sort()
+        pages = [ word for lower_word, word in pages_deco ]
         #list(wikiutil.getPageList(config.text_dir))
         # pages = filter(self.request.user.may.read, pages)
         #if not allpages:

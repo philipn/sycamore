@@ -440,8 +440,11 @@ class Parser:
         #if scheme in self.attachment_schemas:
         #    return self.attachment(words, pretty_url=1)
 
-        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]) and len(words) == 2 and (words[0] is words[1]):
-            text = self.formatter.image(title=words[1], alt=words[1], src=words[0])
+        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]):
+ 	    if len(words) >= 2:
+              text = self.formatter.image(title=''.join(words[1:]), alt=''.join(words[1:]), src=words[0])
+ 	    else:
+              text = self.formatter.image(title=words[0], alt=words[0], src=words[0])
         else:
             text = web.getLinkIcon(self.request, self.formatter, scheme)
             if len(words) == 1:

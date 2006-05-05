@@ -253,22 +253,18 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         # generate default content
         if not raw_body:
-            raw_body = _('Describe %s here.') % (self.proper_name(),)
+	    if self.isTalkPage():
+              raw_body = _('This page is for discussing the contents of ["%s"].') % (self.proper_name()[:-5],)
+	    else:
+              raw_body = _('Describe %s here.') % (self.proper_name(),)
 
         # replace CRLF with LF
         raw_body = self._normalize_text(raw_body)
-
-        # make a preview backup?
-        #if preview is not None:
-        #    # make backup on previews
-        #    self._make_backup(raw_body)
 
         # send datestamp (version) of the page our edit is based on
         self.request.write('<input type="hidden" name="datestamp" value="%s">' % (repr(mtime)))
 
         # Print the editor textarea and the save button
-        #self.request.write("""<textarea id="savetext" onChange="sizeTextField('savetext',event);" onSelect="sizeTextField('savetext',event);" onPaste="sizeTextField('savetext',event);" onFocus="sizeTextField('savetext',event);" onKeyPress="sizeTextField('savetext',event);" onClick="sizeTextField('savetext',event);" name="savetext" rows="%d" cols="%d" style="width:100%%;">%s</textarea>"""
-        #    % (text_rows, text_cols, wikiutil.escape(raw_body)))
 	self.request.write("""<textarea id="savetext" name="savetext" rows="%d" cols="%d" style="width:100%%;">%s</textarea>"""
             % (text_rows, text_cols, wikiutil.escape(raw_body)))
 
@@ -290,14 +286,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write("""<div id="editComment" id="editorResizeButtons"> %s<br><input type="text" class="formfields" name="comment" value="%s" size="%d" maxlength="80" style="width:100%%"></div>""" %
                 (_("<font size=\"+1\">Please comment about this change:</font>"), wikiutil.escape(kw.get('comment', ''), 1), text_cols))
 
-        # category selection
-        #cat_pages = wikiutil.filterCategoryPages(wikiutil.getPageList(config.text_dir))
-        #cat_pages.sort()
-        #cat_pages.insert(0, ('', _('<No addition>')))
-        #self.request.write("<p>", _('Make this page belong to category %(category)s') % {
-        #    'category': str(util.web.makeSelection('category', cat_pages)),
-        #})
-
         # button bar
         button_spellcheck = (SpellCheck and
             '<input type="submit" class="formbutton" name="button_spellcheck" value="%s">'
@@ -309,16 +297,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write("</div>")
             
 
-#        if config.page_license_enabled:
-#            self.request.write('<p><em>', _(
-#"""By hitting <strong>%(save_button_text)s</strong> you put your changes under the %(license_link)s.
-#If you don't want that, hit <strong>%(cancel_button_text)s</strong> to cancel your changes.""") % {
-#                'save_button_text': save_button_text,
-#                'cancel_button_text': cancel_button_text,
-#                'license_link': wikiutil.getSysPage(self.request, config.page_license_page).link_to(self.request),
-#            }, '</em></p>')
-        
-        #fixedName = re.sub("'","_27",self.page_name)
         show_applet = True
         if wikiutil.isSystemPage(self.request, self.page_name):
           show_applet = False
@@ -329,7 +307,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
           relative_dir = '/' + config.relative_dir
         if show_applet:
           mapButton = '<input id="show" class="formbutton" type="button" value="Edit Map" onclick="doshow();"/><input class="formbutton" id="hide" style="display: none;" type="button" value="Hide Map" onclick="dohide();"/>'
-          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, self.page_name, relative_dir)
+          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, self.proper_name(), relative_dir)
         
         self.request.write('''
 <table id="editButtonRow"><tr height="30"><td nowrap><font size="3">

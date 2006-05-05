@@ -103,8 +103,8 @@ class RequestBase(object):
 
         # XXX Removed call to i18n.adaptcharset()
   
-        #self.opened_logs = 0 # XXX for what do we need that???
 	self.generating_cache = False
+	self.previewing_page = False
 
         self.reset()
 
@@ -828,3 +828,9 @@ class RequestWSGI(RequestBase):
 
 	  self.wsgi_output = self.start_response(self.status, all_headers)
 	  self.sent_headers = True
+
+##################################
+### Misc methods
+#################################
+def basic_handle_request(env, start_response):
+    return RequestWSGI(env, start_response).run()

@@ -425,6 +425,7 @@ class Page(object):
         content_id = keywords.get('content_id', 'content')
         self.hilite_re = keywords.get('hilite_re', None)
 	self.preview = keywords.get('preview', 0)
+	if self.preview: self.request.previewing_page = True
         if msg is None: msg = ""
 	polite_msg = ""
 
@@ -863,6 +864,13 @@ class Page(object):
 
 	return links_list
 
+    def isTalkPage(self):
+       pagename = self.proper_name()
+       if len(pagename) >= 5:
+         if pagename[len(pagename)-5:] == '/Talk':
+           return True
+       return False
+
     def getPageLinksTo(self):
 	"""
 	Returns a list of page names of pages that link to this page.
@@ -890,7 +898,7 @@ class Page(object):
     # the page. This cache ensures that we don't have to parse ACLs for
     # some page twice.
     _acl_cache = {}
-    
+
     def getACL(self):
         """
         Get ACLs of this page.
@@ -921,3 +929,5 @@ class Page(object):
             acl = wikiacl.parseACL(meta_text)
             self._acl_cache[self.page_name] = (mtime, acl)
         return acl
+
+

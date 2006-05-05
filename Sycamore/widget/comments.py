@@ -15,8 +15,9 @@ class Comment(base.Widget):
 	if self.type.find('/REVERT') != -1:
 	    # check if it's in version format (default)
 	    if self.comment[0] == 'v':
+	      given_comment = ''
 	      given_comment_start = self.comment.find('c')
-	      if given_comment_start:
+	      if given_comment_start and given_comment_start != -1:
 	        given_comment = self.comment[given_comment_start+1:]
 		version = self.comment[1:given_comment_start]
 	      else:

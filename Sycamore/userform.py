@@ -193,7 +193,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             theuser = user.User(self.request)
     
             # try to get the name, if name is empty or missing, return an error msg
-	    if form.has_key('username') and form['username'].replace('\t', '').strip():
+	    if form.has_key('username') and form['username'][0].replace('\t', '').strip():
                 theuser.propercased_name = form['username'][0].replace('\t', ' ').strip()
                 theuser.name = theuser.propercased_name.lower()
 	    elif form.has_key('username'):

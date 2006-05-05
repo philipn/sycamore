@@ -33,6 +33,7 @@ class FormatterBase:
         self.pagelinks_propercased = []
         self.in_p = 0
         self.in_pre = 0
+   	self.processed_thumbnails = {}
 
     def lang(self, lang_name, text):
         raise NotImplementedError

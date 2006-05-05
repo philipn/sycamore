@@ -36,13 +36,11 @@ class Formatter(FormatterBase):
 
         if not hasattr(request, '_fmt_hd_counters'):
             request._fmt_hd_counters = []
-	   
 
     def isPreview(self):
         if self._preview: 
             return True
-	else: 
-            return False
+        return False
 
     def _langAttr(self):
         result = ''

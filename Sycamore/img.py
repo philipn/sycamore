@@ -2,6 +2,7 @@
 #It's called from RequestBase.run() if the query string indicates we want an image
 
 from Sycamore import wikidb
+from Sycamore.macro.image import checkTicket
 import os, urllib, mimetypes, re, time
 from Sycamore import config
 from Sycamore.wikiutil import unquoteWikiname
@@ -27,6 +28,8 @@ def imgSend(request):
   version = 0
   thumbnail = False
   thumbnail_size = 0
+  ticket = None
+  size = None
 
   pagename = request.pagename
   
@@ -39,11 +42,22 @@ def imgSend(request):
     thumbnail_size = int(request.form['size'][0])
   if request.form.has_key('version'):
     version = float(request.form['version'][0])
+  if request.form.has_key('ticket'):
+    ticket = request.form['ticket'][0]
+    if not checkTicket(ticket) or not request.form.has_key('size'):
+       request.http_headers()
+       request.write("No image..?")
+       return
+    try:
+      size = int(request.form['size'][0])
+    except:
+       request.http_headers()
+       request.write("No image..?")
 
   filename = urllib.unquote_plus(filename_encoded)
-  d = {'filename':filename, 'page_name':pagename, 'image_version':version} 
+  d = {'filename':filename, 'page_name':pagename, 'image_version':version, 'maxsize': size} 
   try:
-    image, modified_time_unix = wikidb.getImage(request, d, deleted=deleted, thumbnail=thumbnail, version=version)
+    image, modified_time_unix = wikidb.getImage(request, d, deleted=deleted, thumbnail=thumbnail, version=version, ticket=ticket)
   except:
     request.http_headers()
     request.write("No image..?")

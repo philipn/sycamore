@@ -41,6 +41,7 @@ def execute(macro, args, formatter=None):
         match = heading.match(line)
         if not match: continue
         title_text = match.group(2).strip() # A slightly questionable strip
+	if not title_text: continue
         titles.setdefault(title_text, 0)
         titles[title_text] += 1
 
@@ -78,6 +79,7 @@ def execute(macro, args, formatter=None):
     for i in range(baseindent, indent):
         result.append(macro.formatter.number_list(0))
 
+    if not result: return ''
     return '<table cellpadding="0"><tr><td bgcolor="#eeeeee" nowrap style="border: 1px solid #aaaaaa; padding: 5px">' + ''.join(result) + '</td></tr></table>'
 
     #return ''.join(result)

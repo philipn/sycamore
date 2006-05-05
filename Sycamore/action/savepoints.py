@@ -38,6 +38,7 @@ def execute(pagename, request):
     dom = xml.dom.minidom.parseString(changes_xml)
     # we need to convert it to the proper map xml format
     mapPoints = mapping.convert_xml(dom)
+    pagename = pagename.lower()
 	
     mapping.update_points(mapPoints, request, pagename=pagename)
 

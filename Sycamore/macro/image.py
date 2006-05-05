@@ -2,7 +2,7 @@
 # -*- coding: iso-8859-1 -*-
 from Sycamore import config, wikiutil, wikidb
 from Sycamore.action import Files
-import sys, re, os, array
+import sys, re, os, array, time
 
 #  [[Image(filename, caption, size, alignment, thumb, noborder)]]
 #  
@@ -60,9 +60,15 @@ def touchCaption(pagename, linked_from_pagename, image_name, caption, cursor):
     if not caption:
       deleteCaption(pagename, linked_from_pagename, image_name, cursor)
 
-def touchThumbnail(request, pagename, image_name, maxsize=0):
+def touchThumbnail(request, pagename, image_name, maxsize, formatter):
+    # we test formatter.name because we use isPreview() to force some things to be ignored on the second-formatting phase with the python formatter.
+    # in this case, we want to render a temporary thumbnail when we're in an actual preview or viewing an old version of a page, not when we're doing
+    # the formatting phase of a normal page save
+    temporary = (formatter.isPreview() and formatter.name != 'text_python') or formatter.page.prev_date
+    if temporary:
+      ticket = _createTicket()
+      return (generateThumbnail(request, pagename, image_name, maxsize, temporary=True, ticket=ticket), ticket)
     cursor = request.cursor
-    if not maxsize: maxsize = default_px_size
     # first we see if the thumbnail is there with the proper size
     cursor.execute("SELECT xsize, ysize from thumbnails where name=%(image_name)s and attached_to_pagename=%(pagename)s", {'image_name':image_name, 'pagename':pagename.lower()})
     result = cursor.fetchone()
@@ -72,14 +78,14 @@ def touchThumbnail(request, pagename, image_name, maxsize=0):
       y = result[1]
       if max(x, y) == maxsize:
       	# this means the thumbnail is the right size
-        return x, y
+        return ((x, y), None)
     # we need to generate a new thumbnail of the right size
-    return generateThumbnail(request, pagename, image_name, maxsize)
+    return (generateThumbnail(request, pagename, image_name, maxsize), None)
 
-def generateThumbnail(request, pagename, image_name, maxsize):
+def generateThumbnail(request, pagename, image_name, maxsize, temporary=False, ticket=None, return_image=False):
     cursor = request.cursor 
     from PIL import Image
-    import cStringIO,time
+    import cStringIO
     dict = {'filename':image_name, 'page_name':pagename}
 
     open_imagefile = cStringIO.StringIO(wikidb.getImage(request, dict)[0])
@@ -132,8 +138,11 @@ def generateThumbnail(request, pagename, image_name, maxsize):
     save_imagefile = cStringIO.StringIO()
     shrunk_im.save(save_imagefile, type, quality=90)
     image_value = save_imagefile.getvalue()
+    if return_image:
+      # one-time generation for certain things like preview..just return the image string
+      return image_value
     dict = {'x':x, 'y':y, 'filecontent':image_value, 'uploaded_time':time.time(), 'filename':image_name, 'pagename':pagename}
-    wikidb.putImage(request, dict, thumbnail=True)
+    wikidb.putImage(request, dict, thumbnail=True, temporary=temporary, ticket=ticket)
 
     save_imagefile.close()
     open_imagefile.close()
@@ -192,10 +201,10 @@ def getArguments(args, request):
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
-
     baseurl = macro.request.getScriptname()
     action = 'Files' # name of the action that does the file stuff
     html = []
+    ticketString = None # for temporary thumbnail generation
     pagename = formatter.page.page_name
     urlpagename = wikiutil.quoteWikiname(formatter.page.proper_name())
 
@@ -211,6 +220,11 @@ def execute(macro, args, formatter=None):
       image_name, caption, thumbnail, px_size, alignment, border = getArguments(args, macro.request)
     except:
       return formatter.rawHTML('[[Image(%s)]]' % wikiutil.escape(args))
+
+    if formatter.isPreview() or formatter.page.prev_date:
+      if macro.formatter.processed_thumbnails.has_key((pagename, image_name)) and (thumbnail or caption):
+         return '<em style="background-color: #ffffaa; padding: 2px;">A thumbnail or caption may be displayed only once per image.</em>'
+      macro.formatter.processed_thumbnails[(pagename, image_name)] = True
 
     #is the original image even on the page?
     macro.request.cursor.execute("SELECT name from images where name=%(image_name)s and attached_to_pagename=%(pagename)s", {'image_name':image_name, 'pagename':pagename.lower()})
@@ -236,33 +250,52 @@ def execute(macro, args, formatter=None):
 
     if thumbnail:
       # let's generated the thumbnail or get the dimensions if it's already been generated
-      try:
-        x, y = touchThumbnail(macro.request, pagename, image_name, px_size)	
-      except:
-        html.append('<em>Error generating thumbnail.  If your image is an interlaced PNG, please re-upload it as a non-interlaced image.  Interlaced PNGs are currently not supported.</em>')
-	return ''.join(html)
+      if not px_size: px_size = default_px_size
+      (x, y), ticketString = touchThumbnail(macro.request, pagename, image_name, px_size, formatter)
 
       d = { 'right':'floatRight', 'left':'floatLeft', '':'noFloat' }
       floatSide = d[alignment]
       if caption and border:
-        html.append('<span class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a><span>%s</span></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size), image_name, caption))
+        html.append('<span class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a><div>%s</div></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size, ticket=ticketString), image_name, caption))
       elif border:
-        html.append('<span class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size), image_name))
+        html.append('<span class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size, ticket=ticketString), image_name))
       elif caption and not border:
-        html.append('<span class="%s thumb noborder" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a><span>%s</span></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size), image_name, caption))
+        html.append('<span class="%s thumb noborder" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a><div>%s</div></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size, ticket=ticketString), image_name, caption))
     else:
       x, y = getImageSize(pagename, image_name, macro.request.cursor)
       if not border and not caption:
-        img_string = '<a href="%s"><img class="borderless" src="%s" alt="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), image_name)
+        img_string = '<a href="%s"><img class="borderless" src="%s" alt="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, ticket=ticketString), image_name)
       elif border and not caption:
-        img_string = '<a href="%s"><img class="border" src="%s" alt="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), image_name)
+        img_string = '<a href="%s"><img class="border" src="%s" alt="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, ticket=ticketString), image_name)
       elif border and caption:
-        img_string = '<a href="%s"><img class="border" src="%s" alt="%s"/></a><span style="width: %spx;"><p class="normalCaption">%s</p></span>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), image_name, x, caption)
+        img_string = '<a href="%s"><img class="border" src="%s" alt="%s"/></a><div style="width: %spx;"><p class="normalCaption">%s</p></div>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, ticket=ticketString), image_name, x, caption)
       elif not border and caption:
-        img_string = '<a href="%s"><img class="borderless" src="%s" alt="%s"/></a><span style="width: %spx;"><p class="normalCaption">%s</p></span></span>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request), image_name, x, caption)
+        img_string = '<a href="%s"><img class="borderless" src="%s" alt="%s"/></a><div style="width: %spx;"><p class="normalCaption">%s</p></div>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, ticket=ticketString), image_name, x, caption)
       if alignment == 'right': img_string = '<span class="floatRight">' + img_string + '</span>'
       elif alignment == 'left': img_string = '<span class="floatLeft">' + img_string + '</span>'
 
       html.append(img_string)
       
     return ''.join(html)
+
+def _createTicket(tm = None):
+    """Create a ticket using a site-specific secret (the config)"""
+    import sha, types
+    if tm: tm = int(tm) 
+    else: tm = int(time.time())
+    ticket_hex = "%010x" % tm
+    digest = sha.new()
+    digest.update(ticket_hex)
+
+    cfgvars = vars(config)
+    for var in cfgvars.values():
+        if type(var) is types.StringType:
+            digest.update(repr(var))
+
+    return str(tm) + '.' + digest.hexdigest()
+
+def checkTicket(ticket):
+    """Check validity of a previously created ticket"""
+    timestamp = ticket.split('.')[0]
+    ourticket = _createTicket(timestamp)
+    return (ticket == ourticket) and ((time.time()-60) < int(timestamp))

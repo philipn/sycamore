@@ -19,19 +19,23 @@ def pointsToXML(cursor):
       masterCat.appendChild(cat)
     data.appendChild(masterCat)
   
-    point_id = 1 # we give ID to the applet but we don't need it.  not sure why the applet does..
+    max_point_id = 1 # we give ID to the applet but we don't need it.  not sure why the applet does..
     pages = points_dom.createElement("pages")
-    cursor.execute("SELECT curPages.propercased_name, m.x, m.y, c.id from mapPoints as m, mapPointCategories as c, curPages where curPages.name=c.pagename and m.x=c.x and m.y=c.y order by curPages.propercased_name;")
+    cursor.execute("SELECT curPages.propercased_name, m.x, m.y, c.id, m.id from mapPoints as m, mapPointCategories as c, curPages where curPages.name=c.pagename and m.x=c.x and m.y=c.y order by curPages.propercased_name;")
     pages_points = cursor.fetchall()
     points_cat_dict = {}
-    for pagename, x, y, cat_id in pages_points:
-      if not points_cat_dict.has_key((pagename, x, y)):
-        points_cat_dict[(pagename, x, y)] = [cat_id]
+    for pagename, x, y, cat_id, point_id in pages_points:
+      if not points_cat_dict.has_key((pagename, x, y, point_id)):
+        points_cat_dict[(pagename, x, y, point_id)] = [cat_id]
       else: 
-        points_cat_dict[(pagename, x, y)].append(cat_id)
+        points_cat_dict[(pagename, x, y, point_id)].append(cat_id)
 
     for point_info, cat_list in points_cat_dict.iteritems():
       point = points_dom.createElement("page")
+      if point_info[3]:
+        point_id = point_info[3]
+        if point_id > max_point_id: max_point_id = point_id +1
+      else: point_id = max_point_id 
       point.setAttribute("id", str(point_id))
       point_id += 1
       point.setAttribute("name", point_info[0])

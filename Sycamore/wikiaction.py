@@ -130,7 +130,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         request.write('</td></tr></table>\n')
 
         if context:
-	  print_context(this_search.terms, full_hit.data, request, context=context, max_context=max_context)
+	  print_context(this_search, full_hit.data, request, context=context, max_context=max_context)
           
       if len(full_hits) > pwith:
          request.write('<p>&nbsp;(<a href="%s?action=search&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
@@ -142,7 +142,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
 
 do_inlinesearch = do_search # for comptability to not break old urls in firefox extensions, etc.
 
-def print_context(terms, text, request, context=40, max_context=10):
+def print_context(the_search, text, request, context=40, max_context=10):
  """ Prints the search context surrounding a search result.  Makes found terms strong and shows some snippets."""
  padding = 10 # how much context goes around matched areas
  fragments = []
@@ -150,6 +150,10 @@ def print_context(terms, text, request, context=40, max_context=10):
  pos = 0
  fixed_text = text.lower()
  terms_with_location = []
+ location = None
+ terms = the_search.terms
+ exact_terms = the_search.printable_terms 
+
  for term in terms:
    if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
    else: term_string = term
@@ -162,7 +166,21 @@ def print_context(terms, text, request, context=40, max_context=10):
      if rel_position == -1:
        break
      found_loc += rel_position + len(term_string)
- 
+
+ if found_loc == -1: # stemed version (terms) didn't return anything useful.  let's try and find exact terms
+   for term in exact_terms:
+     if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
+     else: term_string = term
+     term_string = term_string.lower()
+     found_loc = fixed_text.find(term_string)
+     while True:
+       if found_loc == -1: break
+       terms_with_location.append((term_string, found_loc))
+       rel_position = fixed_text[found_loc+len(term_string):].find(term_string)
+       if rel_position == -1:
+         break
+       found_loc += rel_position + len(term_string)
+
  terms_with_location.sort(lambda x,y: cmp(x[1],y[1]))
  i = 0
  text_with_context = []
@@ -191,7 +209,7 @@ def print_context(terms, text, request, context=40, max_context=10):
    i += 1
    skip = False
 
- if location + padding + 1 < len(text):
+ if location and location + padding + 1 < len(text):
    text_with_context.append('...')
 
  text_context = []
@@ -485,7 +503,7 @@ def do_info(pagename, request):
         request.write('<h3>%s</h3>' % _('Links to this page'))
         if links_to_page:
             for linkingpage in links_to_page:
-                request.write("%s%s " % (Page(linkingpage, request).link_to(), ",."[linkingpage == links_to_page[-1]]))
+                request.write("%s%s " % (Page(linkingpage, request).link_to(know_status=True, know_status_exists=True), ",."[linkingpage == links_to_page[-1]]))
             request.write("</p>")
 	else: request.write('<p>No pages link to this page.</p>')
 

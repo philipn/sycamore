@@ -51,7 +51,7 @@ class Formatter:
 
     def isPreview(self):
         if self._preview: return True
-	else: return False
+	return False
 
     def assemble_code(self, text):
         """inserts the code into the generated text

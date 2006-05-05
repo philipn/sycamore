@@ -72,16 +72,10 @@ class Theme(ThemeBase):
        return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info',
 	   '%s<br/>Info' % self.make_icon('info', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
 
-    def is_talk_page(self, d):
-       if len(d['page_name']) >= 5:
-         if d['page_name'][len(d['page_name'])-5:] == '/Talk':
-	   return True
-       return False
-
     def talkicon(self, d):
       if config.talk_pages:
 
-        if self.is_talk_page(d):
+        if d['page'].isTalkPage():
 	   article_name = d['page_name'][:len(d['page_name'])-5]
 	   return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(article_name),
 	   '%s<br/>Article' % self.make_icon('article', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
@@ -100,8 +94,8 @@ class Theme(ThemeBase):
 
     def mapicon(self, d):
       if self.showapplet:
-        return """<td style="font-size: 7pt;" align="center" valign="bottom" id="show"><a href="#" style="text-decoration: none;" onmouseover="a.hover" onclick="doshow();"><img class="borderless" src="%s" hspace="8" alt="view map"/><br/>Map</a></td>
-	          <td style="font-size: 7pt; display: none;" align="center" valign="bottom" id="hide"><a href="#" style="text-decoration: none;" onmouseover="a.hover" onclick="dohide();"><img class="borderless" src="%s" hspace="8" alt="hide map""/><br/>Map</a></td>""" % (self.img_url('viewmap.png'), self.img_url('hidemap.png'))
+        return """<td class="pageIcon" id="show"><a href="#" style="text-decoration: none;" onmouseover="a.hover" onclick="doshow();">%s<br/>Map</a></td>
+	          <td style="display: none;" class="pageIcon" id="hide"><a href="#" style="text-decoration: none;" onmouseover="a.hover" onclick="dohide();">%s<br/>Map</a></td>""" % (self.make_icon('viewmap'), self.make_icon('hidemap'))
       else: return ''
 
 

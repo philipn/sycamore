@@ -142,6 +142,7 @@ if config.has_xapian:
   
       self.stemmer = xapian.Stem("english")
       self.terms = self._remove_junk(self._stem_terms(needles))
+      self.printable_terms = self._remove_junk(needles)
       if self.terms: self.query = self._build_query(self.terms)
       else: self.query = None
   

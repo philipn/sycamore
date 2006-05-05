@@ -34,6 +34,8 @@ class Theme(object):
         'edit':       ("Edit",                   "edit.png",   24, 24),
         'talk':       ("Talk",                   "talk.png",   24, 24),
         'article':    ("Article",             "article.png",   24, 24),
+        'viewmap':       ("View Map",                   "viewmap.png",   24, 24),
+        'hidemap':       ("Hide Map",                   "hidemap.png",   24, 24),
         'unsubscribe':("Unsubscribe",            "moin-unsubscribe.png",  14, 10),
         'subscribe':  ("Subscribe",              "moin-subscribe.png",14, 10),
         'raw':        ("Raw",                    "moin-raw.png",    12, 13),

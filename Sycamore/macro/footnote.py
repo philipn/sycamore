@@ -53,3 +53,4 @@ def emit_footnotes(request, formatter):
  	    request.write(formatter.rawHTML('</li>'))
         request.write(formatter.rawHTML('</ul></div>'))
         request.footnotes = []
+    return ''

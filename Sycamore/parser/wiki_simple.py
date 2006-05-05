@@ -350,7 +350,6 @@ class Parser:
         else:
             return word
 
-
     def _url_bracket_repl(self, word):
         """Handle bracketed URLs."""
 
@@ -362,7 +361,6 @@ class Parser:
 
         # Traditional split on space
         words = word[1:-1].split(None, 1)
-        if len(words) == 1: words = words * 2
 
         if words[0][0] == '#':
             # anchor link
@@ -370,16 +368,22 @@ class Parser:
 
         scheme = words[0].split(":", 1)[0]
         if scheme == "wiki": return self.interwiki(words, pretty_url=1)
-        if scheme in self.attachment_schemas:
-            return self.attachment(words, pretty_url=1)
+        #if scheme in self.attachment_schemas:
+        #    return self.attachment(words, pretty_url=1)
 
-        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]) and len(words) == 2 and (words[0] is words[1]):
-          if len(words) == 2 and (words[0] is words[1]):
-            text = self.formatter.image(title=words[1], alt=words[1], src=words[0])
+        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]):
+ 	    if len(words) >= 2:
+              text = self.formatter.image(title=''.join(words[1:]), alt=''.join(words[1:]), src=words[0])
+ 	    else:
+              text = self.formatter.image(title=words[0], alt=words[0], src=words[0])
         else:
             text = web.getLinkIcon(self.request, self.formatter, scheme)
-            text += self.highlight_text(words[1])
+            if len(words) == 1:
+	        text += self.highlight_text(words[0])
+            else:
+                text += self.highlight_text(words[1])
         return self.formatter.url(words[0], text, 'external', pretty_url=1, unescaped=1)
+
 
     def _bracket_link_repl(self, word):
         """Handle our standard format links. format:  ["Page name" text]"""

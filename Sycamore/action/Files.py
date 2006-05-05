@@ -29,13 +29,14 @@ htdocs_access = isinstance(config.attachments, type({}))
 #############################################################################
 
 
-def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=0, thumb=False, size=0):
+def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=0, thumb=False, size=0, ticket=None):
     """ Get URL that points to image `filename` of page `pagename`.
 
         If 'addts' is true, a timestamp with the file's modification time
         is added, so that browsers reload a changed file.
         NOTE:  FOR NOW we ignore addts..may add back if needed later.
     """
+    pagename = Page(pagename, request).proper_name()
     if not deleted:
       if not thumb:
         url = "%s/%s?img=true&amp;file=%s" % (wikiutil.baseScriptURL(), 
@@ -50,6 +51,8 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, ver
 	  url = "%s/%s?img=true&amp;file=%s&amp;thumb=yes&amp;size=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
             urllib.quote_plus(filename), size)
+	if ticket:
+	   url = "%s&amp;ticket=%s&amp;size=%s" % (url, ticket,size)
     else:
       url = "%s/%s?img=true&amp;file=%s&amp;deleted=true&amp;version=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
