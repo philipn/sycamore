@@ -360,7 +360,9 @@ a.tinyNonexistent:hover {
 
 a.noBorder { text-decoration: none; }
 
-div.actionBoxes { padding: 0 0 15pt 10pt; }
+div.actionBoxes { padding-bottom: 15pt; }
+
+#sth_legend div.actionBoxes { padding: 0 0 15pt 10pt; }
 
 td .actionBoxes { margin: 0 !important; padding: 0 !important; }
 
