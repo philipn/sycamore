@@ -89,6 +89,11 @@ span.thumb img.borderless {
   border: 0px;
 }
 
+span.thumb.noborder img {
+  border: 0px;
+}
+
+
 span.thumb.noborder {
   border: 0px;
 }
@@ -419,7 +424,7 @@ hr {
 
 .footnotes div {
         margin-top: 2em;
-        width: 5em;
+        width: 10em;
         border-top: 1px solid #CBCBCB;
         clear: both;
 }
@@ -794,11 +799,11 @@ div.editInfo { margin-top: 10pt; }
 .diff {
         width:100%;
         border: 1px solid gray;
-	margin-bottom: 4px;
+	margin-bottom: 6px;
 	margin-top: 2px;
 }
 
-.diff td { border: 1px solid black; padding: 4px 2px 4px 2px; }
+.diff td { border: 1px solid gray; padding: 4px 2px 4px 2px; }
 
 .diff-item { width:50%; }
 

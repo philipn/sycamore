@@ -104,8 +104,12 @@ pre {
 }
 
 .footnotes ul {
-	padding: 0 2em;
-	margin: 0 0 1em;
+	padding: 0 0em !important;
+	margin: .3em 1.2em 1em !important;
+}
+
+.footnotes li span {
+padding-right: 2px;
 }
 
 .footnotes li {
