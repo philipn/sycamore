@@ -653,7 +653,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	else: type = 'page save new'
 	cache.clear(type=type)
 	# clear possible dependencies (e.g. [[Include]])
-	for pagename in caching.depend_on_me(self.page_name, self.request):
+	for pagename in caching.depend_on_me(self.page_name, self.request, exists, action=action):
 	  caching.CacheEntry(pagename, self.request).clear()
 
 	# set in-memory page text

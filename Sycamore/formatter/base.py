@@ -59,9 +59,9 @@ class FormatterBase:
     # Links ##############################################################
     
     def pagelink(self, pagename, text=None, **kw):
-        if kw.get('generated', 0): return
+        if kw.get('generated', 0) or not self._store_pagelinks: return
         lower_pagename = pagename.lower()
-        if self._store_pagelinks and lower_pagename not in self.pagelinks:
+        if lower_pagename not in self.pagelinks:
             self.pagelinks.append(lower_pagename)
             self.pagelinks_propercased.append(pagename)
 

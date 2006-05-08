@@ -124,8 +124,7 @@ class Formatter:
                         (adjust, self.__parser, callback, arg_list, arg_dict))
 
     def pagelink(self, pagename, text=None, **kw):
-        return self.__insert_code('request.write(%s.pagelink(%r, %r, **%r))' %
-                        (self.__formatter, pagename, text, kw))
+	return Page(pagename, self.request).link_to(text, kw)
 
     def interwikilink(self, url, text, **kw):
         return self.__insert_code('request.write(%s.interwikilink(%r, %r, **%r))' %

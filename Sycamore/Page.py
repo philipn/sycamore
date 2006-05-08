@@ -160,27 +160,26 @@ class Page(object):
         """
         Does this page exist?
         
-        @rtype: bool
-        @return: true, if page exists
+        @rtype: bool or string
+        @return: false, if page doesn't exist. otherwise returns proper pagename
         """
-	lower_pagename = self.page_name.lower()
 	proper_pagename = False
 	memcache_hit = False
-	if self.request.req_cache['pagenames'].has_key(lower_pagename):
-	  return self.request.req_cache['pagenames'][lower_pagename]
+	if self.request.req_cache['pagenames'].has_key(self.page_name):
+	  return self.request.req_cache['pagenames'][self.page_name]
 	if config.memcache:
-	  proper_pagename = self.request.mc.get("pagename:%s" % wikiutil.quoteFilename(lower_pagename))
+	  proper_pagename = self.request.mc.get("pagename:%s" % wikiutil.quoteFilename(self.page_name))
 	  if proper_pagename is not None:
 	    memcache_hit = True
 	  else: proper_pagename = False
 	if not proper_pagename and not memcache_hit:
-	  self.cursor.execute("SELECT propercased_name from curPages where name=%(pagename)s", {'pagename': lower_pagename})
+	  self.cursor.execute("SELECT propercased_name from curPages where name=%(pagename)s", {'pagename': self.page_name})
 	  result = self.cursor.fetchone()
 	  if result: proper_pagename = result[0]
 	  if config.memcache:
-	    self.request.mc.add("pagename:%s" % wikiutil.quoteFilename(lower_pagename), proper_pagename)
+	    self.request.mc.add("pagename:%s" % wikiutil.quoteFilename(self.page_name), proper_pagename)
 
-        self.request.req_cache['pagenames'][lower_pagename] = proper_pagename
+        self.request.req_cache['pagenames'][self.page_name] = proper_pagename
 	return proper_pagename
 
 
@@ -385,7 +384,7 @@ class Page(object):
 	url = wikiutil.quoteWikiname(url_name)
 
 	if not text:
-	  text = wikiutil.unquoteWikiname(url_name)
+	  text = url_name
  
         if querystr:
             querystr = util.web.makeQueryString(querystr)
@@ -399,10 +398,10 @@ class Page(object):
             attach_link = AttachFile.getIndicator(request, self.page_name)
 
         if know_exists:
-            return wikiutil.link_tag(request, url, text, formatter=fmt, **kw) + attach_link
+            return '%s%s' % (wikiutil.link_tag(request, url, text, formatter=fmt, **kw),  attach_link)
         else:
             kw['css_class'] = 'nonexistent'
-            return wikiutil.link_tag(request, url, text, formatter=fmt, **kw) + attach_link
+            return '%s%s' % (wikiutil.link_tag(request, url, text, formatter=fmt, **kw), attach_link)
 
     def send_page(self, msg=None, **keywords):
         """
@@ -725,6 +724,10 @@ class Page(object):
         formatter = self.formatter
         macro_obj = wikimacro.Macro(parser)
         try:
+ 	    # figure out the link status' all at once to improve performance on pages w/lots of links
+  	    caching.getPageLinks(self.page_name, self.request)
+
+	    # execute the python code we serialized -- this prints the page content and macros/etc
             exec code
         except 'CacheNeedsUpdate': # if something goes wrong, try without caching
 	    body = self.get_raw_body()
@@ -819,7 +822,7 @@ class Page(object):
         Get a list of the links on this page.
         
         @param request: the request object
-	@param docache:  set to False to make this fast for macro functions, otherwise it might create the cache on a whole number of pages, redirecting the request object and causing trouble
+	@param docache:  set to False to make this fast for macro functions, otherwise it might create the cache on a whole number of pages, redirecting the request object and causing trouble.
         @rtype: list
         @return: page names this page links to
         """
@@ -850,19 +853,7 @@ class Page(object):
                 if hasattr(request, '_fmt_hd_counters'):
                     del request._fmt_hd_counters
 
-	links = {}
-        request.cursor.execute("SELECT destination_pagename_propercased from links where source_pagename=%(page_name)s", {'page_name':self.page_name})
-        result = request.cursor.fetchone()
-	while result:
-	  if result[0].lower() not in links:  # make sure we don't include a link twice just b/c it's got a different capitalization
-   	    links[result[0].lower()] = result[0]
-	  result = request.cursor.fetchone()
-
-        links_list = []	
-	for lowercased_name, proper_name in links.iteritems():
- 	   links_list.append(proper_name)
-
-	return links_list
+	return caching.getPageLinks(self.page_name, request)
 
     def isTalkPage(self):
        pagename = self.proper_name()

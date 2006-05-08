@@ -65,7 +65,7 @@ class RequestBase(object):
           self.mc = MemcachePool.getMC()
 	#if not properties: properties = wikiutil.prepareAllProperties()
         #self.__dict__.update(properties)
-	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}} # per-request cache
+	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'links': {}} # per-request cache
         # order is important here!
 
 	self.db_connect()
@@ -833,4 +833,9 @@ class RequestWSGI(RequestBase):
 ### Misc methods
 #################################
 def basic_handle_request(env, start_response):
+    if env.get('QUERY_STRING', '') == 'profile':
+      import profile
+      prof = profile.Profile()
+      prof.runctx('RequestWSGI(env,start_response).run()', globals(), locals())
+      prof.dump_stats('prof.%s' % time.time())
     return RequestWSGI(env, start_response).run()

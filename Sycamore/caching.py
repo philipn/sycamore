@@ -77,6 +77,7 @@ class CacheEntry:
 	  self.request.mc.delete("page_info:%s" % key)
 	  self.request.mc.delete("pagename:%s" % key)
 	  self.request.mc.delete("page_text:%s" % key)
+	  self.request.mc.delete("links:%s" % key)
   	  if type == 'page save new':
 	     pagecount = wikidb.getPageCount(self.request) + 1
              self.request.mc.set('active_page_count', pagecount)
@@ -113,27 +114,30 @@ def dependency(depend_pagename, source_pagename, request):
 def clear_dependencies(pagename, request):
   # clears out dependencies.  do this before parsing on a page save
   request.cursor.execute("DELETE from pageDependencies where page_that_depends=%(page_name)s", {'page_name':pagename}, isWrite=True)
-  #if config.memcache:
-  #  request.mc.delete("page_deps:%s" % wikiutil.quoteFilename(pagename))
 
-def depend_on_me(pagename, request):
+def depend_on_me(pagename, request, exists, action=None):
+  """
+  return a list of pages (page objects) that depend on pagename
+  action paramter is the edit action.  if it's SAVENEW or DELETE then we return pages that link to this page.
+  """
   from Sycamore.Page import Page
-  # return a list of pages (page objects) that depend on pagename
   page_deps = False
-  #if config.memcache:
-  #  page_deps = request.mc.get("page_deps:%s" % wikiutil.quoteFilename(pagename))
-  #  if page_deps is not None:
-  #    return page_deps
-  #  else:
-  #    page_deps = False
+  do_links = False
 
   request.cursor.execute("SELECT page_that_depends from pageDependencies where source_page=%(page_name)s", {'page_name':pagename})
   results = request.cursor.fetchall()
   page_deps = []
   for result in results:
     page_deps.append(result[0])
-  #if config.memcache:
-  #  request.mc.add("page_deps:%s" % wikiutil.quoteFilename(pagename), page_deps)
+  if action == 'SAVENEW' or action == 'DELETE':
+     do_links = True
+  elif not exists:
+     do_links = True
+
+  if do_links:
+    request.cursor.execute("SELECT source_pagename from links where destination_pagename=%(page_name)s", {'page_name':pagename})
+    for result in request.cursor.fetchall():
+      page_deps.append(result[0])
   return page_deps
 
 class pageInfoObj(object):
@@ -249,3 +253,39 @@ def pageInfo(page):
 
   page.request.req_cache['page_info'][key] = page_info
   return page_info
+
+
+def getPageLinks(pagename, request):
+  """
+  Caches all of the page links on page pagename. Subsequent calls to page.exists() will be much faster if they're a link.
+
+  Returns a list of the properly cased links (pagenames).
+  """
+  links = None
+  got_from_memcache = False
+  lower_pagename = pagename.lower()
+  if config.memcache:
+     mc_key = 'links:%s' % wikiutil.quoteFilename(lower_pagename)
+     links = request.mc.get(mc_key)
+  if links is None:
+     # get from database 
+     request.cursor.execute("SELECT destination_pagename_propercased, curPages.name from links left join curPages on destination_pagename=curPages.name where source_pagename=%(pagename)s", {'pagename': lower_pagename})
+     result = request.cursor.fetchall()
+     links = {}
+     for link, exists in result:
+       if exists:
+         links[link.lower()] = (True, link)
+       else:
+	 links[link.lower()] = (False, link)
+  else: got_from_memcache = True
+
+  for link in links:
+    exists, proper_name = links[link]
+    key = proper_name.lower()
+    if exists: request.req_cache['pagenames'][key] = proper_name
+    else: request.req_cache['pagenames'][key] = False
+
+  if config.memcache and not got_from_memcache:
+    request.mc.add(mc_key, links)
+
+  return [ info[1] for link, info in links.iteritems() ]

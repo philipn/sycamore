@@ -22,26 +22,23 @@ def execute(macro, args, formatter):
         links = 1
 
     # select the pages from the page list
-    all_pages = macro.request.getPageList()
+    random_list = wikiutil.getRandomPages(macro.request)
     pages = []
-    while len(pages) < links and all_pages:
-        pagename = whrandom.choice(all_pages)
+    while len(pages) < links and random_list:
+        pagename = whrandom.choice(random_list)
 	page = Page(pagename, macro.request)
-        if macro.request.user.may.read(page):
+        if macro.request.user.may.read(page) and page.exists():
             pages.append(page)
-        #all_pages.remove(page)
 
     # return a single page link
-    if links == 1: return macro.formatter.pagelink(pages[0].page_name, generated=1)
+    if links == 1: return pages[0].link_to()
 
     # return a list of page links
     pages.sort()
-    result = macro.formatter.bullet_list(1)
+    result = [macro.formatter.bullet_list(1)]
     for page in pages:
-        result = result + macro.formatter.listitem(1)
-        result = result + macro.formatter.pagelink(page.page_name, generated=1)
-        result = result + macro.formatter.listitem(0)
-    result = result + macro.formatter.bullet_list(0)
+        result.append("%s%s%s" % (macro.formatter.listitem(1), page.link_to(), macro.formatter.listitem(0)))
+    result.append(macro.formatter.bullet_list(0))
 
-    return result
+    return ''.join(result)
 

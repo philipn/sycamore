@@ -76,8 +76,17 @@ class WikiDBCursor(object):
     if args: args = _fixArgs(args)
     self.db_cursor.execute(query, args) 
 
-  #def executemany(self, query, args):
-  #  self.db_cursor.executemany(query, args)
+  def executemany(self, query, args_seq=(), isWrite=False):
+    if not self.db.db:
+      # connect to the db for real for the first time 
+      self.db.db = real_connect()
+      self.db_cursor = self.db.db.cursor()
+
+    if isWrite:
+      self.db.do_commit = True
+    if args_seq:
+      args_seq = [ _fixArgs(arg) for arg in args_seq ]
+    self.db_cursor.executemany(query, args_seq) 
 
   def fetchone(self, fixBinary=False):
     if not fixBinary:

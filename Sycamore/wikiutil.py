@@ -22,6 +22,13 @@ _FORM_RE = None
 _CATEGORY_RE = None
 _GROUP_RE = None
 
+# The maximum number of random pages to grab from the current page list
+MAX_RANDOM_GET = 1000
+RAND_EXPIRE_TIME = 60*60
+
+if config.db_type == 'postgres': RAND_FUNCTION = 'random()'
+elif config.db_type == 'mysql': RAND_FUNCTION = 'rand()'
+
 def prepareAllProperties():
   # sets up the consistent data between requests.  right now, this is just the db connection
   d = {}
@@ -381,6 +388,26 @@ def getPageDict(request):
         pages[name] = Page(name, request)
     return pages
 
+def getRandomPages(request):
+   """
+   Returns a list of random pages -- cached.  The maximum number of pages is MAX_RANDOM_GET.
+   """
+   if request.req_cache['random'].has_key('*'):
+     return request.req_cache['random']['*']
+   rand_pages = None
+   if config.memcache:
+     rand_pages = request.mc.get('random:*')
+   if rand_pages is None: 
+     rand_pages = []
+     query = "SELECT name from curPages order by %s limit %s" % (RAND_FUNCTION, MAX_RANDOM_GET)
+     request.cursor.execute(query)
+     for item in request.cursor.fetchall(): 
+       rand_pages.append(item[0])
+     if config.memcache:
+       request.mc.add("random:*", rand_pages, time=RAND_EXPIRE_TIME)
+   request.req_cache['random']['*'] = rand_pages
+   return rand_pages
+
 
 def getBackupList(backup_dir, pagename=None):
     """
@@ -715,12 +742,12 @@ def attach_link_tag(request, params, text=None, formatter=None, **kw):
         text = params # default
     if formatter:
         return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
-    attrs = ''
+    attrs = []
     if kw.has_key('attrs'):
-        attrs += ' ' + kw['attrs']
+        attrs.append(' %s' % kw['attrs'])
     if css_class:
-        attrs += ' class="%s"' % css_class
-    return ('<a%s class="nonexistent" onclick="%s%s/%s%s">%s</a>' % (attrs, "window.open('", request.getScriptname(), params, "', 'attachments', 'width=800,height=600,scrollbars=1');", text))
+        attrs.append(' class="%s"' % css_class)
+    return ('<a%s class="nonexistent" onclick="%s%s/%s%s">%s</a>' % (''.join(attrs), "window.open('", request.getScriptname(), params, "', 'attachments', 'width=800,height=600,scrollbars=1');", text))
 
 def link_tag(request, params, text=None, formatter=None, **kw):
     """
@@ -739,12 +766,12 @@ def link_tag(request, params, text=None, formatter=None, **kw):
         text = params # default
     if formatter:
         return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
-    attrs = ''
+    attrs = []
     if kw.has_key('attrs'):
-        attrs += ' ' + kw['attrs']
+        attrs.append(' %s' % kw['attrs'])
     if css_class:
-        attrs += ' class="%s"' % css_class
-    return ('<a%s href="%s/%s">%s</a>' % (attrs, request.getScriptname(), params, text))
+        attrs.append(' class="%s"' % css_class)
+    return ('<a%s href="%s/%s">%s</a>' % (''.join(attrs), request.getScriptname(), params, text))
     
 def link_tag_style(style, request, params, text=None, formatter=None, **kw):
     """
@@ -763,12 +790,12 @@ def link_tag_style(style, request, params, text=None, formatter=None, **kw):
         text = params # default
     if formatter:
         return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
-    attrs = ''
+    attrs = []
     if kw.has_key('attrs'):
-        attrs += ' ' + kw['attrs']
+        attrs.append(' %s' %  kw['attrs'])
     if css_class:
-        attrs += ' class="%s"' % css_class
-    return ('<a%s href="%s/%s" class="%s">%s</a>' % (attrs, request.getScriptname(), params, style, text))
+        attrs.append(' class="%s"' % css_class)
+    return ('<a%s href="%s/%s" class="%s">%s</a>' % (''.join(attrs), request.getScriptname(), params, style, text))
 
 def link_tag_explicit(inbetween, request, params, text=None, formatter=None, **kw):
     """
@@ -788,12 +815,12 @@ def link_tag_explicit(inbetween, request, params, text=None, formatter=None, **k
         text = params # default
     if formatter:
         return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
-    attrs = ''
+    attrs = []
     if kw.has_key('attrs'):
-        attrs += ' ' + kw['attrs']
+        attrs.append(' %s' % kw['attrs'])
     if css_class:
-        attrs += ' class="%s"' % css_class
-    return ('<a%s %s href="%s/%s">%s</a>' % (attrs, inbetween, request.getScriptname(), params, text))
+        attrs.append(' class="%s"' % css_class)
+    return ('<a%s %s href="%s/%s">%s</a>' % (''.join(attrs), inbetween, request.getScriptname(), params, text))
 
 
 

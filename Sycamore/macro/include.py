@@ -4,8 +4,6 @@
 
     This macro includes the formatted content of the given page(s).
 
-    for detailed docs.
-    
     @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>
     @copyright: 2000-2001 by Richard Jones <richard@bizarsoftware.com.au>
     @license: GNU GPL, see COPYING for details.
