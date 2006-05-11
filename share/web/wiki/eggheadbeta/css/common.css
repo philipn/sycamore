@@ -72,20 +72,22 @@ img.borderless {
     border: 0px;
 }
 
+img.actionButton { border: 1px solid black; }
+
 a img.actionButton {
-   border: 1px solid #000088;
+   border: 2px solid #000088;
 }
 
 a img.actionButton:hover {
-  border: 1px solid green;
+  border: 2px solid green;
 }
 
 input.actionButton {
-  border: 1px solid #000088;
+  border: 2px solid #000088;
 }
 
 input.actionButton:hover {
-  border: 1px solid green;
+  border: 2px solid green;
 }
 
 img.drawing {

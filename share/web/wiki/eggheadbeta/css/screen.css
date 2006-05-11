@@ -57,19 +57,19 @@ div.tabArea {
 #tabPage h3 { margin-top: 9pt;}
 
 span.floatLeft {
-  margin: 10px 10px 10px 0px;
+  margin: 15px 10px 10px 0px;
   float: left;
   clear: left;
 }
 
 span.floatRight {
-  margin: 10px 0px 10px 10px;
+  margin: 15px 0px 10px 10px;
   float: right;
   clear: right;
 }
 
 span.noFloat {
-  margin: 10px 10px 10px 0px;
+  margin: 15px 10px 10px 0px;
   float: left;
 }
 
@@ -169,6 +169,8 @@ a.tab:hover {
   color: #000088;
   background: #ccddff;
 }
+
+a.tab.notice { font-weight: bold;}
 
 a.tab.activeTab, a.tab.activeTab:hover, a.tab.activeTab:visited {
   background: #ccddff;
