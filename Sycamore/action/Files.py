@@ -479,7 +479,7 @@ def do_upload(pagename, request):
         xsize, ysize = im.size
 	uploaded_time = time.time()
 	uploaded_by = request.user.id
-	d = {'filename':target, 'filecontent':filecontent, 'uploaded_time':uploaded_time, 'uploaded_by':uploaded_by, 'pagename':pagename.lower(), 'uploaded_by_ip':request.remote_addr, 'xsize':xsize, 'ysize':ysize}
+	d = {'filename':target, 'filecontent':filecontent, 'uploaded_time':uploaded_time, 'uploaded_by':uploaded_by, 'pagename':pagename, 'uploaded_by_ip':request.remote_addr, 'xsize':xsize, 'ysize':ysize}
 	wikidb.putImage(request, d)
 	
         bytes = len(filecontent)
@@ -503,6 +503,7 @@ def restore_image(pagename, request):
     _ = request.getText
     
     lower_pagename = pagename.lower()
+    pagename_propercased = Page(pagename, request).proper_name()
     timenow = time.time()
     filename = request.form['target'][0]
     uploaded_time = request.form['uploaded_time'][0]
@@ -512,12 +513,12 @@ def restore_image(pagename, request):
     if is_in_images:
 	# this means the image wasn't most recently deleted but the user still would like to revert to this version of the image
 	#backup the current version of the image
-	request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, uploaded_by_ip, deleted_time, deleted_by, deleted_by_ip) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, %(deleted_by_ip)s)", {'filename':filename, 'pagename':lower_pagename, 'timenow':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr}, isWrite=True)
+	request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, uploaded_by_ip, deleted_time, deleted_by, deleted_by_ip, attached_to_pagename_propercased) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, %(deleted_by_ip)s, %(pagename_propercased)s)", {'filename':filename, 'pagename':lower_pagename, 'timenow':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr, 'pagename_propercased':pagename_propercased}, isWrite=True)
 	#revert by putting their version as the current version
 	request.cursor.execute("UPDATE images set image=(select image from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), xsize=(select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), ysize=(select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), uploaded_by=%(userid)s, uploaded_by_ip=%(userip)s, uploaded_time=%(timenow)s where name=%(filename)s and attached_to_pagename=%(pagename)s", {'filename':filename, 'pagename':lower_pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':timenow}, isWrite=True)
 
     else:
-      request.cursor.execute("INSERT into images (name, attached_to_pagename, image, xsize, ysize, uploaded_by, uploaded_by_ip, uploaded_time) values (%(filename)s, %(pagename)s, (select image from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), (select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), (select ysize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), %(userid)s, %(userip)s, %(timenow)s)",{'filename':filename, 'pagename':lower_pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':time.time()}, isWrite=True)
+      request.cursor.execute("INSERT into images (name, attached_to_pagename, image, xsize, ysize, uploaded_by, uploaded_by_ip, uploaded_time, attached_to_pagename_propercased) values (%(filename)s, %(pagename)s, (select image from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), (select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), (select ysize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), %(userid)s, %(userip)s, %(timenow)s, %(pagename_propercased)s)",{'filename':filename, 'pagename':lower_pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':time.time(), 'pagename_propercased':pagename_propercased}, isWrite=True)
 
     # delete the thumbnail -- this also has the effect of clearing the cache for the page/image
     wikidb.putImage(request, {'pagename': lower_pagename, 'filename': filename}, thumbnail=True, do_delete=True) 
@@ -616,7 +617,6 @@ def send_viewfile(pagename, request):
 
         image_size = image_size/1024
     
-    #request.write('<h2>' + _("Attachment '%(filename)s'") % {'filename': filename} + '</h2>')
     baseurl = request.getScriptname()
     action = action_name
     urlpagename = wikiutil.quoteWikiname(pagename)

@@ -107,7 +107,6 @@ class Formatter(FormatterBase):
         wikitag, wikiurl, wikitail, wikitag_bad = wikiutil.resolve_wiki(self.request, url)
         wikiurl = wikiutil.mapURL(wikiurl)
         
-        
         href = wikiutil.join_wiki(wikiurl, wikitail)
 
         # check for image URL, and possibly return IMG tag

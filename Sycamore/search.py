@@ -259,6 +259,8 @@ def _do_postings(doc, text, id, stemmer):
   # unique id     
   # NOTE on unique id:  we assume this is unique and not creatable via the user.  We consider 'q:this' to split as q, this -- so this shouldn't be exploitable.
   # The reason we use such a unique id is that it's the easiest way to do this using xapian.
+  id = id.encode('utf-8')
+  text = text.encode('utf-8')
   doc.add_term("Q:%s" % id.lower())
 
   doc.add_value(0, id)
@@ -285,11 +287,11 @@ def index(page):
       os.path.join(config.search_db_location, 'title'),
       xapian.DB_CREATE_OR_OPEN)
 
-  text = page.page_name
+  text = page.page_name.encode('utf-8')
+  pagename = page.page_name.encode('utf-8')
   doc = xapian.Document()
-  #doc.set_data(text)
-  _do_postings(doc, text, page.page_name, stemmer)
-  database.replace_document("Q:%s" % page.page_name.lower(), doc)
+  _do_postings(doc, text, pagename, stemmer)
+  database.replace_document("Q:%s" % pagename.lower(), doc)
 
   database = xapian.WritableDatabase(
       os.path.join(config.search_db_location, 'text'), 
@@ -297,24 +299,24 @@ def index(page):
 
   text = page.get_raw_body()
   doc = xapian.Document()
-  #doc.set_data(text)
-  _do_postings(doc, text, page.page_name, stemmer)
-  database.replace_document("Q:%s" % page.page_name.lower(), doc)
+  _do_postings(doc, text, pagename, stemmer)
+  database.replace_document("Q:%s" % pagename.lower(), doc)
 
 def remove_from_index(page):
   """removes the page from the index.  call this on page deletion.  all other page changes can just call index(). """
   if not config.has_xapian: return
+  pagename = page.page_name.encode('utf-8')
   database = xapian.WritableDatabase(
       os.path.join(config.search_db_location, 'title'),
       xapian.DB_CREATE_OR_OPEN)
 
-  database.delete_document("Q:%s" % page.page_name.lower())
+  database.delete_document("Q:%s" % pagename.lower())
 
   database = xapian.WritableDatabase(
       os.path.join(config.search_db_location, 'text'),
       xapian.DB_CREATE_OR_OPEN)
 
-  database.delete_document("Q:%s" % page.page_name.lower())
+  database.delete_document("Q:%s" % pagename.lower())
 
 def prepare_search_needle(needle):
   """Basically just turns a string of "terms like this" and turns it into a form usable by Search(), paying attention to "quoted subsections" for exact matches."""

@@ -50,4 +50,5 @@ class Comment(base.Widget):
 	    self.comment = "Event '%s' posted." % self.comment
 	elif self.type == 'SAVEMAP':
 	    self.comment = "Map location(s) modified"
+
 	return _(self.comment)

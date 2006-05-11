@@ -292,7 +292,7 @@ class Page(object):
 	    if config.memcache:
 	      text = self.request.mc.get("page_text:%s" % (wikiutil.quoteFilename(self.page_name.lower())))
 
-	    if not text:
+	    if text is None:
 	      self.cursor.execute("SELECT text from curPages where name=%(page_name)s", {'page_name':self.page_name})
 	      result = self.cursor.fetchone()
 	      if result: text = result[0]
@@ -428,10 +428,6 @@ class Page(object):
         if msg is None: msg = ""
 	polite_msg = ""
 
-        # count hit?
-        #if keywords.get('count_hit', 0):
-        #     eventlog.EventLog().add(request, 'VIEWPAGE', {'pagename': self.page_name})
-
         # load the meta-text
         meta_text = self.get_meta_text()
 
@@ -525,6 +521,8 @@ class Page(object):
         # start document output
         doc_leader = self.formatter.startDocument(self.page_name)
         if not content_only:
+            if self.request.user.valid: self.request.user.checkFavorites(self.page_name)
+
             # send the document leader
             request.http_headers()
             request.write(doc_leader)
@@ -666,7 +664,6 @@ class Page(object):
         key = self.page_name
         cache = caching.CacheEntry(key, request)
         code = None
-
         if cache.needsUpdate():
             needsupdate = 1
 
@@ -707,11 +704,6 @@ class Page(object):
             text = buffer.getvalue()
             buffer.close()
             links = html_formatter.pagelinks_propercased
-	    # DEBUG XXXX
-	    #test = open('test2.txt','w')
-	    #test.write(text+'\n\n'+str(formatter.code_fragments))
-	    #test.close()
-	    # XXXX
             src = formatter.assemble_code(text)
 	    #request.write(src) # debug 
             code = compile(src, self.page_name, 'exec')
@@ -898,6 +890,8 @@ class Page(object):
         @rtype: dict
         @return: ACLs of this page
         """
+        if self.request.req_cache['acls'].has_key(self.page_name): return self.request.req_cache['acls'][self.page_name]
+
         if not config.acl_enabled:
             import wikiacl
             return wikiacl.AccessControlList()
@@ -919,6 +913,7 @@ class Page(object):
 
             acl = wikiacl.parseACL(meta_text)
             self._acl_cache[self.page_name] = (mtime, acl)
-        return acl
 
+        self.request.req_cache['acls'][self.page_name] = acl
+        return acl
 

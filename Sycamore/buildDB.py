@@ -291,6 +291,7 @@ def create_tables(cursor):
    uploaded_by_ip char(16),
    xsize smallint,
    ysize smallint,
+   attached_to_pagename_propercased varchar(255) not null,
    primary key (name, attached_to_pagename)
    ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
@@ -304,6 +305,7 @@ def create_tables(cursor):
    uploaded_by_ip inet,
    xsize smallint,
    ysize smallint,
+   attached_to_pagename_propercased varchar(255) not null,
    primary key (name, attached_to_pagename)
    );""")
 
@@ -324,6 +326,7 @@ def create_tables(cursor):
    deleted_by_ip char(16),
    xsize smallint,
    ysize smallint,
+   attached_to_pagename_propercased varchar(255) not null,
    primary key (name, attached_to_pagename, uploaded_time)
    ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
@@ -340,6 +343,7 @@ def create_tables(cursor):
    deleted_by_ip inet,
    xsize smallint,
    ysize smallint,
+   attached_to_pagename_propercased varchar(255) not null,
    primary key (name, attached_to_pagename, uploaded_time)
    );""")
  
@@ -417,6 +421,7 @@ def create_tables(cursor):
      created_by char(20),
      created_by_ip char(16),
      id int,
+     pagename_propercased varchar(100) not null,
      primary key (pagename, x, y)
    ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
@@ -429,6 +434,7 @@ def create_tables(cursor):
      created_by char(20),
      created_by_ip inet,
      id int,
+     pagename_propercased varchar(100) not null,
      primary key (pagename, x, y)
    );""")
  
@@ -447,6 +453,7 @@ def create_tables(cursor):
      deleted_time double,
      deleted_by char(20),
      deleted_by_ip char(16),
+     pagename_propercased varchar(100) not null,
      primary key (pagename, x, y, deleted_time)
    ) type=InnoDB CHARACTER SET utf8;""")
  elif config.db_type == 'postgres':
@@ -461,10 +468,12 @@ def create_tables(cursor):
      deleted_time double precision,
      deleted_by char(20),
      deleted_by_ip inet,
+     pagename_propercased varchar(100) not null,
      primary key (pagename, x, y, deleted_time)
    );""")
 
  cursor.execute("CREATE INDEX oldMapPoints_deleted_time on oldMapPoints (deleted_time);")
+ cursor.execute("CREATE INDEX oldMapPoints_created_time on oldMapPoints (created_time);")
  
  if config.db_type == 'mysql':
    cursor.execute("""create table mapPointCategories
@@ -546,23 +555,23 @@ def create_tables(cursor):
 def create_views(cursor):
  print "creating views..."
  if config.db_type == 'mysql':
-   cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
-   cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;")
-   cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
-   cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;")
+   cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP, 'Events Board' as propercased_name  as userIP from events, users where users.name=events.posted_by;")
+   cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
+   cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
+   cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP, images.attached_to_pagename_propercased as propercased_name from images;")
    cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP, propercased_name from allPages;")
-   cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, mapPoints.created_by_ip as userIP from mapPoints;")
-   cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
-   cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;")
+   cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, mapPoints.created_by_ip as userIP, mapPoints.pagename_propercased as propercased_name from mapPoints;")
+   cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.created_by_ip as userIP, oldMapPoints.pagename_propercased as propercased_name from oldMapPoints;")
+   cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.deleted_by_ip as userIP, oldMapPoints.pagename_propercased as propercased_name from oldMapPoints;")
  elif config.db_type == 'postgres':
    cursor.execute("CREATE VIEW eventChanges as SELECT char 'Events Board' as name, events.posted_time as changeTime, users.id as id, char 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.name=events.posted_by;")
-   cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, char 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP from oldImages;")
-   cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, char 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP from oldImages;")
-   cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, char 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP from images;")
+   cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, char 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
+   cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, char 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
+   cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, char 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP, images.attached_to_pagename_propercased as propercased_name from images;")
    cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP, propercased_name from allPages;")
-   cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, char 'SAVEMAP' as editType, char ''as comment, mapPoints.created_by_ip as userIP from mapPoints;")
-   cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, char 'SAVEMAP' as editType, char '' as comment, oldMapPoints.created_by_ip as userIP from oldMapPoints;")
-   cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, char 'SAVEMAP' as editType, char '' as comment, oldMapPoints.deleted_by_ip as userIP from oldMapPoints;")
+   cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, char 'SAVEMAP' as editType, char ''as comment, mapPoints.created_by_ip as userIP, mapPoints.pagename_propercased as propercased_name from mapPoints;")
+   cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, char 'SAVEMAP' as editType, char '' as comment, oldMapPoints.created_by_ip as userIP, oldMapPoints.pagename_propercased as propercased_name from oldMapPoints;")
+   cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, char 'SAVEMAP' as editType, char '' as comment, oldMapPoints.deleted_by_ip as userIP, oldMapPoints.pagename_propercased as propercased_name from oldMapPoints;")
 
  print "views created"
 

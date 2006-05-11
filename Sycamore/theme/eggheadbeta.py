@@ -211,22 +211,25 @@ class Theme(ThemeBase):
         recent_class = "tab"
         map_class = "tab"
         people_class = "tab"
-        bookmarks_class = "tab"
+	if self.request.user.valid and self.request.user.hasUnseenFavorite():
+          bookmarks_class = "tab notice"
+	else:
+          bookmarks_class = "tab"
         other_page_html = ""
 
 	# so our formatting here looks nicer :)
         if d['page_name']:
 	    lower_page_name = d['page_name'].lower()
             if lower_page_name == "front page":
-              front_class += ' activeTab'
+              front_class = '%s activeTab' % front_class
             elif lower_page_name == "recent changes":
-              recent_class += ' activeTab'
+              recent_class = '%s activeTab' % recent_class
             elif lower_page_name == "map":
-              map_class += ' activeTab'
+              map_class = '%s activeTab' % map_class
             elif lower_page_name == "people":
-              people_class += ' activeTab'
+              people_class = '%s activeTab' % people_class
             elif lower_page_name == "bookmarks" and self.request.user.valid:
-              bookmarks_class += ' activeTab'
+              bookmarks_class = '%s activeTab' % bookmarks_class
             else:
               other_page_html = '<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a>' % d
         
@@ -572,8 +575,6 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         @rtype: string
         @return: page footer html
         """
-
-	self.request.user.checkFavorites(d['lower_page_name'])
 
 	return "%s<br/>" % self.edittext_link(d, **keywords)
         

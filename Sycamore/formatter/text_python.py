@@ -69,21 +69,6 @@ class Formatter:
         source = source + self.text_cmd_end
         self.code_fragments = [] # clear code fragments to make
                                  # this object reusable
-
-        # Automatic invalidation due to moin code changes:
-        # we are called from Page.py, so moincode_timestamp is
-        # mtime of Sycamore directory. If we detect, that the
-        # saved rendering code is older than the Sycamore directory
-        # we invalidate it by raising an exception. This avoids
-        # calling functions that have changed by a code update.
-        # Hint: we don't check the mtime of the directories within
-        # Sycamore, so better do a touch if you only modified stuff
-        # in a subdirectory.
-        #waspcode_timestamp = int(time.time())
-        #source = """sycamorecode_timestamp = int(os.path.getmtime(os.path.dirname(__file__)))
-        #if sycamorecode_timestamp > %d: raise "CacheNeedsUpdate"
-        #%s
-        #""" % (waspcode_timestamp, source)
         return source
 
     def __getattr__(self, name):

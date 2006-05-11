@@ -45,11 +45,6 @@ def execute(pagename, request):
 	    entered_comment = ''
 	  if len(entered_comment) > 80:
 	    return page.send_page(msg = _('Please use the interfactive user interface to revert pages!'))
-          if entered_comment:
-	    f=open('test.txt','w')
-	    comment = 'v%sc%s' % (str(version), entered_comment)
-	    f.write(comment)
-	    f.close()
 	  else:
 	    comment = 'v%s' % str(version)
         else:
@@ -64,10 +59,8 @@ def execute(pagename, request):
         except pg.SaveError:
             savemsg = _("An error occurred while reverting the page.")
 
-        #request.reset()
-       
         # clear req cache so user sees proper page state (exist)
-        request.req_cache['pagenames'][pagename] = pagename
+        request.req_cache['pagenames'][pagename.lower()] = pagename
         return pg.send_page(msg=savemsg)
 
 	#########

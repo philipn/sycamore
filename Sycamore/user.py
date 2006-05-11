@@ -548,7 +548,6 @@ class User(object):
         @rtype: int
         @return: tm tuple adjusted for user's timezone
         """
-
         if self.tz_offset and not global_time: 
             return datetime.tmtuple(tm + self.tz_offset)
 	else: 
@@ -667,51 +666,6 @@ class User(object):
 	    
         return 1
 
-    #def delFavBookmark(self):
-    #    """
-    #    Removes favorites bookmark timestamp.
-#
-#        @rtype: int
-#        @return: 0 on success, 1 on failure
-#        """
-#        if self.valid:
-#            if os.path.exists(self.__filename() + ".favbookmark"):
-#                try:
-#                    os.unlink(self.__filename() + ".favbookmark")
-#                except OSError:
-#                    return 1
-#            return 0
-#        return 1
-
-#    def getQuickLinks(self):
-#        """
-#        Get list of pages this user wants in the page header.
-#
-#        @rtype: list
-#        @return: quicklinks from user account
-#        """
-#        if not self.quicklinks: return []
-#
-#        from Sycamore import wikiutil
-#        quicklinks = self.quicklinks.split(',')
-#        quicklinks = map(string.strip, quicklinks)
-#        quicklinks = filter(None, quicklinks)
-#        quicklinks = map(wikiutil.unquoteWikiname, quicklinks)
-#        return quicklinks
-
-
-#    def getSubscriptionList(self):
-#        """
-#        Get list of pages this user has subscribed to.
-#        
-#        @rtype: list
-#        @return: pages this user has subscribed to
-#        """
-#        subscrPages = self.subscribed_pages.split(",")
-#        subscrPages = map(string.strip, subscrPages)
-#        subscrPages = filter(None, subscrPages)
-#        return subscrPages
-
     def _init_login(self):
       """
       Actions to be performed when an actual user logs in.
@@ -742,6 +696,23 @@ class User(object):
 	    
 	return favs
 
+    def hasUnseenFavorite(self):
+      status = None
+      if self.valid:
+	# memcached is ineffective here -- to dirty is too difficult and exp. times are somewhat pointless
+        #if config.memcache:
+        #  status = self.request.mc.get('userNewFav:%s' % self.id)
+        if status is None:
+          self.request.cursor.execute("SELECT name, changeTime from pageChanges, userFavorites where changeTime >= userFavorites.viewTime and userFavorites.username=%(username)s and userFavorites.page=name limit 1", {'username':self.name})
+  	  if self.request.cursor.fetchone():
+  	    status = True
+   	  else:
+  	    status = False
+  	  #if config.memcache:
+  	  #  self.request.mc.set('userNewFav:%s' % self.id, status)
+	
+      return status
+
 
     def getFavoriteList(self):
         """
@@ -759,12 +730,14 @@ class User(object):
         Checks to see if pagename is in the favorites list, and if it is, it updates the timestamp.
         """
         if self.name and self.favorites:
+	  pagename = pagename.lower()
 	  if self.favorites.has_key(pagename):
           # we have it as a favorite
 	    timenow = time.time()
 	    self.favorites[pagename] = timenow
 	    if config.memcache:
 	      self.request.mc.set('userFavs:%s' % self.id, self.favorites)
+	      self.request.mc.delete('userNewFav:%s' % self.id) # indicator that we have an unviewed favorite
 	    self.request.cursor.execute("UPDATE userFavorites set viewTime=%(timenow)s where username=%(name)s and page=%(pagename)s", {'timenow':timenow, 'name':self.name, 'pagename':pagename}, isWrite=True) 
  	  
 
@@ -783,56 +756,6 @@ class User(object):
 	    return True
 	return False
 
-#    def isSubscribedTo(self, pagelist):
-#        """
-#        Check if user subscription matches any page in pagelist.
-#        
-#        @param pagelist: list of pages to check for subscription
-#        @rtype: int
-#        @return: 1, if user has subscribed any page in pagelist
-#                 0, if not
-#        """
-#        import re
-#
-#        matched = 0
-#        if self.valid:
-#            pagelist_lines = '\n'.join(pagelist)
-#            for pattern in self.getSubscriptionList():
-#                # check if pattern matches one of the pages in pagelist
-#                matched = pattern in pagelist
-#                if matched: break
-#                try:
-#                    rexp = re.compile("^"+pattern+"$", re.M)
-#                except re.error:
-#                    # skip bad regex
-#                    continue
-#                matched = rexp.search(pagelist_lines)
-#                if matched: break
-#        if matched:
-#            return 1
-#        else:
-#            return 0
-#
-#
-#    def subscribePage(self, pagename):
-#        """
-#        Subscribe to a wiki page.
-#
-#        Note that you need to save the user data to make this stick!
-#
-#        @param pagename: name of the page to subscribe
-#        @rtype: bool
-#        @return: true, if page was NEWLY subscribed.
-#        """
-#        subscrPages = self.getSubscriptionList()
-#
-#        # add page to subscribed pages property
-#        if pagename not in subscrPages: 
-#            subscrPages.append(pagename)
-#            self.subscribed_pages = ','.join(subscrPages)
-#            return 1
-#
-#        return 0
 
     def favoritePage(self, pagename):
         """
@@ -864,54 +787,3 @@ class User(object):
            return True
 
         return False
-
-
-    #def addTrail(self, pagename):
-    #    """
-    #    Add page to trail.
-    #    
-    #    @param pagename: the page name to add to the trail
-    #    """
-    #    if self.valid:
-    #        # load trail if not known
-    #        self.getTrail()      
-    #        
-    #        # don't append tail to trail ;)
-    #        if self._trail and self._trail[-1] == pagename: return
-
-    #        # append new page, limiting the length
-    #        self._trail = filter(lambda p, pn=pagename: p != pn, self._trail)
-    #        self._trail = self._trail[-(self._MAX_TRAIL-1):]
-    #        self._trail.append(pagename)
-
-    #        # save new trail
-    #        # XXX UNICODE fix needed, encode as utf-8
-    #        trailfile = open(self.__filename() + ".trail", "w")
-    #        trailfile.write('\n'.join(self._trail))
-    #        trailfile.close()
-    #        try:
-    #            os.chmod(self.__filename() + ".trail", 0666 & config.umask)
-    #        except OSError:
-    #            pass
-
-
-    #def getTrail(self):
-    #    """
-    #    Return list of recently visited pages.
-    #    
-    #    @rtype: list
-    #    @return: pages in trail
-    #    """
-    #    if self.valid \
-    #            and not self._trail \
-    #            and os.path.exists(self.__filename() + ".trail"):
-    #        try:
-    #            # XXX UNICODE fix needed, decode from utf-8
-    #            self._trail = open(self.__filename() + ".trail", 'r').readlines()
-    #        except (OSError, ValueError):
-    #            self._trail = []
-    #        else:
-    #            self._trail = filter(None, map(string.strip, self._trail))
-    #            self._trail = self._trail[-self._MAX_TRAIL:]
-    #    return self._trail
-

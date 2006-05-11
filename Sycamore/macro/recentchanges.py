@@ -9,7 +9,7 @@
 """
 
 # Imports
-import re, time, cStringIO
+import re, time, cStringIO, urllib
 from Sycamore import config, user, util, wikiutil, wikidb
 from Sycamore.Page import Page
 from Sycamore.formatter.text_html import Formatter
@@ -19,6 +19,8 @@ _DAYS_SELECTION = [1, 2, 3, 7]
 _MAX_DAYS = 2
 _MAX_PAGENAME_LENGTH = 15 # 35
 
+file_action = 'Files'
+
 #############################################################################
 ### RecentChanges Macro
 #############################################################################
@@ -27,12 +29,10 @@ Dependencies = ["time"] # ["user", "pages", "pageparams", "bookmark"]
 
 def format_comment(request, line):
     baseurl = request.getScriptname()
-    file_action = 'Files'
     urlpagename = wikiutil.quoteWikiname(line.pagename)
     comment = line.comment
     _ = request.getText
     if line.action[:3] == 'ATT':
-        import urllib
         filename = urllib.unquote(comment)
         if line.action == 'ATTNEW':
 	    filename_link = '<a href="%s/%s?action=%s&amp;do=view&amp;target=%s">%s</a>' % (baseurl, urlpagename, file_action, filename, filename)
@@ -42,9 +42,6 @@ def format_comment(request, line):
 	    filename_link = '<a href="%s/%s?action=%s&amp;do=view&amp;target=%s">%s</a>' % (baseurl, urlpagename, file_action, filename, filename)
             comment = _("Image '%s' deleted.") % filename_link
 	    return comment
-        elif line.action == 'ATTDRW':
-            comment = _("Drawing '%(filename)s' saved.") % {'filename': filename}
-	    return wikiutil.escape(comment)
 
     elif line.action == 'DELETE':
            if comment: comment = "Page deleted: '%s'" % (comment)
@@ -64,6 +61,19 @@ def format_comment(request, line):
 	return wikiutil.escape(comment)
     return wikiutil.escape(comment)
 
+def getPageStatus(lines, pagename, request):
+    """
+    Given some relevant lines for recent changes, we try our best to figure out if the page exists.
+    If we fail, then we will end up calling memcached/db.
+    """
+    for edit in lines:
+      if edit.action != 'ATTNEW' and edit.action != 'ATTDEL':
+        if edit.action != 'DELETE':
+	   request.req_cache['pagenames'][pagename.lower()] = pagename
+	else: request.req_cache['pagenames'][pagename.lower()] = False
+	break
+      
+
 def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     request = macro.request
     _ = request.getText
@@ -77,6 +87,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     # check whether this page is newer than the user's bookmark
     hilite = line.ed_time > (bookmark or line.ed_time)
     page = Page(line.pagename, request)
+    getPageStatus(lines, pagename, macro.request)
 
     html_link = ''
     if not page.exists():
@@ -93,13 +104,13 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
         # show "UPDATED" icon if page was edited after the user's bookmark
         img = request.theme.make_icon('updated', actionButton=True)
         html_link = wikiutil.link_tag(request,
-                                      wikiutil.quoteWikiname(pagename) + "?action=diff&date=" + str(bookmark),
+                                      "%s?action=diff&date=%s" % (wikiutil.quoteWikiname(pagename), str(bookmark)),
                                       img, formatter=macro.formatter, pretty_url=1)
     else:
         # show "DIFF" icon else
         img = request.theme.make_icon('diffrc', actionButton=True)
         html_link = wikiutil.link_tag(request,
-                                      wikiutil.quoteWikiname(line.pagename) + "?action=diff",
+                                      "%s?action=diff" % wikiutil.quoteWikiname(line.pagename),
                                       img, formatter=macro.formatter, pretty_url=1)
 
     # print name of page, with a link to it
@@ -120,17 +131,17 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
             if numhrs == 1:
                txthrs = '1 hour'
             if numhrs > 1:
-               txthrs = str(numhrs) + ' hours'
+               txthrs = '%s hours' % str(numhrs)
             txttime = txthrs
             if nummins == 1:
-               txttime = str(txthrs) + ' 1 minute'
+               txttime = '%s 1 minute' % str(txthrs)
             if nummins > 1:
-               txttime = str(txthrs) + ' ' + str(nummins) + ' minutes' 
+               txttime = '%s %s minutes' % (str(txthrs), str(nummins))
             if nummins == 0 and numhrs == 0:
                numsecs = int(tnow - line.ed_time)%60
-               txttime = str(numsecs) + ' second'
+               txttime = '%s second' % str(numsecs)
                if numsecs > 1:
-                 txttime = txttime + 's'
+                 txttime = '%ss' % txttime
             d['time_html'] = '%s ago' % txttime
         else:
             d['time_html'] = time.strftime("at %I:%M %p", line.time_tuple)
@@ -154,7 +165,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
 
     img = request.theme.make_icon('info')
     info_html = wikiutil.link_tag(request,
-                                  wikiutil.quoteWikiname(line.pagename) + "?action=info",
+                                  "%s?action=info" % wikiutil.quoteWikiname(line.pagename),
                                   img, formatter=macro.formatter, pretty_url=1)
     d['info_html'] = info_html
     
@@ -163,20 +174,16 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
 def cmp_lines(first, second):
     return cmp(first[0].ed_time, second[0].ed_time)
 
-    
 def execute(macro, args, formatter=None, **kw):
     if not formatter: formatter = macro.formatter
-    
-    # handle abandoned keyword
-    if kw.get('abandoned', 0):
-        print_abandoned(macro, args, **kw)
-        return ''
+
+    request = macro.request
 
     if config.relative_dir: add_on = '/'
     else: add_on = ''
 
-    request = macro.request
     _ = request.getText
+
     d = {}
     page_path = request.getScriptname() + request.getPathinfo()
     pagename = request.getPathinfo()[1:]
@@ -185,21 +192,30 @@ def execute(macro, args, formatter=None, **kw):
     # flush output because getting all the changes may take a while in some cases
     request.flush()
 
-    lines = wikidb.getRecentChanges(request, max_days=7)
+    # set max size in days
+    max_days = min(int(request.form.get('max_days', [0])[0]), _DAYS_SELECTION[-1])
+
+    # get bookmark from valid user
+    bookmark = request.user.getBookmark()
+
+    # default to _MAX_DAYS for useres without bookmark
+    if not max_days and not bookmark:
+        max_days = _MAX_DAYS
+    d['rc_max_days'] = max_days
+
+    lines = wikidb.getRecentChanges(request, max_days=max_days)
 
     tnow = time.time()
     msg = ""
 
-    # get bookmark from valid user
-    bookmark = request.user.getBookmark()
     showComments = request.user.getShowComments()
     d['show_comments_html'] = None
     d['show_comments'] = None
     d['show_comments'] = showComments
     if showComments == 1:
-        d['show_comments_html'] = '[' + wikiutil.link_tag(request, pagename + "?action=showcomments&hide=1", "Hide comments") + ']'
+        d['show_comments_html'] = '[%s]' % wikiutil.link_tag(request, "%s?action=showcomments&hide=1" % pagename, "Hide comments")
     else:
-        d['show_comments_html'] = '[' + wikiutil.link_tag(request, pagename + "?action=showcomments", "Show comments") + ']'
+        d['show_comments_html'] = '[%s]' % wikiutil.link_tag(request, "%s?action=showcomments" % pagename, "Show comments")
 
     # add bookmark link if valid user
     d['rc_curr_bookmark'] = None
@@ -207,28 +223,16 @@ def execute(macro, args, formatter=None, **kw):
     if request.user.valid:
         d['rc_curr_bookmark'] = _('(will show you only changes made since you last pressed \'clear\')')
         if bookmark:
-            d['rc_curr_bookmark'] = _('(currently set to %s)') % (
-                request.user.getFormattedDateTime(bookmark),) + ' [' + wikiutil.link_tag(
-                    request,
-		    pagename
-                    + "?action=bookmark&time=del",
-                    "%s" % _("Show all changes")
-                    ) + ']'
+            d['rc_curr_bookmark'] = "%s [%s]" % ( _('(currently set to %s)') % request.user.getFormattedDateTime(bookmark), 
+                 wikiutil.link_tag(request, "%s?action=bookmark&time=del" % pagename, _("Show all changes")) )
 
         d['rc_update_bookmark'] = wikiutil.link_tag(
             request,
-	    pagename
-                + "?action=bookmark&time=%d" % (tnow,),
+	    "%s?action=bookmark&time=%d" % (pagename, tnow), 
             _("Clear observed changes")
             )
     
-    # set max size in days
-    max_days = min(int(request.form.get('max_days', [0])[0]), _DAYS_SELECTION[-1])
-    # default to _MAX_DAYS for useres without bookmark
-    if not max_days and not bookmark:
-        max_days = _MAX_DAYS
-    d['rc_max_days'] = max_days
-    
+        
     # give known user the option to extend the normal display
     if request.user.valid:
         d['rc_days'] = _DAYS_SELECTION
@@ -238,10 +242,6 @@ def execute(macro, args, formatter=None, **kw):
     # add rss link
     d['rc_rss_link'] = None
     d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="/%s%sRecent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><div style="float:right;"><a title="Recent Changes RSS Feed" href="/%s%sRecent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (config.relative_dir, add_on, config.relative_dir, add_on)
-        #img = request.theme.make_icon("rss")
-        #d['rc_rss_link'] = macro.formatter.url(
-        #    wikiutil.quoteWikiname(macro.formatter.page.page_name) + "?action=rss_rc",
-        #    img, unescaped=1)
 
     request.write(request.theme.recentchanges_header(d))
     
@@ -254,8 +254,9 @@ def execute(macro, args, formatter=None, **kw):
 
     for line in lines:
         line.page = Page(line.pagename, macro.request)
-        if not request.user.may.read(line.page):
-            continue
+	# 2006-05 calling may here is too expensive.  just show them the page.  on the off change they can't read it, then, well, clicking on it won't be too productive for them.
+        #if not request.user.may.read(line.page):
+        #    continue
 
         line.time_tuple = request.user.getTime(line.ed_time)
         day = line.time_tuple[0:3]
@@ -319,7 +320,7 @@ def execute(macro, args, formatter=None, **kw):
             if request.user.valid:
                 d['bookmark_link_html'] = wikiutil.link_tag(
                     request,
-                        pagename + "?action=bookmark&time=%d" % (pages[0][0].ed_time,),
+                        "%s?action=bookmark&time=%d" % (pagename, pages[0][0].ed_time),
                         _("set bookmark")
                         )
             d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)

@@ -65,7 +65,7 @@ class RequestBase(object):
           self.mc = MemcachePool.getMC()
 	#if not properties: properties = wikiutil.prepareAllProperties()
         #self.__dict__.update(properties)
-	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'links': {}} # per-request cache
+	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'links': {}, 'acls': {}, 'interwiki': None} # per-request cache
         # order is important here!
 
 	self.db_connect()
@@ -306,12 +306,9 @@ class RequestBase(object):
         # http://www.w3.org/TR/REC-html40/appendix/notes.html#h-B.2.1
         if pagename:
             try:
-                dummy = unicode(pagename, 'ascii')
+		pagename = unicode(pagename, 'utf-8')
             except UnicodeError:
-                # we have something else than plain ASCII, try
-                # converting from UTF-8 to local charset, or just give
-                # up and use URI value literally and see what happens
-                pagename = self.i18n.recode(pagename, 'utf-8', config.charset) or pagename
+		pagename = None
         return pagename
         # XXX UNICODE - use unicode for pagenames internally?
 
@@ -414,8 +411,9 @@ class RequestBase(object):
 	    if pagename: 
 	      pagename_exists_name = Page(pagename, self).exists()
 	      if pagename_exists_name: pagename_propercased = pagename_exists_name
-	      oldlink_exists_name = Page(oldlink, self).exists()
-	      if oldlink_exists_name: oldlink_propercased = oldlink_exists_name
+	      if oldlink:
+                 oldlink_exists_name = Page(oldlink, self).exists()
+	         if oldlink_exists_name: oldlink_propercased = oldlink_exists_name
 
 	      if pagename_propercased:
 	        self.pagename_propercased = pagename_propercased

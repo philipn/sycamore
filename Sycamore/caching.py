@@ -26,26 +26,11 @@ class CacheEntry:
 	page_cache = self.content_info()
 	if not page_cache[0] or not page_cache[1]: return True
 
-	#edit_time = Page(self.key, self.request).mtime()
-	#cached_time = self.mtime()
-
-        #needsupdate = edit_time > cached_time
-        
-        # if a page has attachments (images) we check if this needs changing, too
-	# also check included pages
-        #if not needsupdate:
-	#    for page in dependencies(self.key, self.request):
-	#      if (page.mtime() > cached_time) or (page.ctime(self.request) > cached_time):
-	#        return True
-
         return needsupdate
 
     def update(self, content, links):
         cached_time = time.time()
         self.request.cursor.execute("UPDATE curPages set cachedText=%(cached_content)s, cachedTime=%(cached_time)s where name=%(key)s", {'cached_content':wikidb.dbapi.Binary(content), 'cached_time':cached_time, 'key':self.key}, isWrite=True)
-	if config.memcache:
-	  page_cache = (content, cached_time)
-	  self.request.mc.set("page_cache:%s" % wikiutil.quoteFilename(self.key.lower()), page_cache)
 	self.request.cursor.execute("DELETE from links where source_pagename=%(key)s", {'key':self.key}, isWrite=True)
 	for link in links:
 	  self.request.cursor.execute("INSERT into links (source_pagename, destination_pagename, destination_pagename_propercased) values (%(key)s, %(link)s, %(link_propercased)s)", {'key':self.key, 'link':link.lower(), 'link_propercased':link}, isWrite=True)
@@ -56,7 +41,6 @@ class CacheEntry:
            self.request.mc.set("page_info:%s" % wikiutil.quoteFilename(self.key), page_info)
         self.request.req_cache['page_info'][self.key] = page_info
 
-	 
 
     def content_info(self):
         page_cache = None
@@ -84,6 +68,8 @@ class CacheEntry:
  	  elif type == 'page save delete':
 	     pagecount = wikidb.getPageCount(self.request) - 1
              self.request.mc.set('active_page_count', pagecount)
+	  if self.key == config.interwikimap.lower():
+	     self.request.mc.delete('interwiki')
 
 	  #self.request.mc.delete("page_deps:%s" % wikiutil.quoteFilename(self.key))
 
@@ -169,7 +155,7 @@ def pageInfo(page):
   Returns an object with attributes edit_info, cached_text, meta_text, has_map.
   """
   pagename_key = wikiutil.quoteFilename(page.page_name.lower())
-  if page.prev_date: key = "%s,%s" % (pagename_key, page.prev_date)
+  if page.prev_date: key = u"%s,%s" % (pagename_key, page.prev_date)
   else: key = pagename_key
 
   # check per-request cache

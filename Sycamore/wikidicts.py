@@ -64,7 +64,7 @@ class Dict:
             if match:
                 mdict = match.groupdict()
                 if dict:
-                    key, value = mdict['key'], mdict['val']
+                    key, value = mdict['key'].strip(), mdict['val']
                 else:
                     key, value = mdict['member'], 1
                 self._dict[key] = value

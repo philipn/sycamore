@@ -256,10 +256,26 @@ def resolve_wiki(request, wikiurl):
 
     from Sycamore import wikidicts
 
-    _interwiki_list = wikidicts.Dict(config.interwikimap,request)
+    _interwiki_list = None
+    got_memcache = False
+
+    if request.req_cache['interwiki']:
+      _interwiki_list = request.req_cache['interwiki']
+    else:
+      if config.memcache:
+        interwiki_dict = request.mc.get('interwiki')
+	_interwiki_list = interwiki_dict
+        if interwiki_dict is not None: got_memcache = True
+
+    if _interwiki_list is None:
+      _interwiki_list = wikidicts.Dict(config.interwikimap,request)
 
     # split wiki url
     wikitag, tail = split_wiki(wikiurl)
+
+    request.req_cache['interwiki'] = _interwiki_list
+    if config.memcache and not got_memcache:
+      request.mc.add('interwiki', _interwiki_list)
 
     # return resolved url
     if wikitag and _interwiki_list.has_key(wikitag):
@@ -596,7 +612,7 @@ def parseAttributes(request, attrstring, endtoken=None, extension=None):
 
     _ = request.getText
 
-    parser = shlex.shlex(cStringIO.StringIO(attrstring))
+    parser = shlex.shlex(cStringIO.StringIO(attrstring.encode('utf-8')))
     parser.commenters = ''
     msg = None
     attrs = {}

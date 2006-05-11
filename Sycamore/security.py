@@ -29,7 +29,7 @@ class Permissions:
     def __init__(self, user):
         """ Calculate the permissons `user` has.
         """
-        self.name = user.name
+        self.name = user.propercased_name
         self.request = user.request
 
     def read(self, page, **kw):

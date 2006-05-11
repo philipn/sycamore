@@ -136,7 +136,10 @@ def generateThumbnail(request, pagename, image_name, maxsize, temporary=False, t
     import mimetypes
     type = mimetypes.guess_type(image_name)[0][6:]
     save_imagefile = cStringIO.StringIO()
-    shrunk_im.save(save_imagefile, type, quality=90)
+    try:
+      shrunk_im.save(save_imagefile, type, quality=90)
+    except IOError:
+      request.write('<em style="background-color: #ffffaa; padding: 2px;">There was a problem with image %s.  It probably has the wrong file extension.</em>' % image_name)
     image_value = save_imagefile.getvalue()
     if return_image:
       # one-time generation for certain things like preview..just return the image string

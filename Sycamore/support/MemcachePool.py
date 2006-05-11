@@ -23,6 +23,14 @@ import memcache, os, time, threading
 from Sycamore.support import Bogus
 from Sycamore import config
 
+def fixKey(key):
+  """
+  Memcache needs the key encoded.  The python memcache module doesn't do this, so we have to.
+  """
+  if type(key) == unicode:
+    return key.encode('utf-8')
+  return key
+
 class MemcachePool:
     def __init__(self,hosts=None):
         self._pooled_conns=[]
@@ -70,12 +78,14 @@ class MemcachePool:
         
     def get(self,key):
         mc = self.getConnection()
+	key = fixKey(key)
         v = mc.get(key)
         self.returnConnection(mc)
         return v
 
     def set(self,key,value,time=0):
         mc = self.getConnection()
+	key = fixKey(key)
         r = mc.set(key,value,time)
         self.returnConnection(mc)
         return r
@@ -90,30 +100,35 @@ class MemcachePool:
 
     def add(self,key,value,time=0):
         mc = self.getConnection()
+	key = fixKey(key)
         r = mc.add(key,value,time)
         self.returnConnection(mc)
         return r
 
     def replace(self,key,value,time=0):
         mc = self.getConnection()
+	key = fixKey(key)
         r = mc.replace(key,value,time)
         self.returnConnection(mc)
         return r
 
     def delete(self,key,time=0):
         mc = self.getConnection()
+	key = fixKey(key)
         r = mc.delete(key,time)
         self.returnConnection(mc)
         return r
 
     def incr(self,name,value=1):
         mc = self.getConnection()
+	name = fixKey(name)
         r = mc.incr(name,value)
         self.returnConnection(mc)
         return r
 
     def decr(self,name,value=1):
         mc = self.getConnection()
+	name = fixKey(name)
         r = mc.decr(name,value)
         self.returnConnection(mc)
         return r
@@ -127,6 +142,7 @@ class MemcachePool:
 
     def get_multi(self,keys):
         mc = self.getConnection()
+	keys = [ fixKey(key) for key in keys ]
         v = mc.get_multi(keys)
         self.returnConnection(mc)
         return v

@@ -86,11 +86,8 @@ def execute(pagename, request):
            hour = int(request.form.get('hour')[0])
            minute = int(request.form.get('minute')[0])
            year = int(request.form.get('year')[0])
-           posted_by = request.user.name
+           posted_by = request.user.propercased_name
            now = request.user.getFormattedDateTime(time.time(), global_time=True)
-           #formatted_event_text = event_text + " - " + request.user.name
-           #newtext = oldtext + "------" + "\n" + "''" + ''.join(now) + "'' " + formatted_event_text + "------" + "\n" + ''.join(month) + "/" + ''.join(day) + " at " + ''.join(hour) + ":" + ''.join(minute)
-           #PageEditor._write_file(page,newtext)
     
            # WE NEED TO VALIDATE THE TEXT AND THE OTHER FIELDS
            if isValid(event_text,event_name,event_location,month,day,hour,minute,year) and not hasPassed(month,day,hour,minute,year,request):
@@ -297,6 +294,17 @@ def writeEvent(request, event_text, event_name, event_location, event_time_unix,
     id = max_id + 1
     posted_time = time.time()
     request.cursor.execute("INSERT into events (uid, event_time, posted_by, text, location, event_name, posted_time, posted_by_ip) values (%(id)s, %(event_time_unix)s, %(posted_by)s, %(event_text)s, %(event_location)s, %(event_name)s, %(posted_time)s, %(userip)s)", {'id':id, 'event_time_unix':event_time_unix, 'posted_by':posted_by, 'event_text':event_text, 'event_location':event_location, 'event_name':event_name, 'posted_time':posted_time, 'userip':request.remote_addr}, isWrite=True)
+
+    if config.memcache:
+      # clear out today's events cache if the event is for today
+      event_time_struct = time.gmtime(event_time_unix+config.tz_offset)
+      event_day_unix = calendar.timegm(list(event_time_struct[0:3]) + [0,0,0,0,0,0])
+
+      today_struct = time.gmtime(posted_time+config.tz_offset)
+      today = list(today_struct[0:3]) + [0,0,0,0,0,0]
+      today_unix = calendar.timegm(today)
+      if event_day_unix == today_unix:
+        request.mc.delete("today_events")
 
      
 def doParse(text, request):

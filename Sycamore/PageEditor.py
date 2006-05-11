@@ -135,7 +135,7 @@ class PageEditor(Page):
 #        )
         wikiutil.send_title(self.request,
             self.proper_name(),
-            pagename=self.page_name,
+            pagename=self.proper_name(),
 	    link=link,
            strict_title='Editing "%s"' % self.proper_name()
         )

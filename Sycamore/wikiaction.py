@@ -369,6 +369,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     
     if in_wiki_interface:
       request.http_headers()
+      if request.user.valid: request.user.checkFavorites(pagename)
       wikiutil.send_title(request, _('Differences for "%s"') % (page.proper_name(),), pagename=pagename)
     else:
       l.append("Differences for %s" % (page.proper_name()))
@@ -582,7 +583,7 @@ def do_info(pagename, request):
 
 	    mtime = entry[1]
 	    comment = entry[4]
-	    editType = entry[3]
+	    editType = entry[3].strip()
 	    userIP = entry[5]
 
             if currentpage_editTime == mtime:
@@ -621,20 +622,6 @@ def do_info(pagename, request):
                   diff = '<input type="radio" name="version1" value="%s"%s><input type="radio" name="version2" value="%s">' % (this_version,checked,this_version)
 
             
-#             if editType.find('/REVERT') != -1:
-# 	        if comment[0] == 'v':
-# 		  # Given as version so let's display as version
-# 		  comment = "Revert to version %s" % comment[1:]
-# 		else:
-#                   datestamp = request.user.getFormattedDateTime(float(comment))
-#                   comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
-# 	    elif editType == 'ATTNEW':
-# 	    	comment = "Upload of attachment '%s.'" % comment
-# 	    elif editType == 'ATTDEL':
-# 		comment = "Attachment '%s' deleted." % comment
-# 	    elif editType == 'DELETE':
-# 	        if comment: comment = "Page deleted: '%s'" % comment
-# 		else: comment = "Page deleted (no comment)"
 	    from Sycamore.widget.comments import Comment
 	    comment = Comment(request, comment, editType, pagename).render()
    	    

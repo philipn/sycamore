@@ -609,7 +609,6 @@ class Theme(object):
         html.append('</span></td>\n')
         html.append('</tr>')
 
-        #html.append('<td class="rcicon2">%(info_html)s</td>\n' % d)
         num = 0
         if d['editors'] and d['show_comments'] == 1:
             for editor, ip in d['editors']:
@@ -619,25 +618,6 @@ class Theme(object):
                   html.append('<tr><td>&nbsp;</td><td class="rccomment" title="%s">%s&nbsp;&nbsp;<span class="rceditor">%s</span></td></tr>' % (ip, com, editor))
                   num = num + 1
 
-       # html.append('<td class="rceditor">')
-       # if d['editors']:
-       #     html.append('<br>'.join(d['editors']))
-       # html.append('</td>\n')
-            
-       # html.append('<td class="rccomment">')
-       # if d['comments']:
-       #     if d['changecount'] > 1:
-       #         notfirst = 0
-       #         for comment in d['comments']:
-       #             html.append('%s<tt>#%02d</tt>&nbsp;%s' % (
-       #                 notfirst and '<br>' or '' , comment[0], comment[1]))
-       #             notfirst = 1
-       #     else:
-       #         comment = d['comments'][0]
-       #         html.append('%s' % comment[1])
-       # html.append('</td>\n')
-           
-       # html.append('</tr>\n')
         
         return ''.join(html)
     

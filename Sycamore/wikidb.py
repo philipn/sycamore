@@ -118,7 +118,7 @@ def _fixArgs(args):
     #  will work and be consistent between the two.
 
     def fixValue(o):
-      if type(o) == type(float(1)): return _floatToString(o)
+      if type(o) == float: return _floatToString(o)
       else: return o
     
     # is args a sequence?
@@ -231,15 +231,18 @@ def putImage(request, dict, thumbnail=False, do_delete=False, temporary=False, t
   Puts the image (found in dict) into the database. dict is a dictionary with possible keys: filename, filecontent, uploaded_time, uploaded_by, pagename, uploaded_by_ip, xsize, ysize, deleted_time, deleted_by, deleted_by_ip
   """
   from Sycamore.wikiutil import quoteFilename
+  from Sycamore.Page import Page
   # prep for insert of binary data
   if dict.has_key('filecontent'):
     raw_image = dict['filecontent']
     uploaded_time = dict['uploaded_time']
     dict['filecontent'] = dbapi.Binary(raw_image)
+  dict['pagename_propercased'] = Page(dict['pagename'], request).proper_name()
+  dict['pagename'] = dict['pagename'].lower()
     
   if not temporary:
     if not thumbnail and not do_delete:
-      request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, xsize, ysize) values (%(filename)s, %(filecontent)s, %(uploaded_time)s, %(uploaded_by)s, %(pagename)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s)", dict, isWrite=True)
+      request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, xsize, ysize, attached_to_pagename_propercased) values (%(filename)s, %(filecontent)s, %(uploaded_time)s, %(uploaded_by)s, %(pagename)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(pagename_propercased)s)", dict, isWrite=True)
     elif thumbnail and not do_delete:
       request.cursor.execute("SELECT name from thumbnails where name=%(filename)s and attached_to_pagename=%(pagename)s", dict)
       exists = request.cursor.fetchone()
@@ -253,7 +256,7 @@ def putImage(request, dict, thumbnail=False, do_delete=False, temporary=False, t
         has_file = request.cursor.fetchone()
         if has_file:
           # backup image
-          request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_by_ip)s)", dict, isWrite=True)
+          request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_by_ip)s, (select attached_to_pagename_propercased from images where name=%(filename)s and attached_to_pagename=%(pagename)s))", dict, isWrite=True)
           # delete image
           request.cursor.execute("DELETE from images where name=%(filename)s and attached_to_pagename=%(pagename)s", dict, isWrite=True)
 
@@ -294,12 +297,14 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
           SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime from %(view)s, userFavorites as f, users as u where u.name=f.username and f.page=%(view)s.name and u.id=%%(userFavoritesFor)s group by %(view)s.name
       ) as groupedChanges, %(view)s where groupedChanges.name=%(view)s.name and groupedChanges.changeTime=%(view)s.changeTime and groupedChanges.changeTime is not NULL
       """ % {'view': view} )
-    elif view != 'pageChanges':
-       add_query.append("(SELECT %(view)s.name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
     elif per_page_limit:
        add_query.append("(SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
-    else: 
-       add_query.append("(SELECT %(view)s.propercased_name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+    else:
+       if view != 'eventChanges':
+         add_query.append("(SELECT %(view)s.propercased_name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+       else:
+         add_query.append("(SELECT %(view)s.name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+
     printed_where = False
     if page and not userFavoritesFor:
       add_query.append(' where %(view)s.name=%%(pagename)s and %(view)s.changeTime is not NULL' % {'view':view})
@@ -326,13 +331,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     else:
       add_query.append(')')
     
-    if not userFavoritesFor and not total_changes_limit:
-      if view != 'pageChanges' and view != 'eventChanges':
-        query += ['(SELECT name, changeTime, id, editType, comment, userIP from (SELECT max(allPages.editTime), allPages.propercased_name as name, cC.changeTime as changeTime,  cC.id as id, cC.editType as editType, cC.comment as comment, cC.userIP as userIP from '] + add_query + [' as cC, allPages where allPages.name=cC.name group by allPages.propercased_name, cC.changeTime, cC.id, cC.editType, cC.comment, cC.userIP) as cC_proper)']
-      else:    
-        query += add_query
-    else:
-        query += add_query
+    query += add_query
 
   def buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor):
     # we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
@@ -342,19 +341,19 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       query = ['SELECT name, changeTime, id, editType, comment, userIP from (']
     printed_where = False
     addQueryConditions('pageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
-    query.append(' UNION ')
+    query.append(' UNION ALL ')
     addQueryConditions('currentImageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
-    query.append(' UNION ')
+    query.append(' UNION ALL ')
     addQueryConditions('oldImageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
-    query.append(' UNION ')
+    query.append(' UNION ALL ')
     addQueryConditions('deletedImageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
-    query.append(' UNION ')
+    query.append(' UNION ALL ')
     addQueryConditions('eventChanges', query, max_days_ago, total_changes_limit,  per_page_limit, page, changes_since, userFavoritesFor)
-    query.append(' UNION ')
+    query.append(' UNION ALL ')
     addQueryConditions('currentMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
-    query.append(' UNION ')
+    query.append(' UNION ALL ')
     addQueryConditions('oldMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
-    query.append(' UNION ')
+    query.append(' UNION ALL ')
     addQueryConditions('deletedMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
 
     if not per_page_limit: query.append(' order by changeTime desc')

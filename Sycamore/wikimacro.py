@@ -64,21 +64,22 @@ class Macro:
     """
 
     Dependencies = {
-        "TitleSearch" : ["namespace"],
-        "Goto"        : [],
-        "WordIndex"   : ["namespace"],
-        "TitleIndex"  : ["namespace"],
-        "InterWiki"   : ["pages"],  # if interwikimap is editable
-        "SystemInfo"  : ["pages"],
-        "PageCount"   : ["namespace"],
-        "Icon"        : ["user"], # users have different themes and user prefs
-        "PageList"    : ["namespace"],
-        "Date"        : ["time"],
-        "DateTime"    : ["time"],
-        "UserPreferences" :["time"],
-        "Anchor"      : [],
-        "Mailto"      : ["user"],
-        "GetVal"      : ["pages"],
+        "titlesearch" : ["namespace"],
+        "goto"        : [],
+        "wordindex"   : ["namespace"],
+        "titleindex"  : ["namespace"],
+        "interwiki"   : ["pages"],  # if interwikimap is editable
+        "systeminfo"  : ["pages"],
+        "pagecount"   : ["namespace"],
+        "icon"        : ["user"], # users have different themes and user prefs
+        "icon"        : [], # users have different themes and user prefs
+        "pagelist"    : ["namespace"],
+        "date"        : ["time"],
+        "datetime"    : ["time"],
+        "userpreferences" :["time"],
+        "anchor"      : [],
+        "mailto"      : ["user"],
+        "getval"      : ["pages"],
         }
 
     # we need the lang macros to execute when html is generated,
