@@ -17,6 +17,35 @@ from Sycamore.support.wsgi_server.scgi_threading import WSGIServer
 from Sycamore.request import RequestWSGI
 from Sycamore.request import basic_handle_request
 from logging import NOTSET
+import getopt
+
+def usage():
+   print "usage: index.scgi [-d]"
+   print "\n  d : run as daemon."
+
+def run_as_daemon():
+  pid = os.fork()
+  if pid == 0:
+    os.setsid()
+    pid = os.fork()
+    if pid == 0:
+      do_run()
+
+def do_run():
+    WSGIServer(basic_handle_request, scriptName='/index.scgi', bindAddress=('localhost', 8882), loggingLevel=NOTSET).run()
 
 if __name__ == '__main__':
-    WSGIServer(basic_handle_request, scriptName='', bindAddress=('localhost', 8882), loggingLevel=NOTSET).run()
+    try:
+      opts, args = getopt.getopt(sys.argv[1:], "d", ["-d"])
+      if opts:
+        for o, a in opts:
+          if o == '-d':
+  	    run_as_daemon()
+  	  else:
+  	    do_run()
+      else:
+        do_run()
+
+    except:
+      usage()
+      sys.exit(2)

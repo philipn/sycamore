@@ -7,7 +7,7 @@
     @license: GNU GPL, see COPYING for details.
 """
 
-import sys, logging, os
+import sys, os, getopt
 __directory__ = os.path.dirname(__file__)
 sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
 # you may need to put something like this here if you don't have the required python modules in your path:
@@ -15,11 +15,36 @@ sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
 
 from Sycamore.support.wsgi_server.fcgi import WSGIServer
 from Sycamore.request import RequestWSGI
+from logging import NOTSET
 from Sycamore.request import basic_handle_request
-
-def handle_request(env, start_response):
-    request = RequestWSGI(env, start_response)
-    return request.run()
     
-if __name__ == '__main__':
+def usage():
+   print "usage: index.scgi [-d]"
+   print "\n  d : run as daemon."
+
+def run_as_daemon():
+  pid = os.fork()
+  if pid == 0:
+    os.setsid()
+    pid = os.fork()
+    if pid == 0:
+      do_run()
+
+def do_run():
     WSGIServer(basic_handle_request, bindAddress=('localhost', 8882)).run()
+
+if __name__ == '__main__':
+    try:
+      opts, args = getopt.getopt(sys.argv[1:], "d", ["-d"])
+      if opts:
+        for o, a in opts:
+          if o == '-d':
+  	    run_as_daemon()
+  	  else:
+  	    do_run()
+      else:
+        do_run()
+
+    except:
+      usage()
+      sys.exit(2)
