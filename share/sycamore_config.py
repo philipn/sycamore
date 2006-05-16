@@ -76,6 +76,11 @@ edit_agreement_text = """By clicking "Save Changes" you are agreeing to release 
 # These are the buttons that appear to the right in the footer.
 footer_buttons = ["""<a href="http://creativecommons.org/licenses/by/2.0/"><img alt="Creative Commons License" border="0" src="/wiki/eggheadbeta/img/cc.png"/></a>""", """<a href="/index.cgi/Donate"><img name="rollover" onMouseOver="document.rollover.src=donate2.src;" onMouseOut="document.rollover.src=donate.src;" src="/wiki/eggheadbeta/img/donate.png" border="0" alt="donate"/></a>"""]
 
+# tabs at the top of the browser for people who aren't logged in
+#tabs_nonuser = ['Front Page', 'Map', 'People', 'Recent Changes']
+# tabs at teh top of the browser for people who are logged in
+#tabs_user = ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes']
+
 # MySQL database settings.
 db_type = 'mysql'
 db_name = 'wiki2'

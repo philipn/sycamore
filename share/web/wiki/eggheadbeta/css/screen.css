@@ -41,7 +41,7 @@
 
 div.tabArea {
   font-size: 11px;
-  padding-left: 3px;
+  padding-left: 5px;
   border-bottom: 1px solid #AAAAAA;
   color: #555555;
 }
@@ -57,19 +57,19 @@ div.tabArea {
 #tabPage h3 { margin-top: 9pt;}
 
 span.floatLeft {
-  margin: 15px 10px 10px 0px;
+  margin: .3em 10px 10px 0px;
   float: left;
   clear: left;
 }
 
 span.floatRight {
-  margin: 15px 0px 10px 10px;
+  margin: .3em 0px 10px 10px;
   float: right;
   clear: right;
 }
 
 span.noFloat {
-  margin: 15px 10px 10px 0px;
+  margin: .3em 10px 10px 0px;
   float: left;
 }
 
@@ -257,6 +257,7 @@ h2, h3, h4, h5, h6 {
         color: black;
         margin-bottom: 5px;
         clear:both;
+	margin-bottom: .4em;
 }
 
 h1 a, h2 a, h3 a{
@@ -305,13 +306,14 @@ padding: 2pt;
 table { border-collapse: collapse; }
 
 table.inlinepage {
-        background: #eeeeee;
         border-bottom: 1px dashed #aaaaaa;
         text-decoration: none;
         font-family:  Verdana, sans-serif;
-        font-size: 1.5em;
-        font-weight: normal;
+        font-size: 1.8em;
+	clear: both;
+	margin-bottom: .4em;
 }
+
 
 table.inlinepage a { text-decoration: none;}
 
@@ -726,9 +728,15 @@ div.preview {
         width: 100%;
 }
 
-#pageinfo td, .recentchanges td {
+
+#pageinfo td {
         padding: 0 .3em;
 }
+
+.recentchanges td {
+        padding: 0 .1em .35em .3em;
+}
+
 
 #editArea {
 }
