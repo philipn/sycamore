@@ -267,14 +267,29 @@ class Formatter(FormatterBase):
           id_text = ' id="%s"' % id
 
         heading_depth = depth + 1
+        link_to_heading = False
+        if kw.has_key('link_to_heading') and kw['link_to_heading']:
+            link_to_heading = True
         if kw.has_key('on'):
             if kw['on']:
                 result = '<h%d%s>' % (heading_depth, id_text)
             else:
                 result = '</h%d>' % heading_depth
         else:
+	    if link_to_heading:
+	      title = Page(title, self.request).link_to(know_status=True, know_status_exists=True)
             result = '<h%d%s%s>%s%s%s</h%d>\n' % (
                 heading_depth, self._langAttr(), id_text, kw.get('icons', ''), number, title, heading_depth)
+
+	if kw.has_key('action_link'):
+	  if kw['action_link'] == 'edit':
+	    pagename = kw['pagename']
+	    backto = kw['backto']
+	    
+	    if not (self.request.form.has_key('action') and self.request.form['action'][0] == 'print') and \
+	       self.request.user.may.edit(Page(pagename, self.request)):
+	         result = '<div class="sectionEdit">[%s]</div>%s' % \
+		    (Page(pagename, self.request).link_to(text="edit", querystr="action=edit&backto=%s" % backto, know_status=True, know_status_exists=True), result)
         return result
     
     # Tables #############################################################

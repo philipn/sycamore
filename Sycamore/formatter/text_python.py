@@ -131,7 +131,7 @@ class Formatter:
                 # explicit base level for section number display
                 self._show_section_numbers = int(numbering)
 
-        if self._show_section_numbers:
+        if self._show_section_numbers or kw.has_key('action_link'):
             return self.__insert_code('request.write(%s.heading(%r, %r, **%r))' %
                         (self.__formatter, depth, title, kw))
         else:

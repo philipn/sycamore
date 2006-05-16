@@ -711,15 +711,6 @@ def do_show(pagename, request):
     else:
         Page(pagename, request).send_page(count_hit=1)
 
-
-#def do_refresh(pagename, request):
-#    if request.form.has_key('key'):
-#        from Sycamore import caching
-#        cache = caching.CacheEntry(request.form["key"][0])
-#        cache.clear()
-#    do_show(pagename, request)
-
-
 def do_print(pagename, request):
     do_show(pagename, request)
 

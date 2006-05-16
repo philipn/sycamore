@@ -672,11 +672,6 @@ class Parser:
 
         self.inhibit_p = 1
         icons = ''
-        #if self.request.user.show_topbottom:
-        #    bottom = self.request.theme.make_icon('bottom')
-        #    icons = icons + self.formatter.url("#bottom", bottom, unescaped=1)
-        #    top = self.request.theme.make_icon('top')
-        #    icons = icons + self.formatter.url("#top", top, unescaped=1)
 
         h = word.strip()
         level = 1
