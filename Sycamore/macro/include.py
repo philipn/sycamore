@@ -50,10 +50,6 @@ def execute(macro, args, formatter=None):
     _ = macro.request.getText
     args_re=re.compile(_args_re_pattern)
 
-    # return immediately if getting links for the current page
-    #if macro.request.mode_getpagelinks:
-    #    return ''
-
     # parse and check arguments
     args = args_re.match(args)
     if not args:
@@ -120,7 +116,7 @@ def execute(macro, args, formatter=None):
       if print_mode:
         result.append(formatter.heading(level, heading))
       elif macro.request.user.may.edit(inc_page):
-         result.append('<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), heading, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
+         result.append(u'<table class="inlinepage" width="100%%"><tr><td align=left><a href="/%s%s%s">%s</a></td><td align=right style="font-size: 13px; font-weight: normal;">[<a href="/%s%s%s?action=edit&backto=%s">edit</a>]</td></tr></table>' % (config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), heading, config.relative_dir, add_on, wikiutil.quoteWikiname(inc_name), this_page.page_name))
 
     if this_page._macroInclude_pagelist.has_key(inc_name):
       if this_page._macroInclude_pagelist[inc_name] > caching.MAX_DEPENDENCY_DEPTH:
@@ -147,7 +143,7 @@ def execute(macro, args, formatter=None):
 
     formatter.setPage(this_page)
     formatter.request.redirect()
-    text = buffer.getvalue()
+    text = buffer.getvalue().decode('utf-8')
     buffer.close()
     result.append(text)
               

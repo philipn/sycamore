@@ -225,7 +225,7 @@ class Theme(ThemeBase):
               html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
 
 	    if not in_preset_tab:
-              html.append('<a href="%%(script_name)s/%%(q_page_name)s" class="tab activeTab">%%(page_name)s</a> ')
+              html.append('<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a> ')
         else:
             html = ['<div class="tabArea">']
 	    in_preset_tab = False
@@ -239,7 +239,7 @@ class Theme(ThemeBase):
               html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
 
 	    if not in_preset_tab:
-              html.append('<a href="%%(script_name)s/%%(q_page_name)s" class="tab activeTab">%%(page_name)s</a> ')
+              html.append('<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a> ')
 
 
 	html.append('</div>')
@@ -264,65 +264,6 @@ class Theme(ThemeBase):
         return wikiutil.link_tag(self.request, page_params % d, d['i18ntitle'], attrs='title="%(title)s"' % d)
 
 
-    #def iconbar(self, d):
-    #    """
-    #    Assemble the iconbar
-    #    
-    #    @param d: parameter dictionary
-    #    @rtype: string
-    #    @return: iconbar html
-    #    """
-    #    _ = self.request.getText
-    #    iconbar = []
-    #    if config.page_iconbar and d['page_name']:
-    #        iconbar.append('<div class="sidetitle">%s</div>\n' % _("Page"))
-    #        iconbar.append('<ul id="iconbar">\n')
-    #        icons = config.page_iconbar[:]
-    #        for icon in icons:
-    #            if icon == "up":
-    #                if d['page_parent_page']:
-    #                    iconbar.append('<li>%s</li>\n' % self.make_iconlink(icon, d))
-    #            elif icon == "home":
-    #                if d['page_home_page']:
-    #                    iconbar.append('<li>%s</li>\n' % self.make_iconlink(icon, d))
-    #            else:
-    #                iconbar.append('<li>%s</li>\n' % self.make_iconlink(icon, d))
-    #        iconbar.append('</ul>\n')
-    #    return ''.join(iconbar)
-
-    #def trail(self, d):
-    #    """
-    #    Assemble page trail
-    #    
-    #    @param d: parameter dictionary
-    #    @rtype: string
-    #    @return: trail html
-    #    """
-    #    html = []
-    #    if d['trail']:
-    #        pagetrail = d['trail']
-    #        html.append('<ul id="pagetrail">\n')
-    #        for p in pagetrail[:-1]:
-    #            html.append('<li><span>%s</span></li>\n' % (Page(p).link_to(self.request),))
-    #        html.append('<li><span>%s</span></li>\n' % wikiutil.escape(pagetrail[-1]))
-    #        html.append('</ul>\n')
-    #    else:
-    #        html.append('<!-- pagetrail would be here -->\n')
-#   #        html.append('<hr id="pagetrail">\n')
-    #    return ''.join(html)
-
-    #def edittexthead_link(self, d, **keywords):
-
-    #    _ = self.request.getText
-    #    html = []
-    #    if keywords.get('editable', 1):
-    #            if d['page_name']:
-    #                editable = self.request.user.may.edit(d['page_name']) and d['page'].isWritable()
-    #                if editable:
-    #                  style = 'pageIcon'
-    #                  html.append("%s" % (wikiutil.link_tag_style(style, self.request, d['q_page_name']+'?action=edit', _('Edit'))))
-    #    return ''.join(html)
-        
     def edittext_link(self, d, **keywords):
         """
         Assemble EditText link (or indication that page cannot be edited)
@@ -385,23 +326,6 @@ class Theme(ThemeBase):
 
         return ''.join(html)
         
-    #def info_link(self, d):
-    #    """
-    #    Assemble InfoLink link
-    #    
-    #    @param d: parameter dictionary
-    #    @rtype: string
-    #    @return: info link html
-    #    """
-    #    _ = self.request.getText
-    #    html = []
-    #    if d['q_page_name']:
-    #      style = 'pageIcon'
-    #      if string.lower(d['title_text']).startswith('info for "') or string.lower(d['title_text']).startswith('image "') or string.lower(d['title_text']).startswith('images for "') or string.lower(d['title_text']).startswith('deleted images for "'):
-    #        style += ' pageIconActive'
-    #      html.append("%s" % (wikiutil.link_tag_style(style, self.request, d['q_page_name']+'?action=info', _('Info'))))
-
-    #    return ''.join(html)
         
     def html_head(self, d):
         """
@@ -525,24 +449,6 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 
         return html
 
-    #def availableactions(self, d):    
-    #    """
-    #    assemble HTML code for the available actions
-    #    
-    #    @param d: parameter dictionary
-    #    @rtype: string
-    #    @return: available actions html
-    #    """
-    #    _ = self.request.getText
-    #    html = []
-    #    html.append('<div class="sidetitle">%s</div>\n' % _("Actions"))
-    #    html.append('<ul id="actions">\n')
-    #    for action in d['available_actions']:
-    #        html.append("<li>%s</li>\n" % (
-    #            wikiutil.link_tag(self.request, '%s?action=%s' % (d['q_page_name'], action), action)
-    #        ))
-    #    html.append('</ul>')
-    #    return ''.join(html)
 
     def footer(self, d, **keywords):
         """
