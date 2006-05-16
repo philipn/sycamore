@@ -41,22 +41,22 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, ver
       if not thumb:
         url = "%s/%s?img=true&amp;file=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
-            urllib.quote_plus(filename))
+            urllib.quote(filename))
       else:
         if not size:
 	  url = "%s/%s?img=true&amp;file=%s&amp;thumb=yes" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
-            urllib.quote_plus(filename))
+            urllib.quote(filename))
 	else:
 	  url = "%s/%s?img=true&amp;file=%s&amp;thumb=yes&amp;size=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
-            urllib.quote_plus(filename), size)
+            urllib.quote(filename), size)
 	if ticket:
 	   url = "%s&amp;ticket=%s&amp;size=%s" % (url, ticket,size)
     else:
       url = "%s/%s?img=true&amp;file=%s&amp;deleted=true&amp;version=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
-            urllib.quote_plus(filename), repr(version))
+            urllib.quote(filename), repr(version))
 
 
 
@@ -118,7 +118,7 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename)
 def _delete_footer(request, pagename, baseurl, urlpagename, action, filename):
    page = Page(pagename, request)
    if request.user.may.delete(page):
-      urlfile = urllib.quote_plus(filename)
+      urlfile = urllib.quote(filename)
       return '<div class="actionBoxes"><span><a href="%s/%s?action=%s&amp;do=del&amp;target=%s">delete image</a></span></div>' % (baseurl, urlpagename, action, urlfile)
    return ''
      
@@ -193,7 +193,7 @@ def _get_filelist(request, pagename):
 
                 
         for file in files:
-            urlfile = urllib.quote_plus(file)
+            urlfile = urllib.quote(file)
             #base, ext = os.path.splitext(file)
             get_url = getAttachUrl(pagename, file, request, escaped=1)
             parmdict = {'baseurl': baseurl, 'urlpagename': urlpagename,

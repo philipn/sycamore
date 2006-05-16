@@ -648,7 +648,9 @@ class Theme(object):
         """
         _ = self.request.getText
 
-        html = ['<div class="recentchanges" %s>\n<table cellspacing="0" width="100%%"><tr>\n<td>' % self.ui_lang_attr()]
+        html = ['<div class="recentchanges" %s>\n<table cellspacing="0" width="100%%">' % self.ui_lang_attr()]
+		
+        if self.request.user.valid: html.append('<tr><td>')
 
         if d['rc_update_bookmark']:
             html.append("%(rc_update_bookmark)s %(rc_curr_bookmark)s<br>" % d)
@@ -666,8 +668,6 @@ class Theme(object):
             html.append((_("Show all changes in the last %s days.") % (days,)))
         if self.request.user.valid and d['show_comments_html']:
             html.append(' ' + d['show_comments_html'])
-        if d['rc_rss_link']:
-            html.append('<td><td align="right" width="30">%s\n' % d['rc_rss_link'])
 
         html.append('</td></tr>\n</div>\n<table>\n')
         return ''.join(html)

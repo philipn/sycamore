@@ -60,6 +60,7 @@ class RequestBase(object):
 
     def __init__(self, properties={}):
         self.writestack = []
+	self.filestack = []
 	self.getText = None
         if config.memcache:
           self.mc = MemcachePool.getMC()
@@ -153,18 +154,6 @@ class RequestBase(object):
 	      self.do_gzip = True
 	      break
 
-##        f=open('/tmp/env.log','a')
-##        f.write('---ENV\n')
-##        f.write('script_name = %s\n'%(self.script_name))
-##        f.write('path_info   = %s\n'%(self.path_info))
-##        f.write('server_name = %s\n'%(self.server_name))
-##        f.write('server_port = %s\n'%(self.server_port))
-##        f.write('http_host   = %s\n'%(self.http_host))
-##        f.write('------\n')
-##        f.write('%s\n'%(repr(env)))
-##        f.write('------\n')
-##        f.close()
-  
     def reset(self):
         """ Reset request state.
 
@@ -217,9 +206,10 @@ class RequestBase(object):
     def redirect(self, file=None):
         if file: # redirect output to "file"
             self.writestack.append(self.write)
-            self.write = file.write
+            self.filestack.append(file)
         else: # restore saved output file
             self.write = self.writestack.pop()
+	    self.filestack.pop()
 
     def reset_output(self):
         """ restore default output method
@@ -291,7 +281,10 @@ class RequestBase(object):
             fixedResult = []
             for i in values:
                 if isinstance(i, cgi.MiniFieldStorage):
-                    fixedResult.append(i.value)
+		    if type(i.value) == str:
+		      fixedResult.append(i.value.decode(config.charset))
+	 	    else:
+                      fixedResult.append(i.value)
                 elif isinstance(i, cgi.FieldStorage):
                     fixedResult.append(i.value)
                     # multiple uploads to same form field are stupid!
@@ -662,8 +655,20 @@ class RequestDummy(RequestBase):
   def setup_args(self):
     return self._setup_vars_from_std_env({})
 
-  def write(self, data_string):
-    self.output_buffer.append(data_string)
+  def write(self, data_string, raw=False):
+    if not raw:
+      if type(data_string) == str:
+        data_string = data_string.decode('utf-8')
+      if not self.filestack:
+        self.output_buffer.append(data_string.encode('utf-8'))
+      else:
+        self.filestack[-1].write(data_string.encode('utf-8'))
+    else:
+      # some sort of raw binary data.  write directly without encoding and hope for the best!
+      if not self.filestack:
+        self.output_buffer.append(data_string)
+      else:
+        self.filestack[-1].write(data_string)
 
 
   def flush(self):
@@ -737,13 +742,26 @@ class RequestWSGI(RequestBase):
       #form = cgi.FieldStorage(self, headers=self.env, environ=self.env)
       self.input_stream = self.env['wsgi.input']
       form = cgi.FieldStorage(self.input_stream, environ=self.env)
+        
       return self._setup_args_from_cgi_form(form)
 
-    def write(self, data_string):
+    def write(self, data_string, raw=False):
         """ Write to output stream.
         """
-	self.output_buffer.append(data_string)
-        #self.wsgi_output("".join(data))
+	if not raw:
+	  if type(data_string) == str:
+	    data_string = data_string.decode('utf-8')
+
+	  if not self.filestack:
+	    self.output_buffer.append(data_string.encode('utf-8'))
+	  else:
+	    self.filestack[-1].write(data_string.encode('utf-8'))
+        else:
+          # some sort of raw binary data.  write directly without encoding and hope for the best!
+          if not self.filestack:
+            self.output_buffer.append(data_string)
+          else:
+            self.filestack[-1].write(data_string)
 
     def read(self, n=None):
       # read n bytes from input stream
@@ -770,7 +788,8 @@ class RequestWSGI(RequestBase):
 	if not self.sent_headers: self.http_headers()
 	# we return a list as per the WSGI spec
 	if self.do_gzip:
-	  compressed_content = self.compress(''.join(self.output_buffer))
+	  text = ''.join(self.output_buffer)
+	  compressed_content = self.compress(text)
 	  return [compressed_content] # WSGI spec wants a list returned
 	else:
           return self.output_buffer

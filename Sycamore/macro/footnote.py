@@ -27,7 +27,7 @@ def execute(macro, args, formatter):
     else:
         # store footnote and emit number
         idx = len(formatter.request.footnotes)
-        fn_id = "-%s-%s" % (sha.new(args).hexdigest(), idx)
+        fn_id = "-%s-%s" % (sha.new(args.encode('utf-8')).hexdigest(), idx)
 	#if formatter.isPreview():
     	#  args = wikiutil.wikifyString(args, formatter.request, formatter.page, formatter=formatter, doCache=False)
         formatter.request.footnotes.append((args, fn_id))

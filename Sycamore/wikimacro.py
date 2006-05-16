@@ -98,12 +98,12 @@ class Macro:
     def execute(self, macro_name, args, formatter=None):
         macro = wikiutil.importPlugin('macro', macro_name)
         if macro:
-            return macro(self, args, formatter)
+            return macro(self, args, formatter=formatter)
 
         builtins = vars(self.__class__)
         # builtin macro
         if builtins.has_key('_macro_' + macro_name):
-            return builtins['_macro_' + macro_name](self, args, formatter)
+            return builtins['_macro_' + macro_name](self, args, formatter=formatter)
 
         # language pseudo macro
         if i18n.languages.has_key(macro_name):

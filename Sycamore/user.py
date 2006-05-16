@@ -105,7 +105,7 @@ def hash(cleartext):
     SHA hash of cleartext returned
     """
     import base64
-    return base64.encodestring(sha.new(cleartext).digest()).rstrip()
+    return base64.encodestring(sha.new(cleartext.encode('utf-8')).digest()).rstrip()
 
 
 #############################################################################

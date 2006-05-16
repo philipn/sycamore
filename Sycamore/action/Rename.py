@@ -13,6 +13,7 @@
 # Imports
 from Sycamore import config, user, wikiutil, wikiaction, caching
 from Sycamore.PageEditor import PageEditor
+from Sycamore.Page import Page
 import time, os, urllib
 
 def copy_images(oldpagename, newpagename, request):
@@ -25,20 +26,20 @@ def copy_images(oldpagename, newpagename, request):
   old_page_files = get_filelist(request, oldpagename)
   new_page_files = get_filelist(request, newpagename)
   for filename in old_page_files:
-    request.cursor.execute("SELECT image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize from images where name=%(filename)s and attached_to_pagename=%(oldpagename)s", {'filename':filename, 'oldpagename':oldpagename.lower()})
+    request.cursor.execute("SELECT image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename_propercased from images where name=%(filename)s and attached_to_pagename=%(oldpagename)s", {'filename':filename, 'oldpagename':oldpagename.lower()})
     result = request.cursor.fetchone()
     if result: 
-       old_page_file_dict = {'filename': filename, 'image': result[0], 'uploaded_time': result[1], 'uploaded_by': result[2], 'uploaded_by_ip': result[3], 'xsize': result[4], 'ysize': result[5], 'newpagename': newpagename.lower(), 'timenow': time.time(), 'userid': request.user.id, 'userip': request.remote_addr}
+       old_page_file_dict = {'filename': filename, 'image': result[0], 'uploaded_time': result[1], 'uploaded_by': result[2], 'attached_to_pagename_propercased': result[6], 'uploaded_by_ip': result[3], 'xsize': result[4], 'ysize': result[5], 'newpagename': newpagename.lower(), 'newpagename_propercased': Page(newpagename, request).proper_name(), 'timenow': time.time(), 'userid': request.user.id, 'userip': request.remote_addr}
        if filename not in new_page_files:
-               request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s)", old_page_file_dict, isWrite=True)
+               request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s, %(newpagename_propercased)s)", old_page_file_dict, isWrite=True)
        else:
-         request.cursor.execute("INSERT into oldImages set name=%(filename)s, image=(SELECT image from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_time=(SELECT uploaded_time from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_by=(SELECT uploaded_by from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), uploaded_by_ip=(SELECT uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), xsize=(SELECT xsize from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), ysize=(SELECT ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), attached_to_pagename=%(newpagename)s, deleted_by=%(userid)s, deleted_by_ip=%(userip)s, deleted_time=%(timenow)s", old_page_file_dict, isWrite=True)
+         request.cursor.execute("INSERT into oldImages (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased, deleted_by, deleted_by_ip, deleted_time) values (name=%(filename)s, (SELECT image from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_time from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_by from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT xsize from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(newpagename)s, %(newpagename_propercased)s, deleted_by=%(userid)s, deleted_by_ip=%(userip)s, deleted_time=%(timenow)s)", old_page_file_dict, isWrite=True)
          request.cursor.execute("SELECT name from images where name=%(filename)s and attached_to_pagename=%(newpagename)s", old_page_file_dict)
          result = request.cursor.fetchone()
          if result:
            request.cursor.execute("UPDATE images set image=%(image)s, uploaded_time=%(uploaded_time)s, uploaded_by=%(uploaded_by)s, uploaded_by_ip=%(uploaded_by_ip)s, xsize=%(xsize)s, ysize=%(ysize)s where name=%(filename) and attached_to_pagename=%(newpagename)", old_page_file_dict, isWrite=True)
          else:
-           request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s)", old_page_file_dict, isWrite=True)
+           request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s, %(newpagename_propercased)s)", old_page_file_dict, isWrite=True)
 
  
 def execute(pagename, request):
@@ -95,9 +96,9 @@ def execute(pagename, request):
 
                 msg = _('Page "%s" was successfully renamed to "%s"!') % (pagename,newpagename)
 		if newpagename.lower() != pagename.lower():
-                  #request.http_redirect('%s/%s' % ( 		# added by pi Fri Dec 24 05:43:13 EST 2004
-                  #    request.getScriptname(),			#
-                  #    wikiutil.quoteWikiname(pagename)))	#
+		  # check favorites because the redirect will process before the bookmarks get updated
+                  if request.user.valid: request.user.checkFavorites(pagename.lower())
+
 		  request.http_redirect('%s/%s?action=show&redirect=%s' % (
                     request.getScriptname(),
                     wikiutil.quoteWikiname(newpagename),

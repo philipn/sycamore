@@ -25,9 +25,9 @@ def display_edits(request, userpage):
 
 	html = []
 	if last_edit != 1:
-	    html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=userinfo&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), pagename, offset_given+1))
+	    html.append('<div class="actionBoxes" style="margin-right:10px !important; float: left !important;"><span><a href="%s/%s?action=userinfo&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), pagename, offset_given+1))
 	if offset_given:
-	    html.append('<div class="actionBoxes" style="float: right !important;"><span><a href="%s/%s?action=userinfo&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), pagename, offset_given-1))
+	    html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=userinfo&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), pagename, offset_given-1))
 	html.append('<div style="clear: both;"></div>')
 
 	return [''.join(html)]

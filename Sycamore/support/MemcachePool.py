@@ -27,9 +27,14 @@ def fixKey(key):
   """
   Memcache needs the key encoded.  The python memcache module doesn't do this, so we have to.
   """
-  if type(key) == unicode:
-    return key.encode('utf-8')
-  return key
+  new_key = key
+  if type(key) == str:
+    new_key = key.decode('utf-8')
+
+  if type(new_key) == unicode:
+    return new_key.encode('utf-8')
+
+  return new_key
 
 class MemcachePool:
     def __init__(self,hosts=None):
@@ -80,12 +85,15 @@ class MemcachePool:
         mc = self.getConnection()
 	key = fixKey(key)
         v = mc.get(key)
+	if type(v) == str:
+	  v = v.decode('utf-8')
         self.returnConnection(mc)
         return v
 
     def set(self,key,value,time=0):
         mc = self.getConnection()
 	key = fixKey(key)
+	value = fixKey(value)
         r = mc.set(key,value,time)
         self.returnConnection(mc)
         return r
@@ -101,6 +109,7 @@ class MemcachePool:
     def add(self,key,value,time=0):
         mc = self.getConnection()
 	key = fixKey(key)
+	value = fixKey(value)
         r = mc.add(key,value,time)
         self.returnConnection(mc)
         return r
@@ -144,6 +153,13 @@ class MemcachePool:
         mc = self.getConnection()
 	keys = [ fixKey(key) for key in keys ]
         v = mc.get_multi(keys)
+	v_new = []
+	for value in v:
+	  if type(value) == str:
+	    v_new.append(value.decode("utf-8"))
+	  else:
+	    v_new.append(value)
+        v = v_new
         self.returnConnection(mc)
         return v
 

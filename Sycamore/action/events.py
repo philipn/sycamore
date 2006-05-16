@@ -136,8 +136,15 @@ def doRSS(request, add_on):
     if not generated:        
         rss_text = []
 	events = []
-	print time.time()
-	request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where DATE(FROM_UNIXTIME(event_time))=DATE(FROM_UNIXTIME(%(timenow)s))", {'timenow':time.time()})
+	timenow = time.time()
+        today_struct = time.gmtime(timenow+config.tz_offset)
+        today = list(today_struct[0:3]) + [0,0,0,0,0,0]
+        today = calendar.timegm(today) - config.tz_offset
+        tomorrow_struct = time.gmtime(timenow+60*60*24+config.tz_offset)
+        tomorrow = list(tomorrow_struct[0:3]) + [0,0,0,0,0,0]
+        tomorrow = calendar.timegm(tomorrow) - config.tz_offset
+
+	request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where event_time >= %(today)s and event_time < %(tomorrow)s", {'today':today, 'tomorrow':tomorrow})
 	result = request.cursor.fetchone()
 	while result:
 	  events.append(result)

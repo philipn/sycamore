@@ -69,7 +69,7 @@ def execute(macro, args, formatter=None):
 
         result.append(macro.formatter.listitem(1))
         result.append(macro.formatter.anchorlink(
-            "head-" + sha.new(title_text).hexdigest() + unique_id, title_text))
+            "head-" + sha.new(title_text.encode('utf-8')).hexdigest() + unique_id, title_text))
         result.append(macro.formatter.listitem(0))
         
         # Set new indent level

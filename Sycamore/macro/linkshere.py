@@ -12,11 +12,15 @@ def execute(macro, args, formatter=None):
     else:
       page = Page(args, macro.request)
     links_here = page.getPageLinksTo()
-    text = ''
+    pages_deco = [ (pagename.lower(), pagename) for pagename in links_here]
+    pages_deco.sort()
+    links_here = [ word for lower_word, word in pages_deco ]
+
+    text = []
     if links_here:
-      text += formatter.bullet_list(1)
+      text.append(formatter.bullet_list(1))
       for link in links_here:
-        text += formatter.listitem(1) + formatter.pagelink(link) + formatter.listitem(0)
-      text += formatter.bullet_list(0)
+        text.append('%s%s%s' % (formatter.listitem(1), formatter.pagelink(link), formatter.listitem(0)))
+      text.append(formatter.bullet_list(0))
     
-    return text
+    return ''.join(text)

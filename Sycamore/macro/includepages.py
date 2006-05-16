@@ -8,7 +8,7 @@
     All rights reserved, see COPYING for details.
 
     Code based on the MoinMoin PageList macro
-    Copyright (c) 2000, 2001, 2002 by J¨¹rgen Hermann <jh@web.de>
+    Copyright (c) 2000, 2001, 2002 by J??rgen Hermann <jh@web.de>
 
     This macro includes the formatted content of the given pages, following
     recursive includes if encountered. Cycles are detected!
@@ -57,7 +57,7 @@ _args_re_pattern = r'^(?P<pattern>[^,]+)((%s)?%s%s)?$' % (_arg_level,_arg_sort,_
 
 Dependencies = []
 
-def execute(macro, text, args,  formatter=None):
+def execute(macro, args,  formatter=None):
     if not formatter:
       if hasattr(macro.parser, 'formatter'): formatter = macro.parser.formatter
       else:formatter = macro.formatter
@@ -67,10 +67,10 @@ def execute(macro, text, args,  formatter=None):
     ret = ''
 
     # parse and check arguments
-    args = args_re.match(text)
+    args = args_re.match(args)
     if not args:
         return ('<p><strong class="error">%s</strong></p>' %
-            _('Invalid include arguments "%s"!')) % (text,)
+            _('Invalid include arguments "%s"!')) % (args,)
 
     # get the pages
     inc_pattern = args.group('pattern')
@@ -97,7 +97,7 @@ def execute(macro, text, args,  formatter=None):
 
     for inc_name in hits:
         params = '%s,"%s",%s' % (inc_name,inc_name, level)
-        ret = ret +"<p>"+ Sycamore.macro.include.execute(macro, params, formatter) +"\n"
+        ret = ret +"<p>"+ Sycamore.macro.include.execute(macro, params, formatter=formatter) +"\n"
 
     # return include text
     return ret

@@ -1,18 +1,7 @@
-# -*- coding: iso-8859-1 -*-
 import time, re
 from Sycamore import wikiutil, wikiform, config, wikidb
 from Sycamore.Page import Page
 from cStringIO import StringIO
-
-import xml.dom.minidom
-
-
-def getText(nodelist):
-    rc = ""
-    for node in nodelist:
-        if node.nodeType == node.TEXT_NODE:
-            rc = rc + node.data
-    return rc
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
@@ -94,7 +83,8 @@ def execute(macro, args, formatter=None):
 
        htmltext.append('</table>') 
 
-    return macro.formatter.rawHTML(''.join(htmltext))
+    
+    return macro.formatter.rawHTML(u''.join(htmltext))
 
 def compare_edit(x,y):
     if int(x.getAttribute("edit_count")) == int(y.getAttribute("edit_count")):

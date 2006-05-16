@@ -249,10 +249,12 @@ def do_mini_events(events, are_events_today, htmltext, macro):
     if not events_result:
       todays_events.append('<p><i>No events were posted for today on the <a href="%s/Events_Board">Events Board</a>.  Post one!</i></p>' % macro.request.getScriptname())
       return
+    todays_events.append('<ul>')
     for event_name, uid in events_result:
       event_name = doParse(event_name, macro)
-      todays_events.append('<p>%s [<a href="%s/Events_Board#head-%s">info</a>]</p>'
+      todays_events.append('<li>%s [<a href="%s/Events_Board#head-%s">info</a>]</li>'
                                                   % (event_name, macro.request.getScriptname() , uid))
+    todays_events.append('</ul>')
     htmltext += todays_events
 
     if config.memcache:

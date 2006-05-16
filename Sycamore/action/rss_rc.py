@@ -68,9 +68,9 @@ def execute(pagename, request):
       else:
         description = line.comment
 
-      item_description.appendChild(rss_dom.createTextNode(description.decode(config.db_charset)))
+      item_description.appendChild(rss_dom.createTextNode(description))
       item_title = rss_dom.createElement("title")
-      item_title.appendChild(rss_dom.createTextNode(line.pagename.decode(config.db_charset)))
+      item_title.appendChild(rss_dom.createTextNode(line.pagename))
       item.appendChild(item_title)
       item_link = rss_dom.createElement("link")
       item_link.appendChild(rss_dom.createTextNode("http://%s/%s%s%s" % (config.domain, config.relative_dir, add_on, wikiutil.quoteWikiname(line.pagename))))

@@ -190,6 +190,8 @@ _cfg_defaults = {
     'url_prefix': '/wiki',
     'url_schemas': [],
     'url_mappings': {},
+    'tabs_nonuser': ['Front Page', 'Map', 'People', 'Recent Changes'],
+    'tabs_user': ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes'],
     'web_dir' : '',
     'web_root': '/var/www/html',
     'LogStore': 'text:editlog',

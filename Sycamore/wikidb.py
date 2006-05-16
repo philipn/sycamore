@@ -25,16 +25,17 @@ Binary = dbapi.Binary
 dbapi = pool.manage(dbapi, pool_size=pool_size, max_overflow=max_overflow)
 dbapi.Binary = Binary
 
-def fixBinaryUp(item):
+def fixUpStrings(item):
   def doFixUp(i):
     if type(i) == array.array:
       return i.tostring()
+    elif type(i) == str:
+      return i.decode(config.db_charset)
+    elif type(i) == tuple:
+      return fixUpStrings(i)
     return i
 
-  if config.db_type != 'mysql':
-    return item
-      
-  if type(item) == tuple:
+  if type(item) == tuple or type(item) == list:
     return [ doFixUp(i) for i in item ]
   return doFixUp(item)
       
@@ -88,17 +89,11 @@ class WikiDBCursor(object):
       args_seq = [ _fixArgs(arg) for arg in args_seq ]
     self.db_cursor.executemany(query, args_seq) 
 
-  def fetchone(self, fixBinary=False):
-    if not fixBinary:
-      return self.db_cursor.fetchone()
-    else:
-      return fixBinaryUp(self.db_cursor.fetchone())
+  def fetchone(self):
+    return fixUpStrings(self.db_cursor.fetchone())
 
-  def fetchall(self, fixBinary=False):
-    if not fixBinary:
-      return self.db_cursor.fetchall()
-    else:
-      return fixBinaryUp(self.db_cursor.fetchall())
+  def fetchall(self):
+     return fixUpStrings(self.db_cursor.fetchall())
 
   def close(self):
     if self.db_cursor:
@@ -312,10 +307,16 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
 
     if max_days_ago:
       if not printed_where:
-        add_query.append(' where changeTime >= %(max_days_ago)s')
+        if not changes_since:
+          add_query.append(' where changeTime >= %(max_days_ago)s')
+        else: 
+          add_query.append(' where changeTime >= %(max_days_ago)s and changeTime >= %(changes_since)s')
 	printed_where = True
       else:
-        add_query.append(' and changeTime >= %(max_days_ago)s')
+        if not changes_since: 
+          add_query.append(' and changeTime >= %(max_days_ago)s')
+ 	else:
+          add_query.append(' and changeTime >= %(max_days_ago)s and changeTime >= %(changes_since)s')
     #if per_page_limit:
     #  query.append(" group by %(view)s.name, %(view)s.id, %(view)s.editType, %(view)s.comment, %(view)s.userIP" % {'view':view})
     if total_changes_limit and not per_page_limit:
@@ -381,10 +382,11 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     def getEditor(self, request):
          from Sycamore import user
 	 from Sycamore.Page import Page
-         if self.userid:
+         if self.userid and self.userid.strip():
            editUser = user.User(request, self.userid)
            return user.getUserLink(request, editUser)
-         else: return ''
+         else:
+	   return '<em>unknown</em>'
 
   lines = []
   right_now  = time.gmtime()
@@ -398,13 +400,13 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   # so, let's compile all the different types of changes together!
   query = buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
   #print query % {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page}
-  request.cursor.execute(query, {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page})
+  request.cursor.execute(query, {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page, 'changes_since':changes_since})
  
-  edit = request.cursor.fetchone(fixBinary=True)
+  edit = request.cursor.fetchone()
   
   while edit:
     lines.append(line(edit))
-    edit = request.cursor.fetchone(fixBinary=True)
+    edit = request.cursor.fetchone()
   return lines
 
 def getPageCount(request):

@@ -446,10 +446,6 @@ class Page(object):
         pi_formfields = []
         wikiform = None
 
-        # check for XML content
-        #if body and body[:5] == '<?xml':
-        #    pi_format = "xslt"
-
         # check processing instructions
         while meta_text:
             # extract first line
@@ -504,6 +500,8 @@ class Page(object):
                 # cascaded redirection
                 pi_redirect = args
                 if request.form.has_key('action') or request.form.has_key('redirect') or content_only: continue
+
+                if self.request.user.valid: self.request.user.checkFavorites(self.page_name)
 
                 request.http_redirect('%s/%s?action=show&redirect=%s' % (
                     request.getScriptname(),
@@ -616,23 +614,6 @@ class Page(object):
 
             request.write(doc_trailer)
         
-        #if self.default_formatter and self.exists():
-        #    arena = "Page.py"
-        #    key   = self.page_name
-        #    cache = caching.CacheEntry(arena, key)
-        #    if cache.needsUpdate():
-	#	#links is a list of strings
-        #        links = self.formatter.pagelinks
-	#	db = wikidb.connect()
-	#	cursor = db.cursor()
-	#	cursor.execute("start transaction;")
-	#	cursor.execute("DELETE from links where source_pagename=%s", (key))
-	#	for link in links:
-	#	  cursor.execute("INSERT into links set source_pagename=%s, destination_pagename=%s", (key, link))
-	#	cursor.execute("commit;")
-	#	cursor.close()
-	#	db.close()
-
 
     def send_page_content(self, Parser, needsupdate=0):
         """
@@ -867,19 +848,6 @@ class Page(object):
 
 	return links
 
-    #def getCategories(self, request):
-    #    """
-    #    Get categories this page belongs to.
-
-    #    @param request: the request object
-    #    @rtype: list
-    #    @return: categories this page belongs to
-    #    """
-    #    return wikiutil.filterCategoryPages(self.getPageLinks(request))
-
-    # There are many places accessing ACLs even without actually sending
-    # the page. This cache ensures that we don't have to parse ACLs for
-    # some page twice.
     _acl_cache = {}
 
     def getACL(self):

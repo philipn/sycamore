@@ -126,13 +126,6 @@ class PageEditor(Page):
          self.request.getScriptname(),
          wikiutil.quoteWikiname(self.page_name))
 
-#        wikiutil.send_title(self.request,
-#            self.proper_name(),
-#            pagename=self.page_name,
-#	    link=link,
-#	    strict_title='Editing "%s"' % self.proper_name(),
-#            body_onload="sizeTextField('savetext',event);"
-#        )
         wikiutil.send_title(self.request,
             self.proper_name(),
             pagename=self.proper_name(),
@@ -222,10 +215,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
             # "template" parameter contains the name of the template page
             template_page = wikiutil.unquoteWikiname(form['template'][0])
             raw_body = Page(template_page, self.request).get_raw_body()
-            #if raw_body:
-            #    self.request.write('%s<br/>' % (_("[Content of new page loaded from %s]") % template_page))
-            #else:
-            #    self.request.write('%s<br/>' % (_("[Template %s not found]") % (template_page)))
         else:
             raw_body = self.get_raw_body()
 
@@ -382,7 +371,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
         @param datestamp: ...
         """
         _ = self._
-        #self._make_backup(self._normalize_text(newtext))
 
         backto = self.request.form.get('backto', [None])[0]
         page = backto and Page(backto, self.request) or self
@@ -580,48 +568,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
         return newtext
 
 
-    #def _make_backup(self, newtext, **kw):
-    #    """
-    #    Make a backup of text before saving and on previews, if user
-    #    has a homepage. Return URL to backup if one is made.
-    #    
-    #    @param newtext: new text of the page
-    #    @keyword ...:...
-    #    @rtype: string
-    #    @return: url of page backup
-    #    """
-    #    _ = self._
-    #    # check for homepage
-    #    pg = wikiutil.getHomePage(self.request)
-    #    if not pg:
-    #        return None
-
-    #    if config.allow_subpages:
-    #        delimiter = "/"
-    #    else:
-    #        delimiter = ""
-    #    backuppage = PageEditor(pg.page_name + delimiter + "MoinEditorBackup", self.request, do_revision_backup=0)
-    #    if config.acl_enabled:
-    #        intro = "#acl %s:read,write,delete\n" % self.request.user.name
-    #    else:
-    #        intro = ""
-    #    pagename = self.page_name
-    #    ourtime = time.time()
-    #    date = self.request.user.getFormattedDateTime(ourtime)
-    #    intro += _('## backup of page "%(pagename)s" submitted %(date)s') % {
-    #        'pagename': pagename, 'date': date,} + '\n'
-
-    #   	db = wikidb.connect()
-    #    cursor = db.cursor()
-    #    if backuppage.exists():
-    #       cursor.execute("start transaction;")
-    #       cursor.execute("UPDATE curPages set text=%s, editTime=%s, userEdited=%s where name=%s", (intro+newtext, ourtime, self.request.user.name, backuppage.page_name))
-    #       cursor.execute("commit;")
-    #    else:
-    #       cursor.execute("INSERT into curPages set name=%s, text=%s, editTime=%s, userEdited=%s", (backuppage.page_name, intro+newtext, ourtime, self.request.user.name))
-
-    #    return backuppage.url(self.request)
-
     def _write_to_db(self, text, action, comment, ip, proper_name):
 	"""
 	Write the text to the page tables in the database.
@@ -660,18 +606,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	self.set_raw_body(text)
 
 
-    #def build_index(self):
-    #    """
-    #    Builds the index with all the pages. . This should hopefully rarely be run.
-    #    """
-    #    forked_id = 0
-    #    pages = list(wikiutil.getPageList())
-    #    for page in pages:
-    #            p = Page(page)
-    #            #add_to_index(wikiutil.quoteWikiname(p.page_name), p.get_raw_body())
-    #            os.spawnl(os.P_WAIT, config.app_dir + '/add_to_index', config.app_dir + '/add_to_index', '%s' % wikiutil.quoteWikiname(p.page_name), '%s' % wikiutil.quoteWikiname(p.get_raw_body()))
-
-
     def saveText(self, newtext, datestamp, **kw):
         """
         Save new text for a page.
@@ -689,10 +623,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	self.page_name = self.page_name.strip() # to ensure consistency
         _ = self._
         newtext = self._normalize_text(newtext, **kw)
-        #backup_url = self._make_backup(newtext, **kw)
-
-        #!!! need to check if we still retain the lock here
-        #!!! datestamp check is not enough since internal operations use "0"
 
         # expand variables, unless it's a template or form page
         if not wikiutil.isTemplatePage(self.page_name):

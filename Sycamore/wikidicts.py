@@ -44,7 +44,7 @@ class Dict:
        is stripped from the member 
     """
 
-    def __init__(self, name, request, dict=1):
+    def __init__(self, name, request, dict=1, case_insensitive=False):
         """Initialize a Dict, starting from <nothing>.
         """
 	import re
@@ -64,7 +64,10 @@ class Dict:
             if match:
                 mdict = match.groupdict()
                 if dict:
-                    key, value = mdict['key'].strip(), mdict['val']
+		    if case_insensitive:
+                      key, value = mdict['key'].strip().lower(), mdict['val']
+		    else:
+                      key, value = mdict['key'].strip(), mdict['val']
                 else:
                     key, value = mdict['member'], 1
                 self._dict[key] = value

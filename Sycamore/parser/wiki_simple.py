@@ -296,7 +296,7 @@ class Parser:
 	  if word.lower() == self.formatter.page.page_name:
             return text 
         if config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
-            word = self.formatter.page.page_name + word
+            word = self.formatter.page.proper_name() + word
         text = self.highlight_text(text)
         if word == text:
             return self.formatter.pagelink(word)

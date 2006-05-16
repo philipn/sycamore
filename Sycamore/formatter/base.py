@@ -34,6 +34,7 @@ class FormatterBase:
         self.in_p = 0
         self.in_pre = 0
    	self.processed_thumbnails = {}
+	self.page = None
 
     def lang(self, lang_name, text):
         raise NotImplementedError
@@ -197,5 +198,8 @@ class FormatterBase:
             effects, like loss of markup or insertion of CDATA sections
             when output goes to XML formats.
         """
+	if type(markup) == str:
+          markup = markup.decode('utf-8')
+
         return markup
 

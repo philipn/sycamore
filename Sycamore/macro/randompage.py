@@ -7,7 +7,7 @@
 """
 
 # Imports
-import whrandom
+import random
 from Sycamore import config, wikiutil
 from Sycamore.Page import Page
 
@@ -25,7 +25,7 @@ def execute(macro, args, formatter):
     random_list = wikiutil.getRandomPages(macro.request)
     pages = []
     while len(pages) < links and random_list:
-        pagename = whrandom.choice(random_list)
+        pagename = random.choice(random_list)
 	page = Page(pagename, macro.request)
         if macro.request.user.may.read(page) and page.exists():
             pages.append(page)

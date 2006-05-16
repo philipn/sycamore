@@ -149,10 +149,10 @@ if config.has_xapian:
     def _stem_terms(self, terms):
       new_terms = []
       for term in terms:
-        if type(term) == type([]):
+        if type(term) == list:
           new_terms.append(self._stem_terms(term))
         else:
-          new_terms.append(self.stemmer.stem_word(term.lower()))
+          new_terms.append(self.stemmer.stem_word(term.lower().encode('utf-8')))
       return new_terms
       
   

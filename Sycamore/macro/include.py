@@ -43,7 +43,7 @@ def extract_titles(body):
 
 Dependencies = []
 
-def execute(macro, text, args, formatter=None):
+def execute(macro, args, formatter=None):
     if not formatter:
       if hasattr(macro.parser, 'formatter'): formatter = macro.parser.formatter
       else: formatter = macro.formatter
@@ -51,13 +51,13 @@ def execute(macro, text, args, formatter=None):
     args_re=re.compile(_args_re_pattern)
 
     # return immediately if getting links for the current page
-    if macro.request.mode_getpagelinks:
-        return ''
+    #if macro.request.mode_getpagelinks:
+    #    return ''
 
     # parse and check arguments
-    args = args_re.match(text)
+    args = args_re.match(args)
     if not args:
-        return (_sysmsg % ('error', _('Invalid include arguments "%s"!')) % (text,))
+        return (_sysmsg % ('error', _('Invalid include arguments "%s"!')) % (args,))
 
     # prepare including page
     result = []
@@ -134,17 +134,18 @@ def execute(macro, text, args, formatter=None):
     pi_format = config.default_markup or "wiki" 
     Parser = wikiutil.importPlugin("parser", pi_format, "Parser")
     raw_text = inc_page.get_raw_body()
-    formatter.page = inc_page
+    formatter.setPage(inc_page)
     parser = Parser(raw_text, formatter.request)
     # note that our page now depends on the content of the included page
-    if not formatter.isPreview():
+    if formatter.name == 'text_python':
       # this means we're in the caching formatter
       caching.dependency(this_page.page_name, inc_name.lower(), macro.request)
     # output formatted
     buffer = cStringIO.StringIO()
     formatter.request.redirect(buffer)
     parser.format(formatter)
-    formatter.page = this_page
+
+    formatter.setPage(this_page)
     formatter.request.redirect()
     text = buffer.getvalue()
     buffer.close()
@@ -155,24 +156,6 @@ def execute(macro, text, args, formatter=None):
         this_page._macroInclude_pagelist[inc_name] -= 1
     else:
         del this_page._macroInclude_pagelist[inc_name]
-
-    # if no heading and not in print mode, then output a helper link
-    #if macro.request.user.may.edit(inc_name):
-    #   if not (level or print_mode):
-    #       result.extend([
-    #           '<div class="include-link">',
-    #           inc_page.link_to(macro.request, '[%s]' % (inc_name,), css_class="include-page-link"),
-    #           
-    #           '</div>',
-    #       ])
-    #else:
-    #   if not (level or print_mode):
-    #       result.extend([
-     #          '<div class="include-link">',
-     #          inc_page.link_to(macro.request, '[%s]' % (inc_name,), css_class="include-page-link"),
-     #          '</div>',
-     #      ])
-
 
     # return include text
     return ''.join(result)

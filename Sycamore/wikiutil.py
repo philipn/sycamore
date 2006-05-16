@@ -108,14 +108,14 @@ def wikifyString(text, request, page, doCache=True, formatter=None, delays=None,
     py_formatter.delays = delays
     parser.format(py_formatter)
     request.redirect()
-    text = buffer.getvalue()
+    text = buffer.getvalue().decode('utf-8')
     buffer.close()
 
     return text
   else:
     text = buffer.getvalue()
     buffer.close()
-    return text
+    return text.decode('utf-8')
 
 def getSmiley(text, formatter):
     """
@@ -193,7 +193,7 @@ def escape(s, quote=None):
     @rtype: string
     @return: escaped version of string
     """
-    if not s: return ''
+    if not s: return u''
     s = s.replace("&", "&amp;") # Must be done first!
     s = s.replace("<", "&lt;")
     s = s.replace(">", "&gt;")
@@ -268,10 +268,11 @@ def resolve_wiki(request, wikiurl):
         if interwiki_dict is not None: got_memcache = True
 
     if _interwiki_list is None:
-      _interwiki_list = wikidicts.Dict(config.interwikimap,request)
+      _interwiki_list = wikidicts.Dict(config.interwikimap,request,case_insensitive=True)
 
     # split wiki url
     wikitag, tail = split_wiki(wikiurl)
+    wikitag = wikitag.lower()
 
     request.req_cache['interwiki'] = _interwiki_list
     if config.memcache and not got_memcache:
@@ -281,7 +282,7 @@ def resolve_wiki(request, wikiurl):
     if wikitag and _interwiki_list.has_key(wikitag):
         return (wikitag, _interwiki_list[wikitag], tail, False)
     else:
-        return (wikitag, request.getScriptname(),'/'+ config.interwikimap, True)
+        return (wikitag, request.getScriptname(),'/%s' % quoteWikiname(config.interwikimap), True)
 
 
 #############################################################################
@@ -1038,10 +1039,13 @@ def send_title(request, text, **keywords):
     if config.relative_dir: add_on = '/'
     else: add_on = ''
 
-    if pagename.lower() == 'recent changes' or pagename.lower() == 'bookmarks':
+    if pagename.lower() == 'bookmarks':
       rss_html = ''
     else: 
-      rss_html = '<link rel=alternate type="application/rss+xml" href="/%s%s%s?action=rss_rc" title="Recent Changes RSS Feed">' % (config.relative_dir, add_on, quoteWikiname(pagename))
+      if pagename.lower() == 'recent changes':
+        rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc" title="Recent Changes RSS Feed">' % (request.getScriptname(), quoteWikiname(pagename))
+      else:
+        rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc" title="Recent Changes RSS Feed for %s">' % (request.getScriptname(), quoteWikiname(pagename), pagename)
 
     request.write("""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
 <html>

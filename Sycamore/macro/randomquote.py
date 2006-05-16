@@ -54,7 +54,8 @@ def execute(macro, args, formatter=None):
     if quote.lower().find("randomquote") == -1:
         quote = wikiutil.wikifyString(quote, macro.request, page, strong=True)
 
-    import re
-    quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)
+    #import re
+    # XXX line below messes up images by cutting the div around it apart.  not sure of the use, removed 2006-5-14
+    #quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)
     
     return quote

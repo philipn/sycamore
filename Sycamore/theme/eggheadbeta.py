@@ -207,65 +207,43 @@ class Theme(ThemeBase):
         @return: navibar html
         """
         _ = self.request.getText
-        front_class = "tab"
-        recent_class = "tab"
-        map_class = "tab"
-        people_class = "tab"
-	if self.request.user.valid and self.request.user.hasUnseenFavorite():
-          bookmarks_class = "tab notice"
-	else:
-          bookmarks_class = "tab"
-        other_page_html = ""
 
-	# so our formatting here looks nicer :)
-        if d['page_name']:
-	    lower_page_name = d['page_name'].lower()
-            if lower_page_name == "front page":
-              front_class = '%s activeTab' % front_class
-            elif lower_page_name == "recent changes":
-              recent_class = '%s activeTab' % recent_class
-            elif lower_page_name == "map":
-              map_class = '%s activeTab' % map_class
-            elif lower_page_name == "people":
-              people_class = '%s activeTab' % people_class
-            elif lower_page_name == "bookmarks" and self.request.user.valid:
-              bookmarks_class = '%s activeTab' % bookmarks_class
-            else:
-              other_page_html = '<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a>' % d
-        
-
-        dict = {
-            'frontpage_class': front_class,
-            'davismap_class': map_class,
-            'recent_class': recent_class,
-            'people_class': people_class,
-            'bookmarks_class': bookmarks_class,
-            'other_html': other_page_html
-        }
-        dict.update(d)
-        
+	lower_page_name = d['page_name'].lower()
         
         if self.request.user.valid:
-            html = """
-<div class="tabArea">
-<a href="%(script_name)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
-<a href="%(script_name)s/Map" class="%(davismap_class)s">Map</a>
-<a href="%(script_name)s/People" class="%(people_class)s">People</a>
-<a href="%(script_name)s/Bookmarks" class="%(bookmarks_class)s">Bookmarks</a>
-<a href="%(script_name)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
-%(other_html)s
-</div>
-""" % dict
+	    html = ['<div class="tabArea">']
+	    in_preset_tab = False
+	    for tab in config.tabs_user:
+	      tabclass = 'tab'
+	      lower_tab = tab.lower()
+	      if lower_tab == lower_page_name:
+	        tabclass = '%s activeTab' % tabclass
+		in_preset_tab = True
+	      if lower_tab == 'bookmarks' and  self.request.user.hasUnseenFavorite():
+	        tabclass = '%s notice'
+
+              html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
+
+	    if not in_preset_tab:
+              html.append('<a href="%%(script_name)s/%%(q_page_name)s" class="tab activeTab">%%(page_name)s</a> ')
         else:
-            html = """
-<div class="tabArea">
-<a href="%(script_name)s/Front_Page" class="%(frontpage_class)s">Front Page</a>
-<a href="%(script_name)s/Map" class="%(davismap_class)s">Map</a>
-<a href="%(script_name)s/People" class="%(people_class)s">People</a>
-<a href="%(script_name)s/Recent_Changes" class="%(recent_class)s">Recent Changes</a>
-%(other_html)s
-</div>
-""" % dict
+            html = ['<div class="tabArea">']
+	    in_preset_tab = False
+	    for tab in config.tabs_nonuser:
+	      tabclass = 'tab'
+	      lower_tab = tab.lower()
+	      if lower_tab == lower_page_name:
+	        tabclass = '%s activeTab' % tabclass
+		in_preset_tab = True
+
+              html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
+
+	    if not in_preset_tab:
+              html.append('<a href="%%(script_name)s/%%(q_page_name)s" class="tab activeTab">%%(page_name)s</a> ')
+
+
+	html.append('</div>')
+	html = ''.join(html) % d
 
         return html
 

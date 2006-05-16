@@ -4,25 +4,27 @@
 
     Web interface to do Sycamore system administration tasks.
 
-    @copyright: 2001, 2003 by Jürgen Hermann <jh@web.de>
+    @copyright: 2001, 2003 by J?rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
 from Sycamore import wikiutil
 from Sycamore.util import pysupport
 from Sycamore.userform import do_user_browser
-from Sycamore.action.AttachFile import do_admin_browser
+from Sycamore.action.Files import do_admin_browser
 
 Dependencies = ["time"]
 
 def execute(macro, args, formatter=None):
+    return "<em>System admin currently disabled.</em>"
+
     if not formatter: formatter = macro.formatter
     _ = macro.request.getText
 
     # do not show system admin to not admin users
     # !!! add ACL stuff here - meanwhile do this ugly hack:
     try: 
-        if not macro.request.user.may.admin(macro.formatter.page.page_name):
+        if not macro.request.user.may.admin(macro.formatter.page):
             return ''
     except AttributeError: # we do not have _admin in SecurityPolicy, so we give up
         return ''
@@ -52,7 +54,7 @@ def execute(macro, args, formatter=None):
             result.append(macro.formatter.strong(0))
         else:
             result.append(wikiutil.link_tag(macro.request,
-                "%s?sysadm=%s" % (macro.formatter.page.page_name, id), label))
+                "%s?sysadm=%s" % (wikiutil.quoteWikiname(macro.formatter.page.proper_name()), id), label))
         result.append('<br>')
     result.append('<br>')
 

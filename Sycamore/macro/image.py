@@ -1,4 +1,4 @@
-# Part of the Local Wiki (http://daviswiki.org) Project
+# Part of Sycamore (projectsycamore.org) 
 # -*- coding: iso-8859-1 -*-
 from Sycamore import config, wikiutil, wikidb
 from Sycamore.action import Files
@@ -264,6 +264,8 @@ def execute(macro, args, formatter=None):
         html.append('<span class="%s thumb" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size, ticket=ticketString), image_name))
       elif caption and not border:
         html.append('<span class="%s thumb noborder" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a><div>%s</div></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size, ticket=ticketString), image_name, caption))
+      else:
+        html.append('<span class="%s thumb noborder" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size, ticket=ticketString), image_name))
     else:
       x, y = getImageSize(pagename, image_name, macro.request.cursor)
       if not border and not caption:

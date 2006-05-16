@@ -71,8 +71,6 @@ class CacheEntry:
 	  if self.key == config.interwikimap.lower():
 	     self.request.mc.delete('interwiki')
 
-	  #self.request.mc.delete("page_deps:%s" % wikiutil.quoteFilename(self.key))
-
 def dependency(depend_pagename, source_pagename, request):
   # note that depend_pagename depends on source_pagename
   # this means that if source_pagename is updated we should

@@ -190,7 +190,8 @@ def execute(macro, args, formatter=None, **kw):
     d['q_page_name'] = wikiutil.quoteWikiname(pagename)
 
     # flush output because getting all the changes may take a while in some cases
-    request.flush()
+    # this may actually be bad for web server performance
+    #request.flush()
 
     # set max size in days
     max_days = min(int(request.form.get('max_days', [0])[0]), _DAYS_SELECTION[-1])
@@ -199,11 +200,11 @@ def execute(macro, args, formatter=None, **kw):
     bookmark = request.user.getBookmark()
 
     # default to _MAX_DAYS for useres without bookmark
-    if not max_days and not bookmark:
+    if not max_days:
         max_days = _MAX_DAYS
     d['rc_max_days'] = max_days
 
-    lines = wikidb.getRecentChanges(request, max_days=max_days)
+    lines = wikidb.getRecentChanges(request, max_days=max_days, changes_since=bookmark)
 
     tnow = time.time()
     msg = ""
@@ -239,9 +240,9 @@ def execute(macro, args, formatter=None, **kw):
     else:
         d['rc_days'] = []
 
-    # add rss link
-    d['rc_rss_link'] = None
-    d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="/%s%sRecent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><div style="float:right;"><a title="Recent Changes RSS Feed" href="/%s%sRecent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (config.relative_dir, add_on, config.relative_dir, add_on)
+    ## add rss link
+    #d['rc_rss_link'] = None
+    #d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="%s/Recent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><div style="float:right;"><a title="Recent Changes RSS Feed" href="%s/Recent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (request.getScriptname(), request.getScriptname())
 
     request.write(request.theme.recentchanges_header(d))
     
@@ -257,7 +258,7 @@ def execute(macro, args, formatter=None, **kw):
 	# 2006-05 calling may here is too expensive.  just show them the page.  on the off change they can't read it, then, well, clicking on it won't be too productive for them.
         #if not request.user.may.read(line.page):
         #    continue
-
+        if not line.ed_time: continue
         line.time_tuple = request.user.getTime(line.ed_time)
         day = line.time_tuple[0:3]
         hilite = line.ed_time > (bookmark or line.ed_time)

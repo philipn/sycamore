@@ -54,7 +54,7 @@ def imgSend(request):
        request.http_headers()
        request.write("No image..?")
 
-  filename = urllib.unquote_plus(filename_encoded)
+  filename = urllib.unquote(filename_encoded)
   d = {'filename':filename, 'page_name':pagename, 'image_version':version, 'maxsize': size} 
   try:
     image, modified_time_unix = wikidb.getImage(request, d, deleted=deleted, thumbnail=thumbnail, version=version, ticket=ticket)
@@ -73,7 +73,7 @@ def imgSend(request):
     request.do_gzip = False
     request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring)])
     #output image
-    request.write(image)
+    request.write(image, raw=True)
   else:
     request.http_headers()
     request.write("No image..?")

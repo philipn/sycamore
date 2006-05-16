@@ -153,6 +153,7 @@ def print_context(the_search, text, request, context=40, max_context=10):
  location = None
  terms = the_search.terms
  exact_terms = the_search.printable_terms 
+ found_terms = {}
 
  for term in terms:
    if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
@@ -161,6 +162,7 @@ def print_context(the_search, text, request, context=40, max_context=10):
    found_loc = fixed_text.find(term_string)
    while True:
      if found_loc == -1: break
+     found_terms[term_string] = True
      terms_with_location.append((term_string, found_loc))
      rel_position = fixed_text[found_loc+len(term_string):].find(term_string)
      if rel_position == -1:
@@ -172,6 +174,7 @@ def print_context(the_search, text, request, context=40, max_context=10):
      if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
      else: term_string = term
      term_string = term_string.lower()
+     if term_string in found_terms: continue
      found_loc = fixed_text.find(term_string)
      while True:
        if found_loc == -1: break
@@ -792,8 +795,9 @@ def do_savepage(pagename, request):
     control_chars = '\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f' \
                     '\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f'
     remap_chars = string.maketrans('\t\r\n', '   ')
-    comment = comment.translate(remap_chars, control_chars)
+    comment = comment.encode('utf-8').translate(remap_chars, control_chars).decode('utf-8')
 
+    pg_proper_name = pg.proper_name()
     if request.form.has_key('button_preview') or request.form.has_key('button_spellcheck') \
             or request.form.has_key('button_newwords'):
         pg.sendEditor(preview=savetext, comment=comment)
@@ -820,7 +824,7 @@ There was an edit conflict between your changes!</b> Please review the conflicts
             pg = Page(backto, request)
 
 	# clear request cache so that the user sees the page as existing
-	request.req_cache['pagenames'][pagename.lower()] = pg.proper_name()
+	request.req_cache['pagenames'][pagename.lower()] = pg_proper_name
         pg.send_page(msg=savemsg, send_headers=False)
         #request.http_redirect(pg.url())
 

@@ -262,7 +262,7 @@ class Parser:
 	      text = word
 	      alt_text = False
 
-	    base_pagename = self.formatter.page.page_name
+	    base_pagename = self.formatter.page.proper_name()
 	    split_base_pagename = base_pagename.split('/')
 	    split_pagename = word.split('/')
 	    for entry in split_pagename:
@@ -279,7 +279,8 @@ class Parser:
 	      word = split_base_pagename[0]
 	      if len(word) > 1:
                 for entry in split_base_pagename[1:]:
-                  word += '/' + entry
+		  if entry:
+                    word += '/' + entry
 
         if not text:
 	    text = word
@@ -287,7 +288,7 @@ class Parser:
 	if word.lower() == self.formatter.page.page_name:
             return text 
         if config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
-            word = self.formatter.page.page_name + word
+            word = self.formatter.page.proper_name() + word
         text = self.highlight_text(text)
         if word == text:
             return self.formatter.pagelink(word)
@@ -691,7 +692,7 @@ class Parser:
         if self.titles[title_text] > 1:
             unique_id = '-%d' % self.titles[title_text]
 
-        return self.formatter.heading(depth, self.highlight_text(title_text), icons=icons, id="head-"+sha.new(title_text).hexdigest()+unique_id)
+        return self.formatter.heading(depth, self.highlight_text(title_text), icons=icons, id=("head-"+sha.new(title_text.encode('utf-8')).hexdigest()+unique_id).decode('utf-8'))
 
 
     def _processor_repl(self, word):
@@ -863,13 +864,17 @@ class Parser:
 
     def replace(self, match):
         #hit = filter(lambda g: g[1], match.groupdict().items())
-        for type, hit in match.groupdict().items():
-            if hit is not None and type != "hmarker":
+        for ttype, hit in match.groupdict().items():
+            if hit is not None and ttype != "hmarker":
                 ##print "###", cgi.escape(`type`), cgi.escape(`hit`), "###"
-                if self.in_pre and type not in ['pre', 'ent']:
-                    return self.highlight_text(hit)
+                if self.in_pre and ttype not in ['pre', 'ent']:
+                    return_str = self.highlight_text(hit)
                 else:
-                    return getattr(self, '_' + type + '_repl')(hit)
+                    return_str = getattr(self, '_' + ttype + '_repl')(hit)
+	        if type(return_str) == str:
+		  return return_str.decode('utf-8')
+		else:
+		  return return_str
         else:
             import pprint
             raise Exception("Can't handle match " + `match`
