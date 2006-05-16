@@ -264,10 +264,20 @@ h1 a, h2 a, h3 a{
 text-decoration: none;
 }
 
+.sectionEdit
+{
+width: 100%;
+}
+
 .editBarIcon
 {
   height: 24px;
   width: 24px;
+}
+
+.sectionEditLink
+{
+  margin-top: .4em;
 }
 
 td { padding: 1pt; } 
@@ -491,7 +501,6 @@ td.user_banner table { margin: 5px !important; }
         padding-top: 0px;
         padding-bottom: 0px;
         background-color: #000000;
-        background-image: url(../img/floater.png);
         background-repeat: no-repeat;
 	font-size: 10pt;
         background-position: 15px; 
