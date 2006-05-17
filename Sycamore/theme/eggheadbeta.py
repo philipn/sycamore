@@ -220,7 +220,7 @@ class Theme(ThemeBase):
 	        tabclass = '%s activeTab' % tabclass
 		in_preset_tab = True
 	      if lower_tab == 'bookmarks' and  self.request.user.hasUnseenFavorite():
-	        tabclass = '%s notice'
+	        tabclass = '%s notice' % tabclass
 
               html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
 
