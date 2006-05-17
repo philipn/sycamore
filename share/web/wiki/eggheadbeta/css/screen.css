@@ -501,6 +501,7 @@ td.user_banner table { margin: 5px !important; }
         padding-top: 0px;
         padding-bottom: 0px;
         background-color: #000000;
+	background-image: url(../img/floater.png);
         background-repeat: no-repeat;
 	font-size: 10pt;
         background-position: 15px; 
