@@ -28,6 +28,7 @@ from farmconfig import *
 # basic options (you normally need to change these)
 sitename = 'Sycamore Default Install'
 interwikiname = None
+interwiki_map = 'Interwiki Map'
 
 #no slashes at the end on these guys !!
 data_dir = os.path.join(__directory__, 'data')
@@ -83,7 +84,7 @@ footer_buttons = ["""<a href="http://creativecommons.org/licenses/by/2.0/"><img 
 
 # MySQL database settings.
 db_type = 'mysql'
-db_name = 'wiki2'
+db_name = 'wiki'
 db_user = 'root'
 db_user_password = ''
 db_host = 'localhost'
@@ -110,7 +111,7 @@ search_db_location = os.path.join(data_dir, 'search')
 
 # encoding and WikiName char sets
 # (change only for outside America or Western Europe)
-charset = 'iso-8859-1'
+charset = 'utf-8'
 upperletters = "A-Z??????????????????????????????"
 lowerletters = "0-9a-z?????????????????????????????????"
 
