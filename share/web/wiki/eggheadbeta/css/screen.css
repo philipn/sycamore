@@ -57,19 +57,19 @@ div.tabArea {
 #tabPage h3 { margin-top: 9pt;}
 
 span.floatLeft {
-  margin: .3em 10px 10px 0px;
+  margin: .6em 10px 10px 0px;
   float: left;
   clear: left;
 }
 
 span.floatRight {
-  margin: .3em 0px 10px 10px;
+  margin: .6em 0px 10px 10px;
   float: right;
   clear: right;
 }
 
 span.noFloat {
-  margin: .3em 10px 10px 0px;
+  margin: .6em 10px 10px 0px;
   float: left;
 }
 
@@ -255,7 +255,7 @@ body {
 h2, h3, h4, h5, h6 {
         font-family:  Verdana, sans-serif;
         color: black;
-        margin-bottom: 5px;
+        margin-bottom: 7px;
         clear:both;
 	margin-bottom: .4em;
 }
@@ -264,20 +264,34 @@ h1 a, h2 a, h3 a{
 text-decoration: none;
 }
 
-.sectionEdit
+table.sectionEdit h2 
+{ 
+border-bottom: none; 
+margin: -0.1em; 
+font-size: 2em; 
+} 
+
+table.sectionEdit 
+{ 
+border-bottom: 1px dashed #aaaaaa;
+margin-bottom: 7px;
+margin-right: 1em;
+}
+
+table.sectionEdit a
 {
-width: 100%;
+text-decoration: none;
+}
+
+table.sectionEdit td 
+{ 
+vertical-align: bottom; 
 }
 
 .editBarIcon
 {
   height: 24px;
   width: 24px;
-}
-
-.sectionEditLink
-{
-  margin-top: .4em;
 }
 
 td { padding: 1pt; } 
@@ -420,9 +434,9 @@ span.actionBoxSelected { border: none !important;
      z-index: 2;
      border-bottom: none;}
 
-#tabmenu li.active { border-bottom: 3px solid white !important; padding-top: 2pt; top: -2px; _top: -1px;}
+#tabmenu li.active { border-bottom: 3px solid white !important; _border-bottom: 3px solid white !important; padding-top: 2pt; top: -2px; _top: -1px;}
 #tabmenu li a { text-decoration: none; }
-#tabmenu li.active a { border-bottom: 3px solid white !important; padding-top: 2.5pt; top: -2px; _top: -1px;}
+#tabmenu li.active a { border-bottom: 3px solid white !important; _border-bottom: 1px solid white !important; padding-top: 2.5pt; _padding-top: 0; _top: -1px;}
 
 pre {
         border: 1px solid #CBCBCB;
@@ -433,9 +447,20 @@ pre {
 hr {
     background-color: #CBCBCB;
     color: #CBCBCB;
-        width: auto;
-        text-align: left;
+    text-align: left;
     margin: 10px 0px 10px 4px;
+}
+
+.floatLeftTOC
+{
+  float: left;
+  margin-right: 15px;
+}
+
+.floatRightTOC
+{
+  float: right;
+  margin-left: 15px;
 }
 
 .footnotes div {
