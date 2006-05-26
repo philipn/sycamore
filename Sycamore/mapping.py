@@ -11,18 +11,21 @@ from Sycamore.wikiutil import quoteFilename
 from Sycamore import config
 from Sycamore.Page import Page
 
-def convert_xml(dom):
+def convert_xml(dom, proper_case=False):
   pages = dom.getElementsByTagName("page")
   mapPoints = []
   for page in pages:
     id = page.getAttribute("id")
-    name = page.getAttribute("name").lower()
+    name = page.getAttribute("name")
     location = page.getElementsByTagName("location")[0]
     x = location.getAttribute("x")
     y = location.getAttribute("y")
     cats = page.getElementsByTagName("cat")
     categories = [cat.getAttribute("id") for cat in cats]
-    mapPoints.append((id, name, x, y, categories))
+    if not proper_case:
+      mapPoints.append((id, name.lower(), x, y, categories))
+    else:
+      mapPoints.append((id, name, x, y, categories))
   return mapPoints
 
 def update_points(mapPoints, request, pagename=None):
@@ -38,14 +41,14 @@ def update_points(mapPoints, request, pagename=None):
   given_id_items_for_pagename = []
   if pagename:
     # we get all ids for the pagename so we know which ones to delete afterward
-    cursor.execute("SELECT id, x, y from mapPoints where pagename=%(page_name)s", {'page_name':pagename})
+    cursor.execute("SELECT id, x, y, created_time, created_by, created_by_ip from mapPoints where pagename=%(page_name)s", {'page_name':pagename.lower()})
     all_id_items_result = cursor.fetchall()
     for pagename_id_item in all_id_items_result:
       all_id_items_for_pagename.append(pagename_id_item)
 
   for point in mapPoints:
     id = point[0]
-    name = point[1]
+    name = point[1].lower()
     name_propercased = Page(name, request).proper_name()
     x = point[2]
     y = point[3]
@@ -86,13 +89,15 @@ def update_points(mapPoints, request, pagename=None):
       cursor.execute("SELECT pagename from mapPointCategories where pagename=%(name)s and x=%(x)s and y=%(y)s and id=%(category)s", {'name':name, 'x':x, 'y':y, 'category':category})
       result = cursor.fetchone()
       if result:
-        cursor.execute("UPDATE mapPointCategories set x=%(x)s, y=%(y)s where pagename=%(name)s and  id=%(category)s", {'name':name, 'x':x, 'y':y, 'category':category}, isWrite=True)
+        cursor.execute("SELECT pagename from mapPointCategories where x=%(x)s and y=%(y)s and pagename=%(name)s and id=%(category)s", {'name':name, 'x':x, 'y':y, 'category':category})
+        if not cursor.fetchone():
+           cursor.execute("UPDATE mapPointCategories set x=%(x)s, y=%(y)s where pagename=%(name)s and  id=%(category)s", {'name':name, 'x':x, 'y':y, 'category':category}, isWrite=True)
       else:
         cursor.execute("INSERT into mapPointCategories (pagename, x, y, id) values (%(name)s, %(x)s, %(y)s, %(category)s)", {'name':name, 'x':x, 'y':y, 'category':category}, isWrite=True)
   # delete the points they didn't send us for pagename
   if pagename:
     delete_id_items = []
-    # this nastiness is to deal with the differences b/t unicode and noraml strings and the 'in' operation being based on id()
+    # this nastiness is to deal with the differences b/t unicode and normal strings and the 'in' operation being based on id()
     for id_item in all_id_items_for_pagename:
       append_item = True
       for id_item2 in given_id_items_for_pagename:
@@ -106,18 +111,23 @@ def update_points(mapPoints, request, pagename=None):
       id = id_item[0]
       x = id_item[1]
       y = id_item[2]
+      created_time = id_item[3]
+      created_by = id_item[4]
+      created_by_ip = id_item[5]
       old_categories = []
-      cursor.execute("SELECT id from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename, 'x':x, 'y':y})
+      cursor.execute("SELECT id from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename.lower(), 'x':x, 'y':y})
       result = cursor.fetchall()
       for cat_id in  result:
         old_categories.append(cat_id[0])
         
-      cursor.execute("INSERT into oldMapPoints (pagename, x, y, created_time, created_by, created_by_ip, deleted_time, deleted_by, deleted_by_ip, pagename_propercased) values (%(pagename)s, %(x)s, %(y)s, (select created_time from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s), (select created_by from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(pagename)s), (select created_by_ip from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s), %(time_now)s, %(deleted_by)s, %(deleted_by_ip)s, (select pagename_propercased from mapPoints where pagename=%(pagename)s and x=%(x)s and y=(y)s))", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr}, isWrite=True)
+      cursor.execute("INSERT into oldMapPoints (pagename, x, y, created_time, created_by, created_by_ip, deleted_time, deleted_by, deleted_by_ip, pagename_propercased) values (%(pagename)s, %(x)s, %(y)s, %(created_time)s, %(created_by)s, %(created_by_ip)s, %(time_now)s, %(deleted_by)s, %(deleted_by_ip)s, (select pagename_propercased from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s))", {'pagename':pagename.lower(), 'x':x, 'y':y, 'time_now':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr, 'created_by': created_by, 'created_by_ip':created_by_ip, 'created_time':created_time}, isWrite=True)
       cursor.execute("DELETE from mapPoints where pagename=%(pagename)s and id=%(id)s", {'pagename':pagename, 'id':id}, isWrite=True)
       for old_category in old_categories:
         cursor.execute("INSERT into oldMapPointCategories (pagename, x, y, deleted_time, id) values (%(pagename)s, %(x)s, %(y)s, %(time_now)s, %(old_category)s)", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category}, isWrite=True)
-      cursor.execute("DELETE from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename, 'x':x, 'y':y}, isWrite=True)
-  
+      cursor.execute("DELETE from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename.lower(), 'x':x, 'y':y}, isWrite=True)
+
     # clear the memcache accordingly
     key = quoteFilename(pagename.lower())
     request.mc.delete("page_info:%s" % key)
+    if request.req_cache['page_info'].has_key(key):
+       del request.req_cache['page_info'][key]

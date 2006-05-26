@@ -62,14 +62,14 @@ class Theme(ThemeBase):
       if editable:
         if self.isEdit(): status = 'Selected'
 	else: status = ''
-	return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
+	return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
 	   '%s<br/>Edit' % self.make_icon('edit', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
       else:  return ''
 
     def infoicon(self, d):
        if self.isInfo(): status = 'Selected' 
        else: status = ''
-       return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info',
+       return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info',
 	   '%s<br/>Info' % self.make_icon('info', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
 
     def talkicon(self, d):
@@ -77,25 +77,25 @@ class Theme(ThemeBase):
 
       if d['page'].isTalkPage():
          article_name = d['page_name'][:len(d['page_name'])-5]
-         return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(article_name),
+         return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(article_name),
          '%s<br/>Article' % self.make_icon('article', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
       else:
         talk_page = Page(d['page_name']+'/Talk', self.request)
         if talk_page.exists():
-          return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
+          return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
          '%s<br/>Talk' % self.make_icon('talk', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
         else:
           # if the viewer can't edit the talk page, let's spare them from looking at a useless link to an empty page:
           if not self.request.user.may.edit(talk_page):
             return ''
-          return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent" onmouseover="a.hover"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
+          return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
          '%s<br/>Talk' % self.make_icon('talk', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
 
 
     def mapicon(self, d):
       if self.showapplet:
-        return """<td class="pageIcon" id="show"><a href="#" style="text-decoration: none;" onmouseover="a.hover" onclick="doshow();">%s<br/>Map</a></td>
-	          <td style="display: none;" class="pageIcon" id="hide"><a href="#" style="text-decoration: none;" onmouseover="a.hover" onclick="dohide();">%s<br/>Map</a></td>""" % (self.make_icon('viewmap'), self.make_icon('hidemap'))
+        return """<td class="pageIcon" id="show"><a href="#" style="text-decoration: none;"onclick="doshow();">%s<br/>Map</a></td>
+	          <td style="display: none;" class="pageIcon" id="hide"><a href="#" style="text-decoration: none;" onclick="dohide();">%s<br/>Map</a></td>""" % (self.make_icon('viewmap', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix), self.make_icon('hidemap', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix))
       else: return ''
 
 
@@ -224,7 +224,7 @@ class Theme(ThemeBase):
 
               html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
 
-	    if not in_preset_tab:
+	    if not in_preset_tab and d['page_name']:
               html.append('<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a> ')
         else:
             html = ['<div class="tabArea">']
@@ -238,7 +238,7 @@ class Theme(ThemeBase):
 
               html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
 
-	    if not in_preset_tab:
+	    if not in_preset_tab and d['page_name']:
               html.append('<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a> ')
 
 
@@ -372,7 +372,7 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
            self.showapplet = True
         apphtml = ''
         if self.showapplet:
-           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, d['script_name'], d['page_name'], d['script_name'])
+           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, d['script_name'], d['page_name'], d['script_name'])
         dict = {
             'config_header1_html': self.emit_custom_html(config.page_header1),
             'config_header2_html': self.emit_custom_html(config.page_header2),

@@ -2,14 +2,11 @@
 
 from Sycamore import wikiutil, wikiform, config
 
-Dependencies = []
+#Dependencies = []
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
     text = []
-    relative_dir = ''
-    if config.relative_dir:
-       relative_dir = '/' + config.relative_dir
     if args:
        title = args
     else:
@@ -22,6 +19,6 @@ def execute(macro, args, formatter=None):
                 '<input class="formfields" type="text" name="comment_text" size="75">\n'
                 '<input type="hidden" name="button" value="Add Comment">\n'
                 '<input class="formbutton" type="submit" name="button" value="Add Comment">\n'
-                '</form>' % (title, relative_dir, macro.formatter.page.proper_name()))
+                '</form>' % (title, macro.request.getScriptname(), macro.formatter.page.proper_name()))
 
     return formatter.rawHTML(''.join(text))

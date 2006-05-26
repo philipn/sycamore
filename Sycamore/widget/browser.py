@@ -45,7 +45,14 @@ class DataBrowserWidget(base.Widget):
             for idx in range(len(row)):
                 if self.data.columns[idx].hidden: continue
                 result.append(fmt.table_cell(1))
-                result.append(str(row[idx]))
+		item = row[idx]
+		if type(item) != unicode and type(item) != str:
+                  result.append(unicode(str(item)))
+		elif type(item) == str:
+                  result.append(item.decode('utf-8'))
+                else:
+		  result.append(item)
+
                 result.append(fmt.table_cell(0))
             result.append(fmt.table_row(0))
             row = self.data.next()

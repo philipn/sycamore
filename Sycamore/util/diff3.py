@@ -14,13 +14,13 @@ def text_merge(old, other, new,
                marker3='>>>>>>>>>>>>>>>>>>>>>>>>>\n'):
   had_conflict = False
   oldfile = tempfile.NamedTemporaryFile()
-  oldfile.write(old)
+  oldfile.write(old.encode('utf-8'))
   oldfile.flush()
   otherfile = tempfile.NamedTemporaryFile()
-  otherfile.write(other)
+  otherfile.write(other.encode('utf-8'))
   otherfile.flush()
   myfile = tempfile.NamedTemporaryFile()
-  myfile.write(new)
+  myfile.write(new.encode('utf-8'))
   myfile.flush()
   random_num = random.random()
   diff3_result = os.popen("%s %s -L mine%s %s -L old%s %s -L yours%s --merge" % (config.diff3_location, myfile.name, random_num, oldfile.name, random_num, otherfile.name, random_num), 'r')
@@ -32,6 +32,7 @@ def text_merge(old, other, new,
   final_output = []
   ignore = False
   for line in diff3_result:
+    line = line.decode('utf-8')
     if line == my_marker:
       had_conflict = True
       final_output.append(marker1)

@@ -107,7 +107,7 @@ class Parser:
         self.in_dd = 0
         self.in_pre = 0
         self.in_table = 0
-        self.inhibit_p = 0 # if set, do not auto-create a <p>aragraph
+        self.inhibit_p = 1 # if set, do not auto-create a <p>aragraph
         self.titles = {}
 
         # holds the nesting level (in chars) of open lists
@@ -117,8 +117,6 @@ class Parser:
 
     def _close_item(self, result):
         #result.append("<!-- close item begin -->\n")
-        if self.formatter.in_p:
-            result.append(self.formatter.paragraph(0))
         if self.in_li:
             self.in_li = 0
             result.append(self.formatter.listitem(0))
@@ -364,18 +362,18 @@ class Parser:
 
         if words[0][0] == '#':
             # anchor link
-            return self.formatter.url(words[0], self.highlight_text(words[1]))
+            if len(words) > 1:
+              return self.formatter.url(words[0], self.highlight_text(words[1]))
+            else:
+              return self.formatter.url(words[0], self.highlight_text(words[0][1:]))
 
         scheme = words[0].split(":", 1)[0]
         if scheme == "wiki": return self.interwiki(words, pretty_url=1)
         #if scheme in self.attachment_schemas:
         #    return self.attachment(words, pretty_url=1)
 
-        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]):
- 	    if len(words) >= 2:
-              text = self.formatter.image(title=''.join(words[1:]), alt=''.join(words[1:]), src=words[0])
- 	    else:
-              text = self.formatter.image(title=words[0], alt=words[0], src=words[0])
+        if len(words) == 1 and wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]):
+            text = self.formatter.image(title=words[0], alt=words[0], src=words[0])
         else:
             text = web.getLinkIcon(self.request, self.formatter, scheme)
             if len(words) == 1:
@@ -878,8 +876,8 @@ class Parser:
                 # paragraph break on empty lines
                 if not line.strip():
                     #self.request.write("<!-- empty line start -->\n")
-                    if self.formatter.in_p:
-                        self.request.write(self.formatter.paragraph(0))
+                    #if self.formatter.in_p:
+                    #    self.request.write(self.formatter.paragraph(0))
                     if self.in_table:
                         self.request.write(self.formatter.table(0))
                         self.in_table = 0
@@ -934,7 +932,7 @@ class Parser:
             formatted_line = self.scan(scan_re, line) # this also sets self.inhibit_p as side effect!
             
             #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
-            if not (self.inhibit_p or self.in_pre or self.in_table or self.formatter.in_p):
+            if not (self.inhibit_p or self.in_pre or self.in_table):
                 self.request.write(self.formatter.paragraph(1))
 
             #self.request.write("<!-- %s\n     start -->\n" % line)
@@ -949,7 +947,6 @@ class Parser:
 
         # close code displays, paragraphs, tables and open lists
         if self.in_pre: self.request.write(self.formatter.preformatted(0))
-        if self.formatter.in_p: self.request.write(self.formatter.paragraph(0))
         if self.in_table: self.request.write(self.formatter.table(0))
         self.request.write(self._undent())
 

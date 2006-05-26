@@ -2,7 +2,7 @@
 """
     Sycamore - RandomQuote Macro
 
-    Selects a random quote from FortuneCookies or a given page.
+    Selects a random quote from Fortune Cookies or a given page.
 
     Usage:
         [[RandomQuote()]]
@@ -28,7 +28,7 @@ def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
     _ = macro.request.getText
 
-    pagename = args or 'FortuneCookies'
+    pagename = args or 'Fortune Cookies'
     page = Page(pagename, macro.request)
     raw = page.get_raw_body()
     if not macro.request.user.may.read(page):

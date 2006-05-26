@@ -296,7 +296,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
           relative_dir = '/' + config.relative_dir
         if show_applet:
           mapButton = '<input id="show" class="formbutton" type="button" value="Edit Map" onclick="doshow();"/><input class="formbutton" id="hide" style="display: none;" type="button" value="Hide Map" onclick="dohide();"/>'
-          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar, %s/wiki/txp.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, config.web_dir, relative_dir, self.proper_name(), relative_dir)
+          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, relative_dir, self.proper_name(), relative_dir)
         
         self.request.write('''
 <table id="editButtonRow"><tr height="30"><td nowrap><font size="3">
@@ -395,6 +395,10 @@ Your changes were sucessfully merged!""" % conflict_msg)
             pass
         # Then really delete it
 	self.request.cursor.execute("DELETE from curPages where name=%(page_name)s", {'page_name':self.page_name}, isWrite=True)
+
+	# update possible groups
+	self.updateGroups()
+
 	from Sycamore import caching, search
 	cache = caching.CacheEntry(self.page_name, self.request)
 	cache.clear(type='page save delete')
@@ -658,7 +662,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         elif config.acl_enabled:
 	    from wikiacl import parseACL
             acl = self.getACL()
-            if not acl.may(self.request, self.request.user.name, "admin") \
+            if not acl.may(self.request, self.request.user.propercased_name, "admin") \
                and parseACL(newtext) != acl:
                 msg = _("You can't change ACLs on this page since you have no admin rights on it!")
                 raise self.NoAdmin, msg
@@ -680,14 +684,8 @@ Your changes were sucessfully merged!""" % conflict_msg)
             if self._acl_cache.has_key(self.page_name):
                 del self._acl_cache[self.page_name]
 
-	    # see if we need to update the group dictionary
-	    if wikiutil.isGroupPage(self.page_name):
-	      from Sycamore import wikidicts
-              dicts = wikidicts.GroupDict(self.request)
-              dicts.scandicts()
-	      dicts.addgroup(self.page_name)
-	      dicts.save()
-
+	    self.updateGroups()
+	    
             # we'll try to change the stats early-on
             if self.request.user.name:
                 self.userStatAdd(self.request.user.name, action, self.page_name)
@@ -707,6 +705,12 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
 	return False
 	  
+    def updateGroups(self):
+       # see if we need to update the group dictionary
+       if wikiutil.isGroupPage(self.page_name):
+         from Sycamore import wikidicts
+         dicts = wikidicts.GroupDict(self.request)
+         dicts.scandicts(force_update=True, update_pagename=self.page_name)
 
 
     def notifySubscribers(self, **kw):

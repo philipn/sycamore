@@ -6,8 +6,8 @@ from Sycamore.Page import Page
 quotes_re = re.compile('"(?P<phrase>[^"]+)"')
 
 MAX_PROB_TERM_LENGTH = 64
-DIVIDERS = '0123456789!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
-DIVIDERS_RE = r"""0123456789!"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~"""
+DIVIDERS = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
+DIVIDERS_RE = r"""!"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~"""
 
 #word_characters = string.letters + string.digits
 def build_regexp(terms):
@@ -162,7 +162,7 @@ if config.has_xapian:
       for term in terms:
         if type(term) == type([]):
           # an exactly-quoted sublist
-  	  exact_query = self._build_query(term, op=xapian.Query.OP_PHRASE)
+  	  exact_query = self._build_query(term, op)
   	  if query: query = xapian.Query(op, query, exact_query)
   	  else: query = xapian.Query(op, exact_query)
         else:
@@ -278,14 +278,17 @@ def _do_postings(doc, text, id, stemmer):
           pos += 1
       i = j
 
-def index(page):
+def index(page, db_location=None, text_db=None, title_db=None):
   if not config.has_xapian: return
+  if not db_location: db_location = config.search_db_location
   # Add page to the search index
   stemmer = xapian.Stem("english")
 
-  database = xapian.WritableDatabase(
-      os.path.join(config.search_db_location, 'title'),
+  if not title_db:
+    database = xapian.WritableDatabase(
+      os.path.join(db_location, 'title'),
       xapian.DB_CREATE_OR_OPEN)
+  else: database = title_db
 
   text = page.page_name.encode('utf-8')
   pagename = page.page_name.encode('utf-8')
@@ -293,9 +296,11 @@ def index(page):
   _do_postings(doc, text, pagename, stemmer)
   database.replace_document("Q:%s" % pagename.lower(), doc)
 
-  database = xapian.WritableDatabase(
-      os.path.join(config.search_db_location, 'text'), 
+  if not text_db:
+    database = xapian.WritableDatabase(
+      os.path.join(db_location, 'text'), 
       xapian.DB_CREATE_OR_OPEN)
+  else: database = text_db
 
   text = page.get_raw_body()
   doc = xapian.Document()

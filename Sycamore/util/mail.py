@@ -60,7 +60,7 @@ def sendmail(request, to, subject, text, **kw):
         # no message-id. if you still have py 2.2.1, you like it old and broken
         
     try:
-        server = smtplib.SMTP(config.mail_smarthost)
+        server = smtplib.SMTP(config.mail_smarthost, 25, config.domain)
 
         try:
             #server.set_debuglevel(1)

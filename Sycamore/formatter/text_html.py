@@ -79,7 +79,7 @@ class Formatter(FormatterBase):
         apply(FormatterBase.pagelink, (self, pagename, text), kw)
         return Page(pagename, self.request).link_to(text, **kw)
 
-    def url(self, url, text=None, css=None, **kw):
+    def url(self, url, text=None, css=None, show_image=True, **kw):
         """
             Keyword params:
                 title - title attribute
@@ -89,7 +89,7 @@ class Formatter(FormatterBase):
         pretty = kw.get('pretty_url', 0)
         title = kw.get('title', None)
 
-        if not pretty and wikiutil.isPicture(url):
+        if show_image and not pretty and wikiutil.isPicture(url):
             return '<img src="%s" alt="%s">' % (url,url)
 
         if text is None: text = url
@@ -110,8 +110,8 @@ class Formatter(FormatterBase):
         href = wikiutil.join_wiki(wikiurl, wikitail)
 
         # check for image URL, and possibly return IMG tag
-        if not kw.get('pretty_url', 0) and wikiutil.isPicture(wikitail):
-            return self.formatter.image(src=href)
+        #if not kw.get('pretty_url', 0) and wikiutil.isPicture(wikitail):
+        #    return self.formatter.image(src=href)
             
         # link to self?
         if wikitag is None:
@@ -129,7 +129,7 @@ class Formatter(FormatterBase):
         icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag})
         
         return self.url(href, icon + text,
-            title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class)
+            title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class, show_image=False)
   
  
     def anchordef(self, id):
@@ -288,8 +288,10 @@ class Formatter(FormatterBase):
 	    
 	    if not (self.request.form.has_key('action') and self.request.form['action'][0] == 'print') and \
 	       self.request.user.may.edit(Page(pagename, self.request)):
-	         result = '<div class="sectionEdit">[%s]</div>%s' % \
-		    (Page(pagename, self.request).link_to(text="edit", querystr="action=edit&backto=%s" % backto, know_status=True, know_status_exists=True), result)
+	         result = '<table class="sectionEdit" width="98%%"><tr><td align="left">%s</td><td align="right">[%s]</td></tr></table>' % \
+		    (result, Page(pagename, self.request).link_to(text="edit", querystr="action=edit&backto=%s" % backto, know_status=True, know_status_exists=True))
+	    else:
+	         result = '<table class="sectionEdit" width="98%%"><tr><td align="left">%s</td></tr></table>' % result
         return result
     
     # Tables #############################################################

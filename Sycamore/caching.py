@@ -34,12 +34,12 @@ class CacheEntry:
 	self.request.cursor.execute("DELETE from links where source_pagename=%(key)s", {'key':self.key}, isWrite=True)
 	for link in links:
 	  self.request.cursor.execute("INSERT into links (source_pagename, destination_pagename, destination_pagename_propercased) values (%(key)s, %(link)s, %(link_propercased)s)", {'key':self.key, 'link':link.lower(), 'link_propercased':link}, isWrite=True)
-	page_info = pageInfo(Page(self.key, self.request))
+	page_info = pageInfo(Page(self.key, self.request), get_from_cache=False, cached_content=content, cached_time=cached_time)
         text = wikidb.binaryToString(content)
         page_info.cached_text = (text, cached_time)
 	if config.memcache:
            self.request.mc.set("page_info:%s" % wikiutil.quoteFilename(self.key), page_info)
-        self.request.req_cache['page_info'][self.key] = page_info
+        self.request.req_cache['page_info'][wikiutil.quoteFilename(self.key)] = page_info
 
 
     def content_info(self):
@@ -52,7 +52,7 @@ class CacheEntry:
       return self.content_info()[0]
 
     def clear(self, type=None):
-        key = wikiutil.quoteFilename(self.key.lower())
+        key = wikiutil.quoteFilename(self.key)
         if self.request.req_cache['page_info'].has_key(key):
           del self.request.req_cache['page_info'][key]
         #clears the content of the cache regardless of whether or not the page needs an update
@@ -147,25 +147,27 @@ def find_meta_text(page):
     meta_text = '\n'.join(meta_text)
     return meta_text
 
-def pageInfo(page):
+def pageInfo(page, get_from_cache=True, cached_content=None, cached_time=None):
   """
   Gets a group of related items for a page: last edited information, page cached text, meta-text (such as #redirect), and has_map.
   Returns an object with attributes edit_info, cached_text, meta_text, has_map.
   """
+
   pagename_key = wikiutil.quoteFilename(page.page_name.lower())
   if page.prev_date: key = u"%s,%s" % (pagename_key, page.prev_date)
   else: key = pagename_key
 
-  # check per-request cache
-  if page.request.req_cache['page_info'].has_key(key):
-    return page.request.req_cache['page_info'][key]
-  
-  # check memcache
-  if config.memcache:
-    page_info = page.request.mc.get("page_info:%s" % key)
-    if page_info:
-      page.request.req_cache['page_info'][key] = page_info
-      return page_info
+  if get_from_cache:
+    # check per-request cache
+    if page.request.req_cache['page_info'].has_key(key):
+      return page.request.req_cache['page_info'][key]
+    
+    # check memcache
+    if config.memcache:
+      page_info = page.request.mc.get("page_info:%s" % key)
+      if page_info:
+        page.request.req_cache['page_info'][key] = page_info
+        return page_info
 
   # memcache failed, this means we have to get all the information from the database
 
@@ -190,20 +192,23 @@ def pageInfo(page):
     # cached text
     cached_text = ('', 0)
     if not page.prev_date:
-      page.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(page)s", {'page':page.page_name})
-      result = page.request.cursor.fetchone()
-      if result:
-        if result[0] and result[1]:
-          text = wikidb.binaryToString(result[0])
-          cached_time = result[1]
-          cached_text = (text, cached_time)
+      if not cached_content or not cached_time:
+        page.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(page)s", {'page':page.page_name})
+        result = page.request.cursor.fetchone()
+        if result:
+          if result[0] and result[1]:
+            text = wikidb.binaryToString(result[0])
+            cached_time = result[1]
+            cached_text = (text, cached_time)
+      else:
+        cached_text = cached_content
 
     # meta_text
     meta_text = find_meta_text(page)
     
   else:
    # set some defaults.  These shouldn't be accessed.
-   edit_info = None
+   edit_info = (None, None)
    cached_text = ('', 0)
    meta_text = None
    has_map = False

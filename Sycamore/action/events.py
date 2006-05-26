@@ -8,15 +8,15 @@ import xml.dom.minidom
 
 creator_text = 'The %s Robot' % config.sitename
 
-def clean(text):
-	text=text.replace('\x85','&#8230;') # elipsis
-	text=text.replace('\x91','&#8216;') # opening single quote
-	text=text.replace('\x92','&#8217;') # closing single quote
-	text=text.replace('\x93','&#8220;') # opening double quote
-	text=text.replace('\x94','&#8221;') # closing double quote
-	text=text.replace('\x96','&#8211;') # en-dash
-	text=text.replace('\x97','&#8212;') # em-dash
-	return text
+#def clean(text):
+#	text=text.replace('\x85','&#8230;') # elipsis
+#	text=text.replace('\x91','&#8216;') # opening single quote
+#	text=text.replace('\x92','&#8217;') # closing single quote
+#	text=text.replace('\x93','&#8220;') # opening double quote
+#	text=text.replace('\x94','&#8221;') # closing double quote
+#	text=text.replace('\x96','&#8211;') # en-dash
+#	text=text.replace('\x97','&#8212;') # em-dash
+#	return text
 
 
 def execute(pagename, request):
@@ -66,7 +66,7 @@ def execute(pagename, request):
             uid = request.form.get('uid')[0]
 	    request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
 	    name = request.cursor.fetchone()[0]
-	    request.cursor.execute("DELETE from events where uid=%(uid)s and posted_by=%(username)s", {'uid':uid, 'username':request.user.name}, isWrite=True)
+	    request.cursor.execute("DELETE from events where uid=%(uid)s and posted_by=%(username)s", {'uid':uid, 'username':request.user.propercased_name}, isWrite=True)
             msg = 'Event "%s" <b>deleted</b>!' % name
 
 
@@ -78,9 +78,9 @@ def execute(pagename, request):
         if not _checkTicket(request.form['ticket'][0]):
            msg = _('Please use the web interface to change the page!')
         else:
-           event_text = clean(request.form.get('event_text')[0])
-           event_name = clean(request.form.get('event_name')[0])
-           event_location = clean(request.form.get('event_location')[0])
+           event_text = request.form.get('event_text')[0]
+           event_name = request.form.get('event_name')[0]
+           event_location = request.form.get('event_location')[0]
            month = int(request.form.get('month')[0])
            day = int(request.form.get('day')[0])
            hour = int(request.form.get('hour')[0])

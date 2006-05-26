@@ -557,7 +557,7 @@ class Page(object):
                 #    trail = request.user.getTrail()
                 wikiutil.send_title(request, title, link=link, msg=msg,
                     pagename=proper_name, print_mode=print_mode, pi_refresh=pi_refresh,
-                    allow_doubleclick=1, trail=trail, polite_msg=polite_msg, body_onload="highlighter.highlight();")
+                    allow_doubleclick=1, trail=trail, polite_msg=polite_msg)
 
                 # user-defined form preview?
                 # Todo: check if this is also an RTL form - then add ui_lang_attr

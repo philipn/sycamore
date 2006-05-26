@@ -47,6 +47,8 @@ def execute(pagename, request):
 	    return page.send_page(msg = _('Please use the interfactive user interface to revert pages!'))
 	  else:
 	    comment = 'v%s' % str(version)
+
+	  comment = "%sc%s" % (comment, entered_comment)
         else:
           return
               

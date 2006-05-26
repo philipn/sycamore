@@ -23,10 +23,10 @@ from Sycamore.util import pysupport
 ### Globals
 #############################################################################
 
-names = ["titlesearch", "wordindex", "titleindex",
-         "goto", "interwiki", "systeminfo", "pagecount", "userpreferences",
+names = [ "titleindex",
+         "systeminfo", "pagecount", "userpreferences",
          # Macros with arguments
-         "icon", "pagelist", "date", "datetime", "anchor", "mailto", "getval",
+         "icon", "date", "datetime", "anchor", "mailto", "getval",
 ]
 
 # external macros
@@ -64,7 +64,6 @@ class Macro:
     """
 
     Dependencies = {
-        "titlesearch" : ["namespace"],
         "goto"        : [],
         "wordindex"   : ["namespace"],
         "titleindex"  : ["namespace"],
@@ -73,7 +72,6 @@ class Macro:
         "pagecount"   : ["namespace"],
         "icon"        : ["user"], # users have different themes and user prefs
         "icon"        : [], # users have different themes and user prefs
-        "pagelist"    : ["namespace"],
         "date"        : ["time"],
         "datetime"    : ["time"],
         "userpreferences" :["time"],
@@ -132,10 +130,6 @@ class Macro:
             return result
         else:
             return ["time"]
-
-    def _macro_titlesearch(self, args, formatter=None):
-        if not formatter: formatter = self.formatter
-        return self._m_search("titlesearch")
 
     def _m_search(self, type):
         _ = self._
@@ -215,27 +209,27 @@ class Macro:
 #return 'Temporarily disabled.'
 
 
-    def _macro_interwiki(self, args, formatter=None):
-        if not formatter: formatter = self.formatter
-        from cStringIO import StringIO
+    #def _macro_interwiki(self, args, formatter=None):
+    #    if not formatter: formatter = self.formatter
+    #    from cStringIO import StringIO
 
-        # load interwiki list
-        dummy = wikiutil.resolve_wiki(self.request, '')
+    #    # load interwiki list
+    #    dummy = wikiutil.resolve_wiki(self.request, '')
 
-        buf = StringIO()
-        buf.write('<dl>')
-        list = wikiutil._interwiki_list.items()
-        list.sort()
-        for tag, url in list:
-            buf.write('<dt><tt><a href="%s">%s</a></tt></dt>' % (
-                wikiutil.join_wiki(url, 'RecentChanges'), tag))
-            if url.find('$PAGE') == -1:
-                buf.write('<dd><tt><a href="%s">%s</a></tt></dd>' % (url, url))
-            else:
-                buf.write('<dd><tt>%s</tt></dd>' % url)
-        buf.write('</dl>')
+    #    buf = StringIO()
+    #    buf.write('<dl>')
+    #    list = wikiutil._interwiki_list.items()
+    #    list.sort()
+    #    for tag, url in list:
+    #        buf.write('<dt><tt><a href="%s">%s</a></tt></dt>' % (
+    #            wikiutil.join_wiki(url, 'RecentChanges'), tag))
+    #        if url.find('$PAGE') == -1:
+    #            buf.write('<dd><tt><a href="%s">%s</a></tt></dd>' % (url, url))
+    #        else:
+    #            buf.write('<dd><tt>%s</tt></dd>' % url)
+    #    buf.write('</dl>')
 
-        return self.formatter.rawHTML(buf.getvalue())
+    #    return self.formatter.rawHTML(buf.getvalue())
 
 
     def _macro_systeminfo(self, args, formatter):
@@ -311,31 +305,6 @@ class Macro:
 	self.request.formatter = formatter
         icon = args.lower()
         return self.request.theme.make_icon(icon, actionButton=True)
-
-    def _macro_pagelist(self, args, formatter=None):
-        import re
-        if not formatter: formatter = self.formatter
-        _ = self._
-        try:
-            needle_re = re.compile(args or '', re.IGNORECASE)
-        except re.error, e:
-            return "<strong>%s: %s</strong>" % (
-                _("ERROR in regex '%s'") % (args,), e)
-
-	all_pages = wikiutil.getPageList(self.request)
-        hits = filter(needle_re.search, all_pages)
-        hits.sort()
-	hits = [Page(hit, request) for hit in hits]
-        hits = filter(self.request.user.may.read, hits)
-
-        result = []
-        result.append(self.formatter.bullet_list(1))
-        for page in hits:
-            result.append(self.formatter.listitem(1))
-            result.append(self.formatter.pagelink(page.page_name, generated=1))
-            result.append(self.formatter.listitem(0))
-        result.append(self.formatter.bullet_list(0))
-        return ''.join(result)
 
 
     def __get_Date(self, args, format_date, formatter=None):

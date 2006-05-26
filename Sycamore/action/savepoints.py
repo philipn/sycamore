@@ -1,5 +1,5 @@
 # Imports
-import time, string, os
+import time, string, os, urllib
 import xml.dom.minidom
 from Sycamore import config, user, util, wikiutil, mapping
 from Sycamore.Page import Page
@@ -18,6 +18,7 @@ def execute(pagename, request):
     actname = __name__.split('.')[-1]
 
     request.http_headers()
+    pagename = urllib.unquote_plus(pagename)
 
     if not request.form.has_key('name'):
       request.write('Error: no name');

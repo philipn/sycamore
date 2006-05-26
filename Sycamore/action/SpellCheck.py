@@ -153,7 +153,7 @@ def checkSpelling(page, request, own_form=1):
         return ""
 
     # do the checking
-    for line in text.split('\n'):
+    for line in text.encode('utf-8').split('\n'):
         if line == '' or line[0] == '#': continue
         word_re.sub(checkword, line)
 

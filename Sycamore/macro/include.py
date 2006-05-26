@@ -145,7 +145,7 @@ def execute(macro, args, formatter=None):
 
     formatter.setPage(this_page)
     formatter.request.redirect()
-    text = buffer.getvalue()
+    text = buffer.getvalue().decode('utf-8')
     buffer.close()
     result.append(text)
               

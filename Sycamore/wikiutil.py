@@ -327,7 +327,7 @@ def isGroupPage(pagename):
     """
     global _GROUP_RE
     if _GROUP_RE is None:
-        _GROUP_RE = re.compile(config.page_group_regex)
+        _GROUP_RE = re.compile(config.page_group_regex, re.IGNORECASE)
     return _GROUP_RE.search(pagename) is not None
 
 

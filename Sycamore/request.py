@@ -62,6 +62,8 @@ class RequestBase(object):
         self.writestack = []
 	self.filestack = []
 	self.getText = None
+
+	self.generating_cache = False
         if config.memcache:
           self.mc = MemcachePool.getMC()
 	#if not properties: properties = wikiutil.prepareAllProperties()
@@ -104,7 +106,6 @@ class RequestBase(object):
 
         # XXX Removed call to i18n.adaptcharset()
   
-	self.generating_cache = False
 	self.previewing_page = False
 
         self.reset()
@@ -235,10 +236,10 @@ class RequestBase(object):
         """
         raise "NotImplementedError"
 
-    def initdicts(self):
+    def initdicts(self, force_update=False, update_pagename=None):
         from Sycamore import wikidicts
         dicts = wikidicts.GroupDict(self)
-        dicts.scandicts()
+        dicts.scandicts(force_update=force_update, update_pagename=update_pagename)
         return dicts
         
     def isForbidden(self):

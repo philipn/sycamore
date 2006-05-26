@@ -290,10 +290,7 @@ class Parser:
         if config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
             word = self.formatter.page.proper_name() + word
         text = self.highlight_text(text)
-        if word == text:
-            return self.formatter.pagelink(word)
-        else:
-            return self.formatter.pagelink(word, text)
+        return self.formatter.pagelink(word, text)
 
     def _notword_repl(self, word):
         """Handle !NotWikiNames."""
@@ -357,18 +354,18 @@ class Parser:
 
         if words[0][0] == '#':
             # anchor link
-            return self.formatter.url(words[0], self.highlight_text(words[1]))
+	    if len(words) > 1:
+              return self.formatter.url(words[0], self.highlight_text(words[1]))
+	    else:
+              return self.formatter.url(words[0], self.highlight_text(words[0][1:]))
 
         scheme = words[0].split(":", 1)[0]
         if scheme == "wiki": return self.interwiki(words, pretty_url=1)
         #if scheme in self.attachment_schemas:
         #    return self.attachment(words, pretty_url=1)
 
-        if wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]):
- 	    if len(words) >= 2:
-              text = self.formatter.image(title=''.join(words[1:]), alt=''.join(words[1:]), src=words[0])
- 	    else:
-              text = self.formatter.image(title=words[0], alt=words[0], src=words[0])
+        if len(words) == 1 and wikiutil.isPicture(words[0]) and re.match(self.url_rule, words[0]):
+            text = self.formatter.image(title=words[0], alt=words[0], src=words[0])
         else:
             text = web.getLinkIcon(self.request, self.formatter, scheme)
             if len(words) == 1:

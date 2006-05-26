@@ -23,6 +23,11 @@ def execute(macro, args, formatter=None):
     indent = 0
     lineno = 0
     titles = {}
+    right = False
+    left = False
+    if args:
+      if args.lower() == 'right': right = True
+      elif args.lower() == 'left': left = True
 
     try:
         mindepth = int(macro.request.getPragma('section-numbers', 1))
@@ -79,7 +84,10 @@ def execute(macro, args, formatter=None):
     for i in range(baseindent, indent):
         result.append(macro.formatter.number_list(0))
 
+    style = ''
     if not result: return ''
-    return '<table cellpadding="0"><tr><td bgcolor="#eeeeee" nowrap style="border: 1px solid #aaaaaa; padding: 5px">' + ''.join(result) + '</td></tr></table>'
+    if right: style = ' class="floatRightTOC"'
+    elif left: style = ' class="floatLeftTOC"'
+    return '<table cellpadding="0"%s><tr><td bgcolor="#eeeeee" nowrap style="border: 1px solid #aaaaaa; padding: 5px">' % style + ''.join(result) + '</td></tr></table>'
 
     #return ''.join(result)

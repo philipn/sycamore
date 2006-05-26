@@ -77,9 +77,9 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     # send title
     wikiutil.send_title(request, _('Search results for "%s"') % (printable_needle,))
     
-    searchlog = open(config.data_dir + '/search.log','a')
-    searchlog.write(needle + '\n')
-    searchlog.close()
+    #searchlog = open(config.data_dir + '/search.log','a')
+    #searchlog.write(needle + '\n')
+    #searchlog.close()
 
     this_search = search.Search(search.prepare_search_needle(needle), request, p_start_loc=pstart, t_start_loc=tstart, num_results=pwith+1) #, start_lock=)
     this_search.process()
@@ -158,7 +158,7 @@ def print_context(the_search, text, request, context=40, max_context=10):
  for term in terms:
    if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
    else: term_string = term
-   term_string = term_string.lower()
+   term_string = term_string.lower().decode('utf-8')
    found_loc = fixed_text.find(term_string)
    while True:
      if found_loc == -1: break
@@ -200,6 +200,10 @@ def print_context(the_search, text, request, context=40, max_context=10):
    if i+1 < len(terms_with_location):
      next_term = terms_with_location[i+1][0]
      next_location = terms_with_location[i+1][1]
+     if next_location < location + padding:
+       i += 1
+       text_with_context.append(' ')
+       continue
      if next_location - location < context - padding:
        text_with_context.append('%s<strong>%s</strong>' % (text[location+len(term):next_location], text[next_location:next_location+len(next_term)]))
        i += 1
@@ -353,7 +357,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 	if diff1_date > 0:
 	  version1 = page.date_to_version_number(diff1_date)
 
-    if not version1 and not version2:
+    if version1 is None and version2 is None:
       # we are pressing 'diff' in the recent changes/etc
       page = Page(pagename, request)
       current_mtime = page.mtime()
@@ -361,7 +365,6 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
       version2 = current_version
       version1 = current_version - 1
 
-  
     # spacing flag?
     try:
         ignorews = int(request.form['ignorews'][0])
@@ -404,9 +407,9 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
         oldpage = Page(pagename, request)
         # oldcount1 is still on init value 0
     else:
-        if olddate1:
-            oldpage = Page(pagename, request, prev_date=olddate1)
-	    oldpage.make_exact_prev_date() # we allow for an approximate/from-period date param for now
+        if version1 is not None:
+            oldpage = Page(pagename, request, version=version1)
+	    #oldpage.make_exact_prev_date() # we allow for an approximate/from-period date param for now
         else:
             oldpage = Page("$EmptyPage$", request) # XXX: ugly hack
             oldpage.set_raw_body("")    # avoid loading from db
@@ -415,8 +418,8 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
         newpage = Page(pagename, request)
         # oldcount2 is still on init value 0
     else:
-        if olddate2:
-            newpage = Page(pagename, request, prev_date=olddate2)
+        if version2:
+            newpage = Page(pagename, request, version=version2)
         else:
             newpage = Page("$EmptyPage$", request) # XXX: ugly hack
             newpage.set_raw_body("")    # avoid loading from db
@@ -458,7 +461,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
       previous_edit.append('<div>version 0</div>')
       if newpage_user_id:
         this_user_link = user.getUserLink(request, user.User(request, id=newpage_user_id))
-      this_edit.append('<div>version %s (%s by %s)</div>' % (1, newpage.mtime_printable(), this_user_link))
+      this_edit.append('<div>version %s (%s by %s)</div>' % (new_version, newpage.mtime_printable(), this_user_link))
   
     if edit_count > 1:
         l.append(' ' + _('(spanning %d versions)') % (edit_count,))
@@ -812,6 +815,8 @@ There was an edit conflict between your changes!</b> Please review the conflicts
         request.reset()
         backto = request.form.get('backto', [None])[0]
         if backto:
+
+            if request.user.valid: request.user.checkFavorites(pg.page_name)
             pg = Page(backto, request)
 
 	# clear request cache so that the user sees the page as existing

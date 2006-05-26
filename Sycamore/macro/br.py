@@ -14,4 +14,4 @@ Dependencies = []
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
-    return formatter.linebreak(0) + str(formatter.page)
+    return formatter.linebreak(0)

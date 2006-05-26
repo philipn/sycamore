@@ -1,6 +1,7 @@
 # This does the typical formatting for a comment field (as seen in the comments in recent changes, user's statistics, page revision history, etc)
 
 from Sycamore.widget import base
+from Sycamore.wikiutil import quoteWikiname
 
 class Comment(base.Widget):
     def __init__(self, request, comment, type, pagename=None):
@@ -31,13 +32,13 @@ class Comment(base.Widget):
 	      self.comment = "Revert to version dated %(datestamp)s." % {'datestamp': datestamp}
 	elif self.type == 'ATTNEW':
 	  if self.pagename:
-	    link_loc = self.request.getScriptname() + '/' + self.pagename + '?action=Files&do=view&target=' + self.comment
+	    link_loc = self.request.getScriptname() + '/' + quoteWikiname(self.pagename) + '?action=Files&do=view&target=' + self.comment
 	    self.comment = 'Upload of image <a href="%s">%s</a>.' % (link_loc, self.comment)
 	  else:
 	    self.comment = "Upload of image '%s'." % self.comment
 	elif self.type == 'ATTDEL':
 	  if self.pagename: 
-	    link_loc = self.request.getScriptname() + '/' + self.pagename + '?action=Files&do=view&target=' + self.comment
+	    link_loc = self.request.getScriptname() + '/' + quoteWikiname(self.pagename) + '?action=Files&do=view&target=' + self.comment
 	    self.comment = 'Image <a href="%s">%s</a> deleted.' % (link_loc, self.comment)
 	  else: 
 	    self.comment = "Image '%s' deleted." % self.comment

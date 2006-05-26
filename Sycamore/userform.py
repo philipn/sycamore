@@ -84,9 +84,9 @@ class UserSettingsHandler(object):
 	   dict = {}
 
 	if dict.has_key(userid):
-		dict[userid].append(user.hash(ourcode) + ',' + str(time.time()))
+		dict[userid].append(user.hash(ourcode).strip() + ',' + str(time.time()))
 	else:
-		dict[userid] = [user.hash(ourcode) + ',' + str(time.time())]
+		dict[userid] = [user.hash(ourcode).strip() + ',' + str(time.time())]
 	
 	cPickle.dump(dict, lostpasswdfile, True)
 	lostpasswdfile.close()
@@ -114,7 +114,12 @@ class UserSettingsHandler(object):
                     #uid = cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value
 		    cookie_dir = config.web_dir
 	   	    if not cookie_dir: cookie_dir = '/'
-                    self.request.setHttpHeader(('Set-Cookie','%s=%s; expires=Tuesday, 01-Jan-1999 12:00:00 GMT;host=%s;Path=%s' % (wikiutil.quoteFilename(config.sitename)+'ID', cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value,config.domain, cookie_dir)))
+		    if config.domain == 'localhost'or config.domain == '127.0.0.1':
+		      # browsers reject domain=localhost or domain=127.0.0.1
+		      domain = '' 
+	            else:
+		      domain = config.domain
+		    self.request.setHttpHeader(('Set-Cookie','%s=%s; expires=Tuesday, 01-Jan-1999 12:00:00 GMT;domain=%s;Path=%s' % (wikiutil.quoteFilename(config.sitename)+'ID', cookie[wikiutil.quoteFilename(config.sitename)+'ID'].value,domain, cookie_dir)))
             self.request.saved_cookie = ''
             self.request.auth_username = ''
             self.request.user = user.User(self.request)
@@ -154,8 +159,8 @@ class UserSettingsHandler(object):
 	    uid = None
 
 	    if form.has_key('code') and form.has_key('uid'):
-               given_uid = form['uid'][0]
-               given_code = form['code'][0]
+               given_uid = form['uid'][0].strip()
+               given_code = form['code'][0].strip()
 	
                if self.isValidCode(given_uid, given_code):
 		  uid = given_uid

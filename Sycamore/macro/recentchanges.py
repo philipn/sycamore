@@ -27,40 +27,6 @@ file_action = 'Files'
 
 Dependencies = ["time"] # ["user", "pages", "pageparams", "bookmark"]
 
-def format_comment(request, line):
-    baseurl = request.getScriptname()
-    urlpagename = wikiutil.quoteWikiname(line.pagename)
-    comment = line.comment
-    _ = request.getText
-    if line.action[:3] == 'ATT':
-        filename = urllib.unquote(comment)
-        if line.action == 'ATTNEW':
-	    filename_link = '<a href="%s/%s?action=%s&amp;do=view&amp;target=%s">%s</a>' % (baseurl, urlpagename, file_action, filename, filename)
-            comment = _("Upload of image '%s'.") % filename_link
-	    return comment
-        elif line.action == 'ATTDEL':
-	    filename_link = '<a href="%s/%s?action=%s&amp;do=view&amp;target=%s">%s</a>' % (baseurl, urlpagename, file_action, filename, filename)
-            comment = _("Image '%s' deleted.") % filename_link
-	    return comment
-
-    elif line.action == 'DELETE':
-           if comment: comment = "Page deleted: '%s'" % (comment)
-	   else: comment = "Page deleted (no comment)"
-
-    elif line.action == 'NEWEVENT':
-	comment = "Event '%s' posted." % line.comment
-	return wikiutil.escape(comment)
-    elif line.action.find('/REVERT') != -1:
-        if comment[0] == 'v':
-	  # Given as a version
-	  version = comment[1:]
-          comment = _("Revert to version %(number)s.") % {'number': version}
-	else:
-          datestamp = request.user.getFormattedDateTime(float(comment))
-          comment = _("Revert to version dated %(datestamp)s.") % {'datestamp': datestamp}
-	return wikiutil.escape(comment)
-    return wikiutil.escape(comment)
-
 def getPageStatus(lines, pagename, request):
     """
     Given some relevant lines for recent changes, we try our best to figure out if the page exists.
@@ -157,7 +123,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     comments = []
     for idx in range(len(lines)):
         comment = Comment(request, lines[idx].comment,
-			  lines[idx].action, page.page_name).render()
+			  lines[idx].action, page.proper_name()).render()
 	comments.append(comment)
     
     d['changecount'] = len(lines)

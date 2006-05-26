@@ -139,7 +139,7 @@ def full_events(events, are_events_today, htmltext, macro):
             month_dict = { 1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
             string_month = month_dict[month]
             events_page = Page("Events Board", macro.request)
-            if (macro.request.user.may.admin(events_page) or posted_by == macro.request.user.name): 
+            if (macro.request.user.may.admin(events_page) or posted_by == macro.request.user.propercased_name): 
                     if date == old_date:
                         htmltext.append('<ul>\n<h4 id="head-%s">%s</h4>\n'
                               '<a href="%s/Events_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s<br>\n'

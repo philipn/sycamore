@@ -44,7 +44,7 @@ class Dict:
        is stripped from the member 
     """
 
-    def __init__(self, name, request, dict=1, case_insensitive=False):
+    def __init__(self, name, request, dict=1, case_insensitive=True):
         """Initialize a Dict, starting from <nothing>.
         """
 	import re
@@ -64,12 +64,9 @@ class Dict:
             if match:
                 mdict = match.groupdict()
                 if dict:
-		    if case_insensitive:
-                      key, value = mdict['key'].strip().lower(), mdict['val']
-		    else:
-                      key, value = mdict['key'].strip(), mdict['val']
+                    key, value = mdict['key'].strip().lower(), mdict['val']
                 else:
-                    key, value = mdict['member'], 1
+                    key, value = mdict['member'].lower(), 1
                 self._dict[key] = value
 
     def keys(self):
@@ -103,13 +100,13 @@ class Group(Dict):
             self.addmember(m)
 
     def addmember(self, member):
-        self._dict[member] = 1
+        self._dict[member.lower()] = 1
 
     def has_member(self, member):
-        return self._dict.has_key(member)
+        return self._dict.has_key(member.lower())
 
     def _expandgroup(self, groupdict, name):
-        groupmembers = groupdict.members(name)
+        groupmembers = groupdict.members(name.lower())
         members = {}
         for member in groupmembers:
             if member == self.name:
@@ -152,15 +149,15 @@ class DictDict:
         self.picklever = DICTS_PICKLE_VERSION
 
     def has_key(self, dictname, key):
-        dict = self.dictdict.get(dictname)
-        if dict and dict.has_key(key):
+        dict = self.dictdict.get(dictname.lower())
+        if dict and dict.has_key(key.lower()):
             return 1
         return 0
 
     def keys(self, dictname):
         """get keys of dict <dictname>"""
         try:
-            dict = self.dictdict[dictname]
+            dict = self.dictdict[dictname.lower()]
         except KeyError:
             return []
         return dict.keys()
@@ -168,7 +165,7 @@ class DictDict:
     def values(self, dictname):
         """get values of dict <dictname>"""
         try:
-            dict = self.dictdict[dictname]
+            dict = self.dictdict[dictname.lower()]
         except KeyError:
             return []
         return dict.values()
@@ -176,21 +173,22 @@ class DictDict:
     def dict(self, dictname):
         """get dict <dictname>"""
         try:
-            dict = self.dictdict[dictname]
+            dict = self.dictdict[dictname.lower()]
         except KeyError:
             return {}
         return dict
 
     def adddict(self, dictname):
         """add a new dict (will be read from the wiki page)"""
-        self.dictdict[dictname] = Dict(dictname, self.request)
+        self.dictdict[dictname.lower()] = Dict(dictname.lower(), self.request)
 
     def has_dict(self, dictname):
-        return self.dictdict.has_key(dictname)
+        return self.dictdict.has_key(dictname.lower())
 
     def keydict(self, key):
         """list all dicts that contain key"""
         dictlist = []
+        key = key.lower()
         for dict in self.dictdict.values():
             if dict.has_key(key):
                 dictlist.append(dict.name)
@@ -208,6 +206,8 @@ class GroupDict(DictDict):
       self.request = request
 
     def has_member(self, groupname, member):
+        groupname = groupname.lower()
+        member = member.lower()
         group = self.dictdict.get(groupname)
         if group and group.has_member(member):
             return 1
@@ -216,17 +216,17 @@ class GroupDict(DictDict):
     def members(self, groupname):
         """get members of group <groupname>"""
         try:
-            group = self.dictdict[groupname]
+            group = self.dictdict[groupname.lower()]
         except KeyError:
             return []
         return group.members()
 
     def addgroup(self, groupname):
         """add a new group (will be read from the wiki page)"""
-        self.dictdict[groupname] = Group(groupname, self.request)
+        self.dictdict[groupname.lower()] = Group(groupname.lower(), self.request)
 
     def hasgroup(self, groupname):
-        return self.dictdict.has_key(groupname)
+        return self.dictdict.has_key(groupname.lower())
 
     def membergroups(self, member):
         """list all groups where member is a member of"""
@@ -253,7 +253,7 @@ class GroupDict(DictDict):
        if config.memcache:
          self.request.mc.set('dicts_data', data)
 
-    def scandicts(self):
+    def scandicts(self, force_update=False, update_pagename=None):
         """scan all pages matching the dict / group regex and init the dictdict"""
         global DICTS_PICKLE_VERSION
         dump = 0
@@ -262,7 +262,7 @@ class GroupDict(DictDict):
 	else:
 	  DICTS_DATA = {}
 
-        if DICTS_DATA:
+        if DICTS_DATA and not force_update:
             self.__dict__.update(DICTS_DATA)
         else:
 	    DICTS_DATA = {}
@@ -279,27 +279,22 @@ class GroupDict(DictDict):
                 self.reset()
 
 	# init the dicts the first time
-	if not self.namespace_timestamp:
-	    import re
+	if not self.namespace_timestamp or force_update:
             now = time.time()
-            group_re = re.compile(config.page_group_regex)
-            pagelist = wikiutil.getPageList(self.request)
-            grouppages = filter(group_re.search, pagelist)
-            #print '%s -> %s' % (config.page_group_regex, grouppages)
-            for pagename in grouppages:
-                if not self.dictdict.has_key(pagename):
-                    self.addgroup(pagename)
+            if force_update and update_pagename:
+               self.addgroup(update_pagename)
+	    else:
+              import re
+              group_re = re.compile(config.page_group_regex, re.IGNORECASE)
+              pagelist = wikiutil.getPageList(self.request)
+              grouppages = filter(group_re.search, pagelist)
+              #print '%s -> %s' % (config.page_group_regex, grouppages)
+              for pagename in grouppages:
+                  if not self.dictdict.has_key(pagename):
+                      self.addgroup(pagename)
             self.namespace_timestamp = now
             dump = 1
 
-        ## check if groups / dicts have been modified on disk
-        #for pagename in self.dictdict:
-        #    if Page.Page(pagename, self.request).mtime() >= self.pageupdate_timestamp:
-        #        if group_re.search(pagename):
-        #            self.addgroup(pagename)
-        #        dump = 1
-        #self.pageupdate_timestamp = now
-        
         data = {
             "namespace_timestamp": self.namespace_timestamp,
             "pageupdate_timestamp": self.pageupdate_timestamp,
@@ -308,10 +303,11 @@ class GroupDict(DictDict):
         }
         if dump:
             for pagename in self.dictdict:
-                if group_re.search(pagename):
-                    group = self.dictdict[pagename]
+                if update_pagename or group_re.search(pagename):
+                    group = self.dictdict[pagename.lower()]
                     group.expandgroups(self)
 
+	    if config.memcache: self.request.mc.set('dicts_data', data)
             pickle.dump(data, open(picklefile, 'w'), True)
             try:
                 os.chmod(picklefile, 0666 & config.umask)

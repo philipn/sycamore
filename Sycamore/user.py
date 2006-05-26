@@ -31,7 +31,7 @@ def getUserList(cursor):
     cursor.execute("SELECT id from users")
     userid = cursor.fetchone()
     while userid:
-      all_ids.append(userid[0])
+      all_ids.append(userid[0].strip())
       userid = cursor.fetchone()
     return all_ids
 
@@ -55,13 +55,13 @@ def getUserId(searchName, request):
       id = request.req_cache['users_id'][searchName]
       return id
     if not id and config.memcache:
-      id = request.mc.get('users_id:%s' % searchName)
+      id = request.mc.get('users_id:%s' % wikiutil.quoteFilename(searchName))
     if not id:
       cursor.execute("SELECT id from users where name=%(username)s", {'username':searchName})
       result = cursor.fetchone()
       if result:
         id = result[0].strip()
-        if config.memcache: request.mc.add('users_id:%s' % searchName, id)
+        if config.memcache: request.mc.add('users_id:%s' % wikiutil.quoteFilename(searchName), id)
 
     request.req_cache['users_id'][searchName] = id
     return id
@@ -71,7 +71,7 @@ def getUserLink(request, userObject):
         return userObject.ip
     else:
         from Sycamore import Page
-        return Page.Page(userObject.propercased_name, request).link_to()
+        return Page.Page(userObject.propercased_name, request).link_to(text=userObject.propercased_name)
 
 def getUserIdentification(request, username=None):
     """ 
@@ -169,6 +169,7 @@ class User(object):
 	  if self.id[0:4] == 'anon' and not self.name:
 	    self.anonymous = True
 	    self.ip = self.id[5:]
+          self.id = self.id.strip()
 
         # if an account is disabled, it may be used for looking up
         # id -> username for page info and recent changes, but it
@@ -452,7 +453,11 @@ class User(object):
 	cookie_dir = config.web_dir
 	if not cookie_dir: cookie_dir = '/'
 	cookie_value = cookie.output()[12:]  # this is stupid, but we need to send headers in tuple format..
-        return ("Set-Cookie", "%s expires=%s;host=%s;Path=%s" % (cookie_value, expirestr, config.domain, cookie_dir))
+	if config.domain == 'localhost' or config.domain == '127.0.0.1':
+	  domain = ''
+        else:
+	  domain = config.domain
+        return ("Set-Cookie", "%s expires=%s;domain=%s;Path=%s" % (cookie_value, expirestr, domain, cookie_dir))
 
 
     def cookieDough(self, expiretime, now):

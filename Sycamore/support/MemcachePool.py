@@ -19,9 +19,10 @@
    mc.get(...)
 
 """
-import memcache, os, time, threading
+import os, time, threading
 from Sycamore.support import Bogus
 from Sycamore import config
+from Sycamore.support import memcache
 
 def fixKey(key):
   """
