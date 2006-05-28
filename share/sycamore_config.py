@@ -7,12 +7,8 @@
     the module Scyamore.config for a full list of names and their
     default values.
 
-    Also, the URL http://purl.net/wiki/moin/HelpOnConfiguration has
-    a list of config options.
-            (for MoinMoin)
-
-    @copyright: 2000-2003 by J?rgen Hermann <jh@web.de>
     @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
+    @copyright: 2000-2003 by J?rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 import os.path
@@ -82,8 +78,8 @@ footer_buttons = ["""<a href="http://creativecommons.org/licenses/by/2.0/"><img 
 # tabs at teh top of the browser for people who are logged in
 #tabs_user = ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes']
 
-# MySQL database settings.
-db_type = 'mysql'
+# database settings.
+db_type = 'mysql'  # can be 'mysql' or 'postgres'
 db_name = 'wiki'
 db_user = 'root'
 db_user_password = ''
@@ -115,16 +111,6 @@ charset = 'utf-8'
 upperletters = "A-Z??????????????????????????????"
 lowerletters = "0-9a-z?????????????????????????????????"
 
-# options people are likely to change due to personal taste
-#show_hosts = 1                          # show hostnames?
-#nonexist_qm = 0                         # show '?' for nonexistent?
-#backtick_meta = 1                       # allow `inline typewriter`?
-#allow_extended_names = 1                # allow ["..."] markup?
-##edit_rows = 20                          # editor size
-#max_macro_size = 50                     # max size of RecentChanges in KB (0=unlimited)
-#bang_meta = 1                           # use ! to escape WikiNames?
-#show_section_numbers = 0                # enumerate headlines?
-
 allowed_actions = ['DeletePage','AttachFile']
 
 # for standalone http server (see installhtml/index)
@@ -135,14 +121,7 @@ httpd_user = "nobody"
 theme_default = 'eggheadbeta'
 theme_force = True
 acl_enabled = 1
-acl_rights_default = "AdminGroup:admin,read,write,delete,revert TestMe:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read,write"
-
-#attachments = {
-# dir and url are depricated
-#    'dir': '/Library/Webserver/Documents/installhtml/wiki/data/pages',
-#    'url': '/installhtml/wiki/data/pages',
-#    'img_script': 'img.cgi'
-#}
+acl_rights_default = "AdminGroup:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read,write"
 
 mail_smarthost = "localhost"
 mail_from = "dont_respond@daviswiki.org"
