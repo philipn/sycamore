@@ -1,14 +1,16 @@
 import sys, cStringIO
+sys.path.extend(['/srv/wikis/rocwiki/trunk'])
+import __init__
 from Sycamore import wikiutil, config, request, caching, wikidb
 from Sycamore.Page import Page
 
 def clearCaches():
   print "Clearing page caches..."
-  plist = wikiutil.getPageList(request)
-  arena = 'Page.py'
+  req = request.RequestDummy()
+  plist = wikiutil.getPageList(req)
   for pname in plist:
     key = pname
-    cache = caching.CacheEntry(arena, key)
+    cache = caching.CacheEntry(key, req)
     cache.clear()
 
 def buildCaches():
@@ -17,7 +19,7 @@ def buildCaches():
   # the idea is to view every page to build the cache
   # we should actually refactor send_page()
   req = request.RequestDummy()
-  for pname in wikiutil.getPageList():
+  for pname in wikiutil.getPageList(req):
    Page(pname, req).getPageLinks(docache=True)
 
 clearCaches()
