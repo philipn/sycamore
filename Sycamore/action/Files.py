@@ -481,6 +481,12 @@ def do_upload(pagename, request):
 	uploaded_by = request.user.id
 	d = {'filename':target, 'filecontent':filecontent, 'uploaded_time':uploaded_time, 'uploaded_by':uploaded_by, 'pagename':pagename, 'uploaded_by_ip':request.remote_addr, 'xsize':xsize, 'ysize':ysize}
 	wikidb.putImage(request, d)
+	if request.user.valid:
+	  # upadate their file count
+	  request.cursor.execute("SELECT file_count from users where id=%(id)s", {'id':request.user.id})
+	  count = request.cursor.fetchone()[0]
+	  count += 1
+	  request.cursor.execute("UPDATE users set file_count=%(newcount)s where id=%(id)s", {'id':request.user.id, 'newcount':count})
 	
         bytes = len(filecontent)
         msg += _("Image '%(target)s'"
