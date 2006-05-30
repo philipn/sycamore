@@ -1,5 +1,5 @@
 import sys, cStringIO
-sys.path.extend(['/srv/wikis/rocwiki/trunk'])
+sys.path.extend(['/srv/wikis/daviswiki/trunk'])
 import __init__
 from Sycamore import wikiutil, config, request, caching, wikidb
 from Sycamore.Page import Page
@@ -20,6 +20,7 @@ def buildCaches():
   # we should actually refactor send_page()
   req = request.RequestDummy()
   for pname in wikiutil.getPageList(req):
+   print pname
    Page(pname, req).getPageLinks(docache=True)
 
 clearCaches()
