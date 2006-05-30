@@ -10,7 +10,8 @@
 import sys, time, mimetypes, os
 __directory__ = os.path.dirname(__file__)
 sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
-handle_static_files = False
+
+handle_static_files = True
 
 from Sycamore.support.wsgi_server import httpserver
 #from Sycamore.support.wsgi_server import swap 
