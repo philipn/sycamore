@@ -154,6 +154,7 @@ def print_context(the_search, text, request, context=40, max_context=10):
  terms = the_search.terms
  exact_terms = the_search.printable_terms 
  found_terms = {}
+ escape = wikiutil.escape
 
  for term in terms:
    if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
@@ -195,8 +196,8 @@ def print_context(the_search, text, request, context=40, max_context=10):
      # first context
      if not text_with_context:
        if location > padding:
-         text_with_context.append(text[location-padding:location])
-     text_with_context.append('<strong>%s</strong>' % text[location:location+len(term)])
+         text_with_context.append(escape(text[location-padding:location]))
+     text_with_context.append('<strong>%s</strong>' % escape(text[location:location+len(term)]))
    if i+1 < len(terms_with_location):
      next_term = terms_with_location[i+1][0]
      next_location = terms_with_location[i+1][1]
@@ -205,14 +206,14 @@ def print_context(the_search, text, request, context=40, max_context=10):
        text_with_context.append(' ')
        continue
      if next_location - location < context - padding:
-       text_with_context.append('%s<strong>%s</strong>' % (text[location+len(term):next_location], text[next_location:next_location+len(next_term)]))
+       text_with_context.append('%s<strong>%s</strong>' % (escape(text[location+len(term):next_location]), escape(text[next_location:next_location+len(next_term)])))
        i += 1
        skip = True
        continue
      else:
-       text_with_context.append('%s...%s' % (text[location+len(term):location+len(term)+padding], text[next_location-len(next_term)-padding:next_location]))
+       text_with_context.append('%s...%s' % (escape(text[location+len(term):location+len(term)+padding]), escape(text[next_location-len(next_term)-padding:next_location])))
    else: # we are at the end of the list of terms
-     text_with_context.append('%s' % text[location+len(term):location+len(term)+context])
+     text_with_context.append('%s' % escape(text[location+len(term):location+len(term)+context]))
    i += 1
    skip = False
 
