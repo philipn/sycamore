@@ -1,7 +1,7 @@
 # Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
 import sys, os, shutil
 import __init__ # woo hackmagic
-sys.path.extend(['/home/daviswiki/trunk'])
+sys.path.extend(['/Users/philipneustrom/sycamore_base'])
 from Sycamore import wikidb, config
 
 basic_pages = {}
@@ -555,7 +555,7 @@ def create_tables(cursor):
 def create_views(cursor):
  print "creating views..."
  if config.db_type == 'mysql':
-   cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP, 'Events Board' as propercased_name as userIP from events, users where users.propercased_name=events.posted_by;")
+   cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP, 'Events Board' as propercased_name from events, users where users.propercased_name=events.posted_by;")
    cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
    cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
    cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP, images.attached_to_pagename_propercased as propercased_name from images;")
