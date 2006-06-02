@@ -102,8 +102,9 @@ search_db_location = os.path.join(data_dir, 'search')
 # It's for stopping image hotlinking, basically.
 # leave blank if you don't care about people leeching images.
 # to match against any url from any subdomain of daviswiki we would write:
-# referer_regexp = 'http\:\/\/(([^\/]*\.)|())daviswiki\.org\/.*'
-#referer_regexp = 'http\:\/\/(([^\/]*\.)|())localhost\/.*'
+#referer_regexp = '^http\:\/\/(([^\/]*\.)|())daviswiki\.org((\/.*)|())$'
+# here's another example
+#referer_regexp = '^http\:\/\/(([^\/]*\.)|())test\.rocwiki\.org((\/.*)|())$'
 
 # encoding and WikiName char sets
 # (change only for outside America or Western Europe)
