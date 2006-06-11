@@ -54,7 +54,7 @@ def execute(macro, args, formatter=None, **kw):
       formatter = Formatter(request)
       find_month = { 1:"Jan.", 2:"Feb.", 3:"Mar.", 4:"Apr.", 5:"May", 6:"Jun.", 7:"Jul.", 8:"Aug.", 9:"Sept.", 10:"Oct.", 11:"Nov.", 12:"Dec." }   
 
-    rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Bookmarks RSS Feed" href="%s/%s?action=rss_rc&amp;user=%s" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.name), request.user.name, request.user.name, request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.name))
+    rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Bookmarks RSS Feed" href="%s/%s?action=rss_rc&amp;user=%s" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name), request.user.propercased_name, request.user.propercased_name, request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name))
     request.write(rss_html)
     request.write('<table>')
     if not local_favoriteList:

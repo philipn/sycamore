@@ -286,14 +286,26 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   def addQueryConditions(view, query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor):
     add_query = []
     if per_page_limit and userFavoritesFor:
-       add_query.append("""
-       SELECT groupedChanges.name as name, groupedChanges.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from
-      (
-          SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime from %(view)s, userFavorites as f, users as u where u.name=f.username and f.page=%(view)s.name and u.id=%%(userFavoritesFor)s group by %(view)s.name
-      ) as groupedChanges, %(view)s where groupedChanges.name=%(view)s.name and groupedChanges.changeTime=%(view)s.changeTime and groupedChanges.changeTime is not NULL
-      """ % {'view': view} )
+       if view != 'eventChanges':
+         add_query.append("""
+         SELECT groupedChanges.name as name, groupedChanges.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from
+         (
+            SELECT %(view)s.propercased_name as name, max(%(view)s.changeTime) as changeTime from %(view)s, userFavorites as f, users as u where u.name=f.username and f.page=%(view)s.name and u.id=%%(userFavoritesFor)s group by %(view)s.propercased_name
+         ) as groupedChanges, %(view)s where groupedChanges.name=%(view)s.propercased_name and groupedChanges.changeTime=%(view)s.changeTime and groupedChanges.changeTime is not NULL
+         """ % {'view': view} )
+       else:
+         add_query.append("""
+            SELECT groupedChanges.name as name, groupedChanges.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from
+            (
+               SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime from %(view)s, userFavorites as f, users as u where u.name=f.username and f.page=%(view)s.name and u.id=%%(userFavoritesFor)s group by %(view)s.name
+            ) as groupedChanges, %(view)s where groupedChanges.name=%(view)s.name and groupedChanges.changeTime=%(view)s.changeTime and groupedChanges.changeTime is not NULL
+            """ % {'view': view} )
+
     elif per_page_limit:
-       add_query.append("(SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+       if view != 'eventChanges':
+         add_query.append("(SELECT %(view)s.propercased_name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+       else:
+         add_query.append("(SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
     else:
        if view != 'eventChanges':
          add_query.append("(SELECT %(view)s.propercased_name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})

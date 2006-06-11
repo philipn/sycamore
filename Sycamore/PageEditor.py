@@ -16,8 +16,6 @@ import Sycamore.util.mail
 import Sycamore.util.datetime
 import xml.dom.minidom
 
-
-
 #############################################################################
 ### Javascript code for editor page
 #############################################################################
@@ -170,9 +168,9 @@ class PageEditor(Page):
             if not self.exists():
                 # page does not exist, are we creating it?
                 if mtime:
-                    conflict_msg = _('Someone else <b>deleted</b> this page while you were editing!')
+                    conflict_msg = _('<p>Someone else <b>deleted</b> this page while you were editing!')
             elif mtime != self.mtime():
-                conflict_msg = _('Someone else changed this page while you were editing.')
+                conflict_msg = _('<p>Someone else changed this page while you were editing.')
                 # merge conflicting versions
                 allow_conflicts = 1
                 from Sycamore.util import diff3
@@ -186,7 +184,7 @@ class PageEditor(Page):
 
                 if had_conflict:
                     conflict_msg = _("""%s
-There was an <b>edit conflict between your changes!</b><p>Please review the conflicts and merge the changes.</p>""" % conflict_msg)
+There was an <b>edit conflict between your changes!</b></p><p>Please review the conflicts and merge the changes.</p>""" % conflict_msg)
 		    mtime = self.mtime()
                     self.set_raw_body(verynewtext)
 	        else:
@@ -602,9 +600,10 @@ Your changes were sucessfully merged!""" % conflict_msg)
         if exists: type = 'page save'
 	else: type = 'page save new'
 	cache.clear(type=type)
-	# clear possible dependencies (e.g. [[Include]])
+        self.buildCache()
+	# rebuild possible dependencies (e.g. [[Include]])
 	for pagename in caching.depend_on_me(self.page_name, self.request, exists, action=action):
-	  caching.CacheEntry(pagename, self.request).clear()
+          caching.CacheEntry(pagename, request).clear()
 
 	# set in-memory page text
 	self.set_raw_body(text)

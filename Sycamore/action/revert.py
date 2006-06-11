@@ -43,8 +43,8 @@ def execute(pagename, request):
 	    entered_comment = request.form['comment'][0]
 	  else:
 	    entered_comment = ''
-	  if len(entered_comment) > 80:
-	    return page.send_page(msg = _('Please use the interfactive user interface to revert pages!'))
+	  if len(entered_comment) > wikiaction.MAX_COMMENT_LENGTH:
+	    return page.send_page(msg = _('Comments must be less than %s characters long.' % wikiaction.MAX_COMMENT_LENGTH))
 	  else:
 	    comment = 'v%s' % str(version)
 

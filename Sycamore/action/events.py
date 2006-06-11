@@ -18,13 +18,16 @@ creator_text = 'The %s Robot' % config.sitename
 #	text=text.replace('\x97','&#8212;') # em-dash
 #	return text
 
+MAX_EVENT_NAME_LENGTH = 30
+MAX_EVENT_LOCATION_LENGTH = 25
+
 
 def execute(pagename, request):
     _ = request.getText
     actname = __name__.split('.')[-1]
     page = PageEditor(pagename, request)
     msg = ''
-    oldtext = page.get_raw_body()
+    oldtext = page.get_raw_body().lower()
     if not config.relative_dir:
             add_on = ''
     else:
@@ -45,7 +48,7 @@ def execute(pagename, request):
         #not request.user.may.edit(pagename):
             msg = _('You are not allowed to edit this page. (You need an account in most cases)')
     # check to make sure the events macro is in the page
-    elif string.find(oldtext,"[[Events]]") == -1:
+    elif string.find(oldtext,"[[events]]") == -1:
        msg = _('Not allowed to add an event')
 
     # check whether page exists at all
@@ -97,7 +100,7 @@ def execute(pagename, request):
            elif hasPassed(month,day,hour,minute,year,request):
               msg = _('Event time is in the past!  Please choose a time in the future.')
            else:
-              msg = _('Event <b>NOT</b> posted. You entered some invalid text into the form.  No HTML is allowed')
+              msg = _('Event <b>NOT</b> posted. You entered some invalid text into the form.  No HTML is allowed.')
    
     else:
         msg = _('Please fill out all fields of the form.')
@@ -228,6 +231,9 @@ def doRSS(request, add_on):
 
 
 def isValid(event_text,event_name,event_location,month,day,hour,minute,year):
+    if len(event_name) > MAX_EVENT_NAME_LENGTH or len(event_location) > MAX_EVENT_LOCATION_LENGTH:
+      return False
+      
     current_year = time.localtime(time.time())[0]
     bool = 1
     if not int(month) < 13:

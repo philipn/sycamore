@@ -108,6 +108,8 @@ class Parser:
         self.in_pre = 0
         self.in_table = 0
         self.inhibit_p = 1 # if set, do not auto-create a <p>aragraph
+        self.inhibit_br = 0 # if set, don't print <br> if it looks like we might want to
+
         self.titles = {}
 
         # holds the nesting level (in chars) of open lists
@@ -233,7 +235,6 @@ class Parser:
             self.highlight_text(word[1:-1]) + \
             self.formatter.sup(0)
 
-
     def _sub_repl(self, word):
         """Handle subscript."""
         return self.formatter.sub(1) + \
@@ -244,6 +245,7 @@ class Parser:
     def _rule_repl(self, word):
         """Handle sequences of dashes."""
         self.inhibit_p = 1
+        self.inhibit_br += 1
         result = self._undent()
         if len(word) <= 4:
             result = result + self.formatter.rule()
@@ -382,18 +384,19 @@ class Parser:
                 text += self.highlight_text(words[1])
         return self.formatter.url(words[0], text, 'external', pretty_url=1, unescaped=1)
 
-
     def _bracket_link_repl(self, word):
         """Handle our standard format links. format:  ["Page name" text]"""
-	words = word[1:-1].split("\" ",1)
-	pagename = (words[0]).split("\"",1)[1]
-	text = words[1]
+        words = word[2:-1].split('"')
+        if len(words) != 2:
+          return self.formatter.rawHTML('<b> %s Incorrect link format: %s </b>' % (self.request.theme.make_icon('attention.png'), word))
+
+        pagename = words[0].strip()
+        text = words[1].strip()
 	
 	if string.find(words[0], "http://") is not -1:
 		return self.formatter.rawHTML('<b>!!&mdash;You wrote</b> %s<b>, you probably meant to write</b> [%s %s] <b>to make an outside the wiki link&mdash;!!</b>' % (word, pagename, text))
         #return self.formatter.url("../index.cgi/" +pagename, text)
 	return self._word_repl(pagename, text)
-
 
     def _email_repl(self, word):
         """Handle email addresses (without a leading mailto:)."""
@@ -788,6 +791,13 @@ class Parser:
         return ""
 
 
+    def print_br(self):
+        """
+        We want to know if we should print a <br/>.  Did we do anything that would cause us to not want to print a break?
+        """
+        return not (self.inhibit_br or self.formatter.in_p or self.in_table or self.lineno <= 1 or self.line_was_empty)
+
+
     def format(self, formatter):
         """ For each line, scan through looking for magic
             strings, outputting verbatim any intervening text.
@@ -884,6 +894,9 @@ class Parser:
                     self.line_is_empty = 1
                     #self.request.write("<!-- empty line end -->\n")
                     continue
+                elif self.print_br():
+                    self.request.write('<br/>')
+                    self.inhibit_br += 1 # to avoid printing two if they did [[br]]
 
                 # check indent level
                 indent = indent_re.match(line)

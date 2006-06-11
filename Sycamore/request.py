@@ -64,6 +64,7 @@ class RequestBase(object):
 	self.getText = None
 
 	self.generating_cache = False
+	self.set_cache = False
         if config.memcache:
           self.mc = MemcachePool.getMC()
 	#if not properties: properties = wikiutil.prepareAllProperties()
@@ -246,7 +247,7 @@ class RequestBase(object):
         """ check for web spiders and refuse anything except viewing """
         forbidden = 0
         if ((self.query_string != '' or self.request_method != 'GET')
-            and self.query_string != 'action=rss_rc' and self.query_string != 'action=events&rss=1' and self.query_string != 'rss=1&action=events'):
+            and not self.query_string.startswith('action=rss_rc') and self.query_string != 'action=events&rss=1' and self.query_string != 'rss=1&action=events'):
             from Sycamore.util import web
             forbidden = web.isSpiderAgent(request=self)
 
@@ -413,6 +414,10 @@ class RequestBase(object):
 	        self.pagename_propercased = pagename_propercased
 	      else:
 	        self.pagename = pagename
+ 
+        except Page.ExcessiveLength, msg:
+            Page(config.page_front_page, self).send_page(msg=msg)
+            return self.finish()
 
         except: # catch and print any exception
             self.reset_output()

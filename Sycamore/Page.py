@@ -16,6 +16,9 @@ class Page(object):
     """Page - Manage an (immutable) page associated with a WikiName.
        To change a page's content, use the PageEditor class.
     """
+    MAX_PAGENAME_LENGTH = 100
+    class ExcessiveLength(Exception):
+        pass
 
     def __init__(self, page_name, request, **keywords):
         """
@@ -32,6 +35,9 @@ class Page(object):
         @keyword formatter: formatter instance
 	@keyword req_cache: per-req cache of some information
         """
+        if len(page_name) > self.MAX_PAGENAME_LENGTH:
+          msg = "Page names must be less than %s characters!" % self.MAX_PAGENAME_LENGTH
+          raise self.ExcessiveLength, msg
         self.page_name = page_name.lower()
 	self.given_name = page_name
 	self.request = request
@@ -279,17 +285,18 @@ class Page(object):
       else: return ''
               
     
-    def get_raw_body(self):
+    def get_raw_body(self, fresh=False):
         """
         Load the raw markup from the page file.
         
+        @ optional param fresh: determines if we should get the cached raw body or not
         @rtype: string
         @return: raw page contents of this page
         """
 	text = None
-        if self._raw_body is None:
+        if self._raw_body is None or fresh:
 	  if not self.prev_date:
-	    if config.memcache:
+	    if config.memcache and not fresh:
 	      text = self.request.mc.get("page_text:%s" % (wikiutil.quoteFilename(self.page_name.lower())))
 
 	    if text is None:
@@ -297,17 +304,17 @@ class Page(object):
 	      result = self.cursor.fetchone()
 	      if result: text = result[0]
 	      else: text = ''
-	      if config.memcache:
+	      if config.memcache and not fresh:
 	        self.request.mc.add("page_text:%s" % wikiutil.quoteFilename(self.page_name.lower()), text)
 	  else:
-	    if config.memcache:
+	    if config.memcache and not fresh:
 	      text = self.request.mc.get("page_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.prev_date)))
 	    if not text:
 	      self.cursor.execute("SELECT text, editTime from allPages where (name=%(page_name)s and editTime<=%(prev_date)s) order by editTime desc limit 1", {'page_name':self.page_name, 'prev_date':self.prev_date})
 	      result = self.cursor.fetchone()
 	      if result: text = result[0]
 	      else: text = ''
-	      if config.memcache:
+	      if config.memcache and not fresh:
 	        self.request.mc.add("page_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.prev_date)), text)
             
           self.set_raw_body(text)
@@ -633,9 +640,14 @@ class Page(object):
         # if no caching
         if  (self.prev_date or self.hilite_re or self._raw_body_modified or
             (not getattr(Parser, 'caching', None)) or
-            (not formatter_name in config.caching_formats)) or self.request.generating_cache:
+            (not formatter_name in config.caching_formats)): 
             # parse the text and send the page content
 	    body = self.get_raw_body()
+            Parser(body, request).format(self.formatter)
+            return
+
+        elif self.request.generating_cache and not request.set_cache:
+            body = self.get_raw_body(fresh=True)
             Parser(body, request).format(self.formatter)
             return
 
@@ -659,7 +671,7 @@ class Page(object):
 
         # render page
         if needsupdate:
-	    body = self.get_raw_body()
+	    body = self.get_raw_body(fresh=True)
             from Sycamore.formatter.text_python import Formatter
             formatter = Formatter(request, ["page"], self.formatter, preview=True)
 
@@ -739,7 +751,7 @@ class Page(object):
             for page in templates:
                 request.write(self.formatter.listitem(1) +
                     wikiutil.link_tag(request, "%s?action=edit&amp;template=%s" % (
-                        wikiutil.quoteWikiname(self.page_name),
+                        wikiutil.quoteWikiname(self.proper_name()),
                         wikiutil.quoteWikiname(page)),
                     page) +
                     self.formatter.listitem(0))
@@ -761,7 +773,7 @@ class Page(object):
         """
 	builds the page's cache.
 	"""
-        # this is normally never called, but is here to fill the cache
+        # this is normally rarely called, but is here to fill the cache
         # in existing wikis; thus, we do a "null" send_page here, which
         # is not efficient, but reduces code duplication
         # !!! it is also an evil hack, and needs to be removed
@@ -771,6 +783,8 @@ class Page(object):
 	buffer = cStringIO.StringIO()
         request.redirect(buffer)
 	request.generating_cache = True
+        request.set_cache = True
+        request.mode_getpagelinks = 1
         try:
             try:
                 request.mode_getpagelinks = 1
@@ -788,7 +802,9 @@ class Page(object):
             if hasattr(request, '_fmt_hd_counters'):
                 del request._fmt_hd_counters
 
+        request.mode_getpagelinks = 0
         request.generating_cache = False
+        request.set_cache = False
 
     def getPageLinks(self, docache=True):
         """

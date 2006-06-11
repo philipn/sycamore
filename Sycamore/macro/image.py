@@ -239,7 +239,7 @@ def execute(macro, args, formatter=None):
       linktext = 'Upload new image "%s"' % (image_name)
       return wikiutil.attach_link_tag(macro.request,
                 '%s?action=Files&amp;rename=%s%s' % (
-                    wikiutil.quoteWikiname(pagename),
+                    wikiutil.quoteWikiname(formatter.page.proper_name()),
                     image_name,
                     ''),
                 linktext)

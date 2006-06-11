@@ -64,6 +64,17 @@ def _loadWordsFile(request, dict, filename):
     #request.clock.stop('spellread')
 
 
+def _loadWordsString(request, dict, text):
+    #request.clock.start('spellread')
+    # XXX UNICODE fix needed. the dictionaries should be encoded in config.charset.
+    # if they are not, we can recode them before use.
+    for line in text.split('\n'):
+      words = line.split()
+      for word in words:
+        dict[word] = ''
+    #request.clock.stop('spellread')
+
+
 def _loadDict(request):
     """ Load words from words files or cached dict """
     # check for "dbhash" module
@@ -128,7 +139,7 @@ def checkSpelling(page, request, own_form=1):
 
     localwords = {}
     lsw_page = Page(config.page_local_spelling_words, request)
-    if lsw_page.exists(): _loadWordsFile(request, localwords, lsw_page._text_filename())
+    if lsw_page.exists(): _loadWordsString(request, localwords, lsw_page.get_raw_body())
 
     # init status vars & load page
     #request.clock.start('spellcheck')
@@ -170,7 +181,7 @@ def checkSpelling(page, request, own_form=1):
         lsw_msg = ''
         if localwords:
             lsw_msg = ' ' + _('(including %(localwords)d %(pagelink)s)') % {
-                'localwords': len(localwords), 'pagelink': lsw_page.link_to(request)}
+                'localwords': len(localwords), 'pagelink': lsw_page.link_to()}
         msg = _('The following %(badwords)d words could not be found in the dictionary of '
                 '%(totalwords)d words%(localwords)s and are highlighted below:') % {
             'badwords': len(badwords),

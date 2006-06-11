@@ -291,7 +291,7 @@ def resolve_wiki(request, wikiurl):
 
 def isSystemPage(request, pagename):
     """
-    Is this a system page? Uses AllSystemPagesGroup internally.
+    Is this a system page? Uses System Pages Group internally.
     
     @param request: the request object
     @param pagename: the page name

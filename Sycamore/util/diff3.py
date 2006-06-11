@@ -8,10 +8,47 @@
 import os, tempfile, random
 from Sycamore import config
 
+diff3_marker_mine = '<<<<<<<'
+diff3_marker_old = '|||||||'
+diff3_marker_divider = '======='
+diff3_marker_yours = '>>>>>>>'
+
+def escape_text(text):
+   """
+   Replace occurances of diff marker symbols with escaped versions.
+   """
+   text_lines = []
+   for line in text.split('\n'):
+     line = line.replace(diff3_marker_mine, "x%s" % diff3_marker_mine)
+     line = line.replace(diff3_marker_old, "x%s" % diff3_marker_old)
+     line = line.replace(diff3_marker_divider, "x%s" % diff3_marker_divider)
+     line = line.replace(diff3_marker_yours, "x%s" % diff3_marker_yours)
+     text_lines.append(line)
+   return '\n'.join(text_lines)
+
+def unescape_text(text):
+   """
+   Un-does escape_text().
+   """
+   text_lines = []
+   for line in text.split('\n'):
+     line = line.replace("x%s" % diff3_marker_mine, diff3_marker_mine)
+     line = line.replace("x%s" % diff3_marker_old, diff3_marker_old)
+     line = line.replace("x%s" % diff3_marker_divider, diff3_marker_divider)
+     line = line.replace("x%s" % diff3_marker_yours, diff3_marker_yours)
+     text_lines.append(line)
+   return '\n'.join(text_lines)
+
+
 def text_merge(old, other, new,
-               marker1='<<<<<<<<<<<<<<<<<<<<<<<<<\n',
-               marker2='=========================\n',
-               marker3='>>>>>>>>>>>>>>>>>>>>>>>>>\n'):
+               marker1=diff3_marker_mine,
+               marker2=diff3_marker_divider,
+               marker3=diff3_marker_yours):
+
+  old = escape_text(old)
+  other = escape_text(other)
+  new = escape_text(new)
+
   had_conflict = False
   oldfile = tempfile.NamedTemporaryFile()
   oldfile.write(old.encode('utf-8'))
@@ -24,31 +61,40 @@ def text_merge(old, other, new,
   myfile.flush()
   random_num = random.random()
   diff3_result = os.popen("%s %s -L mine%s %s -L old%s %s -L yours%s --merge" % (config.diff3_location, myfile.name, random_num, oldfile.name, random_num, otherfile.name, random_num), 'r')
-  my_marker = "<<<<<<< mine%s\n" % random_num
-  old_marker = "||||||| old%s\n" % random_num
-  old_marker2 = "<<<<<<< old%s\n" % random_num
-  your_marker = ">>>>>>> yours%s\n" % random_num
+  my_marker = "%s mine%s\n" % (diff3_marker_mine, random_num)
+  old_marker1 = "%s old%s\n" % (diff3_marker_old, random_num)
+  old_marker2 = "%s old%s\n" % (diff3_marker_mine, random_num)
+  your_marker = "%s yours%s\n" % (diff3_marker_yours, random_num)
   divider_marker = "=======\n"
   final_output = []
   ignore = False
+  self_merge = False
   for line in diff3_result:
     line = line.decode('utf-8')
     if line == my_marker:
       had_conflict = True
       final_output.append(marker1)
-    elif line == old_marker or line == old_marker2:
+    elif line.endswith(old_marker1):
       # ignore this part for brevity
       ignore = True
+    elif line == old_marker2:
+      # skip old, use yours
+      ignore = True
+      self_merge = True
     elif line == divider_marker: 
       ignore = False
-      final_output.append(marker2)
+      if not self_merge:
+        final_output.append(marker2)
     elif line == your_marker:
-      had_conflict = True
-      final_output.append(marker3)
+      if not self_merge:
+        had_conflict = True
+        final_output.append(marker3)
+      else:
+        self_merge = False
     elif not ignore:
       final_output.append(line)
 
-  return (''.join(final_output), had_conflict)
+  return (unescape_text(''.join(final_output)), had_conflict)
 
 
 #def text_merge(old, other, new, allow_conflicts=1,

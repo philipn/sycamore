@@ -25,6 +25,7 @@ class CacheEntry:
         needsupdate = False
 	page_cache = self.content_info()
 	if not page_cache[0] or not page_cache[1]: return True
+        if self.request.set_cache: return True
 
         return needsupdate
 
@@ -38,7 +39,11 @@ class CacheEntry:
         text = wikidb.binaryToString(content)
         page_info.cached_text = (text, cached_time)
 	if config.memcache:
-           self.request.mc.set("page_info:%s" % wikiutil.quoteFilename(self.key), page_info)
+           if self.request.set_cache:
+             self.request.mc.set("page_info:%s" % wikiutil.quoteFilename(self.key), page_info)
+           else:
+             self.request.mc.add("page_info:%s" % wikiutil.quoteFilename(self.key), page_info)
+
         self.request.req_cache['page_info'][wikiutil.quoteFilename(self.key)] = page_info
 
 

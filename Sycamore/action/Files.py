@@ -108,10 +108,10 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename)
     text = '<div><h4>Image history</h4></div><ul>'
 
     for revision in revisions:
-      if revision[2]:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[1]), baseurl, urlpagename, action, filename, repr(revision[1]), request.user.getFormattedDateTime(revision[1]), user.getUserLink(request, user.User(request, revision[2])), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
+      if revision[1]:
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), user.getUserLink(request, user.User(request, revision[1])), request.user.getFormattedDateTime(revision[2]), user.getUserLink(request, user.User(request, revision[3])))
       else:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[1]), baseurl, urlpagename, action, filename, repr(revision[1]), request.user.getFormattedDateTime(revision[1]), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), filename, request.user.getFormattedDateTime(revision[2]), user.getUserLink(request, user.User(request, revision[3])))
     text += '</ul>'
     return text
 

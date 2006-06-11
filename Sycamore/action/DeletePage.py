@@ -10,7 +10,7 @@
 """
 
 # Imports
-from Sycamore import config, wikiutil
+from Sycamore import config, wikiutil, wikiaction
 from Sycamore.PageEditor import PageEditor
 
 
@@ -41,7 +41,11 @@ def execute(pagename, request):
                 msg = _('Please use the interactive user interface to delete pages!'))
 
         # Delete the page
-        page.deletePage(request.form.get('comment', [''])[0])
+        comment = request.form.get('comment', [''])[0]
+        if len(comment) > wikiaction.MAX_COMMENT_LENGTH:
+          msg = "Comments must be less than %s characters long." % wikiaction.MAX_COMMENT_LENGTH
+          return page.send_page(msg)
+        page.deletePage(comment)
 
         return page.send_page(
                 msg = _('Page "%s" was successfully deleted!') % (pagename,))

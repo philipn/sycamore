@@ -68,17 +68,24 @@ def execute(pagename, request):
         else:
             renamecomment = request.form.get('comment', [''])[0]
             newpagename = request.form.get('newpagename')[0]
-            newpage = PageEditor(newpagename, request)
+            try:
+              newpage = PageEditor(newpagename, request)
+            except Page.ExcessiveLength, msg:
+              return Page(pagename, request).send_page(msg=msg)
+
+            if len(renamecomment) > wikiaction.MAX_COMMENT_LENGTH:
+               msg = _('Comments must be less than %s characters long.' % wikiaction.MAX_COMMENT_LENGTH)
+            elif len(newpagename) > Page.MAX_PAGENAME_LENGTH:
+               msg = _('Page names must be less than %s characters long.' % Page.MAX_PAGENAME_LENGTH)
 
             # check whether a page with the new name already exists
-            if newpage.exists() and not (newpagename.lower() == pagename.lower()):
+            elif newpage.exists() and not (newpagename.lower() == pagename.lower()):
                 msg = _('A page with the name "%s" already exists!') % (newpagename,)
 
             elif not wikiaction.isValidPageName(newpagename):        # pi Fri Dec 24 05:57:42 EST 2004
                 msg = _('Invalid pagename: Only the characters A-Z, a-z, 0-9, "$", "&", ",", ".", "!", "\'", ":", ";", " ", "/", "-", "(", ")" are allowed in page names.')
 		
             # we actually do a rename!
-
             else:
                 if renamecomment: renamecomment = " (" + renamecomment + ")"
                 #replace_in_xml(pagename, newpagename)

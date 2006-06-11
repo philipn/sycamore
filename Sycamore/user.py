@@ -456,8 +456,8 @@ class User(object):
 	if config.domain == 'localhost' or config.domain == '127.0.0.1':
 	  domain = ''
         else:
-	  domain = config.domain
-        return ("Set-Cookie", "%s expires=%s;domain=%s;Path=%s" % (cookie_value, expirestr, domain, cookie_dir))
+	  domain = "domain=%s;" % config.domain
+        return ("Set-Cookie", "%s expires=%s;%sPath=%s" % (cookie_value, expirestr, domain, cookie_dir))
 
 
     def cookieDough(self, expiretime, now):

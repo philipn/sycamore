@@ -159,16 +159,16 @@ if config.has_xapian:
     def _build_query(self, terms, op=xapian.Query.OP_OR):
       """builds a query out of the terms.  Takes care of things like "quoted text" properly"""
       query = None
+
+      if type(terms[0]) == list:
+        # an exactly-quoted sublist
+        query = xapian.Query(xapian.Query.OP_PHRASE, terms[0])
+        return query
+
       for term in terms:
-        if type(term) == type([]):
-          # an exactly-quoted sublist
-  	  exact_query = self._build_query(term, op)
-  	  if query: query = xapian.Query(op, query, exact_query)
-  	  else: query = xapian.Query(op, exact_query)
-        else:
-          if query: query = xapian.Query(op, query, xapian.Query(op, [term]))
-  	  else: query = xapian.Query(op, [term])
-  
+        if query: query = xapian.Query(op, query, xapian.Query(op, [term]))
+  	else: query = xapian.Query(op, [term])
+        
       return query
   
     def process(self):

@@ -107,8 +107,7 @@ _cfg_defaults = {
     'html_pagetitle': None,
     'httpd_host': 'localhost',
     'httpd_port': 8080,
-    'httpd_user': 'nobody',
-    'httpd_docs': './wiki-moinmoin',
+    'httpd_user': None,
     'interwikiname': None,
     'interwikimap': 'InterwikiMap',
     # XXX UNICODE fix
@@ -136,7 +135,7 @@ _cfg_defaults = {
     
     'page_front_page': 'Front Page',
     'page_user_prefernces': 'User Preferences',
-    'page_local_spelling_words': 'LocalSpellingWords',
+    'page_local_spelling_words': 'Local Spelling Words',
     'page_category_regex': '^Category[A-Z]',
     #'page_dict_regex': '[a-z]\s{0,1}Dict$',
     #'page_form_regex': '[a-z]Form$',

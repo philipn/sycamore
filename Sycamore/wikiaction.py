@@ -28,6 +28,7 @@ from Sycamore.util import SycamoreNoFooter, pysupport
 
 NOT_ALLOWED_CHARS = '><?#[]{}|'
 NOT_ALLOWED_CHARS_ESCAPED = re.escape(NOT_ALLOWED_CHARS)
+MAX_COMMENT_LENGTH = 80
 
 #############################################################################
 ### Search
@@ -153,38 +154,54 @@ def print_context(the_search, text, request, context=40, max_context=10):
  location = None
  terms = the_search.terms
  exact_terms = the_search.printable_terms 
- found_terms = {}
  escape = wikiutil.escape
+ 
+ terms_both = []
+ for i in range(0, len(terms)):
+   terms_both_set = []
+   if type(terms[i]) == list:
+     for j in range(0, len(terms[i])):
+       terms_both_set.append((terms[i][j], exact_terms[i][j]))
+   else:
+     terms_both_set.append((terms[i], exact_terms[i]))
+   terms_both.append(terms_both_set)
 
- for term in terms:
-   if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
-   else: term_string = term
-   term_string = term_string.lower().decode('utf-8')
-   found_loc = fixed_text.find(term_string)
-   while True:
-     if found_loc == -1: break
-     found_terms[term_string] = True
-     terms_with_location.append((term_string, found_loc))
-     rel_position = fixed_text[found_loc+len(term_string):].find(term_string)
-     if rel_position == -1:
-       break
-     found_loc += rel_position + len(term_string)
+ terms = terms_both
 
- if found_loc == -1: # stemed version (terms) didn't return anything useful.  let's try and find exact terms
-   for term in exact_terms:
-     if type(term) == type([]): term_string = ' '.join(term) # means this is "exact match yo"
-     else: term_string = term
-     term_string = term_string.lower()
-     if term_string in found_terms: continue
-     found_loc = fixed_text.find(term_string)
+ for item in terms:
+     term_string_stemmed = None
+     if type(item[0]) == list:
+        exact_terms = [ exact for stemmed, exact in item ] 
+        term_string_exact = ' '.join(exact_terms) # means this is "exact match yo"
+     else:
+       item = item[0]
+       term_item = item
+       term_string_stemmed = term_item[0].lower()
+       term_string_exact = term_item[1].lower()
+     # try and find exact first
+
+     found_loc = fixed_text.find(term_string_exact)
+     found_one = False
      while True:
        if found_loc == -1: break
-       terms_with_location.append((term_string, found_loc))
-       rel_position = fixed_text[found_loc+len(term_string):].find(term_string)
+       found_one = True
+       terms_with_location.append((term_string_exact, found_loc))
+       rel_position = fixed_text[found_loc+len(term_string_exact):].find(term_string_exact)
        if rel_position == -1:
          break
-       found_loc += rel_position + len(term_string)
+       found_loc += rel_position + len(term_string_exact)
 
+     if not found_one and term_string_stemmed: # try and find stemmed version
+       found_loc = fixed_text.find(term_string_stemmed)
+       while True:
+         if found_loc == -1: break
+         found_one = True
+         terms_with_location.append((term_string_stemmed, found_loc))
+         rel_position = fixed_text[found_loc+len(term_string_stemmed):].find(term_string_stemmed)
+         if rel_position == -1:
+           break
+         found_loc += rel_position + len(term_string_stemmed)
+ 
  terms_with_location.sort(lambda x,y: cmp(x[1],y[1]))
  i = 0
  text_with_context = []
@@ -211,14 +228,14 @@ def print_context(the_search, text, request, context=40, max_context=10):
        skip = True
        continue
      else:
-       text_with_context.append('%s...%s' % (escape(text[location+len(term):location+len(term)+padding]), escape(text[next_location-len(next_term)-padding:next_location])))
-   else: # we are at the end of the list of terms
+       text_with_context.append('%s ... %s' % (escape(text[location+len(term):location+len(term)+padding]), escape(text[next_location-len(next_term)-padding:next_location])))
+   elif not skip: # we are at the end of the list of terms
      text_with_context.append('%s' % escape(text[location+len(term):location+len(term)+context]))
    i += 1
    skip = False
 
  if location and location + padding + 1 < len(text):
-   text_with_context.append('...')
+   text_with_context.append(' ... ')
 
  text_context = []
 
@@ -799,7 +816,13 @@ def do_savepage(pagename, request):
     elif request.form.has_key('button_cancel'):
         pg.sendCancel(savetext, datestamp)
     else:
+
         savetext = pg._normalize_text(savetext, stripspaces=rstrip)
+
+        if len(comment) > MAX_COMMENT_LENGTH:
+           msg = "<p>Edit comments can be no more than %s characters long.</p>" % MAX_COMMENT_LENGTH
+           pg.sendEditor(msg=msg, preview=savetext, staytop=1)
+
         try:
             savemsg = pg.saveText(savetext, datestamp,
                                   stripspaces=rstrip, notify=notify,

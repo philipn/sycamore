@@ -79,7 +79,7 @@ def execute(pagename, request):
       item_date.appendChild(rss_dom.createTextNode(request.user.getFormattedDateTime(line.ed_time, global_time=True)))
       item.appendChild(item_date)
       creator = rss_dom.createElement("dc:creator")
-      creator.appendChild(rss_dom.createTextNode(user.User(request, line.userid).name))
+      creator.appendChild(rss_dom.createTextNode(user.User(request, line.userid).propercased_name))
       item.appendChild(creator)
       item.appendChild(item_description)
       channel.appendChild(item)
