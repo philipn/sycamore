@@ -290,7 +290,11 @@ class Theme(ThemeBase):
 	          else:
 	            html.append('<td align="left" width="24%">')
 	        else:
-	            html.append('<td align="left" width="10%">')
+                    if not self.request.user.isFavoritedTo(d['lower_page_name']):
+	              html.append('<td align="left" width="20%">')
+                    else:
+	              html.append('<td align="left" width="10%">')
+
                 if editable:
 		    actions_in_footer = True
                     html.append("%s" % (
