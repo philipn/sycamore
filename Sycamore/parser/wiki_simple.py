@@ -790,12 +790,15 @@ class Parser:
 
         return ""
 
-
     def print_br(self):
         """
         We want to know if we should print a <br/>.  Did we do anything that would cause us to not want to print a break?
         """
-        return not (self.inhibit_br or self.formatter.in_p or self.in_table or self.lineno <= 1 or self.line_was_empty)
+        # is the next line a table?
+        next_line = self.lines[self.lineno-1].strip()
+        if next_line[:2] == "||" and next_line[-2:] == "||":
+          return False
+        return not (self.inhibit_br or self.in_table or self.lineno <= 1 or self.line_was_empty)
 
 
     def format(self, formatter):

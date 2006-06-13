@@ -651,6 +651,7 @@ class User(object):
         @rtype: float
         @return: bookmark time (UTC UNIX timestamp) or None
         """
+	pagename = pagename.lower()
         if self.favorites.has_key(pagename): return self.favorites[pagename]
 
 	return None

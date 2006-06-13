@@ -1,10 +1,12 @@
 """This will rebuild all page caches in the wiki."""
 
 import sys, cStringIO, threading, time
-sys.path.extend(['/srv/wikis/daviswiki/trunk'])
+sys.path.extend(['/srv/wikis/daviswikitest/trunk'])
 import __init__
 from Sycamore import wikiutil, config, request, caching, wikidb
 from Sycamore.Page import Page
+
+MAX_THREADS = 10
 
 def clear(pname):
   key = pname
@@ -22,21 +24,37 @@ def build(pname):
 
 def clearCaches(plist):
   print "Clearing page caches..."
-  for pname in plist:
+
+  i = 0 
+  while True:
+    if i >= len(plist):
+      break
+    while threading.activeCount() > MAX_THREADS + 1:
+      time.sleep(.01)
+    pname = plist[i]
     threading.Thread(target=clear, args=(pname,)).start()
+    i += 1
+
   while threading.activeCount() > 1:
     time.sleep(.1)
+
   print "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
   print "cleared page caches!"
   print "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 def buildCaches(plist):
   print "Building page caches...It is _normal_ for this to produce errors!"
-  # this is hackish, but it will work
-  # the idea is to view every page to build the cache
-  # we should actually refactor send_page()
-  for pname in plist:
+
+  i = 0 
+  while True:
+    if i >= len(plist):
+      break
+    while threading.activeCount() > MAX_THREADS + 1:
+      time.sleep(.01)
+    pname = plist[i]
     threading.Thread(target=build, args=(pname,)).start()
+    i += 1
+
   while threading.activeCount() > 1:
     time.sleep(.1)
    

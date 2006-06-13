@@ -603,7 +603,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.buildCache()
 	# rebuild possible dependencies (e.g. [[Include]])
 	for pagename in caching.depend_on_me(self.page_name, self.request, exists, action=action):
-          caching.CacheEntry(pagename, request).clear()
+          caching.CacheEntry(pagename, self.request).clear()
 
 	# set in-memory page text
 	self.set_raw_body(text)

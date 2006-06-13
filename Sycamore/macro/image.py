@@ -204,6 +204,7 @@ def getArguments(args, request):
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
+
     baseurl = macro.request.getScriptname()
     action = 'Files' # name of the action that does the file stuff
     html = []
