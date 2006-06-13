@@ -19,6 +19,7 @@ import sys, re, os, array, time
 #      (We can have a caption w/o a border, as well)
 #  
 
+IMAGE_MACRO = re.compile(r'^(\s*(\[\[image((\(.*\))|())\]\])\s*)+$')
 
 Dependencies = []
 
@@ -203,27 +204,15 @@ def getArguments(args, request):
 
 def line_has_just_macro(macro, args, formatter):
   line = macro.parser.lines[macro.parser.lineno-1].lower().strip()
-  if args:
-    macro_text = "[[%s(%s)]]" % (macro.name, args.lower())
-  else:
-    macro_text = "[[%s]]" % macro.name
-
-  if line == macro_text:
+  if IMAGE_MACRO.match(line):
     return True
-  
-  if not args:
-    # try alternative args format
-    macro_text = "[[%s()]]" % macro.name
-    if line == macro_text:
-      return True
-
   return False
 
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
     if line_has_just_macro(macro, args, formatter):
-      macro.parser.inhibit_br += 1 
+      macro.parser.inhibit_br = 2
 
     baseurl = macro.request.getScriptname()
     action = 'Files' # name of the action that does the file stuff
