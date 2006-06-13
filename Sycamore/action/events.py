@@ -18,9 +18,8 @@ creator_text = 'The %s Robot' % config.sitename
 #	text=text.replace('\x97','&#8212;') # em-dash
 #	return text
 
-MAX_EVENT_NAME_LENGTH = 30
-MAX_EVENT_LOCATION_LENGTH = 25
-
+MAX_EVENT_NAME_LENGTH = 100
+MAX_EVENT_LOCATION_LENGTH = 100
 
 def execute(pagename, request):
     _ = request.getText

@@ -91,9 +91,11 @@ class Macro:
         self.form = self.parser.form
         self.request = self.parser.request
         self.formatter = self.request.formatter
+        self.name = ''
         self._ = self.request.getText
 
     def execute(self, macro_name, args, formatter=None):
+        self.name = macro_name
         macro = wikiutil.importPlugin('macro', macro_name)
         if macro:
             return macro(self, args, formatter=formatter)

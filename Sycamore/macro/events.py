@@ -177,8 +177,8 @@ def full_events(events, are_events_today, htmltext, macro):
                 '<tr><td><form method="POST" action="%s/%s">\n'
                 '<input type="hidden" name="action" value="events">\n'
                 '<input type="hidden" name="ticket" value="%s">\n'
-                'Event name: <input class="formfields" type="text" name="event_name" size="30">&nbsp;\n'
-                'Location: <input class="formfields" type="text" name="event_location" size="25"><br><br>\n'
+                'Event name: <input class="formfields" type="text" name="event_name" size="30" maxlength="100">&nbsp;\n'
+                'Location: <input class="formfields" type="text" name="event_location" size="25" maxlength="100"><br><br>\n'
      	% (title, macro.request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), createTicket()))
 
     monthstring ='<p>Date: <select name="month">\n<option value="1">January</option>\n<option value="2">February</option>\n<option value="3">March</option>\n<option value="4">April</option>\n<option value="5">May</option>\n<option value="6">June</option>\n<option value="7">July</option>\n <option value="8">August</option>\n<option value="9">September</option>\n<option value="10">October</option>\n<option value="11">November</option>\n<option value="12">December</option>\n</select>\n'
