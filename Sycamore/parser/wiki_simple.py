@@ -387,16 +387,16 @@ class Parser:
     def _bracket_link_repl(self, word):
         """Handle our standard format links. format:  ["Page name" text]"""
         words = word[2:-1].split('"')
-        if len(words) != 2:
+        if len(words) < 2:
           return self.formatter.rawHTML('<b> %s Incorrect link format: %s </b>' % (self.request.theme.make_icon('attention.png'), word))
 
         pagename = words[0].strip()
-        text = words[1].strip()
-	
-	if string.find(words[0], "http://") is not -1:
-		return self.formatter.rawHTML('<b>!!&mdash;You wrote</b> %s<b>, you probably meant to write</b> [%s %s] <b>to make an outside the wiki link&mdash;!!</b>' % (word, pagename, text))
+        text = '"'.join(words[1:]).strip()
+        
+        if string.find(words[0], "http://") is not -1:
+                return self.formatter.rawHTML('<b>!!&mdash;You wrote</b> %s<b>, you probably meant to write</b> [%s %s] <b>to make an outside the wiki link&mdash;!!</b>' % (word, pagename, text))
         #return self.formatter.url("../index.cgi/" +pagename, text)
-	return self._word_repl(pagename, text)
+        return self._word_repl(pagename, text)
 
     def _email_repl(self, word):
         """Handle email addresses (without a leading mailto:)."""
@@ -847,6 +847,7 @@ class Parser:
             self.line_is_empty = 0
             self.first_list_item = 0
             self.inhibit_p = 0
+            self.inhibit_br -= 1
 
             if self.in_pre:
                 # still looking for processing instructions
