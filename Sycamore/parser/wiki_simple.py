@@ -847,7 +847,8 @@ class Parser:
             self.line_is_empty = 0
             self.first_list_item = 0
             self.inhibit_p = 0
-            self.inhibit_br -= 1
+            if self.inhibit_br >= 0: self.inhibit_br -= 1
+            else: self.inhibit_br = 0
 
             if self.in_pre:
                 # still looking for processing instructions

@@ -238,7 +238,7 @@ class Parser:
     def _rule_repl(self, word):
         """Handle sequences of dashes."""
         self.inhibit_p = 1
-        self.inhibit_br += 2
+        self.inhibit_br += 1
         result = self._undent()
         if len(word) <= 4:
             result = result + self.formatter.rule()
@@ -379,11 +379,11 @@ class Parser:
     def _bracket_link_repl(self, word):
         """Handle our standard format links. format:  ["Page name" text]"""
         words = word[2:-1].split('"')
-        if len(words) < 2:
+        if len(words) != 2:
           return self.formatter.rawHTML('<b> %s Incorrect link format: %s </b>' % (self.request.theme.make_icon('attention.png'), word))
 
         pagename = words[0].strip()
-        text = '"'.join(words[1:]).strip()
+        text = words[1].strip()
 	
 	if string.find(words[0], "http://") is not -1:
 		return self.formatter.rawHTML('<b>!!&mdash;You wrote</b> %s<b>, you probably meant to write</b> [%s %s] <b>to make an outside the wiki link&mdash;!!</b>' % (word, pagename, text))
@@ -673,7 +673,7 @@ class Parser:
         import sha
 
         self.inhibit_p = 1
-        self.inhibit_br += 2
+        self.inhibit_br += 1
         icons = ''
 
         h = word.strip()
@@ -935,7 +935,8 @@ class Parser:
             self.line_is_empty = 0
             self.first_list_item = 0
             self.inhibit_p = 0
-            self.inhibit_br -= 1
+            if self.inhibit_br >= 0: self.inhibit_br -= 1
+            else: self.inhibit_br = 0
 
             if self.in_pre:
                 # still looking for processing instructions
