@@ -13,7 +13,7 @@ import re
 #bullet: ^ *\*
 #image: .*[[Image.*
 #table: \|\|.*\|\|
-ignore_expr = re.compile('^=+[^=]*=+|\[\[[bB][rR]\]\]|----+|.*\[\[Image.*|\|\|.*\|\|', re.IGNORECASE)
+ignore_expr = re.compile('^=+[^=]*=+|\[\[[bB][rR]\]\]|----+|^#|.*\[\[Image.*|\|\|.*\|\|', re.IGNORECASE)
 nextln_expr = re.compile('^ *\*|^=+[^=]*=+|----+|.*\[\[Image.*|\|\|.*\|\|', re.IGNORECASE)
 
 def newline_sucker(line): #replace newlines with strings sometimes
@@ -24,8 +24,13 @@ def newline_sucker(line): #replace newlines with strings sometimes
 def file_sucker(text): #diddle around with newlines in a file
     blank = [line.isspace() or line.startswith(" ") for line in text] # boolean array 'is this a blank line?'
     result = []
+    skip = False
     for linenum in range(0,len(text)-1): #not a 'for line in text', we need lookahead
-        if blank[linenum] or blank[linenum+1]:
+        if text[linenum].find('{{{') != -1:
+	  skip = True
+        if text[linenum].find('}}}') != -1:
+	  skip = False
+        if blank[linenum] or blank[linenum+1] or skip:
             result.append(text[linenum]) #don't remove \n for blank lines or lines before blank lines
             continue
             
@@ -44,17 +49,16 @@ print "-----------"
 for pagename in plist:
   print "Updating %s" % pagename.encode('utf-8')
   req.cursor.execute("SELECT text from curPages where name=%(pagename)s", {'pagename':pagename.lower()})
-  mtime = Page(pagename, req).mtime()
   text = req.cursor.fetchone()[0]
+  mtime = Page(pagename, req).mtime()
   lines = text.splitlines(True)
   fixed_text = file_sucker(lines)
 
   # replace the latest version of the page text
-  req.cursor.execute("UPDATE curPages set text=%(fixed_text)s where name=%(pagename)s", {'pagename':pagename.lower(), 'fixed_text':fixed_text})
-  req.cursor.execute("UPDATE allPages set text=%(fixed_text)s where name=%(pagename)s and editTime=%(mtime)s", {'pagename':pagename.lower(), 'fixed_text':fixed_text, 'mtime':mtime})
+  req.cursor.execute("UPDATE curPages set text=%(fixed_text)s where name=%(pagename)s", {'pagename':pagename.lower(), 'fixed_text':fixed_text}, isWrite=True)
+  req.cursor.execute("UPDATE allPages set text=%(fixed_text)s where name=%(pagename)s and editTime=%(mtime)s", {'pagename':pagename.lower(), 'fixed_text':fixed_text, 'mtime':mtime}, isWrite=True)
 req.db_disconnect()
 print "-----------"
 print "Pages converted for spacing consistency!"
 
-rebuildPageCaches.clearCaches(plist)
 rebuildPageCaches.buildCaches(plist)
