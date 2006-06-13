@@ -10,7 +10,7 @@
 """
 
 # Imports
-from Sycamore import config, wikiutil
+from Sycamore import config, wikiutil, wikiaction
 from Sycamore.PageEditor import PageEditor
 from Sycamore.Page import Page
 
