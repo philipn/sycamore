@@ -751,9 +751,7 @@ class Parser:
 
 
     def _comment_repl(self, word):
-        self.inhibit_br += 1
-        if self.lineno == 1:
-          self.inhibit_br += 1
+        self.inhibit_br = 2
         return ''
 
 

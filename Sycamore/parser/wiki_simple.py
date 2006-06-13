@@ -700,6 +700,7 @@ class Parser:
 
 
     def _comment_repl(self, word):
+        self.inhibit_br = 2
         return ''
 
 
