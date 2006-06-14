@@ -15,7 +15,8 @@ Dependencies = []
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
 
-    if macro.parser.inhibit_br: return ''
-    macro.parser.inhibit_br = 1 # so we don't print two brs! :)
+    if not macro.parser.in_table:
+      if macro.parser.inhibit_br: return ''
+      macro.parser.inhibit_br = 1 # so we don't print two brs! :)
 
     return formatter.linebreak(0)
