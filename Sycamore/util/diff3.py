@@ -77,6 +77,9 @@ def text_merge(old, other, new,
     elif line.endswith(old_marker1):
       # ignore this part for brevity
       ignore = True
+      on_this_line = line[:line.find(old_marker1)]
+      if on_this_line:
+        final_output.append("%s\n" % on_this_line)
     elif line == old_marker2:
       # skip old, use yours
       ignore = True

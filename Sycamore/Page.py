@@ -640,7 +640,8 @@ class Page(object):
         # if no caching
         if  (self.prev_date or self.hilite_re or self._raw_body_modified or
             (not getattr(Parser, 'caching', None)) or
-            (not formatter_name in config.caching_formats)): 
+            (not formatter_name in config.caching_formats) or
+            self.preview): 
             # parse the text and send the page content
 	    body = self.get_raw_body()
             Parser(body, request).format(self.formatter)
