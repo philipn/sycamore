@@ -474,7 +474,7 @@ class User(object):
 
 	sessionid = hash(str(time.time()) + str(self.id)).strip()
 	# clear possibly old expired sessions
-	self.request.cursor.execute("DELETE from userSessions where user_id=%(id)s and expire_time>=%(timenow)s", {'id':self.id, 'timenow':time.time()}, isWrite=True)
+	self.request.cursor.execute("DELETE from userSessions where user_id=%(id)s and expire_time<=%(timenow)s", {'id':self.id, 'timenow':time.time()}, isWrite=True)
 	# add our new session
 	hash_secret = hash(secret)
 	self.request.cursor.execute("INSERT into userSessions (user_id, session_id, secret, expire_time) values (%(user_id)s, %(session_id)s, %(secret)s, %(expiretime)s)", {'user_id':self.id, 'session_id':sessionid, 'secret':hash_secret, 'expiretime':expiretime}, isWrite=True)
