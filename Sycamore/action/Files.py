@@ -29,7 +29,7 @@ htdocs_access = isinstance(config.attachments, type({}))
 #############################################################################
 
 
-def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=0, thumb=False, size=0, ticket=None):
+def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=None, thumb=False, size=0, ticket=None):
     """ Get URL that points to image `filename` of page `pagename`.
 
         If 'addts' is true, a timestamp with the file's modification time
@@ -54,9 +54,15 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, ver
 	if ticket:
 	   url = "%s&amp;ticket=%s&amp;size=%s" % (url, ticket,size)
     else:
-      url = "%s/%s?img=true&amp;file=%s&amp;deleted=true&amp;version=%s" % (wikiutil.baseScriptURL(), 
+      if version is None:
+        url = "%s/%s?img=true&amp;file=%s&amp;deleted=true" % (wikiutil.baseScriptURL(), 
+            wikiutil.quoteWikiname(pagename),
+            urllib.quote(filename))
+      else:
+        url = "%s/%s?img=true&amp;file=%s&amp;deleted=true&amp;version=%s" % (wikiutil.baseScriptURL(), 
             wikiutil.quoteWikiname(pagename),
             urllib.quote(filename), repr(version))
+
 
 
 
@@ -109,9 +115,9 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename)
 
     for revision in revisions:
       if revision[1]:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), request.user.getFormattedDateTime(revision[0]), user.getUserLink(request, user.User(request, revision[1])), request.user.getFormattedDateTime(revision[2]), user.getUserLink(request, user.User(request, revision[3])))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[1]), baseurl, urlpagename, action, filename, repr(revision[1]), request.user.getFormattedDateTime(revision[1]), user.getUserLink(request, user.User(request, revision[2])), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
       else:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[0]), baseurl, urlpagename, action, filename, repr(revision[0]), filename, request.user.getFormattedDateTime(revision[2]), user.getUserLink(request, user.User(request, revision[3])))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[1]), baseurl, urlpagename, action, filename, repr(revision[1]), filename, request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
     text += '</ul>'
     return text
 
@@ -519,7 +525,7 @@ def restore_image(pagename, request):
     if is_in_images:
 	# this means the image wasn't most recently deleted but the user still would like to revert to this version of the image
 	#backup the current version of the image
-	request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, uploaded_by_ip, deleted_time, deleted_by, deleted_by_ip, attached_to_pagename_propercased) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, %(deleted_by_ip)s, %(pagename_propercased)s)", {'filename':filename, 'pagename':lower_pagename, 'timenow':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr, 'pagename_propercased':pagename_propercased}, isWrite=True)
+	request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, uploaded_by_ip, deleted_time, deleted_by, deleted_by_ip, attached_to_pagename_propercased) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(timenow)s, %(deleted_by)s, %(deleted_by_ip)s, %(pagename_propercased)s)", {'filename':filename, 'pagename':lower_pagename, 'timenow':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr, 'pagename_propercased':pagename_propercased}, isWrite=True)
 	#revert by putting their version as the current version
 	request.cursor.execute("UPDATE images set image=(select image from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), xsize=(select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), ysize=(select xsize from oldImages where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s), uploaded_by=%(userid)s, uploaded_by_ip=%(userip)s, uploaded_time=%(timenow)s where name=%(filename)s and attached_to_pagename=%(pagename)s", {'filename':filename, 'pagename':lower_pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':timenow}, isWrite=True)
 
@@ -563,11 +569,11 @@ def send_viewfile(pagename, request):
     else:
         filename = request.form['target'][0]
 	if request.form.get('version', [''])[0]: version = float(request.form['version'][0])
-	else: version = 0
+	else: version = None
 
 	# does the image exist?
 
-        if not version:
+        if version is None:
  	  # in some rare cases the images were not uploaded by a user, so let's check to see if there's information on the upload-er
  	  request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image) from images where attached_to_pagename=%(pagename)s and name=%(filename)s", {'pagename':lower_pagename, 'filename':filename})
 	else:
@@ -587,20 +593,14 @@ def send_viewfile(pagename, request):
              revisions_item = request.cursor.fetchone()
         else:
 	   # let's see if the image was deleted, and if so we'll display it with a note about how it was removed.
-	   if not version:
+	   if version is None:
 	   # grab the most recent version of the image
              request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image), deleted_time, deleted_by from oldImages where attached_to_pagename=%(pagename)s and oldImages.name=%(filename)s order by uploaded_time desc;", {'pagename':lower_pagename, 'filename':filename})
 	   else:
 	     # let's grab the proper version of the image
 	     request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(image), deleted_time, deleted_by from oldImages where attached_to_pagename=%(pagename)s and name=%(filename)s and uploaded_time=%(version_date)s order by uploaded_time desc;", {'pagename':lower_pagename, 'filename':filename, 'version_date':version})
-	   revisions_and_latest = request.cursor.fetchall()
-	   if revisions_and_latest:
-	      result = revisions_and_latest[0]
-	      revisions = revisions_and_latest[1:]
-	      revisions_tuples = []	
-	      for item in revisions:
-	        revisions_tuples.append((item[1], item[2], item[4], item[5]))
-	      revisions = revisions_tuples
+	   latest_revision = request.cursor.fetchone()
+           result = latest_revision
 	   if result:
 	      deleted_image = True
 	   else:
@@ -644,7 +644,7 @@ def send_viewfile(pagename, request):
 
     if deleted_image: request.write('<p><div class="actionBoxes"><span><a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert to this version of the image</a></span></div></p>' %(baseurl, urlpagename, action, filename, repr(uploaded_time)))
 
-    if not version and not deleted_image:
+    if version is None and not deleted_image:
       request.write(_delete_footer(request, pagename, baseurl, urlpagename, action, filename))
 
     if revisions:

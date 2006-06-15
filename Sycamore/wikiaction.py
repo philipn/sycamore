@@ -170,7 +170,7 @@ def print_context(the_search, text, request, context=40, max_context=10):
 
  for item in terms:
      term_string_stemmed = None
-     if type(item[0]) == list:
+     if type(item) == list:
         exact_terms = [ exact for stemmed, exact in item ] 
         term_string_exact = ' '.join(exact_terms) # means this is "exact match yo"
      else:
