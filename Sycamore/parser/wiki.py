@@ -672,7 +672,7 @@ class Parser:
         import sha
 
         self.inhibit_p = 1
-        self.inhibit_br += 1
+        self.inhibit_br += 2
         icons = ''
 
         h = word.strip()
@@ -889,7 +889,7 @@ class Parser:
 	next_line = self.lines[self.lineno-1].strip()
 	if next_line[:2] == "||" and next_line[-2:] == "||":
 	  return False
-        return not (self.inhibit_br or self.in_table or self.lineno <= 1 or self.line_was_empty)
+        return not (self.inhibit_br > 0 or self.in_table or self.lineno <= 1 or self.line_was_empty)
 
 
     def format(self, formatter):
@@ -932,7 +932,7 @@ class Parser:
             self.line_is_empty = 0
             self.first_list_item = 0
             self.inhibit_p = 0
-            if self.inhibit_br >= 0: self.inhibit_br -= 1
+            if self.inhibit_br > 0: self.inhibit_br -= 1
             else: self.inhibit_br = 0
 
             if self.in_pre:
