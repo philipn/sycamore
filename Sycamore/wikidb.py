@@ -349,7 +349,10 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   def buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor):
     # we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
     if per_page_limit:
-      query = ['SELECT distinct on (name) name, changeTime, id, editType, comment, userIP from ( SELECT * from ( ']
+      if config.db_type == 'postgres':
+        query = ['SELECT distinct on (name) name, changeTime, id, editType, comment, userIP from ( SELECT * from ( ']
+      elif config.db_type == 'mysql':
+        query = ['SELECT distinct (name), changeTime, id, editType, comment, userIP from ( SELECT * from ( ']
     else:
       query = ['SELECT name, changeTime, id, editType, comment, userIP from (']
     printed_where = False
@@ -411,7 +414,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   # b/c oldest_time is the same until it's a new day, this statement caches well
   # so, let's compile all the different types of changes together!
   query = buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
-  #print query % {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page}
+  #print query % {'max_days_ago': '"'+str(max_days_ago)+'"', 'limit': '"'+str(total_changes_limit)+'"', 'userFavoritesFor': '"'+str(userFavoritesFor)+'"', 'pagename': '"'+str(page)+'"'}
   request.cursor.execute(query, {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page, 'changes_since':changes_since})
  
   edit = request.cursor.fetchone()
