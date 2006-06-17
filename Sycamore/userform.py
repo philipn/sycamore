@@ -193,6 +193,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             # send the cookie
             theuser.sendCookie(self.request)
             self.request.user = theuser
+            return """You are now logged in!"""
         else:
             # save user's profile, first get user instance
             theuser = user.User(self.request)

@@ -1197,6 +1197,12 @@ def send_title(request, text, **keywords):
 
     # now call the theming code to do the rendering
     request.write(request.theme.header(d))
+
+def send_after_content(request):
+    """
+    Called after content is sent but before the footer is sent.
+    """
+    request.write(request.theme.after_content())
     
 
 def send_footer(request, pagename, **keywords):

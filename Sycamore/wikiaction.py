@@ -87,6 +87,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     # don't display results they can't read
     title_hits = [title for title in this_search.title_results if request.user.may.read(title.page)]
     full_hits = [text for text in this_search.text_results if request.user.may.read(text.page)]
+    request.write('<div id="content" class="wikipage content">\n') # start content div
     if len(title_hits) < 1:
             request.write('<h3>&nbsp;No title matches</h3>')
             request.write('<table class="dialogBox"><tr><td>\n') # start content div
@@ -98,7 +99,6 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
             if not title_hits[0].title.lower() == printable_needle.lower():
                     request.write('<table class="dialogBox"><tr><td>The %s does not have any entries with the exact title "' % config.sitename + printable_needle + '". <br />')
                     request.write('Would you like to %s?</td></tr></table>' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
-    request.write('<div id="content" class="wikipage content">\n') # start content div
     request.write('<ul>')
     if len(title_hits) > twith:
             for t_hit in title_hits[0:twith]:
@@ -106,17 +106,14 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
             request.write('</ul>')
             request.write('<p>(<a href="%s?action=search&string=%s&tstart=%s">next %s matches</a>)'
                     % (request.getScriptname(), needle, tstart+twith, twith))
-            request.write('</div>\n') # end content div
     else:
             for t_hit in title_hits:
                     request.write('<li>%s</li>' % t_hit.page.link_to())
             request.write('</ul>')
-            request.write('</div>\n') # end content div
     if len(full_hits) < 1:
       request.write('<h3>&nbsp;No full text matches</h3>')
     else:
       request.write('<h3>&nbsp;Full text matches</h3>')
-      request.write('<div id="content" class="wikipage content">\n') # start content div
       request.write('<dl class="searchresult">')
 
       
@@ -139,6 +136,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
       else:
          request.write('</div></dl>')
 
+    wikiutil.send_after_content(request)
     wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
 
 do_inlinesearch = do_search # for comptability to not break old urls in firefox extensions, etc.
@@ -243,44 +241,6 @@ def print_context(the_search, text, request, context=40, max_context=10):
        
  request.write('<div class="textSearchResult">%s</div>' % ''.join(text_with_context))
 
-def do_titlesearch(pagename, request, fieldname='value'):
-    _ = request.getText
-    start = time.clock()
-
-    request.http_headers()
-
-    if request.form.has_key(fieldname):
-        needle = request.form[fieldname][0]
-    else:
-        needle = ''
-
-    # check for sensible search term
-    if len(needle) < 1:
-        Page(pagename, request).send_page(
-             msg=_("Please use a more selective search term instead of '%(needle)s'!") % {'needle': needle})
-        return
-
-    wikiutil.send_title(request, _('Title search for "%s"') % (needle,))
-
-    try:
-        needle_re = re.compile(needle, re.IGNORECASE)
-    except re.error:
-        needle_re = re.compile(re.escape(needle), re.IGNORECASE)
-    all_pages = wikiutil.getPageList(request, alphabetize=True)
-    hits = filter(needle_re.search, all_pages)
-
-    hits = [Page(hit, request) for hit in hits]
-    hits = filter(request.user.may.read, hits)
-
-    request.write('<div id="content" class="wikipage content">\n') # start content div
-    request.write('<ul>')
-    for page in hits:
-        request.write('<li>%s</li>' % page.link_to())
-    request.write('</ul>')
-
-    print_search_stats(request, len(hits), len(all_pages), start)
-    request.write('</div>\n') # end content div
-    wikiutil.send_footer(request, pagename, editable=0, showactions=0, form=request.form)
 
 
 #def do_highlight(pagename, request):
@@ -505,6 +465,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
       request.write(''.join(l))
       newpage.send_page(count_hit=0, content_only=1, content_id="content-under-diff")
       request.write('</div>\n') # end content div
+      wikiutil.send_after_content(request)
       wikiutil.send_footer(request, pagename, showpage=1)
     else:
       l.append('</div>\n') #end content div
@@ -707,6 +668,7 @@ def do_info(pagename, request):
 	history(page, pagename, request)
 
     request.write('</div></div>\n') # end tabPage div, content div
+    wikiutil.send_after_content(request)
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 

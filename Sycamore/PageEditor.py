@@ -194,7 +194,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
                    self.set_raw_body(verynewtext)
 
             if conflict_msg:
-                self.request.write('<div id="message">%s</div>' % conflict_msg)
+                self.request.write('<div id="message"><div>%s</div></div>' % conflict_msg)
                 emit_anchor = 0 # make this msg visible!
         elif self.exists():
             # datestamp of existing page
@@ -355,6 +355,8 @@ Your changes were sucessfully merged!""" % conflict_msg)
             self.request.write('</div>')
 
         self.request.write('</div>\n') # end content div
+
+        wikiutil.send_after_content(self.request)
 
         self.request.theme.emit_custom_html(config.page_footer1)
         self.request.theme.emit_custom_html(config.page_footer2)

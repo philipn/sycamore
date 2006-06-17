@@ -356,6 +356,7 @@ def upload_form(pagename, request, msg=''):
     request.write('<div id="content" class="content">')
     send_uploadform(pagename, request)
     request.write('</div></div>')
+    wikiutil.send_after_content(request)
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 def send_title(request, desc, pagename, msg, title=''):
@@ -668,6 +669,7 @@ def view_file(pagename, request):
 
     send_viewfile(pagename, request)
     request.write('</div></div>')
+    wikiutil.send_after_content(request)
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 def show_deleted_images(pagename, request):
@@ -702,6 +704,7 @@ def show_deleted_images(pagename, request):
     request.write('<p>These images have been <b>deleted</b> from the original page, which means they can\'t be included in the wiki anymore and are possibly (in some cases) subject to permanent deletion:</p>')
     request.write(text_list)
     request.write('</div></div>')
+    wikiutil.send_after_content(request)
     wikiutil.send_footer(request, pagename, showpage=1, noedit=True)
 
 

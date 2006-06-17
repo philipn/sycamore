@@ -349,11 +349,19 @@ class Theme(ThemeBase):
             dict['newtitle'] = config.catchphrase
 	dict['web_dir'] = config.web_dir
 	if dict['newtitle'] is config.catchphrase: 
+          if config.catchphrase:
         	html = """
 <title>%(sitename)s - %(newtitle)s</title><script
 src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 %(stylesheets_html)s
 		""" % dict
+          else:
+        	html = """
+<title>%(sitename)s</title><script
+src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
+%(stylesheets_html)s
+		""" % dict
+
 	else:
                 html = """
 <title>%(newtitle)s - %(sitename)s</title><script

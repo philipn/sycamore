@@ -301,7 +301,7 @@ class Theme(object):
             clear_msg_link = """<a onClick="return hideMessage('message');" href="%(script_name)s/%(q_page_name)s?action=show">%(link_text)s</a>""" % d
             d.update({'clear_msg_link': clear_msg_link,})
             html = ('\n<div id="message">\n'
-                    '<p>%(msg)s</p><p>%(clear_msg_link)s</p></div>') % d
+                    '<div><p>%(msg)s</p><p>%(clear_msg_link)s</p></div></div>') % d
         return html
     
     #def trail(self, d):
@@ -537,6 +537,9 @@ class Theme(object):
                     'Sycamore %s, Copyright \xa9 2000-2004 by Jürgen Hermann'
                     '</p>' % (version.revision,))
         return html
+
+    def after_content(self):
+        return ''
 
     def footer(self, d, **keywords):
         """
