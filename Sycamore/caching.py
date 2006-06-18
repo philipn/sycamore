@@ -138,7 +138,7 @@ class pageInfoObj(object):
 
 def find_meta_text(page):
     meta_text = False
-    body = page.get_raw_body()
+    body = page.get_raw_body(fresh=True)
     body = body.split('\n')
     meta_text = []
     for line in body:
@@ -159,7 +159,7 @@ def pageInfo(page, get_from_cache=True, cached_content=None, cached_time=None):
   """
 
   pagename_key = wikiutil.quoteFilename(page.page_name.lower())
-  if page.prev_date: key = u"%s,%s" % (pagename_key, page.prev_date)
+  if page.prev_date: key = u"%s,%s" % (pagename_key, repr(page.prev_date))
   else: key = pagename_key
 
   if get_from_cache:
@@ -242,14 +242,14 @@ def pageInfo(page, get_from_cache=True, cached_content=None, cached_time=None):
 
   page_info = pageInfoObj(edit_info, cached_text, meta_text, has_map)
 
-  if config.memcache:
+  if config.memcache and not page.request.set_cache:
     page.request.mc.add("page_info:%s" % key, page_info)
 
   page.request.req_cache['page_info'][key] = page_info
   return page_info
 
 
-def getPageLinks(pagename, request):
+def getPageLinks(pagename, request, update=False):
   """
   Caches all of the page links on page pagename. Subsequent calls to page.exists() will be much faster if they're a link.
 
@@ -280,6 +280,9 @@ def getPageLinks(pagename, request):
     else: request.req_cache['pagenames'][key] = False
 
   if config.memcache and not got_from_memcache:
-    request.mc.add(mc_key, links)
+    if update:
+      request.mc.set(mc_key, links)
+    else:
+      request.mc.add(mc_key, links)
 
   return [ info[1] for link, info in links.iteritems() ]

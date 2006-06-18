@@ -294,7 +294,7 @@ class Page(object):
         @return: raw page contents of this page
         """
 	text = None
-        if self._raw_body is None or fresh:
+        if self._raw_body is None:
 	  if not self.prev_date:
 	    if config.memcache and not fresh:
 	      text = self.request.mc.get("page_text:%s" % (wikiutil.quoteFilename(self.page_name.lower())))
@@ -333,6 +333,13 @@ class Page(object):
         """
         self._raw_body = body
         self._raw_body_modified = modified
+        if not modified and config.memcache:
+          if self.request.set_cache:
+            if not self.prev_date:
+              self.request.mc.set('page_text:%s' % wikiutil.quoteFilename(self.page_name.lower()), body)
+            else:
+              self.request.mc.set('page_text:%s' % wikiutil.quoteFilename(self.page_name.lower()), body)
+
 
     def url(self, querystr=None):
         """
@@ -704,15 +711,17 @@ class Page(object):
             code = compile(src, self.page_name, 'exec')
 	    code_string = marshal.dumps(code)
             cache.update(code_string, links)
+            update_links = True
         else:
            parser = Parser(body, request)
+           update_links = False
             
         # send page
         formatter = self.formatter
         macro_obj = wikimacro.Macro(parser)
         try:
  	    # figure out the link status' all at once to improve performance on pages w/lots of links
-  	    caching.getPageLinks(self.page_name, self.request)
+  	    caching.getPageLinks(self.page_name, self.request, update=update_links)
 
 	    # execute the python code we serialized -- this prints the page content and macros/etc
             exec code
@@ -771,7 +780,7 @@ class Page(object):
                 _('The following pages with similar names already exist...') + '</p>')
             LikePages.showMatches(self.proper_name(), request, start, end, matches)
 
-    def buildCache(self):
+    def buildCache(self, type=None):
         """
 	builds the page's cache.
 	"""
@@ -803,6 +812,24 @@ class Page(object):
 	    buffer.close()
             if hasattr(request, '_fmt_hd_counters'):
                 del request._fmt_hd_counters
+
+        if config.memcache:
+          key = wikiutil.quoteFilename(self.page_name.lower())
+          #clears the content of the cache regardless of whether or not the page needs an update
+          self.request.mc.delete("links:%s" % key)
+          if type == 'page save new':
+             pagecount = wikidb.getPageCount(self.request) + 1
+             self.request.mc.set('active_page_count', pagecount)
+             self.request.mc.set("pagename:%s" % key, self.proper_name())
+          elif type == 'page save delete':
+             pagecount = wikidb.getPageCount(self.request) - 1
+             self.request.mc.set('active_page_count', pagecount)
+             self.request.mc.set("pagename:%s" % key, False)
+          else:
+             self.request.mc.set("pagename:%s" % key, self.proper_name())
+
+          if self.page_name.lower() == config.interwikimap.lower():
+             self.request.mc.delete('interwiki')
 
         request.mode_getpagelinks = 0
         request.generating_cache = False

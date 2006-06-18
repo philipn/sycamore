@@ -186,7 +186,7 @@ class PageEditor(Page):
                     conflict_msg = _("""%s
 There was an <b>edit conflict between your changes!</b></p><p>Please review the conflicts and merge the changes.</p>""" % conflict_msg)
 		    mtime = self.mtime()
-                    self.set_raw_body(verynewtext)
+                    self.set_raw_body(verynewtext, 1)
 	        else:
 		   conflict_msg = _("""%s
 Your changes were sucessfully merged!""" % conflict_msg)
@@ -597,18 +597,18 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
 	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP, propercased_name) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s, %(proper_name)s)", {'page_name':self.page_name, 'proper_name':proper_name, 'text':text, 'ourtime':ourtime, 'id':user_id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip}, isWrite=True)
 
+        # set in-memory page text/cached page text
+	self.set_raw_body(text)
+
 	import caching
 	cache = caching.CacheEntry(self.page_name, self.request)
         if exists: type = 'page save'
 	else: type = 'page save new'
-	cache.clear(type=type)
-        self.buildCache()
 	# rebuild possible dependencies (e.g. [[Include]])
 	for pagename in caching.depend_on_me(self.page_name, self.request, exists, action=action):
           caching.CacheEntry(pagename, self.request).clear()
-
-	# set in-memory page text
-	self.set_raw_body(text)
+	
+        self.buildCache(type=type)
 
 
     def saveText(self, newtext, datestamp, **kw):
