@@ -306,7 +306,11 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             theuser.sendCookie(self.request)
             self.request.user = theuser
     
-            result = _("User preferences saved!")
+            if not new_user:
+              result = _("User preferences saved!")
+            else:
+              result = _("Account created!  You are now logged in.")
+              self.request.user.valid = 1
             if _debug:
                 result = result + util.dumpFormData(form)
             return result

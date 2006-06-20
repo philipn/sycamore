@@ -111,7 +111,9 @@ class Page(object):
       else:
         # We're generating the cache, so let's just get the edit info manually from the DB
 	self.request.cursor.execute("SELECT editTime, userEdited from curPages where name=%(pagename)s", {'pagename':self.page_name})
-	return self.request.cursor.fetchone()
+	result = self.request.cursor.fetchone()
+        if result: return result
+        else: return None
 
       
     def last_edit_info(self):
@@ -134,11 +136,14 @@ class Page(object):
         if not self.exists():
             return None
 
-	editTimeUnix, userEditedID = self.last_edit_info()
-	editTime = request.user.getFormattedDateTime(editTimeUnix)
-	result = "(last edited %(time)s)" % {
-                'time': editTime,
-            }
+        last_edit_info = self.last_edit_info()
+        result = None
+        if last_edit_info:
+          editTimeUnix, userEditedID = last_edit_info
+	  editTime = request.user.getFormattedDateTime(editTimeUnix)
+	  result = "(last edited %(time)s)" % {
+                  'time': editTime,
+              }
 
         return result
 
@@ -681,6 +686,7 @@ class Page(object):
         # render page
         if needsupdate:
 	    body = self.get_raw_body(fresh=True)
+
             from Sycamore.formatter.text_python import Formatter
             formatter = Formatter(request, ["page"], self.formatter, preview=True)
 
@@ -796,10 +802,15 @@ class Page(object):
 	request.generating_cache = True
         request.set_cache = True
         request.mode_getpagelinks = 1
+
+        self.request.req_cache['pagenames'][self.page_name] = self.proper_name()  # set the page name / page exists
+
         try:
             try:
                 request.mode_getpagelinks = 1
-                Page(self.page_name, request).send_page(content_only=1)
+                page = Page(self.page_name, request)
+                page.set_raw_body(self.get_raw_body())
+                page.send_page(content_only=1)
             except:
 	        print "ERROR"
                 import traceback

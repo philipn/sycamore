@@ -19,11 +19,7 @@ def execute(pagename, request):
     if actname in config.excluded_actions or \
         not request.user.may.edit(page):
             msg = _('You are not allowed to edit this page. (An account is needed in most cases)')
-    # check to make sure the comment macro is in the page
     
-    elif string.find(oldtext,"[[Comments") == -1:
-       msg = _('Not allowed to comment on this page')
-
     # check whether page exists at all
     elif not page.exists():
         msg = _('This page does not exist.')

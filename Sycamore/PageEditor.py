@@ -399,10 +399,14 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	# update possible groups
 	self.updateGroups()
 
+        pagecount = wikidb.getPageCount(self.request) - 1
+        self.request.mc.set('active_page_count', pagecount)
+
+	self.request.req_cache['pagenames'][self.page_name] = False
+
 	from Sycamore import caching, search
 	cache = caching.CacheEntry(self.page_name, self.request)
 	cache.clear(type='page save delete')
-	self.request.req_cache['pagenames'][self.page_name] = False
 
 	# remove entry from the search databases
 	search.remove_from_index(self)
@@ -604,6 +608,11 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	cache = caching.CacheEntry(self.page_name, self.request)
         if exists: type = 'page save'
 	else: type = 'page save new'
+
+        if not exists:
+          pagecount = wikidb.getPageCount(self.request) + 1
+          self.request.mc.set('active_page_count', pagecount)
+        
 	# rebuild possible dependencies (e.g. [[Include]])
 	for pagename in caching.depend_on_me(self.page_name, self.request, exists, action=action):
           caching.CacheEntry(pagename, self.request).clear()

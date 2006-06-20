@@ -58,22 +58,26 @@ class CacheEntry:
 
     def clear(self, type=None):
         key = wikiutil.quoteFilename(self.key)
-        if self.request.req_cache['page_info'].has_key(key):
-          del self.request.req_cache['page_info'][key]
+        
         #clears the content of the cache regardless of whether or not the page needs an update
 	self.request.cursor.execute("UPDATE curPages set cachedText=NULL, cachedTime=NULL where name=%(key)s", {'key':self.key}, isWrite=True)
-	if config.memcache:
-	  self.request.mc.delete("page_info:%s" % key)
-	  self.request.mc.delete("pagename:%s" % key)
-	  self.request.mc.delete("page_text:%s" % key)
-	  self.request.mc.delete("links:%s" % key)
-  	  if type == 'page save new':
-	     pagecount = wikidb.getPageCount(self.request) + 1
-             self.request.mc.set('active_page_count', pagecount)
- 	  elif type == 'page save delete':
-	     pagecount = wikidb.getPageCount(self.request) - 1
-             self.request.mc.set('active_page_count', pagecount)
-	  if self.key == config.interwikimap.lower():
+ 	if type == 'page save delete':
+           if config.memcache:
+               page_info = pageInfo(Page(self.key, self.request), get_from_cache=False)
+	       self.request.mc.set("page_info:%s" % key, page_info)
+	       self.request.mc.set("pagename:%s" % key, False)
+	       self.request.mc.delete("links:%s" % key)
+        else:
+           if config.memcache:
+               self.request.mc.delete("page_info:%s" % key)
+	       self.request.mc.delete("pagename:%s" % key)
+	       self.request.mc.delete("page_text:%s" % key)
+	       self.request.mc.delete("links:%s" % key)
+
+        if self.request.req_cache['page_info'].has_key(key):
+            del self.request.req_cache['page_info'][key]
+
+	if config.memcache and self.key == config.interwikimap.lower():
 	     self.request.mc.delete('interwiki')
 
 def dependency(depend_pagename, source_pagename, request):
@@ -136,9 +140,9 @@ class pageInfoObj(object):
     self.meta_text = meta_text
     self.has_map = has_map
 
-def find_meta_text(page):
+def find_meta_text(page, fresh=False):
     meta_text = False
-    body = page.get_raw_body(fresh=True)
+    body = page.get_raw_body(fresh=fresh)
     body = body.split('\n')
     meta_text = []
     for line in body:
@@ -209,7 +213,7 @@ def pageInfo(page, get_from_cache=True, cached_content=None, cached_time=None):
         cached_text = cached_content
 
     # meta_text
-    meta_text = find_meta_text(page)
+    meta_text = find_meta_text(page, fresh=True)
     
   else:
    # set some defaults.  These shouldn't be accessed.
@@ -244,6 +248,8 @@ def pageInfo(page, get_from_cache=True, cached_content=None, cached_time=None):
 
   if config.memcache and not page.request.set_cache:
     page.request.mc.add("page_info:%s" % key, page_info)
+  elif config.memcache and page.request.set_cache:
+    page.request.mc.set("page_info:%s" % key, page_info)
 
   page.request.req_cache['page_info'][key] = page_info
   return page_info
