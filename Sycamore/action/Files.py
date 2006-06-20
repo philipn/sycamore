@@ -14,7 +14,7 @@
 """
 
 import os, mimetypes, time, urllib, string
-from Sycamore import config, user, util, wikiutil, wikidb, caching
+from Sycamore import config, user, util, wikiutil, wikidb
 from Sycamore.Page import Page
 from Sycamore.util import SycamoreNoFooter 
 from Sycamore.widget.infobar import InfoBar

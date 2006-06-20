@@ -837,7 +837,8 @@ class Page(object):
              self.request.mc.set('active_page_count', pagecount)
              self.request.mc.set("pagename:%s" % key, False)
           else:
-             self.request.mc.set("pagename:%s" % key, self.proper_name())
+             if self.exists():
+               self.request.mc.set("pagename:%s" % key, self.proper_name())
 
           if self.page_name.lower() == config.interwikimap.lower():
              self.request.mc.delete('interwiki')

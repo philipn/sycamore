@@ -278,8 +278,10 @@ def putImage(request, dict, thumbnail=False, do_delete=False, temporary=False, t
   if not request.generating_cache and not request.previewing_page:
     from Sycamore import caching
     from Sycamore.Page import Page
-    caching.CacheEntry(dict['pagename'], request).clear()
-    Page(dict['pagename'], request).buildCache()
+    #caching.CacheEntry(dict['pagename'], request).clear()
+    page = Page(dict['pagename'], request)
+    if page.exists():
+      page.buildCache()
 
 def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor=''):
   # betta' with this line object so we can move away from array indexing
