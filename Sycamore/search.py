@@ -203,6 +203,7 @@ class RegexpSearch(SearchBase):
     SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc, num_results)
 
     self.terms = self._remove_junk(needles)
+    self.printable_terms = self.terms
     self.regexp = build_regexp(self.terms)
 
   
