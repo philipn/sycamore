@@ -399,8 +399,9 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	# update possible groups
 	self.updateGroups()
 
-        pagecount = wikidb.getPageCount(self.request) - 1
-        self.request.mc.set('active_page_count', pagecount)
+        if config.memcache:
+          pagecount = wikidb.getPageCount(self.request) - 1
+          self.request.mc.set('active_page_count', pagecount)
 
 	self.request.req_cache['pagenames'][self.page_name] = False
 
@@ -609,7 +610,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         if exists: type = 'page save'
 	else: type = 'page save new'
 
-        if not exists:
+        if config.memcache and not exists:
           pagecount = wikidb.getPageCount(self.request) + 1
           self.request.mc.set('active_page_count', pagecount)
         
