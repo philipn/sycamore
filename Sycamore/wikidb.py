@@ -162,9 +162,10 @@ def real_connect():
     d['unix_socket'] = config.db_socket
   if config.db_type == 'mysql':
     d['init_command'] = 'SET NAMES utf8'
-
   
   db = dbapi.connect(**d)
+  if config.db_type == 'mysql':
+    db.set_character_set('utf8')
   
   return db
 
