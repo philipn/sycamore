@@ -24,9 +24,6 @@ def execute(pagename, request):
     elif not page.exists():
         msg = _('This page does not exist.')
 
-    #elif 1:
-#	msg = _('Comments are <strong>temporarily disabled</strong>.  Just <em>edit the page normally</em> by pressing "Edit".  We\'re fixing things..')
-
     # check whether the user clicked the delete button
     elif request.form.has_key('button') and \
         request.form.has_key('comment_text'):

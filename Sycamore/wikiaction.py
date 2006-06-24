@@ -85,8 +85,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     this_search = search.Search(search.prepare_search_needle(needle), request, p_start_loc=pstart, t_start_loc=tstart, num_results=pwith+1) #, start_lock=)
     this_search.process()
     # don't display results they can't read
-    title_hits = [title for title in this_search.title_results if request.user.may.read(title.page)]
-    full_hits = [text for text in this_search.text_results if request.user.may.read(text.page)]
+    title_hits = [title for title in this_search.title_results if request.user.may.read(Page(title.page_name, request))]
+    full_hits = [text for text in this_search.text_results if request.user.may.read(Page(text.page_name, request))]
     request.write('<div id="content" class="wikipage content">\n') # start content div
     if len(title_hits) < 1:
             request.write('<h3>&nbsp;No title matches</h3>')
@@ -102,13 +102,13 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     request.write('<ul>')
     if len(title_hits) > twith:
             for t_hit in title_hits[0:twith]:
-                    request.write('<li>%s</li>' % t_hit.page.link_to())
+                    request.write('<li>%s</li>' % Page(t_hit.page_name, request).link_to())
             request.write('</ul>')
             request.write('<p>(<a href="%s?action=search&string=%s&tstart=%s">next %s matches</a>)'
                     % (request.getScriptname(), needle, tstart+twith, twith))
     else:
             for t_hit in title_hits:
-                    request.write('<li>%s</li>' % t_hit.page.link_to())
+                    request.write('<li>%s</li>' % Page(t_hit.page_name, request).link_to())
             request.write('</ul>')
     if len(full_hits) < 1:
       request.write('<h3>&nbsp;No full text matches</h3>')
@@ -124,7 +124,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         elif full_hit.percentage > 32:
           color = "#ffee55"
         request.write('<p><table><tr><td width="40" valign="middle"><table class="progbar" cellspacing="0" cellpadding="0"><tr><td height="7" width="%d" bgcolor="%s"></td><td width="%d" bgcolor="#eeeeee"></td></tr></table></td><td>' % (full_hit.percentage/3, color, 33 - full_hit.percentage/3))
-        request.write(full_hit.page.link_to())
+        request.write(Page(full_hit.page_name, request).link_to())
         request.write('</td></tr></table>\n')
 
         if context:

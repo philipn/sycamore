@@ -46,11 +46,8 @@ def simpleParse(request, text):
     # so the ''text'' stuff, along with [http://myurl.com url] -> a href, and the ["wiki link" link text] -> a href
     # Wiki links
 
-    if config.relative_dir:  add_on = '/'
-    else: add_on = ''
-
-    text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])', r'<a href="/%s%s\g<wikilink>">\g<wikilink></a>' % (config.relative_dir, add_on), text)
-    text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])', r'<a href="/%s%s\g<wikilink>">\g<txt></a>' % (config.relative_dir, add_on), text)
+    text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])', r'<a href="%s/\g<wikilink>">\g<wikilink></a>' % request.getScriptname(), text)
+    text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])', r'<a href="%s/\g<wikilink>">\g<txt></a>' % request.getScriptname(), text)
     # External links
 #    text = re.sub(r'(\[(?P<link>([^ ])+) (?P<ltext>([^\]])+)\])', r'<a href="\g<link>">\g<ltext></a>', text)
     text = re.sub(r'(\[(?P<link>[^\]]+(.jpg|.jpeg|.gif|.png))\])', r'<img src="\g<link>">', text)
@@ -1036,8 +1033,6 @@ def send_title(request, text, **keywords):
     else: strict_title = text
 
     # add the rss link for per-page rss
-    if config.relative_dir: add_on = '/'
-    else: add_on = ''
 
     if pagename.lower() == 'bookmarks':
       rss_html = ''

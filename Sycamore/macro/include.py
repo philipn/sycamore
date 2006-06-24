@@ -110,8 +110,6 @@ def execute(macro, args, formatter=None):
     
     # do headings
     level = None
-    if config.relative_dir: add_on = '/'
-    else: add_on = ''
 
     heading = args.group('htext') or inc_page.page_name
     level = 1

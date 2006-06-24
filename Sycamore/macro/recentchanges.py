@@ -145,9 +145,6 @@ def execute(macro, args, formatter=None, **kw):
 
     request = macro.request
 
-    if config.relative_dir: add_on = '/'
-    else: add_on = ''
-
     _ = request.getText
 
     d = {}

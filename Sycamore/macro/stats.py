@@ -6,8 +6,6 @@ from cStringIO import StringIO
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
     request = macro.request
-    if config.relative_dir:  add_on = '/'
-    else:  add_on = ''
 
     if args:
        # personalized stats
@@ -53,7 +51,7 @@ def execute(macro, args, formatter=None):
 
        user_stats = cursor.fetchall()
 
-       htmltext.append('<p><h2>User Statistics</h2></p><table width=100%% border=0><tr><td><b>User</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=edit_count">Edits</a>&nbsp;&nbsp;</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=created_count">Pages Created</a>&nbsp;&nbsp;</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=file_count">Images Contributed</a>&nbsp;&nbsp;</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=join_date">Date Joined</a>&nbsp;&nbsp;</b></td><td><b><a href="/%s%sUser_Statistics?sort_by=last_edit_date">Last Edit</a>&nbsp;&nbsp;</b></td><td><b>Last Page Edited&nbsp;&nbsp;</b></td></tr>' %(config.relative_dir, add_on, config.relative_dir, add_on, config.relative_dir, add_on, config.relative_dir, add_on, config.relative_dir, add_on))
+       htmltext.append('<p><h2>User Statistics</h2></p><table width=100%% border=0><tr><td><b>User</b></td><td><b><a href="%s/User_Statistics?sort_by=edit_count">Edits</a>&nbsp;&nbsp;</b></td><td><b><a href="%s/User_Statistics?sort_by=created_count">Pages Created</a>&nbsp;&nbsp;</b></td><td><b><a href="%s/User_Statistics?sort_by=file_count">Images Contributed</a>&nbsp;&nbsp;</b></td><td><b><a href="%s/User_Statistics?sort_by=join_date">Date Joined</a>&nbsp;&nbsp;</b></td><td><b><a href="%s/User_Statistics?sort_by=last_edit_date">Last Edit</a>&nbsp;&nbsp;</b></td><td><b>Last Page Edited&nbsp;&nbsp;</b></td></tr>' % (request.getScriptname(), request.getScriptname(), request.getScriptname(), request.getScriptname(), request.getScriptname()))
        toggle = -1
        for result in user_stats:
           toggle = toggle*(-1)

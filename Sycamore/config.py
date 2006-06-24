@@ -66,6 +66,7 @@ _cfg_defaults = {
     # mimetypes allowed in uploads, this list will automagically have the 
     # mimetype values corresponding to allowed extensions added to it.
     'allowed_mimetypes': [],
+    'allow_all_mimetypes': False, # set to True to allow any extension / mimetype of uploaded files
     'allow_xslt': 0,
     'attachments': None, # {'dir': path, 'url': url-prefix, 'img_script': name of the image getting script}
     'auth_http_enabled': 0,
@@ -165,6 +166,7 @@ _cfg_defaults = {
     'referer_regexp': '',
     'refresh': None, # (minimum_delay, type), e.g.: (2, 'internal')
     'relative_dir': 'index.cgi',
+    'remote_search': None,
     'shared_intermap': None, # can be string or list of strings (filenames)
     'show_hosts': 1,
     'show_section_numbers': 0,

@@ -19,15 +19,13 @@ import urllib
 def execute(pagename, request):
     """ Send recent changes as an RSS document
     """
-    if not config.relative_dir: add_on = ''
-    else: add_on = '/'
     
     if pagename.lower() == 'recent changes':
       rss_init_text = """<?xml version="1.0" ?>
-<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes - %s</title><link>http://%s%s%s/Recent_Changes</link><description>Recent Changes on %s.</description><language>en-us</language>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes - %s</title><link>http://%s%s/Recent_Changes</link><description>Recent Changes on %s.</description><language>en-us</language>
 </channel> 
 </rss>
-      """ % (config.sitename, config.domain, add_on, config.relative_dir,  config.sitename)
+      """ % (config.sitename, config.domain, request.getScriptname(), config.sitename)
       # get normal recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit=100)
     elif pagename.lower() == 'bookmarks':
@@ -45,10 +43,10 @@ def execute(pagename, request):
       
     else:
       rss_init_text = """<?xml version="1.0" ?>
-<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes for "%s" - %s</title><link>http://%s%s%s/%s</link><description>Recent Changes of the page "%s" on %s.</description><language>en-us</language>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes for "%s" - %s</title><link>http://%s%s/%s</link><description>Recent Changes of the page "%s" on %s.</description><language>en-us</language>
 </channel> 
 </rss>
-      """ % (pagename, config.sitename, config.domain, add_on, config.relative_dir, wikiutil.quoteWikiname(pagename), pagename, config.sitename)
+      """ % (pagename, config.sitename, config.domain, request.getScriptname(), wikiutil.quoteWikiname(pagename), pagename, config.sitename)
       # get page-specific recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit=100, page=pagename.lower())
 
@@ -73,7 +71,7 @@ def execute(pagename, request):
       item_title.appendChild(rss_dom.createTextNode(line.pagename))
       item.appendChild(item_title)
       item_link = rss_dom.createElement("link")
-      item_link.appendChild(rss_dom.createTextNode("http://%s/%s%s%s" % (config.domain, config.relative_dir, add_on, wikiutil.quoteWikiname(line.pagename))))
+      item_link.appendChild(rss_dom.createTextNode("http://%s%s/%s" % (config.domain, request.getScriptname(), wikiutil.quoteWikiname(line.pagename))))
       item.appendChild(item_link)
       item_date = rss_dom.createElement("dc:date")
       item_date.appendChild(rss_dom.createTextNode(request.user.getFormattedDateTime(line.ed_time, global_time=True)))

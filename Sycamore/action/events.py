@@ -27,17 +27,12 @@ def execute(pagename, request):
     page = PageEditor(pagename, request)
     msg = ''
     oldtext = page.get_raw_body().lower()
-    if not config.relative_dir:
-            add_on = ''
-    else:
-            add_on = '/'
-
 
     # Do we want an RSS feed?
     if request.form.has_key('rss'):
       if request.form.get("rss")[0] == "1":
         request.http_headers()
-        request.write(doRSS(request,add_on))
+        request.write(doRSS(request))
 	raise util.SycamoreNoFooter
         return
 
@@ -106,12 +101,12 @@ def execute(pagename, request):
         
     return page.send_page(msg)
 
-def doRSS(request, add_on):
+def doRSS(request):
     #set up the RSS file
     rss_init_text = """<?xml version="1.0" ?>
-<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>%s Events Board</title><link>http://%s%s%s/Events_Board</link><description>Events occuring soon, taken from the %s Events Board.</description><language>en-us</language>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>%s Events Board</title><link>http://%s%s/Events_Board</link><description>Events occuring soon, taken from the %s Events Board.</description><language>en-us</language>
 </channel>
-</rss>""" % (config.sitename, config.domain, add_on, config.relative_dir, config.sitename)
+</rss>""" % (config.sitename, config.domain, request.getScriptname(), config.sitename)
 
     rss_dom = xml.dom.minidom.parseString(rss_init_text)
     channel = rss_dom.getElementsByTagName("channel")[0]
@@ -202,7 +197,7 @@ def doRSS(request, add_on):
             rss_text.append('<b>Date:</b> %s<br>\n'
                         '<b>Time:</b> %s<br>\n'
                         '<b>Location:</b> %s<br><br>\n'
-                        '%s&nbsp;&nbsp;(Posted by <a href="http://%s/%s%s%s">%s</a>)\n' % (total_date,ptime,processed_location,processed_text,config.domain,config.relative_dir,add_on, posted_by,posted_by))        
+                        '%s&nbsp;&nbsp;(Posted by <a href="http://%s%s/%s">%s</a>)\n' % (total_date,ptime,processed_location,processed_text,config.domain,request.getScriptname(),posted_by,posted_by))        
 	    item_guid = rss_dom.createElement("guid")
 	    item_guid.setAttribute("isPermaLink","false")
 	    item_guid.appendChild(rss_dom.createTextNode(''.join(str(id))))
@@ -213,7 +208,7 @@ def doRSS(request, add_on):
             item_title.appendChild(rss_dom.createTextNode(processed_name))
             item.appendChild(item_title)
             item_link = rss_dom.createElement("link")
-            item_link.appendChild(rss_dom.createTextNode("http://%s/%s%sEvents_Board" % (config.domain, config.relative_dir, add_on)))
+            item_link.appendChild(rss_dom.createTextNode("http://%s%s/Events_Board" % (config.domain, request.getScriptname())))
             item.appendChild(item_link)
             item_date = rss_dom.createElement("dc:date")
             item_date.appendChild(rss_dom.createTextNode("%s-%s-%s" % (current_year,current_month,current_day)))

@@ -1,4 +1,4 @@
-import sys, string, os.path, re, time
+import sys, string, os.path, re, time, threading, socket
 
 from Sycamore import config, wikiutil
 from Sycamore.Page import Page
@@ -76,11 +76,11 @@ def _find_p(string, start, predicate):
     return start
 
 class searchResult(object):
-  def __init__(self, title, data, percentage, page):
+  def __init__(self, title, data, percentage, page_name):
     self.title = title
     self.data = data
     self.percentage = percentage
-    self.page = page
+    self.page_name = page_name
 
 class SearchBase(object):
   def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10):
@@ -131,18 +131,20 @@ class SearchBase(object):
 if config.has_xapian:
   import xapian
   class XapianSearch(SearchBase):
-    def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10):
+    def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10, db_location=None, processed_terms=None):
       SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc, num_results)
   
       # load the databases
-      self.text_database = xapian.Database(
-          os.path.join(config.search_db_location, 'text'))
-      self.title_database = xapian.Database(
-          os.path.join(config.search_db_location, 'title'))
-  
-      self.stemmer = xapian.Stem("english")
-      self.terms = self._remove_junk(self._stem_terms(needles))
-      self.printable_terms = self._remove_junk(needles)
+      if not db_location: db_location = config.search_db_location
+      self.text_database = xapian.Database(os.path.join(db_location, 'text'))
+      self.title_database = xapian.Database(os.path.join(db_location, 'title'))
+            
+      if not processed_terms:
+        self.stemmer = xapian.Stem("english")
+        self.terms = self._remove_junk(self._stem_terms(needles))
+        self.printable_terms = self._remove_junk(needles)
+      else: self.terms = processed_terms
+
       if self.terms: self.query = self._build_query(self.terms)
       else: self.query = None
   
@@ -184,7 +186,7 @@ if config.has_xapian:
         page = Page(title, self.request)
         percentage = match[xapian.MSET_PERCENT]
         data = page.get_raw_body()
-        search_item = searchResult(title, data, percentage, page)
+        search_item = searchResult(title, data, percentage, page.page_name)
         self.text_results.append(search_item)
   
       enquire = xapian.Enquire(self.title_database)
@@ -195,8 +197,44 @@ if config.has_xapian:
         page = Page(title, self.request)
         percentage = match[xapian.MSET_PERCENT]
         data = page.page_name
-        search_item = searchResult(title, data, percentage, page)
+        search_item = searchResult(title, data, percentage, page.page_name)
         self.title_results.append(search_item)
+
+
+  class RemoteSearch(XapianSearch):
+    def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10):
+      SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc, num_results)
+
+      self.stemmer = xapian.Stem("english")
+      self.terms = self._remove_junk(self._stem_terms(needles))
+      self.printable_terms = self._remove_junk(needles)
+
+    def process(self):
+      import socket, cPickle
+      encoded_terms = [ wikiutil.quoteFilename(term) for term in self.terms ]
+      server_address, server_port = config.remote_search
+      s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+      s.connect((server_address, server_port))
+
+      output = s.makefile('w', 0)
+      output.write('S\n')
+      for term in encoded_terms:
+        output.write('%s\n' % term)
+      output.write('\n')
+      output.close()
+
+      input = s.makefile('r', 0)
+      for line in input:
+        results_encoded = line.strip()
+        break
+
+      title_results, text_results = cPickle.loads(wikiutil.unquoteFilename(results_encoded))
+
+      s.close()
+
+      self.title_results = title_results
+      self.text_results = text_results
+
 
 class RegexpSearch(SearchBase):
   def __init__(self, needles, request, p_start_loc=0, t_start_loc=0, num_results=10):
@@ -216,13 +254,13 @@ class RegexpSearch(SearchBase):
       text_matches = find_num_matches(self.regexp, text)
       if text_matches:
         percentage = (text_matches*1.0/len(text.split()))*100
-	self.text_results.append(searchResult(page.page_name, text, percentage, page)) 
+	self.text_results.append(searchResult(page.page_name, text, percentage, page.page_name)) 
       
       title = page.page_name
       title_matches = find_num_matches(self.regexp, title)
       if title_matches:
         percentage = (title_matches*1.0/len(title.split()))*100
-	self.title_results.append(searchResult(title, title, percentage, page))
+	self.title_results.append(searchResult(title, title, percentage, page.page_name))
 
     # sort the title and text results by relevancy
     self.title_results.sort(lambda x,y: cmp(y.percentage, x.percentage))
@@ -279,10 +317,32 @@ def _do_postings(doc, text, id, stemmer):
           pos += 1
       i = j
 
-def index(page, db_location=None, text_db=None, title_db=None):
+
+def add_to_remote_index(page):
+  server_address, server_port = config.remote_search
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+  s.connect((server_address, server_port))
+
+  output = s.makefile('w', 0)
+  output.write('A\n')
+  output.write('%s\n' % wikiutil.quoteFilename(page.page_name))
+  output.write('\n')
+  output.close()
+
+  s.close() 
+
+
+def add_to_index(page, db_location=None, text_db=None, title_db=None, try_remote=True):
+  """Add page to the search index"""
   if not config.has_xapian: return
   if not db_location: db_location = config.search_db_location
-  # Add page to the search index
+  if try_remote and config.remote_search:
+    threading.Thread(target=add_to_remote_index, args=(page,)).start()
+  else:
+    index(page, db_location=db_location, text_db=text_db, title_db=title_db)
+
+def index(page, db_location=None, text_db=None, title_db=None):
+  """Don't call this function.  Call add_to_index."""
   stemmer = xapian.Stem("english")
 
   if not title_db:
@@ -308,9 +368,31 @@ def index(page, db_location=None, text_db=None, title_db=None):
   _do_postings(doc, text, pagename, stemmer)
   database.replace_document("Q:%s" % pagename.lower(), doc)
 
-def remove_from_index(page):
+def remove_from_remote_index(page):
+  server_address, server_port = config.remote_search
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+  s.connect((server_address, server_port))
+
+  output = s.makefile('w', 0)
+  output.write('D\n')
+  output.write('%s\n' % wikiutil.quoteFilename(page.page_name))
+  output.write('\n')
+  output.close()
+
+  s.close() 
+
+
+def remove_from_index(page, db_location=None, text_db=None, title_db=None):
   """removes the page from the index.  call this on page deletion.  all other page changes can just call index(). """
   if not config.has_xapian: return
+  if not db_location: db_location = config.search_db_location
+  if config.remote_search:
+    threading.Thread(target=remove_from_remote_index, args=(page,)).start()
+  else:
+    remove(page, db_location=db_location, text_db=text_db, title_db=title_db)
+
+def remove(page, db_location=None, text_db=None, title_db=None):
+  """Don't call this function.  Call remove_from_index."""
   pagename = page.page_name.encode('utf-8')
   database = xapian.WritableDatabase(
       os.path.join(config.search_db_location, 'title'),
@@ -340,5 +422,9 @@ def prepare_search_needle(needle):
   else:return needle.split()
 
 
-if config.has_xapian: Search = XapianSearch
+if config.has_xapian:
+  if config.remote_search:
+    Search = RemoteSearch 
+  else:
+    Search = XapianSearch
 else: Search = RegexpSearch

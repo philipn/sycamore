@@ -702,7 +702,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
                 self.userStatAdd(self.request.user.name, action, self.page_name)
 
 	    # add the page to the search index or update its index
-	    search.index(self)
+	    search.add_to_index(self)
 
             return msg
 

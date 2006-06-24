@@ -289,7 +289,6 @@ Otherwise, if "Save as" is left blank, the original filename will be used (might
     'pagename': wikiutil.quoteWikiname(pagename),
     'action_name': action_name,
     'upload_label_file': _('File to upload'),
-    #'upload_label_mime': _('MIME Type (optional)'),
     'upload_label_rename': _('Save as'),
     'rename': request.form.get('rename', [''])[0],
     'upload_button': _('Upload'),
@@ -376,11 +375,14 @@ def allowedExtension(ext):
     return False
 
 def allowedMime(ext):
-    mimetype = mimetypes.guess_type(ext)[0]
-    allowed = config.allowed_mimetypes + [mimetypes.guess_type(e)[0] for e in config.allowed_extensions]
-    if mimetype in allowed:
-	return True
-    return False
+    if not config.allow_all_mimetypes:
+      mimetype = mimetypes.guess_type(ext)[0]
+      allowed = config.allowed_mimetypes + [mimetypes.guess_type(e)[0] for e in config.allowed_extensions]
+      if mimetype in allowed:
+          return True
+      return False
+    else:
+      return True
 
 def _fixFilename(filename, request):
   # MSIE sends the entire path to us.  Mozilla doesn't.
