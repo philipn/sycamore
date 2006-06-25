@@ -238,7 +238,7 @@ class Parser:
     def _rule_repl(self, word):
         """Handle sequences of dashes."""
         self.inhibit_p = 1
-        self.inhibit_br += 1
+        self.inhibit_br += 2
         result = self._undent()
         if len(word) <= 4:
             result = result + self.formatter.rule()
