@@ -104,7 +104,7 @@ search_db_location = os.path.join(data_dir, 'search')
 # to match against any url from any subdomain of daviswiki we would write:
 #referer_regexp = '^http\:\/\/(([^\/]*\.)|())daviswiki\.org((\/.*)|())$'
 # here's another example
-#referer_regexp = '^http\:\/\/(([^\/]*\.)|())test\.rocwiki\.org((\/.*)|())$'
+#referer_regexp = '^http\:\/\/(([^\/]*\.)|())localhost((\/.*)|())$'
 
 # encoding and WikiName char sets
 # (change only for outside America or Western Europe)
