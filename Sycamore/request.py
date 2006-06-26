@@ -695,10 +695,8 @@ class RequestDummy(RequestBase):
 
   def getScriptname(self):
       """ Return the scriptname part of the URL ('/path/to/my.cgi'). """
-      name = self.script_name
-      if name == '/':
-          return ''
-      return name
+      if not config.relative_dir: return ''
+      return "/%s" % config.relative_dir
 
 
   def getPathinfo(self):
