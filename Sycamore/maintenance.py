@@ -1,7 +1,8 @@
 """This lets you perform various maintenance tasks in your wiki.  Edit the sys.path.extend line and then run this for the options."""
 
 import sys, cStringIO, threading, time, os
-sys.path.extend(['/Users/pneustrom/sycamore_base'])
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', 'share'))]),
 import __init__
 from Sycamore import wikiutil, config, request, caching, wikidb, search
 from Sycamore.Page import Page

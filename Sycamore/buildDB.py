@@ -1,7 +1,8 @@
 # Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
 import sys, os, shutil
 import __init__ # woo hackmagic
-sys.path.extend(['/Users/philipneustrom/sycamore_base'])
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', 'share'))]),
 from Sycamore import wikidb, config
 
 basic_pages = {}
