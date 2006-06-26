@@ -83,7 +83,9 @@ db_type = 'mysql'  # can be 'mysql' or 'postgres'
 db_name = 'wiki'
 db_user = 'root'
 db_user_password = ''
-db_host = 'localhost'
+# The IP address or hostname of the database.  Leave empty for local non-networked connection (usually works)
+# (setting db_host = 'localhost' usually makes a local networked connection ;)
+db_host = '' 
 
 # location of the GNU Diff3 application.
 diff3_location = '/usr/bin/diff3'
