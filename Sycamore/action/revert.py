@@ -58,6 +58,8 @@ def execute(pagename, request):
             pg.saveText(oldpg.get_raw_body(), '0',
                 stripspaces=0, notify=1, comment=comment, action="SAVE/REVERT")
 	    savemsg = _("Page reverted to version %s" % version)
+        except pg.Unchanged:
+            savemsg = _("The current page is the same as the older page you wish to revert to!")
         except pg.SaveError:
             savemsg = _("An error occurred while reverting the page.")
 

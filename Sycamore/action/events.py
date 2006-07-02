@@ -151,7 +151,7 @@ def doRSS(request):
 	    event_time_unix = event[1]
 
 	    # stupid date stuff
-	    time_struct = time.gmtime(event_time_unix)
+	    time_struct = time.gmtime(event_time_unix+config.tz_offset)
 	    year = time_struct[0]
 	    month = time_struct[1]
 	    day = time_struct[2]

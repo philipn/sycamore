@@ -80,9 +80,29 @@ def process_spool(spool):
     os.rmdir(os.path.join(tmp_db_location, "text"))
     os.rmdir(os.path.join(tmp_db_location))
 
+def load_spool():
+   """
+   Load spool that was serialized to disk, if it's there.
+   """
+   global spool
+   if os.path.exists('syc_search.spool'):
+     spool = cPickle.load(open('syc_search.spool', 'r'))
+     os.remove('syc_search.spool')
+   return spool
+
+def save_spool():
+   """
+   Save spool to the disk.
+   """
+   global spool
+   if spool.item_queue: # if there's things in the spool
+     cPickle.dump(spool, open('syc_search.spool', 'w'), True)
+
 
 def servespool():
     global spool_lock, spool, keep_processing
+
+    spool = load_spool()
 
     slept = SPOOL_WAIT_TIME
     while keep_processing:
@@ -96,6 +116,8 @@ def servespool():
 
         process_spool(spool_to_process) 
         slept = SPOOL_WAIT_TIME
+
+    save_spool()
       
 def serveclient(client):
     global spool_lock, spool
@@ -151,6 +173,8 @@ def do_run(host, port):
         (clnt, ap) = lstn.accept()
         threading.Thread(target=serveclient, args=(clnt,)).start()
       except KeyboardInterrupt:
+         while threading.activeCount() > 2:
+           pass # wait for serveclient threads to finish
          keep_processing = False
          break
 

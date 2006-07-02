@@ -23,6 +23,26 @@ _MAX_PAGENAME_LENGTH = 15 # 35
 # let's not bother trying to cache this macro
 Dependencies = ["time"] # ["user", "pages", "pageparams", "bookmark"]
 
+def groupFavorites(favorites):
+    def cmp_lines(first, second):
+        return cmp(first[0].ed_time, second[0].ed_time)
+
+    favorites_dict = {}
+    for page_line in favorites:
+      lower_page_name = page_line.pagename.lower()
+      if favorites_dict.has_key(lower_page_name):
+        favorites_dict[lower_page_name].append(page_line)
+      else:
+        favorites_dict[lower_page_name] = [page_line]
+
+    for lower_page_name in favorites_dict:
+      if len(favorites_dict[lower_page_name]) > 1:
+        favorites_dict[lower_page_name].sort(cmp_lines)
+      favorites_dict[lower_page_name] = favorites_dict[lower_page_name][0]
+
+    favorites.sort(cmp_lines)
+        
+
 def execute(macro, args, formatter=None, **kw):
     if not formatter: formatter = macro.formatter
     request = macro.request
@@ -48,6 +68,7 @@ def execute(macro, args, formatter=None, **kw):
       return ''
     else:
       local_favoriteList = wikidb.getRecentChanges(request, per_page_limit=1, userFavoritesFor=request.user.id)
+      groupFavorites(local_favoriteList)
 
       from Sycamore.formatter.text_html import Formatter
       from Sycamore import user
@@ -58,7 +79,7 @@ def execute(macro, args, formatter=None, **kw):
     request.write(rss_html)
     request.write('<table>')
     if not local_favoriteList:
-      request.write('<p>Bookmarks let you easily keep track of pages you think are interesting.</p><p><i>You have no Bookmarks.  To add a page to your Bookmarks list, simply go to "Info" on the page you wish to add and click "Add this page to your wiki Bookmarks."</i></p>')
+      request.write('<p>Bookmarks let you easily keep track of pages you think are interesting.</p><p><i>You have no Bookmarks.  To add a page click "Bookmark this page" at the bottom of the page.</i></p>')
 
     showed_update = False
     seen_list = []
