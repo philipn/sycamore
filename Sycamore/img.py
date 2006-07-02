@@ -16,7 +16,7 @@ def imgSend(request):
   # httpd_referer is like "http://daviswiki.org/blahblah/page?test=goajf" -- the whole string.
   # let's test against it using their possibly configured regular expression.  this is to prevent image hotlinking
   if config.referer_regexp:
-    allowed = re.search(config.referer_regexp, request.http_referer)
+    allowed = re.search(config.referer_regexp, request.http_referer, re.IGNORECASE)
   else: allowed = True
   
   if not allowed:
