@@ -25,7 +25,9 @@ Dependencies = ["time"] # ["user", "pages", "pageparams", "bookmark"]
 
 def groupFavorites(favorites):
     def cmp_lines(first, second):
-        return cmp(first[0].ed_time, second[0].ed_time)
+        print first.ed_time, second.ed_time
+        return cmp(first.ed_time, second.ed_time)
+         
 
     favorites_dict = {}
     for page_line in favorites:
