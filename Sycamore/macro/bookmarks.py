@@ -24,9 +24,11 @@ _MAX_PAGENAME_LENGTH = 15 # 35
 Dependencies = ["time"] # ["user", "pages", "pageparams", "bookmark"]
 
 def groupFavorites(favorites):
-    def cmp_lines(first, second):
+    def cmp_lines_edit(first, second):
+        return cmp(first.ed_time, second.ed_time)
+       
+    def cmp_lines_name(first, second):
         return cmp(first.pagename, second.pagename)
-         
 
     favorites_dict = {}
     for page_line in favorites:
@@ -38,11 +40,12 @@ def groupFavorites(favorites):
 
     for lower_page_name in favorites_dict:
       if len(favorites_dict[lower_page_name]) > 1:
-        favorites_dict[lower_page_name].sort(cmp_lines)
-      favorites_dict[lower_page_name] = favorites_dict[lower_page_name][0]
+        favorites_dict[lower_page_name].sort(cmp_lines_edit)
+      favorites_dict[lower_page_name] = favorites_dict[lower_page_name][-1]	
 
-    favorites.sort(cmp_lines)
-        
+    favorites = favorites_dict.values()
+    favorites.sort(cmp_lines_name)
+    return favorites
 
 def execute(macro, args, formatter=None, **kw):
     if not formatter: formatter = macro.formatter
@@ -69,7 +72,7 @@ def execute(macro, args, formatter=None, **kw):
       return ''
     else:
       local_favoriteList = wikidb.getRecentChanges(request, per_page_limit=1, userFavoritesFor=request.user.id)
-      groupFavorites(local_favoriteList)
+      local_favoriteList = groupFavorites(local_favoriteList)
 
       from Sycamore.formatter.text_html import Formatter
       from Sycamore import user
