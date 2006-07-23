@@ -2,7 +2,7 @@ import sys, cStringIO, os
 __directory__ = os.path.dirname(__file__)
 sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))])
 
-from Sycamore import wikiutil, config, request, caching, wikidb
+from Sycamore import wikiutil, config, request, caching, wikidb, maintenance
 from Sycamore.Page import Page
 
 req = request.RequestDummy()
@@ -116,16 +116,16 @@ cursor.execute("CREATE VIEW currentFileChanges as SELECT files.attached_to_pagen
 cursor.execute("SELECT name, image, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased, xsize, ysize from images")
 results = cursor.fetchall()
 for result in results:
-  image_dict = { 'name': result[0], 'image': result[1], 'uploaded_time': result[2], 'uploaded_by': result[3], 'attached_to_pagename': result[4], 'uploaded_by_ip': result[5], 'attached_to_pagename_propercased': result[6], 'xsize': result[7], 'ysize': result[8] }
-  cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased) values (%(name)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(attached_to_pagename)s, %(uploaded_by_ip)s, %(attached_to_pagename_propercased)s)", image_dict, isWrite=True)
-  cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize) values (%(name)s, %(attached_to_pagename)s, %(xsize)s, %(ysize)s)", image_dict, isWrite=True)
+    image_dict = { 'name': result[0], 'image': result[1], 'uploaded_time': result[2], 'uploaded_by': result[3], 'attached_to_pagename': result[4], 'uploaded_by_ip': result[5], 'attached_to_pagename_propercased': result[6], 'xsize': result[7], 'ysize': result[8] }
+    cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased) values (%(name)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(attached_to_pagename)s, %(uploaded_by_ip)s, %(attached_to_pagename_propercased)s)", image_dict, isWrite=True)
+    cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize) values (%(name)s, %(attached_to_pagename)s, %(xsize)s, %(ysize)s)", image_dict, isWrite=True)
 
 cursor.execute("SELECT name, attached_to_pagename, image, uploaded_by, uploaded_time, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased, xsize, ysize from oldImages")
 results = cursor.fetchall()
 for result in results:
-  oldimage_dict = { 'name': result[0], 'attached_to_pagename': result[1], 'image': result[2], 'uploaded_by': result[3], 'uploaded_time': result[4], 'deleted_time': result[5], 'deleted_by': result[6], 'uploaded_by_ip': result[7], 'deleted_by_ip': result[8], 'attached_to_pagename_propercased': result[9], 'xsize': result[10], 'ysize': result[11] }
-  cursor.execute("INSERT into oldFiles (name, attached_to_pagename, file, uploaded_by, uploaded_time, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(name)s, %(attached_to_pagename)s, %(image)s, %(uploaded_by)s, %(uploaded_time)s, %(deleted_time)s, %(deleted_by)s, %(uploaded_by_ip)s, %(deleted_by_ip)s, %(attached_to_pagename_propercased)s)", oldimage_dict, isWrite=True)
-  cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time) values (%(name)s, %(attached_to_pagename)s, %(xsize)s, %(ysize)s, %(uploaded_time)s)", oldimage_dict, isWrite=True)
+    oldimage_dict = { 'name': result[0], 'attached_to_pagename': result[1], 'image': result[2], 'uploaded_by': result[3], 'uploaded_time': result[4], 'deleted_time': result[5], 'deleted_by': result[6], 'uploaded_by_ip': result[7], 'deleted_by_ip': result[8], 'attached_to_pagename_propercased': result[9], 'xsize': result[10], 'ysize': result[11] }
+    cursor.execute("INSERT into oldFiles (name, attached_to_pagename, file, uploaded_by, uploaded_time, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(name)s, %(attached_to_pagename)s, %(image)s, %(uploaded_by)s, %(uploaded_time)s, %(deleted_time)s, %(deleted_by)s, %(uploaded_by_ip)s, %(deleted_by_ip)s, %(attached_to_pagename_propercased)s)", oldimage_dict, isWrite=True)
+    cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time) values (%(name)s, %(attached_to_pagename)s, %(xsize)s, %(ysize)s, %(uploaded_time)s)", oldimage_dict, isWrite=True)
 
 # remove old views
 cursor.execute("DROP VIEW deletedImageChanges")
@@ -135,5 +135,8 @@ cursor.execute("DROP VIEW currentImageChanges")
 # remove the old tables
 cursor.execute("DROP TABLE images")
 cursor.execute("DROP TABLE oldImages")
+
+plist = wikiutil.getPageList(req)
+maintenance.buildCaches(plist)
 
 req.db_disconnect()
