@@ -102,6 +102,7 @@ _cfg_defaults = {
     'edit_locking': 'warn 10', # None, 'warn <timeout mins>', 'lock <timeout mins>'
     'edit_rows': 24,
     'footer_buttons': [],
+    'has_wiki_map': False,
     'has_xapian': False,
     'hosts_deny': [],
     'html_head': '',
@@ -118,6 +119,7 @@ _cfg_defaults = {
     'mail_smarthost': None,
     'mail_from': None,
     'max_macro_size': 50,
+    'max_file_size': 500,  # max file size in Kb
     'memcache': False,
     'memcache_servers': [],
     'noindex_everywhere': False,
@@ -191,6 +193,7 @@ _cfg_defaults = {
     'url_prefix': '/wiki',
     'url_schemas': [],
     'url_mappings': {},
+    'valid_image_extensions': ['.gif', '.jpe', '.jpeg', '.jpg', '.png'],
     'tabs_nonuser': ['Front Page', 'Map', 'People', 'Recent Changes'],
     'tabs_user': ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes'],
     'web_dir' : '',

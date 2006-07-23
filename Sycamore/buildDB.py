@@ -81,494 +81,527 @@ def init_db(cursor):
     cursor.execute("CREATE FUNCTION UNIX_TIMESTAMP(timestamp) RETURNS integer AS 'SELECT date_part(''epoch'', $1)::int4 AS result' language 'sql';")
 
 def create_tables(cursor):
- print "creating tables.."
- if config.db_type == 'mysql':
-   cursor.execute("""create table curPages
+  print "creating tables.."
+  if config.db_type == 'mysql':
+    cursor.execute("""create table curPages
+      (
+      name varchar(100) primary key not null,
+      text mediumtext,
+      cachedText mediumblob,
+      editTime double,
+      cachedTime double,
+      userEdited char(20),
+      propercased_name varchar(100) not null 
+      ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table curPages
+      (
+      name varchar(100) primary key not null,
+      text text,
+      cachedText bytea,
+      editTime double precision,
+      cachedTime double precision,
+      userEdited char(20),
+      propercased_name varchar(100) not null
+      );""")
+ 
+  cursor.execute("CREATE INDEX curPages_userEdited on curPages (userEdited);")
+  if config.db_type == 'mysql':
+    cursor.execute("""create table allPages
+      (
+      name varchar(100) not null,
+      text mediumtext,
+      editTime double,
+      userEdited char(20),
+      editType CHAR(30) CHECK (editType in ('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP')),
+      comment varchar(194),
+      userIP char(16),
+      propercased_name varchar(100) not null,
+      primary key(name, editTime)
+      ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table allPages
+      (
+      name varchar(100) not null,
+      text text,
+      editTime double precision,
+      userEdited char(20),
+      editType CHAR(30) CHECK (editType in ('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP')),
+      comment varchar(194),
+      userIP inet,
+      propercased_name varchar(100) not null,
+      primary key (name, editTime)
+      );""")
+ 
+  cursor.execute("CREATE INDEX allPages_userEdited on allPages (userEdited);")
+  cursor.execute("CREATE INDEX allPages_userIP on allPages (userIP);")
+  cursor.execute("CREATE INDEX editTime on allPages (editTime);")
+ 
+  if config.db_type == 'mysql':
+    cursor.execute("""create table users
      (
-     name varchar(100) primary key not null,
-     text mediumtext,
-     cachedText mediumblob,
-     editTime double,
-     cachedTime double,
-     userEdited char(20),
-     propercased_name varchar(100) not null 
+     id char(20) primary key not null,
+     name varchar(100) unique not null,
+     email varchar(255),
+     enc_password varchar(255),
+     language varchar(80),
+     remember_me tinyint,
+     css_url varchar(255),
+     disabled tinyint,
+     edit_cols smallint,
+     edit_rows smallint,
+     edit_on_doubleclick tinyint,
+     theme_name varchar(40),
+     last_saved double,
+     join_date double,
+     created_count int default 0,
+     edit_count int default 0,
+     file_count int default 0,
+     last_page_edited varchar(255),
+     last_edit_date double,
+     rc_bookmark double,
+     rc_showcomments tinyint default 1,
+     tz_offset int,
+     propercased_name varchar(100) not null
      ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table curPages
+  elif config.db_type == 'postgres':
+   cursor.execute("""create table users
      (
-     name varchar(100) primary key not null,
-     text text,
-     cachedText bytea,
-     editTime double precision,
-     cachedTime double precision,
-     userEdited char(20),
+     id char(20) primary key not null,
+     name varchar(100) unique not null,
+     email varchar(255),
+     enc_password varchar(255),
+     language varchar(80),
+     remember_me smallint,
+     css_url varchar(255),
+     disabled smallint,
+     edit_cols smallint,
+     edit_rows smallint,
+     edit_on_doubleclick smallint,
+     theme_name varchar(40),
+     last_saved double precision,
+     join_date double precision,
+     created_count int default 0,
+     edit_count int default 0,
+     file_count int default 0,
+     last_page_edited varchar(255),
+     last_edit_date double precision,
+     rc_bookmark double precision,
+     rc_showcomments smallint default 1,
+     tz_offset int,
      propercased_name varchar(100) not null
      );""")
-
- cursor.execute("CREATE INDEX curPages_userEdited on curPages (userEdited);")
- if config.db_type == 'mysql':
-   cursor.execute("""create table allPages
-     (
-     name varchar(100) not null,
-     text mediumtext,
-     editTime double,
-     userEdited char(20),
-     editType CHAR(30) CHECK (editType in ('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP')),
-     comment varchar(194),
-     userIP char(16),
-     propercased_name varchar(100) not null,
-     primary key(name, editTime)
-     ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table allPages
-     (
-     name varchar(100) not null,
-     text text,
-     editTime double precision,
-     userEdited char(20),
-     editType CHAR(30) CHECK (editType in ('SAVE','SAVENEW','ATTNEW','ATTDEL','RENAME','NEWEVENT','COMMENT_MACRO','SAVE/REVERT','DELETE', 'SAVEMAP')),
-     comment varchar(194),
-     userIP inet,
-     propercased_name varchar(100) not null,
-     primary key (name, editTime)
-     );""")
-
- cursor.execute("CREATE INDEX allPages_userEdited on allPages (userEdited);")
- cursor.execute("CREATE INDEX allPages_userIP on allPages (userIP);")
- cursor.execute("CREATE INDEX editTime on allPages (editTime);")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table users
+ 
+  cursor.execute("CREATE INDEX users_name on users (name);")
+ 
+  if config.db_type == 'mysql':
+    cursor.execute("""create table userFavorites
     (
-    id char(20) primary key not null,
-    name varchar(100) unique not null,
-    email varchar(255),
-    enc_password varchar(255),
-    language varchar(80),
-    remember_me tinyint,
-    css_url varchar(255),
-    disabled tinyint,
-    edit_cols smallint,
-    edit_rows smallint,
-    edit_on_doubleclick tinyint,
-    theme_name varchar(40),
-    last_saved double,
-    join_date double,
-    created_count int default 0,
-    edit_count int default 0,
-    file_count int default 0,
-    last_page_edited varchar(255),
-    last_edit_date double,
-    rc_bookmark double,
-    rc_showcomments tinyint default 1,
-    tz_offset int,
-    propercased_name varchar(100) not null
+    username varchar(100) not null,
+    page varchar(100) not null,
+    viewTime double,
+    primary key (username, page)
     ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-  cursor.execute("""create table users
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table userFavorites
     (
-    id char(20) primary key not null,
-    name varchar(100) unique not null,
-    email varchar(255),
-    enc_password varchar(255),
-    language varchar(80),
-    remember_me smallint,
-    css_url varchar(255),
-    disabled smallint,
-    edit_cols smallint,
-    edit_rows smallint,
-    edit_on_doubleclick smallint,
-    theme_name varchar(40),
-    last_saved double precision,
-    join_date double precision,
-    created_count int default 0,
-    edit_count int default 0,
-    file_count int default 0,
-    last_page_edited varchar(255),
-    last_edit_date double precision,
-    rc_bookmark double precision,
-    rc_showcomments smallint default 1,
-    tz_offset int,
-    propercased_name varchar(100) not null
+    username varchar(100) not null,
+    page varchar(100) not null,
+    viewTime double precision,
+    primary key (username, page)
     );""")
-
- cursor.execute("CREATE INDEX users_name on users (name);")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table userFavorites
-   (
-   username varchar(100) not null,
-   page varchar(100) not null,
-   viewTime double,
-   primary key (username, page)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table userFavorites
-   (
-   username varchar(100) not null,
-   page varchar(100) not null,
-   viewTime double precision,
-   primary key (username, page)
-   );""")
-
- if config.db_type == 'mysql':
-   #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
-   cursor.execute("""create table userSessions
-   (
-   user_id char(20) not null,
-   session_id char(28) not null,
-   secret char(28) not null,
-   expire_time double,
-   primary key (user_id, session_id)
-   ) ENGINE=MyISAM CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
-   cursor.execute("""create table userSessions
-   (
-   user_id char(20) not null,
-   session_id char(28) not null,
-   secret char(28) not null,
-   expire_time double precision,
-   primary key (user_id, session_id)
-   );""")
-
- cursor.execute("CREATE INDEX userSessions_expire_time on userSessions (expire_time);")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table links
-   (
-   source_pagename varchar(100) not null,
-   destination_pagename varchar(100) not null,
-   destination_pagename_propercased varchar(100) not null,
-   primary key (source_pagename, destination_pagename)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table links
-   (
-   source_pagename varchar(100) not null,
-   destination_pagename varchar(100) not null,
-   destination_pagename_propercased varchar(100) not null,
-   primary key (source_pagename, destination_pagename)
-   );""")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table events
-   (
-   uid mediumint primary key not null,
-   event_time double not null,
-   posted_by varchar(100),
-   text mediumtext not null,
-   location mediumtext not null,
-   event_name mediumtext not null,
-   posted_by_ip char(16),
-   posted_time double 
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table events
-   (
-   uid int primary key not null,
-   event_time double precision not null,
-   posted_by varchar(100),
-   text text not null,
-   location text not null,
-   event_name text not null,
-   posted_by_ip inet,
-   posted_time double precision
-   );""")
-
- cursor.execute("CREATE INDEX events_event_time on events (event_time);")
- cursor.execute("CREATE INDEX events_posted_by on events (posted_by);")
- cursor.execute("CREATE INDEX events_posted_by_ip on events (posted_by_ip);")
- cursor.execute("CREATE INDEX events_posted_time on events (posted_time);")
  
- if config.db_type == 'mysql':
-   cursor.execute("""create table images
-   (
-   name varchar(100) not null,
-   image mediumblob not null,
-   uploaded_time double not null,
-   uploaded_by char(20),
-   attached_to_pagename varchar(255) not null,
-   uploaded_by_ip char(16),
-   xsize smallint,
-   ysize smallint,
-   attached_to_pagename_propercased varchar(255) not null,
-   primary key (name, attached_to_pagename)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table images
-   (
-   name varchar(100) not null,
-   image bytea not null,
-   uploaded_time double precision not null,
-   uploaded_by char(20),
-   attached_to_pagename varchar(255) not null,
-   uploaded_by_ip inet,
-   xsize smallint,
-   ysize smallint,
-   attached_to_pagename_propercased varchar(255) not null,
-   primary key (name, attached_to_pagename)
-   );""")
-
- cursor.execute("CREATE INDEX images_uploaded_by on images (uploaded_by);")
- cursor.execute("CREATE INDEX images_uploaded_time on images (uploaded_time);")
+  if config.db_type == 'mysql':
+    #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
+    cursor.execute("""create table userSessions
+    (
+    user_id char(20) not null,
+    session_id char(28) not null,
+    secret char(28) not null,
+    expire_time double,
+    primary key (user_id, session_id)
+    ) ENGINE=MyISAM CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    #This is throw-away data. User sessions aren't that important so we'll use a MyISAM table for speed
+    cursor.execute("""create table userSessions
+    (
+    user_id char(20) not null,
+    session_id char(28) not null,
+    secret char(28) not null,
+    expire_time double precision,
+    primary key (user_id, session_id)
+    );""")
  
- if config.db_type == 'mysql':
-   cursor.execute("""create table oldImages
-   (
-   name varchar(100) not null,
-   image mediumblob not null,
-   uploaded_time double not null,
-   uploaded_by char(20),
-   attached_to_pagename varchar(255) not null,
-   deleted_time double,
-   deleted_by char(20),
-   uploaded_by_ip char(16),
-   deleted_by_ip char(16),
-   xsize smallint,
-   ysize smallint,
-   attached_to_pagename_propercased varchar(255) not null,
-   primary key (name, attached_to_pagename, uploaded_time)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table oldImages
-   (
-   name varchar(100) not null,
-   image bytea not null,
-   uploaded_time double precision not null,
-   uploaded_by char(20),
-   attached_to_pagename varchar(255) not null,
-   deleted_time double precision,
-   deleted_by char(20),
-   uploaded_by_ip inet,
-   deleted_by_ip inet,
-   xsize smallint,
-   ysize smallint,
-   attached_to_pagename_propercased varchar(255) not null,
-   primary key (name, attached_to_pagename, uploaded_time)
-   );""")
+  cursor.execute("CREATE INDEX userSessions_expire_time on userSessions (expire_time);")
  
+  if config.db_type == 'mysql':
+    cursor.execute("""create table links
+    (
+    source_pagename varchar(100) not null,
+    destination_pagename varchar(100) not null,
+    destination_pagename_propercased varchar(100) not null,
+    primary key (source_pagename, destination_pagename)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table links
+    (
+    source_pagename varchar(100) not null,
+    destination_pagename varchar(100) not null,
+    destination_pagename_propercased varchar(100) not null,
+    primary key (source_pagename, destination_pagename)
+    );""")
  
- cursor.execute("CREATE INDEX oldImages_deleted_time on oldImages (deleted_time);")
+  if config.db_type == 'mysql':
+    cursor.execute("""create table events
+    (
+    uid mediumint primary key not null,
+    event_time double not null,
+    posted_by varchar(100),
+    text mediumtext not null,
+    location mediumtext not null,
+    event_name mediumtext not null,
+    posted_by_ip char(16),
+    posted_time double 
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table events
+    (
+    uid int primary key not null,
+    event_time double precision not null,
+    posted_by varchar(100),
+    text text not null,
+    location text not null,
+    event_name text not null,
+    posted_by_ip inet,
+    posted_time double precision
+    );""")
  
- if config.db_type == 'mysql':
-   #throw-away and easily regenerated data
-   cursor.execute("""create table thumbnails
-   (              
-   xsize smallint,
-   ysize smallint,
-   name varchar(100) not null,
-   attached_to_pagename varchar(100) not null,
-   image mediumblob not null,
-   last_modified double,
-   primary key (name, attached_to_pagename)
-   ) ENGINE=MyISAM CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   #throw-away and easily regenerated data
-   cursor.execute("""create table thumbnails
-   (              
-   xsize smallint,
-   ysize smallint,
-   name varchar(100) not null,
-   attached_to_pagename varchar(100) not null,
-   image bytea not null,
-   last_modified double precision,
-   primary key (name, attached_to_pagename)
-   );""")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table imageCaptions
-   (
-    image_name varchar(100) not null,
+  cursor.execute("CREATE INDEX events_event_time on events (event_time);")
+  cursor.execute("CREATE INDEX events_posted_by on events (posted_by);")
+  cursor.execute("CREATE INDEX events_posted_by_ip on events (posted_by_ip);")
+  cursor.execute("CREATE INDEX events_posted_time on events (posted_time);")
+  
+  if config.db_type == 'mysql':
+    cursor.execute("""create table files
+    (
+    name varchar(100) not null,
+    file mediumblob not null,
+    uploaded_time double not null,
+    uploaded_by char(20),
+    attached_to_pagename varchar(255) not null,
+    uploaded_by_ip char(16),
+    attached_to_pagename_propercased varchar(255) not null,
+    primary key (name, attached_to_pagename)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table files
+    (
+    name varchar(100) not null,
+    file bytea not null,
+    uploaded_time double precision not null,
+    uploaded_by char(20),
+    attached_to_pagename varchar(255) not null,
+    uploaded_by_ip inet,
+    attached_to_pagename_propercased varchar(255) not null,
+    primary key (name, attached_to_pagename)
+    );""")
+ 
+  cursor.execute("CREATE INDEX filess_uploaded_by on files (uploaded_by);")
+  cursor.execute("CREATE INDEX files_uploaded_time on files (uploaded_time);")
+  
+  if config.db_type == 'mysql':
+    cursor.execute("""create table oldFiles
+    (
+    name varchar(100) not null,
+    file mediumblob not null,
+    uploaded_time double not null,
+    uploaded_by char(20),
+    attached_to_pagename varchar(255) not null,
+    deleted_time double,
+    deleted_by char(20),
+    uploaded_by_ip char(16),
+    deleted_by_ip char(16),
+    attached_to_pagename_propercased varchar(255) not null,
+    primary key (name, attached_to_pagename, uploaded_time)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table oldFiles
+    (
+    name varchar(100) not null,
+    file bytea not null,
+    uploaded_time double precision not null,
+    uploaded_by char(20),
+    attached_to_pagename varchar(255) not null,
+    deleted_time double precision,
+    deleted_by char(20),
+    uploaded_by_ip inet,
+    deleted_by_ip inet,
+    attached_to_pagename_propercased varchar(255) not null,
+    primary key (name, attached_to_pagename, uploaded_time)
+    );""")
+  
+  
+  cursor.execute("CREATE INDEX oldFiles_deleted_time on oldFiles (deleted_time);")
+  
+  if config.db_type == 'mysql':
+    #throw-away and easily regenerated data
+    cursor.execute("""create table thumbnails
+    (              
+    xsize smallint,
+    ysize smallint,
+    name varchar(100) not null,
     attached_to_pagename varchar(100) not null,
-    linked_from_pagename varchar(100),
-    caption text not null,
-    primary key (image_name, attached_to_pagename, linked_from_pagename)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table imageCaptions
-   (
-    image_name varchar(100) not null,
+    image mediumblob not null,
+    last_modified double,
+    primary key (name, attached_to_pagename)
+    ) ENGINE=MyISAM CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    #throw-away and easily regenerated data
+    cursor.execute("""create table thumbnails
+    (              
+    xsize smallint,
+    ysize smallint,
+    name varchar(100) not null,
     attached_to_pagename varchar(100) not null,
-    linked_from_pagename varchar(100),
-    caption text not null,
-    primary key (image_name, attached_to_pagename, linked_from_pagename)
-   );""")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table mapCategoryDefinitions
-   (
-   id int not null,
-   img varchar(100),
-   name varchar(100) not null,
-   primary key (id)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table mapCategoryDefinitions
-   (
-   id int not null,
-   img varchar(100),
-   name varchar(100) not null,
-   primary key (id)
-   );""")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table mapPoints
-   (
-     pagename varchar(100) not null,
-     x varchar(100) not null,
-     y varchar(100) not null,
-     created_time double,
-     created_by char(20),
-     created_by_ip char(16),
-     id int,
-     pagename_propercased varchar(100) not null,
-     primary key (pagename, x, y)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table mapPoints
-   (
-     pagename varchar(100) not null,
-     x varchar(100) not null,
-     y varchar(100) not null,
-     created_time double precision,
-     created_by char(20),
-     created_by_ip inet,
-     id int,
-     pagename_propercased varchar(100) not null,
-     primary key (pagename, x, y)
-   );""")
+    image bytea not null,
+    last_modified double precision,
+    primary key (name, attached_to_pagename)
+    );""")
  
- cursor.execute("""CREATE INDEX mapPoints_created_time on mapPoints (created_time);""")
- cursor.execute("""CREATE INDEX mapPoints_id on mapPoints (id);""")
+  if config.db_type == 'mysql':
+    cursor.execute("""create table imageInfo
+    (
+    name varchar(100) not null,
+    attached_to_pagename varchar(255) not null,
+    xsize smallint,
+    ysize smallint,
+    primary key (name, attached_to_pagename)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table imageInfo
+    (
+    name varchar(100) not null,
+    attached_to_pagename varchar(255) not null,
+    xsize smallint,
+    ysize smallint,
+    primary key (name, attached_to_pagename)
+    );""")
  
- if config.db_type == 'mysql':
-   cursor.execute("""create table oldMapPoints
-   (
-     pagename varchar(100) not null,
-     x varchar(100) not null,
-     y varchar(100) not null,
-     created_time double,
-     created_by char(20),
-     created_by_ip char(16),
-     deleted_time double,
-     deleted_by char(20),
-     deleted_by_ip char(16),
-     pagename_propercased varchar(100) not null,
-     primary key (pagename, x, y, deleted_time)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table oldMapPoints
-   (
-     pagename varchar(100) not null,
-     x varchar(100) not null,
-     y varchar(100) not null,
-     created_time double precision,
-     created_by char(20),
-     created_by_ip inet,
-     deleted_time double precision,
-     deleted_by char(20),
-     deleted_by_ip inet,
-     pagename_propercased varchar(100) not null,
-     primary key (pagename, x, y, deleted_time)
-   );""")
-
- cursor.execute("CREATE INDEX oldMapPoints_deleted_time on oldMapPoints (deleted_time);")
- cursor.execute("CREATE INDEX oldMapPoints_created_time on oldMapPoints (created_time);")
+  if config.db_type == 'mysql':
+    cursor.execute("""create table oldImageInfo
+    (
+    name varchar(100) not null,
+    attached_to_pagename varchar(255) not null,
+    xsize smallint,
+    ysize smallint,
+    uploaded_time double not null,
+    primary key (name, attached_to_pagename, uploaded_time)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table oldImageInfo
+    (
+    name varchar(100) not null,
+    attached_to_pagename varchar(255) not null,
+    xsize smallint,
+    ysize smallint,
+    uploaded_time double precision not null,
+    primary key (name, attached_to_pagename, uploaded_time)
+    );""")
  
- if config.db_type == 'mysql':
-   cursor.execute("""create table mapPointCategories
-   (
-     pagename varchar(100) not null,
-     x varchar(100) not null,
-     y varchar(100) not null,
-     id int not null,
-     primary key (pagename, x, y, id)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table mapPointCategories
-     (
-       pagename varchar(100) not null,
-       x varchar(100) not null,
-       y varchar(100) not null,
-       id int not null,
-       primary key (pagename, x, y, id)
-     );""")
  
- if config.db_type == 'mysql':
-   cursor.execute("""create table oldMapPointCategories
-   (
-     pagename varchar(100) not null,
-     x varchar(100) not null,
-     y varchar(100) not null,
-     id int not null,
-     deleted_time double,
-     primary key (pagename, x, y, id, deleted_time)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table oldMapPointCategories
-   (
-     pagename varchar(100) not null,
-     x varchar(100) not null,
-     y varchar(100) not null,
-     id int not null,
-     deleted_time double precision,
-     primary key (pagename, x, y, id, deleted_time)
-   );""")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table pageDependencies
-   (
-     page_that_depends varchar(100) not null,
-     source_page varchar(100) not null,
-     primary key (page_that_depends, source_page)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table pageDependencies
-   (
-     page_that_depends varchar(100) not null,
-     source_page varchar(100) not null,
-     primary key (page_that_depends, source_page)
-   );""")
-
- if config.db_type == 'mysql':
-   cursor.execute("""create table metadata
-   (
-     pagename varchar(100),
-     type varchar(100),
-     name varchar(100),
-     value varchar(100),
-     primary key (pagename, type, name)
-   ) ENGINE=InnoDB CHARACTER SET utf8;""")
- elif config.db_type == 'postgres':
-   cursor.execute("""create table metadata
-   (
-     pagename varchar(100),
-     type varchar(100),
-     name varchar(100),
-     value varchar(100),
-     primary key (pagename, type, name)
-   );""")
-
- print "tables created"
+  if config.db_type == 'mysql':
+    cursor.execute("""create table imageCaptions
+    (
+     image_name varchar(100) not null,
+     attached_to_pagename varchar(100) not null,
+     linked_from_pagename varchar(100),
+     caption text not null,
+     primary key (image_name, attached_to_pagename, linked_from_pagename)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table imageCaptions
+    (
+     image_name varchar(100) not null,
+     attached_to_pagename varchar(100) not null,
+     linked_from_pagename varchar(100),
+     caption text not null,
+     primary key (image_name, attached_to_pagename, linked_from_pagename)
+    );""")
+ 
+  if config.db_type == 'mysql':
+    cursor.execute("""create table mapCategoryDefinitions
+    (
+    id int not null,
+    img varchar(100),
+    name varchar(100) not null,
+    primary key (id)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table mapCategoryDefinitions
+    (
+    id int not null,
+    img varchar(100),
+    name varchar(100) not null,
+    primary key (id)
+    );""")
+ 
+  if config.db_type == 'mysql':
+    cursor.execute("""create table mapPoints
+    (
+      pagename varchar(100) not null,
+      x varchar(100) not null,
+      y varchar(100) not null,
+      created_time double,
+      created_by char(20),
+      created_by_ip char(16),
+      id int,
+      pagename_propercased varchar(100) not null,
+      primary key (pagename, x, y)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table mapPoints
+    (
+      pagename varchar(100) not null,
+      x varchar(100) not null,
+      y varchar(100) not null,
+      created_time double precision,
+      created_by char(20),
+      created_by_ip inet,
+      id int,
+      pagename_propercased varchar(100) not null,
+      primary key (pagename, x, y)
+    );""")
+  
+  cursor.execute("""CREATE INDEX mapPoints_created_time on mapPoints (created_time);""")
+  cursor.execute("""CREATE INDEX mapPoints_id on mapPoints (id);""")
+  
+  if config.db_type == 'mysql':
+    cursor.execute("""create table oldMapPoints
+    (
+      pagename varchar(100) not null,
+      x varchar(100) not null,
+      y varchar(100) not null,
+      created_time double,
+      created_by char(20),
+      created_by_ip char(16),
+      deleted_time double,
+      deleted_by char(20),
+      deleted_by_ip char(16),
+      pagename_propercased varchar(100) not null,
+      primary key (pagename, x, y, deleted_time)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table oldMapPoints
+    (
+      pagename varchar(100) not null,
+      x varchar(100) not null,
+      y varchar(100) not null,
+      created_time double precision,
+      created_by char(20),
+      created_by_ip inet,
+      deleted_time double precision,
+      deleted_by char(20),
+      deleted_by_ip inet,
+      pagename_propercased varchar(100) not null,
+      primary key (pagename, x, y, deleted_time)
+    );""")
+ 
+  cursor.execute("CREATE INDEX oldMapPoints_deleted_time on oldMapPoints (deleted_time);")
+  cursor.execute("CREATE INDEX oldMapPoints_created_time on oldMapPoints (created_time);")
+  
+  if config.db_type == 'mysql':
+    cursor.execute("""create table mapPointCategories
+    (
+      pagename varchar(100) not null,
+      x varchar(100) not null,
+      y varchar(100) not null,
+      id int not null,
+      primary key (pagename, x, y, id)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table mapPointCategories
+      (
+        pagename varchar(100) not null,
+        x varchar(100) not null,
+        y varchar(100) not null,
+        id int not null,
+        primary key (pagename, x, y, id)
+      );""")
+  
+  if config.db_type == 'mysql':
+    cursor.execute("""create table oldMapPointCategories
+    (
+      pagename varchar(100) not null,
+      x varchar(100) not null,
+      y varchar(100) not null,
+      id int not null,
+      deleted_time double,
+      primary key (pagename, x, y, id, deleted_time)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table oldMapPointCategories
+    (
+      pagename varchar(100) not null,
+      x varchar(100) not null,
+      y varchar(100) not null,
+      id int not null,
+      deleted_time double precision,
+      primary key (pagename, x, y, id, deleted_time)
+    );""")
+ 
+  if config.db_type == 'mysql':
+    cursor.execute("""create table pageDependencies
+    (
+      page_that_depends varchar(100) not null,
+      source_page varchar(100) not null,
+      primary key (page_that_depends, source_page)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table pageDependencies
+    (
+      page_that_depends varchar(100) not null,
+      source_page varchar(100) not null,
+      primary key (page_that_depends, source_page)
+    );""")
+ 
+  if config.db_type == 'mysql':
+    cursor.execute("""create table metadata
+    (
+      pagename varchar(100),
+      type varchar(100),
+      name varchar(100),
+      value varchar(100),
+      primary key (pagename, type, name)
+    ) ENGINE=InnoDB CHARACTER SET utf8;""")
+  elif config.db_type == 'postgres':
+    cursor.execute("""create table metadata
+    (
+      pagename varchar(100),
+      type varchar(100),
+      name varchar(100),
+      value varchar(100),
+      primary key (pagename, type, name)
+    );""")
+ 
+  print "tables created"
 
 
 def create_views(cursor):
  print "creating views..."
  if config.db_type == 'mysql':
    cursor.execute("CREATE VIEW eventChanges as SELECT 'Events Board' as name, events.posted_time as changeTime, users.id as id, 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP, 'Events Board' as propercased_name from events, users where users.propercased_name=events.posted_by;")
-   cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
-   cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
-   cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP, images.attached_to_pagename_propercased as propercased_name from images;")
+   cursor.execute("CREATE VIEW deletedFileChanges as SELECT oldFiles.attached_to_pagename as name, oldFiles.deleted_time as changeTime, oldFiles.deleted_by as id, 'ATTDEL' as editType, name as comment, oldFiles.deleted_by_ip as userIP, oldFiles.attached_to_pagename_propercased as propercased_name from oldFiles;")
+   cursor.execute("CREATE VIEW oldFileChanges as SELECT oldFiles.attached_to_pagename as name, oldFiles.uploaded_time as changeTime, oldFiles.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldFiles.uploaded_by_ip as userIP, oldFiles.attached_to_pagename_propercased as propercased_name from oldFiles;")
+   cursor.execute("CREATE VIEW currentFileChanges as SELECT files.attached_to_pagename as name, files.uploaded_time as changeTime, files.uploaded_by as id, 'ATTNEW' as editType, name as comment, files.uploaded_by_ip as userIP, files.attached_to_pagename_propercased as propercased_name from files;")
    cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP, propercased_name from allPages;")
    cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, mapPoints.created_by_ip as userIP, mapPoints.pagename_propercased as propercased_name from mapPoints;")
    cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.created_by_ip as userIP, oldMapPoints.pagename_propercased as propercased_name from oldMapPoints;")
    cursor.execute("CREATE VIEW deletedMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.deleted_time as changeTime, oldMapPoints.deleted_by as id, 'SAVEMAP' as editType, NULL as comment, oldMapPoints.deleted_by_ip as userIP, oldMapPoints.pagename_propercased as propercased_name from oldMapPoints;")
  elif config.db_type == 'postgres':
    cursor.execute("CREATE VIEW eventChanges as SELECT char 'Events Board' as name, events.posted_time as changeTime, users.id as id, char 'NEWEVENT' as editType, events.event_name as comment, events.posted_by_IP as userIP from events, users where users.propercased_name=events.posted_by;")
-   cursor.execute("CREATE VIEW deletedImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.deleted_time as changeTime, oldImages.deleted_by as id, char 'ATTDEL' as editType, name as comment, oldImages.deleted_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
-   cursor.execute("CREATE VIEW oldImageChanges as SELECT oldImages.attached_to_pagename as name, oldImages.uploaded_time as changeTime, oldImages.uploaded_by as id, char 'ATTNEW' as editType, name as comment, oldImages.uploaded_by_ip as userIP, oldImages.attached_to_pagename_propercased as propercased_name from oldImages;")
-   cursor.execute("CREATE VIEW currentImageChanges as SELECT images.attached_to_pagename as name, images.uploaded_time as changeTime, images.uploaded_by as id, char 'ATTNEW' as editType, name as comment, images.uploaded_by_ip as userIP, images.attached_to_pagename_propercased as propercased_name from images;")
+   cursor.execute("CREATE VIEW deletedFileChanges as SELECT oldFiles.attached_to_pagename as name, oldFiles.deleted_time as changeTime, oldFiles.deleted_by as id, char 'ATTDEL' as editType, name as comment, oldFiles.deleted_by_ip as userIP, oldFiles.attached_to_pagename_propercased as propercased_name from oldFiles;")
+   cursor.execute("CREATE VIEW oldFileChanges as SELECT oldFiles.attached_to_pagename as name, oldFiles.uploaded_time as changeTime, oldFiles.uploaded_by as id, char 'ATTNEW' as editType, name as comment, oldFiles.uploaded_by_ip as userIP, oldFiles.attached_to_pagename_propercased as propercased_name from oldFiles;")
+   cursor.execute("CREATE VIEW currentFileChanges as SELECT files.attached_to_pagename as name, files.uploaded_time as changeTime, files.uploaded_by as id, char 'ATTNEW' as editType, name as comment, files.uploaded_by_ip as userIP, files.attached_to_pagename_propercased as propercased_name from files;")
    cursor.execute("CREATE VIEW pageChanges as SELECT name, editTime as changeTime, userEdited as id, editType, comment, userIP, propercased_name from allPages;")
    cursor.execute("CREATE VIEW currentMapChanges as SELECT mapPoints.pagename as name, mapPoints.created_time as changeTime, mapPoints.created_by as id, char 'SAVEMAP' as editType, char ''as comment, mapPoints.created_by_ip as userIP, mapPoints.pagename_propercased as propercased_name from mapPoints;")
    cursor.execute("CREATE VIEW oldMapChanges as SELECT oldMapPoints.pagename as name, oldMapPoints.created_time as changeTime, oldMapPoints.created_by as id, char 'SAVEMAP' as editType, char '' as comment, oldMapPoints.created_by_ip as userIP, oldMapPoints.pagename_propercased as propercased_name from oldMapPoints;")

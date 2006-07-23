@@ -284,7 +284,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write("</div>")
             
 
-        show_applet = True
+        show_applet = config.has_wiki_map
         if wikiutil.isSystemPage(self.request, self.page_name):
           show_applet = False
         mapButton = ""
@@ -303,7 +303,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 <input type="submit" class="formbutton" name="button_cancel" value="%s">
 </td><td width="12">&nbsp;</td><td bgcolor="#ccddff" style="border: 1px dashed #AAAAAA;">
 &nbsp;&nbsp;%s
-<input type="button" class="formbutton" onClick="window.open('%s/%s?action=Files', 'images', 'width=800,height=600,scrollbars=1')" value="Images">
+<input type="button" class="formbutton" onClick="window.open('%s/%s?action=Files', 'files', 'width=800,height=600,scrollbars=1')" value="Files">
 %s
 <input type="button" class="formbutton" onClick="location.href='%s/%s?action=DeletePage'" value="Delete">
 <input type="button" class="formbutton" onClick="location.href='%s/%s?action=Rename'" value="Rename">&nbsp;&nbsp;</td></tr></table>
@@ -390,9 +390,9 @@ Your changes were sucessfully merged!""" % conflict_msg)
         # (recreating the page allows access to the backups again)
         try:
             self.saveText("deleted", '0', comment=comment or '', action='DELETE')
-        except self.SaveError:
-            # XXXX Error handling
-            pass
+        except self.SaveError, msg:
+            return msg
+
         # Then really delete it
 	self.request.cursor.execute("DELETE from curPages where name=%(page_name)s", {'page_name':self.page_name}, isWrite=True)
 
@@ -411,6 +411,8 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
 	# remove entry from the search databases
 	search.remove_from_index(self)
+
+        return ''
 
     def _sendNotification(self, comment, emails, email_lang, oldversions):
         """
@@ -603,20 +605,19 @@ Your changes were sucessfully merged!""" % conflict_msg)
 	self.request.cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP, propercased_name) values (%(page_name)s, %(text)s, %(ourtime)s, %(id)s, %(action)s, %(comment)s, %(ip)s, %(proper_name)s)", {'page_name':self.page_name, 'proper_name':proper_name, 'text':text, 'ourtime':ourtime, 'id':user_id, 'action':action, 'comment':wikiutil.escape(comment),'ip':ip}, isWrite=True)
 
         # set in-memory page text/cached page text
-	self.set_raw_body(text)
+	self.set_raw_body(text, set_cache=True)
 
 	import caching
 	cache = caching.CacheEntry(self.page_name, self.request)
-        if exists: type = 'page save'
-	else: type = 'page save new'
 
         if config.memcache and not exists:
           pagecount = wikidb.getPageCount(self.request) + 1
           self.request.mc.set('active_page_count', pagecount)
         
-	# rebuild possible dependencies (e.g. [[Include]])
+	# set trigger for clearing possible dependencies (e.g. [[Include]])
+        # we want this to be a post-commit trigger so that we don't have stale data
 	for pagename in caching.depend_on_me(self.page_name, self.request, exists, action=action):
-          caching.CacheEntry(pagename, self.request).clear()
+          self.request.postCommitActions.append( (caching.CacheEntry(pagename, self.request).clear, ) )
 	
         self.buildCache(type=type)
 
@@ -632,6 +633,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         @keyword comment: comment field (when preview is true)
         @keyword action: action for log (default: SAVE)
         @keyword proper_name: properly-cased pagename (for renames)
+        @keyword ignore_edit_conflicts: force a save regardless of status (boolean)
         @rtype: string
         @return: error msg
         """
@@ -645,13 +647,14 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         msg = ""
 	merged_changes = False
+        ignore_edit_conflicts = kw.get('ignore_edit_conflicts', False)
         if not self.request.user.may.save(self, newtext, datestamp, **kw):
             msg = _('You are not allowed to edit this page!')
             raise self.AccessDenied, msg
         elif not newtext.strip():
             msg = _('You cannot save empty pages.')
             raise self.EmptyPage, msg
-        elif datestamp != '0' and datestamp < self.mtime():
+        elif not ignore_edit_conflicts and (datestamp != '0' and datestamp < self.mtime()):
             from Sycamore.util import diff3
  	    savetext = newtext
             original_text = Page(self.page_name, self.request, prev_date=datestamp).get_raw_body()

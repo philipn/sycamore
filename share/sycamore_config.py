@@ -33,7 +33,7 @@ data_dir = os.path.join(__directory__, 'data')
 web_root = os.path.join(__directory__, 'web')
 
 # this is what's after the url if your wiki is in a directory
-# e.g. '' for the root, and '/mywiki' if it's in directory mywiki
+# e.g. '' (nothing) for the root, and '/mywiki' if it's in directory mywiki
 web_dir = ''
 
 # this is where the theme css is stored
@@ -49,12 +49,10 @@ catchphrase = 'Your phrase here..'
 
 #if the main files are placed somewhere inside of a directory such as http://daviswiki.org/dev/index.cgi as opposed to http://daviswiki.org/index.cgi
 #then this var lets us figure out the proper relative link
-#as of 12-29-04 we aren't yet using this, but we should use this once we have an independent dev database
-# this is where the main code is installed -- in your web server documents' directory
 # so if you have ~/public_html/wiki/index.cgi as your wiki executable then this would be "wiki/index.cgi"
 # if there is no index.cgi then it would be "wiki"
 # this is anything after the root of where your web stuff is installed
-relative_dir = 'index.cgi'
+relative_dir = ''
 
 #your domain (used for cookies, etc)
 # uncomment only if you've got a domain and want cookies to work across subdomains
@@ -79,9 +77,9 @@ footer_buttons = ["""<a href="http://creativecommons.org/licenses/by/2.0/"><img 
 #tabs_user = ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes']
 
 # database settings.
-db_type = 'mysql'  # can be 'mysql' or 'postgres'
+db_type = 'postgres'  # can be 'mysql' or 'postgres'
 db_name = 'wiki'
-db_user = 'root'
+db_user = 'philipneustrom'
 db_user_password = ''
 # The IP address or hostname of the database.  Leave empty for local non-networked connection (usually works)
 # (setting db_host = 'localhost' usually makes a local networked connection ;)
@@ -91,14 +89,17 @@ db_host = ''
 diff3_location = '/usr/bin/diff3'
 
 #Memcache settings.  This is if you want a high-performance wiki.
-memcache = False
+memcache = True
 memcache_servers = ['127.0.0.1:11211']
 # memcache_servers can be either ['server1:port', 'server2:port'] or given with weights as in
 #  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)
 
-has_xapian = False
+has_xapian = True
 #location of the search dbs.  you probably shouldn't have to change this.
 search_db_location = os.path.join(data_dir, 'search')
+
+# do we want to use the remote sycamore-xapian databse?
+#remote_search = ('127.0.0.1', 33432)
 
 # Referer regular expression is used to filter out http referers from image viewing.
 # It's for stopping image hotlinking, basically.
@@ -119,13 +120,15 @@ allowed_actions = ['DeletePage','AttachFile']
 # for standalone http server (see installhtml/index)
 httpd_host = "localhost"
 httpd_port = 80
-httpd_user = "nobody"
+httpd_user = "root"
 
 theme_default = 'eggheadbeta'
 theme_force = True
 acl_enabled = 1
-acl_rights_default = "AdminGroup:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read,write"
+acl_rights_default = "PhilipNeustrom:admin,read,write,delete,revert AdminGroup:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read,write"
+
+allow_all_mimetypes = True
+max_file_size = 5000
 
 mail_smarthost = "localhost"
 mail_from = "dont_respond@daviswiki.org"
-

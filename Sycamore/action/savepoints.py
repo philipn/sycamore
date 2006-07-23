@@ -15,6 +15,8 @@ def clean(text):
 	return text
 
 def execute(pagename, request):
+    if not config.has_wiki_map:  return
+
     actname = __name__.split('.')[-1]
 
     request.http_headers()

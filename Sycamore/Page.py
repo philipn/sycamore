@@ -329,7 +329,7 @@ class Page(object):
         return self._raw_body
 
 
-    def set_raw_body(self, body, modified=0):
+    def set_raw_body(self, body, modified=0, set_cache=False):
         """
         Set the raw body text (prevents loading from disk).
 
@@ -341,7 +341,7 @@ class Page(object):
         self._raw_body = body
         self._raw_body_modified = modified
         if not modified and config.memcache:
-          if self.request.set_cache:
+          if set_cache or self.request.set_cache:
             if not self.prev_date:
               self.request.mc.set('page_text:%s' % wikiutil.quoteFilename(self.page_name.lower()), body)
             else:

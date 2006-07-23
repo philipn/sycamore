@@ -32,6 +32,13 @@ def run_as_daemon():
       do_run()
 
 def do_run():
+    if config.httpd_user:
+      try:
+        import pwd
+        os.setuid(pwd.getpwnam(config.httpd_user)[2])
+      except:
+        print "Could not run as user %s.  Terminating." % config.httpd_user
+
     httpserver.serve(handle_request, host=config.httpd_host, port=config.httpd_port)
 
 def handle_request(env, start_response):

@@ -12,7 +12,7 @@ class InfoBar(base.Widget):
     #Display, query args, should this be displayed
     infoTabs = [['Revision History', 'action=info', None, '&offset='],
 		['Links', 'action=info&links=1', None],
-		['Images', 'action=Files', None, True], # last "True" -> has sub-areas
+		['Files', 'action=Files', None, True], # last "True" -> has sub-areas
 		["User's Info", 'action=userinfo', isUserPage]
 	       ]
 

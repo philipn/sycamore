@@ -380,7 +380,7 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         @return: page header html
         """
         title_str = '"%s"' %  d['title_text']
-	if d['page_name'] and d['page'].hasMapPoints() and not self.isEdit():
+	if config.has_wiki_map and d['page_name'] and d['page'].hasMapPoints() and not self.isEdit():
            self.showapplet = True
         apphtml = ''
         if self.showapplet:

@@ -43,7 +43,7 @@ def deleteCaption(pagename, linked_from_pagename, image_name, cursor):
 
 def getImageSize(pagename, image_name, cursor):
     # gets the size of an image (not a thumbnail) in the DB
-    cursor.execute("SELECT xsize, ysize from images where attached_to_pagename=%(pagename)s and name=%(image_name)s", {'pagename':pagename.lower(), 'image_name':image_name})
+    cursor.execute("SELECT xsize, ysize from imageInfo where attached_to_pagename=%(pagename)s and name=%(image_name)s", {'pagename':pagename.lower(), 'image_name':image_name})
     result = cursor.fetchone()
     if result:
       return (result[0], result[1])
@@ -89,7 +89,7 @@ def generateThumbnail(request, pagename, image_name, maxsize, temporary=False, t
     import cStringIO
     dict = {'filename':image_name, 'page_name':pagename}
 
-    open_imagefile = cStringIO.StringIO(wikidb.getImage(request, dict)[0])
+    open_imagefile = cStringIO.StringIO(wikidb.getFile(request, dict)[0])
     im = Image.open(open_imagefile)
     converted = 0
     if not im.palette is None:
@@ -146,7 +146,7 @@ def generateThumbnail(request, pagename, image_name, maxsize, temporary=False, t
       # one-time generation for certain things like preview..just return the image string
       return image_value
     dict = {'x':x, 'y':y, 'filecontent':image_value, 'uploaded_time':time.time(), 'filename':image_name, 'pagename':pagename}
-    wikidb.putImage(request, dict, thumbnail=True, temporary=temporary, ticket=ticket)
+    wikidb.putFile(request, dict, thumbnail=True, temporary=temporary, ticket=ticket)
 
     save_imagefile.close()
     open_imagefile.close()
@@ -240,7 +240,7 @@ def execute(macro, args, formatter=None):
       macro.formatter.processed_thumbnails[(pagename, image_name)] = True
 
     #is the original image even on the page?
-    macro.request.cursor.execute("SELECT name from images where name=%(image_name)s and attached_to_pagename=%(pagename)s", {'image_name':image_name, 'pagename':pagename.lower()})
+    macro.request.cursor.execute("SELECT name from files where name=%(image_name)s and attached_to_pagename=%(pagename)s", {'image_name':image_name, 'pagename':pagename.lower()})
     result = macro.request.cursor.fetchone()
     image_exists = result
 
@@ -248,10 +248,9 @@ def execute(macro, args, formatter=None):
       #lets make a link telling them they can upload the image, just like the normal attachment
       linktext = 'Upload new image "%s"' % (image_name)
       return wikiutil.attach_link_tag(macro.request,
-                '%s?action=Files&amp;rename=%s%s' % (
+                '%s?action=Files&amp;rename=%s#uploadFileArea' % (
                     wikiutil.quoteWikiname(formatter.page.proper_name()),
-                    image_name,
-                    ''),
+                    image_name),
                 linktext)
 
     full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&amp;do=view&amp;target=" + image_name

@@ -65,12 +65,12 @@ class RequestBase(object):
 
 	self.generating_cache = False
 	self.set_cache = False
+        self.postCommitActions = []  # list of things to do after committing data to the database
         if config.memcache:
           self.mc = MemcachePool.getMC()
 	#if not properties: properties = wikiutil.prepareAllProperties()
         #self.__dict__.update(properties)
 	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'links': {}, 'acls': {}, 'interwiki': None} # per-request cache
-        # order is important here!
 
 	self.db_connect()
         
@@ -297,15 +297,14 @@ class RequestBase(object):
         return args
 
     def recodePageName(self, pagename):
-        # check for non-URI characters and then handle them according to
+        # XXX TODO check for non-URI characters and then handle them according to
         # http://www.w3.org/TR/REC-html40/appendix/notes.html#h-B.2.1
         if pagename:
             try:
 		pagename = unicode(pagename, 'utf-8')
             except UnicodeError:
-		pagename = None
+		pagename = None  # will send to front page
         return pagename
-        # XXX UNICODE - use unicode for pagenames internally?
 
     def getBaseURL(self):
         """ Return a fully qualified URL to this script. """
@@ -355,10 +354,30 @@ class RequestBase(object):
       self.db = wikidb.connect()
       self.cursor = self.db.cursor()
 
+    def processPostCommitActions(self):
+      # open a new db transaction because we may need the database
+      self.db_connect()
+
+      actions = self.postCommitActions
+
+      self.postCommitActions = [] # clear it out to prevent infinite loop
+
+      for action in actions:
+        f = action[0]
+        if len(action) == 2:
+          args = action[1]
+          f(args) 
+        else:
+          f()
+
+      self.db_disconnect()
+
     def db_disconnect(self, had_error=False):
+      commited = False
       if not had_error:
         if self.db.do_commit:
           self.db.commit()
+          commited = True
 	else:
 	  self.db.rollback()
       else:
@@ -367,6 +386,9 @@ class RequestBase(object):
       self.cursor.close()
       del self.cursor
       del self.db
+
+      if commited:
+        self.processPostCommitActions()
 
     def run(self):
         had_error = False
@@ -427,12 +449,12 @@ class RequestBase(object):
 
         # Imports
         from Sycamore.Page import Page
-	if self.query_string.startswith('img=true'):
-	  from Sycamore.img import imgSend
+	if self.query_string.startswith('sendfile=true'):
+	  from Sycamore.file import fileSend
 	  self.args = self.setup_args()
           self.form = self.args 
 
-	  imgSend(self)
+	  fileSend(self)
 	  return self.finish()
 	   
 
@@ -484,7 +506,7 @@ class RequestBase(object):
                     query = pagename
                 else:
                     query = wikiutil.unquoteWikiname(self.query_string) or \
-                        wikiutil.getSysPage(self, config.page_front_page).page_name
+                        wikiutil.getSysPage(self, config.page_front_page).proper_name()
 
 		#self.http_headers()
                 Page(query, self).send_page(count_hit=1)

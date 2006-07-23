@@ -19,6 +19,8 @@ def execute(pagename, request):
     actname = __name__.split('.')[-1]
     page = PageEditor(pagename, request)
 
+    msg = ''
+
     # be extra paranoid in dangerous actions
     if actname in config.excluded_actions \
             or not request.user.may.edit(page) \
@@ -45,7 +47,8 @@ def execute(pagename, request):
         if len(comment) > wikiaction.MAX_COMMENT_LENGTH:
           msg = "Comments must be less than %s characters long." % wikiaction.MAX_COMMENT_LENGTH
           return page.send_page(msg)
-        page.deletePage(comment)
+
+        msg = page.deletePage(comment)
 
         return page.send_page(
                 msg = _('Page "%s" was successfully deleted!') % (pagename,))

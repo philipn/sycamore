@@ -168,19 +168,19 @@ def real_connect():
   
   return db
 
-def getImage(request, dict, deleted=False, thumbnail=False, version=0, ticket=None, size=None):
+def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=None, size=None):
   """
-  dict is a dictionary with possible keys: filename, page_name, and image_version.
+  dict is a dictionary with possible keys: filename, page_name, and file_version.
   """
   from Sycamore.wikiutil import quoteFilename
-  image_obj = False
+  file_obj = False
   dict['page_name'] = dict['page_name'].lower()
 
   # let's assemble the query and key if we use memcache
   if not deleted and not thumbnail and not version:
     if config.memcache:
-      key = "images:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']))
-    query = "SELECT image, uploaded_time from images where name=%(filename)s and attached_to_pagename=%(page_name)s"
+      key = "files:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']))
+    query = "SELECT file, uploaded_time from files where name=%(filename)s and attached_to_pagename=%(page_name)s"
   elif thumbnail:
     if not ticket:
       if config.memcache:
@@ -193,37 +193,39 @@ def getImage(request, dict, deleted=False, thumbnail=False, version=0, ticket=No
     if not version:
       # default behavior is to grab the latest backup version of the image
       if config.memcache:
-        key = "oldimages:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']))
-      query = "SELECT image, uploaded_time from oldImages where name=%(filename)s and attached_to_pagename=%(page_name)s order by uploaded_time desc;"
+        key = "oldfiles:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']))
+      query = "SELECT file, uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(page_name)s order by uploaded_time desc;"
     elif version:
       if config.memcache:
-        key = "oldimages:%s,%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']), version)
-      query = "SELECT image, uploaded_time from oldImages where name=%(filename)s and attached_to_pagename=%(page_name)s and uploaded_time=%(image_version)s"
+        key = "oldfiles:%s,%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['page_name']), version)
+      query = "SELECT file, uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(page_name)s and uploaded_time=%(file_version)s"
 
   if config.memcache:
-    image_obj = request.mc.get(key)
+    file_obj = request.mc.get(key)
 
-  if not image_obj:
-    if ticket:
+  if not file_obj:
+    from wikiutil import isImage
+    if ticket and isImage(dict['filename']):
        # we generate the thumbnail..weee
        from Sycamore.macro import image
-       image_obj = (image.generateThumbnail(request, dict['page_name'], dict['filename'], dict['maxsize'], return_image=True) , 0)
+       file_obj = (image.generateThumbnail(request, dict['page_name'], dict['filename'], dict['maxsize'], return_image=True) , 0)
     else:
        request.cursor.execute(query, dict)
-       image_obj = request.cursor.fetchone()
-       #Messy because of a bug in python for pickling array.array -- must convert to str before putting in memcache
-       new_image_obj = (binaryToString(image_obj[0]), image_obj[1])
-       image_obj = new_image_obj
-       if not image_obj:
+       file_obj = request.cursor.fetchone()
+       if not file_obj:
          raise 'DBNoContent'
+       #Messy because of a bug in python for pickling array.array -- must convert to str before putting in memcache
+       new_file_obj = (binaryToString(file_obj[0]), file_obj[1])
+       file_obj = new_file_obj
+       
     if config.memcache:
-      request.mc.add(key, image_obj)
+      request.mc.add(key, file_obj)
 
-  return image_obj[0], image_obj[1]
+  return file_obj[0], file_obj[1]
 
-def putImage(request, dict, thumbnail=False, do_delete=False, temporary=False, ticket=None):
+def putFile(request, dict, is_image=False, thumbnail=False, do_delete=False, temporary=False, ticket=None):
   """
-  Puts the image (found in dict) into the database. dict is a dictionary with possible keys: filename, filecontent, uploaded_time, uploaded_by, pagename, uploaded_by_ip, xsize, ysize, deleted_time, deleted_by, deleted_by_ip
+  Puts the file (found in dict) into the database. dict is a dictionary with possible keys: filename, filecontent, uploaded_time, uploaded_by, pagename, uploaded_by_ip, xsize, ysize, deleted_time, deleted_by, deleted_by_ip
   """
   from Sycamore.wikiutil import quoteFilename
   from Sycamore.Page import Page
@@ -237,7 +239,21 @@ def putImage(request, dict, thumbnail=False, do_delete=False, temporary=False, t
     
   if not temporary:
     if not thumbnail and not do_delete:
-      request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, xsize, ysize, attached_to_pagename_propercased) values (%(filename)s, %(filecontent)s, %(uploaded_time)s, %(uploaded_by)s, %(pagename)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(pagename_propercased)s)", dict, isWrite=True)
+      request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(pagename)s", dict)
+      exists = request.cursor.fetchone()
+      if exists:
+        # backup file, then remove it  
+        dict['timenow'] = time.time()
+        request.cursor.execute("INSERT into oldFiles (name, file, uploaded_time, uploaded_by, attached_to_pagename, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(filename)s, (select file from files where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from files where name=%(filename)s and attached_to_pagename=%(pagename)s), %(pagename)s, %(timenow)s, %(uploaded_by)s, (select uploaded_by_ip from files where name=%(filename)s and attached_to_pagename=%(pagename)s), %(uploaded_by_ip)s, %(pagename_propercased)s)", dict, isWrite=True)
+        if is_image:
+          request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time) values (%(filename)s, %(pagename)s, (select xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s))", dict, isWrite=True)
+          request.cursor.execute("DELETE from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s", dict, isWrite=True)
+
+        request.cursor.execute("DELETE from files where name=%(filename)s and attached_to_pagename=%(pagename)s", dict, isWrite=True)
+
+      request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased) values (%(filename)s, %(filecontent)s, %(uploaded_time)s, %(uploaded_by)s, %(pagename)s, %(uploaded_by_ip)s, %(pagename_propercased)s)", dict, isWrite=True)
+      if is_image:
+        request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize) values (%(filename)s, %(pagename)s, %(xsize)s, %(ysize)s)", dict, isWrite=True)
     elif thumbnail and not do_delete:
       request.cursor.execute("SELECT name from thumbnails where name=%(filename)s and attached_to_pagename=%(pagename)s", dict)
       exists = request.cursor.fetchone()
@@ -247,20 +263,27 @@ def putImage(request, dict, thumbnail=False, do_delete=False, temporary=False, t
         request.cursor.execute("INSERT into thumbnails (xsize, ysize, name, image, last_modified, attached_to_pagename) values (%(x)s, %(y)s, %(filename)s, %(filecontent)s, %(uploaded_time)s, %(pagename)s)", dict, isWrite=True)
     elif do_delete:
       if not thumbnail:
-        request.cursor.execute("SELECT name from images where name=%(filename)s and attached_to_pagename=%(pagename)s", dict)
+        request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(pagename)s", dict)
         has_file = request.cursor.fetchone()
         if has_file:
-          # backup image
-          request.cursor.execute("INSERT into oldImages (name, attached_to_pagename, image, uploaded_by, uploaded_time, xsize, ysize, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(filename)s, %(pagename)s, (select image from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select xsize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, (select uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_by_ip)s, (select attached_to_pagename_propercased from images where name=%(filename)s and attached_to_pagename=%(pagename)s))", dict, isWrite=True)
-          # delete image
-          request.cursor.execute("DELETE from images where name=%(filename)s and attached_to_pagename=%(pagename)s", dict, isWrite=True)
+          # backup file  
+          request.cursor.execute("INSERT into oldFiles (name, attached_to_pagename, file, uploaded_by, uploaded_time, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(filename)s, %(pagename)s, (select file from files where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from files where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_time)s, %(deleted_by)s, (select uploaded_by_ip from files where name=%(filename)s and attached_to_pagename=%(pagename)s), %(deleted_by_ip)s, (select attached_to_pagename_propercased from files where name=%(filename)s and attached_to_pagename=%(pagename)s))", dict, isWrite=True)
 
-      # delete thumbnail
-      request.cursor.execute("DELETE from thumbnails where name=%(filename)s and attached_to_pagename=%(pagename)s", dict, isWrite=True)
+          if is_image:
+            # backup image info
+            request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time) values (%(filename)s, %(pagename)s, (select xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s))", dict, isWrite=True)
+            # delete image info
+            request.cursor.execute("DELETE from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s", dict, isWrite=True)
+
+          # delete file 
+          request.cursor.execute("DELETE from files where name=%(filename)s and attached_to_pagename=%(pagename)s", dict, isWrite=True)
+      else:
+        # delete thumbnail
+        request.cursor.execute("DELETE from thumbnails where name=%(filename)s and attached_to_pagename=%(pagename)s", dict, isWrite=True)
 
   if config.memcache:
     if not do_delete:
-      if not thumbnail: table = 'images'
+      if not thumbnail: table = 'files'
       else: table = 'thumbnails'
       if not temporary:
         key = "%s:%s,%s" % (table, quoteFilename(dict['filename']), quoteFilename(dict['pagename'].lower()))
@@ -269,10 +292,11 @@ def putImage(request, dict, thumbnail=False, do_delete=False, temporary=False, t
       image_obj = (raw_image, uploaded_time)
       request.mc.set(key, image_obj)
     else:
-      key = "images:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['pagename'].lower()))
+      key = "files:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['pagename'].lower()))
       request.mc.delete(key)
-      key = "thumbnails:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['pagename'].lower()))
-      request.mc.delete(key)
+      if is_image:
+        key = "thumbnails:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['pagename'].lower()))
+        request.mc.delete(key)
 
   # rebuild the page cache
   if not request.generating_cache and not request.previewing_page:
@@ -360,11 +384,11 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     printed_where = False
     addQueryConditions('pageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
     query.append(' UNION ALL ')
-    addQueryConditions('currentImageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
+    addQueryConditions('currentFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
     query.append(' UNION ALL ')
-    addQueryConditions('oldImageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
+    addQueryConditions('oldFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
     query.append(' UNION ALL ')
-    addQueryConditions('deletedImageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
+    addQueryConditions('deletedFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
     query.append(' UNION ALL ')
     addQueryConditions('eventChanges', query, max_days_ago, total_changes_limit,  per_page_limit, page, changes_since, userFavoritesFor)
     query.append(' UNION ALL ')
@@ -417,6 +441,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   # so, let's compile all the different types of changes together!
   query = buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor)
   #print query % {'max_days_ago': '"'+str(max_days_ago)+'"', 'limit': '"'+str(total_changes_limit)+'"', 'userFavoritesFor': '"'+str(userFavoritesFor)+'"', 'pagename': '"'+str(page)+'"'}
+  #print query % {'max_days_ago': '\''+str(max_days_ago)+'\'', 'limit': '\''+str(total_changes_limit)+'\'', 'userFavoritesFor': '\''+str(userFavoritesFor)+'\'', 'pagename': '\''+str(page)+'\''}
   request.cursor.execute(query, {'max_days_ago': max_days_ago, 'limit': total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page, 'changes_since':changes_since})
  
   edit = request.cursor.fetchone()

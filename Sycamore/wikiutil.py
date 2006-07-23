@@ -1,4 +1,3 @@
-#date) -*- coding: iso-8859-1 -*-
 """
     Sycamore - Wiki Utility Functions
 
@@ -28,6 +27,13 @@ RAND_EXPIRE_TIME = 60*60
 
 if config.db_type == 'postgres': RAND_FUNCTION = 'random()'
 elif config.db_type == 'mysql': RAND_FUNCTION = 'rand()'
+
+def isImage(filename):
+  import mimetypes
+  guess = mimetypes.guess_type(filename)
+  if guess[0]:
+    return ((guess[0].split('/'))[0] == 'image')
+  return False
 
 def prepareAllProperties():
   # sets up the consistent data between requests.  right now, this is just the db connection
@@ -151,13 +157,7 @@ def quoteFilename(filename):
     @rtype: string
     @return: the quoted filename, all special chars encoded in _XX
     """
-    safe = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    res = list(filename)
-    for i in range(len(res)):
-        c = res[i]
-        if c not in safe:
-            res[i] = '_%02x' % ord(c)
-    return ''.join(res)
+    return urllib.quote(filename.encode(config.charset))
 
 
 def unquoteFilename(filename):
