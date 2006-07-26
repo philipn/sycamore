@@ -108,9 +108,8 @@ class Theme(object):
         @rtype: string
         @return: the css url
         """
-        if not theme:
-            theme = self.name
-        return "%s/%s/css/%s.css" % (config.url_prefix, theme, basename)
+        from Sycamore.action import Files
+        return Files.getAttachUrl("%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_css), '%s.css' % basename, self.request)
 
     def emit_custom_html(self, html):
         """

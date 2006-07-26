@@ -41,12 +41,17 @@ class Theme(ThemeBase):
         @rtype: string
         @return: banner html
         """
+        from Sycamore.action.Files import has_file, getAttachUrl
         if d['script_name']:
             html = ['&nbsp;<a class="nostyle" href="%(script_name)s">' % d]
         else:
             html = ['&nbsp;<a class="nostyle" href="%s/Front_Page">' % self.request.getScriptname()]
-        if config.image_logo: html.append('<img align="middle" src="%s/wiki/%s" border=0 alt="wiki logo"></a>' % (config.web_dir, config.image_logo))
+
+        images_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_images)
+        if has_file(self.request, images_pagename, 'logo.png'):
+          html.append('<img align="middle" src="%s" alt="wiki logo"></a>' % (getAttachUrl(images_pagename, 'logo.png', self.request)))
 	else: html.append('<div id="logo_text">%s</div></a>' % config.sitename)
+
         return ''.join(html)
 
     def new_iconbar(self, d):

@@ -16,30 +16,50 @@ from Sycamore.PageEditor import PageEditor
 from Sycamore.Page import Page
 import time, os, urllib
 
-def copy_images(oldpagename, newpagename, request):
-  # copies images from oldpagename to newpagename
-  # keeps the images on oldpagename for manual deletion
-  # if there is an image on the page newpagename that has the same name as an image on oldpagename,
-  # then the image from newpagename superseeds the old image, and the old image is deleted (but kept
-  # as a deleted image as per usual delete images/is accessable via the info tab)
+def copy_files(oldpagename, newpagename, request):
+  # copies files from oldpagename to newpagename
+  # keeps the files on oldpagename for manual deletion
+  # if there is an file on the page newpagename that has the same name as an file on oldpagename,
+  # then the file from newpagename superseeds the old file, and the old file is deleted (but kept
+  # as a deleted file as per usual delete file/is accessable via the info tab)
   from Sycamore.action.Files import get_filelist
   old_page_files = get_filelist(request, oldpagename)
   new_page_files = get_filelist(request, newpagename)
   for filename in old_page_files:
-    request.cursor.execute("SELECT image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename_propercased from images where name=%(filename)s and attached_to_pagename=%(oldpagename)s", {'filename':filename, 'oldpagename':oldpagename.lower()})
+    is_image = wikiutil.isImage(filename)
+    request.cursor.execute("SELECT file, uploaded_time, uploaded_by, uploaded_by_ip, attached_to_pagename_propercased from files where name=%(filename)s and attached_to_pagename=%(oldpagename)s", {'filename':filename, 'oldpagename':oldpagename.lower()})
     result = request.cursor.fetchone()
+
     if result: 
-       old_page_file_dict = {'filename': filename, 'image': result[0], 'uploaded_time': result[1], 'uploaded_by': result[2], 'attached_to_pagename_propercased': result[6], 'uploaded_by_ip': result[3], 'xsize': result[4], 'ysize': result[5], 'newpagename': newpagename.lower(), 'newpagename_propercased': Page(newpagename, request).proper_name(), 'timenow': time.time(), 'userid': request.user.id, 'userip': request.remote_addr}
+       old_page_file_dict = {'filename': filename, 'file': result[0], 'uploaded_time': result[1], 'uploaded_by': result[2], 'attached_to_pagename_propercased': result[4], 'uploaded_by_ip': result[3], 'newpagename': newpagename.lower(), 'newpagename_propercased': Page(newpagename, request).proper_name(), 'timenow': time.time(), 'userid': request.user.id, 'userip': request.remote_addr}
+       if is_image:
+           request.cursor.execute("SELECT xsize, ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(oldpagename)s", {'filename': filename, 'oldpagename': oldpagename.lower()})
+           result = request.cursor.fetchone()
+           if result:
+               old_page_file_dict['xsize'] = result[0]
+               old_page_file_dict['ysize'] = result[1]
+          
        if filename not in new_page_files:
-               request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s, %(newpagename_propercased)s)", old_page_file_dict, isWrite=True)
+               request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, uploaded_by_ip, attached_to_pagename, attached_to_pagename_propercased) values (%(filename)s, %(file)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(newpagename)s, %(newpagename_propercased)s)", old_page_file_dict, isWrite=True)
+               if is_image:
+                   request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize) values (%(filename)s, %(newpagename)s, %(xsize)s, %(ysize)s) ", old_page_file_dict, isWrite=True)
+
        else:
-         request.cursor.execute("INSERT into oldImages (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased, deleted_by, deleted_by_ip, deleted_time) values (name=%(filename)s, (SELECT image from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_time from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_by from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_by_ip from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT xsize from images where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT ysize from images where name=%(filename)s and attached_to_pagename=%(pagename)s), %(newpagename)s, %(newpagename_propercased)s, deleted_by=%(userid)s, deleted_by_ip=%(userip)s, deleted_time=%(timenow)s)", old_page_file_dict, isWrite=True)
-         request.cursor.execute("SELECT name from images where name=%(filename)s and attached_to_pagename=%(newpagename)s", old_page_file_dict)
-         result = request.cursor.fetchone()
-         if result:
-           request.cursor.execute("UPDATE images set image=%(image)s, uploaded_time=%(uploaded_time)s, uploaded_by=%(uploaded_by)s, uploaded_by_ip=%(uploaded_by_ip)s, xsize=%(xsize)s, ysize=%(ysize)s where name=%(filename) and attached_to_pagename=%(newpagename)", old_page_file_dict, isWrite=True)
-         else:
-           request.cursor.execute("INSERT into images (name, image, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased) values (%(filename)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s, %(newpagename_propercased)s)", old_page_file_dict, isWrite=True)
+           request.cursor.execute("INSERT into oldFiles (name, file, uploaded_time, uploaded_by, uploaded_by_ip, attached_to_pagename, attached_to_pagename_propercased, deleted_by, deleted_by_ip, deleted_time) values (%(filename)s, (SELECT file from files where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_time from files where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_by from files where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_by_ip from files where name=%(filename)s and attached_to_pagename=%(newpagename)s), %(newpagename)s, %(newpagename_propercased)s, %(userid)s, %(userip)s, %(timenow)s)", old_page_file_dict, isWrite=True)
+           if is_image:
+               request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time) values (%(filename)s, %(newpagename)s, (SELECT xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(newpagename)s), (SELECT uploaded_time from files where name=%(filename)s and attached_to_pagename=%(newpagename)s))", old_page_file_dict, isWrite=True)
+
+           request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(newpagename)s", old_page_file_dict)
+           result = request.cursor.fetchone()
+           if result:
+             request.cursor.execute("UPDATE files set file=%(file)s, uploaded_time=%(uploaded_time)s, uploaded_by=%(uploaded_by)s, uploaded_by_ip=%(uploaded_by_ip)s where name=%(filename)s and attached_to_pagename=%(newpagename)s", old_page_file_dict, isWrite=True)
+             if is_image:
+                 request.cursor.execute("UPDATE imageInfo set xsize=%(xsize)s, ysize=%(ysize)s", old_page_file_dict, isWrite=True)
+           else:
+             request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased) values (%(filename)s, %(file)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s, %(newpagename_propercased)s)", old_page_file_dict, isWrite=True)
+             if is_image:
+                 request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize) values (%(filename)s, %(newpagename)s, %(xsize)s, %(ysize)s)", old_page_file_dict, isWrite=True)
+
 
  
 def execute(pagename, request):
@@ -92,7 +112,7 @@ def execute(pagename, request):
                 if newpagename.lower() != pagename.lower(): 
                     page.saveText("#redirect %s" % newpagename, '0', comment='Renamed to "%s"' % newpagename, action='RENAME')
 		    # copy images over
-		    copy_images(pagename, newpagename, request)
+		    copy_files(pagename, newpagename, request)
 
                 newpage.saveText(pagetext, '0', comment='Renamed from "%s"%s' % (pagename, renamecomment), action="RENAME", proper_name=newpagename)
 

@@ -223,12 +223,13 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=Non
 
   return file_obj[0], file_obj[1]
 
-def putFile(request, dict, is_image=False, thumbnail=False, do_delete=False, temporary=False, ticket=None):
+def putFile(request, dict, thumbnail=False, do_delete=False, temporary=False, ticket=None):
   """
   Puts the file (found in dict) into the database. dict is a dictionary with possible keys: filename, filecontent, uploaded_time, uploaded_by, pagename, uploaded_by_ip, xsize, ysize, deleted_time, deleted_by, deleted_by_ip
   """
-  from Sycamore.wikiutil import quoteFilename
+  from Sycamore.wikiutil import quoteFilename, isImage
   from Sycamore.Page import Page
+  from Sycamore.action.Files import get_filedict
   # prep for insert of binary data
   if dict.has_key('filecontent'):
     raw_image = dict['filecontent']
@@ -236,6 +237,8 @@ def putFile(request, dict, is_image=False, thumbnail=False, do_delete=False, tem
     dict['filecontent'] = dbapi.Binary(raw_image)
   dict['pagename_propercased'] = Page(dict['pagename'], request).proper_name()
   dict['pagename'] = dict['pagename'].lower()
+  replaced_image = False
+  is_image = isImage(dict['filename'])
     
   if not temporary:
     if not thumbnail and not do_delete:
@@ -244,6 +247,7 @@ def putFile(request, dict, is_image=False, thumbnail=False, do_delete=False, tem
       if exists:
         # backup file, then remove it  
         dict['timenow'] = time.time()
+        replaced_image = True
         request.cursor.execute("INSERT into oldFiles (name, file, uploaded_time, uploaded_by, attached_to_pagename, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(filename)s, (select file from files where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_by from files where name=%(filename)s and attached_to_pagename=%(pagename)s), %(pagename)s, %(timenow)s, %(uploaded_by)s, (select uploaded_by_ip from files where name=%(filename)s and attached_to_pagename=%(pagename)s), %(uploaded_by_ip)s, %(pagename_propercased)s)", dict, isWrite=True)
         if is_image:
           request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time) values (%(filename)s, %(pagename)s, (select xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s), (select ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s))", dict, isWrite=True)
@@ -297,6 +301,10 @@ def putFile(request, dict, is_image=False, thumbnail=False, do_delete=False, tem
       if is_image:
         key = "thumbnails:%s,%s" % (quoteFilename(dict['filename']), quoteFilename(dict['pagename'].lower()))
         request.mc.delete(key)
+
+    # set new file dict
+    if not replaced_image:
+      get_filedict(request, dict['pagename'], fresh=True, set=True)
 
   # rebuild the page cache
   if not request.generating_cache and not request.previewing_page:

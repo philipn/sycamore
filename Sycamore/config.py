@@ -198,6 +198,9 @@ _cfg_defaults = {
     'tabs_user': ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes'],
     'web_dir' : '',
     'web_root': '/var/www/html',
+    'wiki_settings_page': 'Wiki Settings',
+    'wiki_settings_page_images': 'Images',
+    'wiki_settings_page_css': 'CSS',
     'LogStore': 'text:editlog',
     'SecurityPolicy': None,
 }

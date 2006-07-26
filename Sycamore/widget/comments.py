@@ -2,6 +2,7 @@
 
 from Sycamore.widget import base
 from Sycamore.wikiutil import quoteWikiname
+from Sycamore.wikiutil import isImage
 
 class Comment(base.Widget):
     def __init__(self, request, comment, type, pagename=None):
@@ -31,17 +32,21 @@ class Comment(base.Widget):
 	      datestamp = self.request.user.getFormattedDateTime(float(self.comment))
 	      self.comment = "Revert to version dated %(datestamp)s." % {'datestamp': datestamp}
 	elif self.type == 'ATTNEW':
+          if isImage(self.comment): file_type="image"
+          else: file_type = "file"
 	  if self.pagename:
 	    link_loc = self.request.getScriptname() + '/' + quoteWikiname(self.pagename) + '?action=Files&do=view&target=' + self.comment
-	    self.comment = 'Upload of image <a href="%s">%s</a>.' % (link_loc, self.comment)
+	    self.comment = 'Upload of %s <a href="%s">%s</a>.' % (file_type, link_loc, self.comment)
 	  else:
-	    self.comment = "Upload of image '%s'." % self.comment
+	    self.comment = "Upload of %s '%s'." % (file_type, self.comment)
 	elif self.type == 'ATTDEL':
+          if isImage(self.comment): file_type="Image"
+          else: file_type = "File"
 	  if self.pagename: 
 	    link_loc = self.request.getScriptname() + '/' + quoteWikiname(self.pagename) + '?action=Files&do=view&target=' + self.comment
-	    self.comment = 'Image <a href="%s">%s</a> deleted.' % (link_loc, self.comment)
+	    self.comment = '%s <a href="%s">%s</a> deleted.' % (file_type, link_loc, self.comment)
 	  else: 
-	    self.comment = "Image '%s' deleted." % self.comment
+	    self.comment = "%s '%s' deleted." % (file_type, self.comment)
 	elif self.type == 'DELETE':
 	    if self.comment: 
 		self.comment = "Page deleted (%s)" % self.comment

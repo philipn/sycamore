@@ -147,8 +147,11 @@ def getSmiley(text, formatter):
 #############################################################################
 ### Quoting
 #############################################################################
+always_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+               'abcdefghijklmnopqrstuvwxyz'
+               '0123456789' '.-')
+_safemaps = {}
 
-# XXX UNICODE - if we have 16bit unicode chars, %02x aren't enough !?
 def quoteFilename(filename):
     """
     Return a simple encoding of filename in plain ascii.
@@ -156,9 +159,22 @@ def quoteFilename(filename):
     @param filename: the original filename, maybe containing non-ascii chars
     @rtype: string
     @return: the quoted filename, all special chars encoded in _XX
-    """
-    return urllib.quote(filename.encode(config.charset))
 
+    (taken from urllib.quote)
+    """
+    safe = ''
+    cachekey = (safe, always_safe)
+    try:
+        safe_map = _safemaps[cachekey]
+    except KeyError:
+        safe += always_safe
+        safe_map = {}
+        for i in range(256):
+            c = chr(i)
+            safe_map[c] = (c in safe) and c or ('_%02X' % i)
+        _safemaps[cachekey] = safe_map
+    res = map(safe_map.__getitem__, filename)
+    return ''.join(res)
 
 def unquoteFilename(filename):
     """
@@ -174,10 +190,10 @@ def unquoteFilename(filename):
 
 # XXX UNICODE - see above
 def quoteWikiname(filename):
-    return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2f', '/').replace('%3a', ':')
+    return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2F', '/').replace('%3A', ':')
 
 def unquoteWikiname(filename):
-    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2f').replace(':', '%3a')))
+    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2F').replace(':', '%3A')))
 
 
 def escape(s, quote=None):

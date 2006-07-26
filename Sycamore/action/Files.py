@@ -100,6 +100,15 @@ def get_icon(filename, request):
 ### External interface - these are called from the core code
 #############################################################################
 
+def openImage(filecontent):
+    """
+    Return image size or throw exception if not an image.
+    """
+    from PIL import Image
+    import cStringIO
+    im = Image.open(cStringIO.StringIO(filecontent))
+    return im
+    
 
 def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=None, thumb=False, size=0, ticket=None):
     """ Get URL that points to file `filename` of page `pagename`.
@@ -177,16 +186,40 @@ def _has_deleted_files(pagename, request):
     if result: return True
     else: return False
         
+
+def has_file(request, pagename, filename):
+  if get_filedict(request, pagename).has_key(filename):  return True 
+  return False
+
  
-def get_filelist(request, pagename):
-  # returns a list of the files on the page
-  files = []
-  request.cursor.execute("SELECT name from files where attached_to_pagename=%(pagename)s order by name", {'pagename':pagename.lower()})
-  result = request.cursor.fetchone()
-  while result:
-    files.append(result[0])
+def get_filedict(request, pagename, fresh=False, set=False):
+  # returns a dict of filenames on the page {'filename': True/False ..}
+  pagename = pagename.lower()
+  files = None
+  if not fresh:
+    if request.req_cache['file_dict'].has_key(pagename):
+      return request.req_cache['file_dict'][pagename]
+    if config.memcache:
+      files = request.mc.get('filedict:%s' % wikiutil.quoteFilename(pagename))
+  if files is None:
+    files = {}
+    request.cursor.execute("SELECT name from files where attached_to_pagename=%(pagename)s order by name", {'pagename':pagename})
     result = request.cursor.fetchone()
+    while result:
+      files[result[0]] = True
+      result = request.cursor.fetchone()
+  if config.memcache:
+    if not set:
+      request.mc.add('filedict:%s' % wikiutil.quoteFilename(pagename), files)
+    else:
+      request.mc.set('filedict:%s' % wikiutil.quoteFilename(pagename), files)
+
+  request.req_cache['file_dict'][pagename] = files
   return files
+
+
+def get_filelist(request, pagename):
+  return get_filedict(request, pagename).keys()
 
 
 def _get_filelist(request, pagename):
@@ -475,7 +508,7 @@ def do_upload(pagename, request):
     if wikiutil.isImage(ext):
        # open the image
        try:
-         im = Image.open(cStringIO.StringIO(filecontent))
+         im = openImage(filecontent)
        except IOError:
          error_msg(pagename, request, _('Your file ended with "%s" but doesn\'t seem to be an image or I don\'t know know to process it!' % ext))
          return
@@ -496,12 +529,13 @@ def do_upload(pagename, request):
     uploaded_time = time.time()
     uploaded_by = request.user.id
     d = {'filename':target, 'filecontent':filecontent, 'uploaded_time':uploaded_time, 'uploaded_by':uploaded_by, 'pagename':pagename, 'uploaded_by_ip':request.remote_addr}
+    
     if is_image:
       xsize, ysize = im.size
       d['xsize'] = xsize
       d['ysize'] = ysize
 
-    wikidb.putFile(request, d, is_image=is_image)
+    wikidb.putFile(request, d)
     if request.user.valid:
       # upadate their file count
       request.cursor.execute("SELECT file_count from users where id=%(id)s", {'id':request.user.id})
