@@ -203,7 +203,7 @@ def pageInfo(page, get_from_cache=True, cached_content=None, cached_time=None):
     if not page.prev_date:
       if not cached_content or not cached_time:
         page.cursor.execute("SELECT cachedText, cachedTime from curPages where name=%(page)s", {'page':page.page_name})
-        result = page.request.cursor.fetchone()
+        result = page.cursor.fetchone()
         if result:
           if result[0] and result[1]:
             text = wikidb.binaryToString(result[0])

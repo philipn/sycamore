@@ -26,18 +26,23 @@ def build(pname):
 def clearCaches(plist):
   print "Clearing page caches..."
 
-  i = 0 
-  while True:
-    if i >= len(plist):
-      break
-    while threading.activeCount() > MAX_THREADS + 1:
-      time.sleep(.01)
-    pname = plist[i]
-    threading.Thread(target=clear, args=(pname,)).start()
-    i += 1
+  if config.db_type != 'mysql':
+      i = 0 
+      while True:
+        if i >= len(plist):
+          break
+        while threading.activeCount() > MAX_THREADS + 1:
+          time.sleep(.01)
+        pname = plist[i]
+        threading.Thread(target=clear, args=(pname,)).start()
+        i += 1
 
-  while threading.activeCount() > 1:
-    time.sleep(.1)
+      while threading.activeCount() > 1:
+        time.sleep(.1)
+  # XXX FIXME
+  else: # causes deadlock for mysql..not entirely sure why, but single-thread will work for now :-/
+      for pname in plist:
+          clear(pname)
 
   print "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
   print "cleared page caches!"
@@ -46,18 +51,23 @@ def clearCaches(plist):
 def buildCaches(plist):
   print "Building page caches..."
 
-  i = 0 
-  while True:
-    if i >= len(plist):
-      break
-    while threading.activeCount() > MAX_THREADS + 1:
-      time.sleep(.01)
-    pname = plist[i]
-    threading.Thread(target=build, args=(pname,)).start()
-    i += 1
+  if config.db_type != 'mysql':
+      i = 0 
+      while True:
+        if i >= len(plist):
+          break
+        while threading.activeCount() > MAX_THREADS + 1:
+          time.sleep(.01)
+        pname = plist[i]
+        threading.Thread(target=build, args=(pname,)).start()
+        i += 1
 
-  while threading.activeCount() > 1:
-    time.sleep(.1)
+      while threading.activeCount() > 1:
+        time.sleep(.1)
+  # XXX FIXME
+  else: # causes deadlock for mysql..not entirely sure why, but single-thread will work for now :-/
+      for pname in plist:
+          build(pname)
    
   print "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
   print "rebuilt page caches!"
