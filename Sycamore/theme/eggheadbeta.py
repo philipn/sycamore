@@ -5,6 +5,7 @@
 from Sycamore.Page import Page
 from Sycamore import config, wikiutil
 from classic import Theme as ThemeBase
+from Sycamore.widget import subpagelinks
 import string 
 
 class Theme(ThemeBase):
@@ -121,10 +122,17 @@ class Theme(ThemeBase):
 </div>' % d['polite_msg']
             else:
                 polite_html = ''
-            html.append('<td id="title_text"><h1><a title="%s" href="%s">%s</a></h1>%s</td>' % (
-                _('Click here for information about links to and from this page.'),
-                d['title_link'],
-                wikiutil.escape(d['title_text']), polite_html))
+
+            # deal with subpages and links to them
+            page_title_links = subpagelinks.SubpageLinks(self.request, d['title_text']).render()  # cut it up for subpage display
+            subpage_title = []
+            for pagename, display_pagename in page_title_links:
+                subpage_title.append(Page(pagename, self.request).link_to(know_status=True, know_status_exists=True, text=display_pagename))
+
+            pagename_html = '/'.join(subpage_title)
+
+            html.append('<td id="title_text"><h1>%s</h1>%s</td>' % (
+                pagename_html, polite_html))
 	    html.append(self.new_iconbar(d))
 	    
         else:
