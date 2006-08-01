@@ -23,13 +23,14 @@ def execute(macro, args, formatter=None):
     result = macro.request.cursor.fetchone()
     file_exists = result
 
+    urlfile = urllib.quote(filename)
     if not file_exists:
       #lets make a link telling them they can upload the file
       linktext = 'Upload new file "%s"' % (filename)
       return wikiutil.attach_link_tag(macro.request,
                 '%s?action=Files&amp;rename=%s%s#uploadFileArea' % (
                     wikiutil.quoteWikiname(formatter.page.proper_name()),
-                    filename,
+                    urlfile,
                     ''),
                 linktext)
 

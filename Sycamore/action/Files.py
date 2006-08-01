@@ -151,11 +151,12 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, ver
 def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename):
     text = '<div><h4>File history</h4></div><ul>'
 
+    urlfilename = urllib.quote(filename)
     for revision in revisions:
       if revision[1]:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[1]), baseurl, urlpagename, action, filename, repr(revision[1]), request.user.getFormattedDateTime(revision[1]), user.getUserLink(request, user.User(request, revision[2])), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, urlfilename, repr(revision[1]), baseurl, urlpagename, action, urlfilename, repr(revision[1]), request.user.getFormattedDateTime(revision[1]), user.getUserLink(request, user.User(request, revision[2])), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
       else:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, filename, repr(revision[1]), baseurl, urlpagename, action, filename, repr(revision[1]), filename, request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, urlfilename, repr(revision[1]), baseurl, urlpagename, action, urlfilename, repr(revision[1]), filename, request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
     text += '</ul>'
     return text
 
@@ -431,7 +432,7 @@ def _fixFilename(filename, request):
     # it's IE
     filename_split = filename.split("\\")
     filename = filename_split[-1]
-  return filename
+  return urllib.unquote(filename)
 
 def getExtension(request, target, filename):
     def _extFromFileext(req, t, f):
@@ -483,8 +484,8 @@ def do_upload(pagename, request):
         error_msg(pagename, request, _("Filename was not specified!"))
         return
 
-    if string.find(filename, '<') != -1 or string.find(filename, '>') != -1 or string.find(filename, '&') != -1 or string.find(filename, '?') != -1 or string.find(filename, '"') != -1:
-        error_msg(pagename, request, _("The characters '<', '>', '&', '\"', and '?' are not allowed in file names."))
+    if string.find(filename, '<') != -1 or string.find(filename, '>') != -1 or string.find(filename, '?') != -1 or string.find(filename, '"') != -1:
+        error_msg(pagename, request, _("The characters '<', '>', '\"', and '?' are not allowed in file names."))
         return
 
     # get file content
@@ -555,7 +556,7 @@ def do_upload(pagename, request):
 def del_file(pagename, request):
     _ = request.getText
 
-    filename = request.form['target'][0]
+    filename = urllib.unquote(request.form['target'][0])
     d = {'filename': filename, 'pagename': pagename.lower(), 'deleted_time': time.time(), 'deleted_by':request.user.id, 'deleted_by_ip': request.remote_addr}
     wikidb.putFile(request, d, do_delete=True)
     upload_form(pagename, request, msg=_("File '%(filename)s' deleted.") % {'filename': filename})
@@ -566,7 +567,7 @@ def restore_file(pagename, request):
     lower_pagename = pagename.lower()
     pagename_propercased = Page(pagename, request).proper_name()
     timenow = time.time()
-    filename = request.form['target'][0]
+    filename = urllib.unquote(request.form['target'][0])
     uploaded_time = request.form['uploaded_time'][0]
 
     request.cursor.execute("SELECT name, uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s", {'filename':filename, 'pagename':pagename.lower()})
@@ -623,7 +624,7 @@ def send_viewfile(pagename, request):
         return
 
     else:
-        filename = request.form['target'][0]
+        filename = urllib.unquote(request.form['target'][0])
         if request.form.get('version', [''])[0]: version = float(request.form['version'][0])
         else: version = None
 
@@ -691,6 +692,7 @@ def send_viewfile(pagename, request):
     baseurl = request.getScriptname()
     action = action_name
     urlpagename = wikiutil.quoteWikiname(pagename)
+    urlfilename = urllib.quote(filename)
 
     timestamp = ''
     if deleted_file:
@@ -712,7 +714,7 @@ def send_viewfile(pagename, request):
     else:
       request.write('<p>Upload information unknown.  Please refer to the original page </p>')
 
-    if deleted_file: request.write('<p><div class="actionBoxes"><span><a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert to this version of the file</a></span></div></p>' %(baseurl, urlpagename, action, filename, repr(uploaded_time)))
+    if deleted_file: request.write('<p><div class="actionBoxes"><span><a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert to this version of the file</a></span></div></p>' %(baseurl, urlpagename, action, urlfilename, repr(uploaded_time)))
 
     if version is None and not deleted_file:
       request.write(_action_footer(request, pagename, baseurl, urlpagename, action, filename))
@@ -724,7 +726,7 @@ def send_viewfile(pagename, request):
 def view_file(pagename, request):
     _ = request.getText
 
-    filename = request.form['target'][0]
+    filename = urllib.unquote(request.form['target'][0])
 
     # send header & title
     pagetitle = filename + " on " + config.sitename
@@ -758,7 +760,9 @@ def show_deleted_files(pagename, request):
     action = action_name
     urlpagename = wikiutil.quoteWikiname(pagename)
     for item in result:
-      text_list.append("<li><img src=\"%s\" /><a href=\"%s/%s?action=%s&amp;do=view&amp;target=%s\">%s</a> deleted by %s on %s. [<a href=\"%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s\">restore to page</a>] </li>" % ( get_icon(item[0], request), baseurl, urlpagename, action, item[0], item[0], user.getUserLink(request, user.User(request, item[2])), request.user.getFormattedDateTime(item[1]), baseurl, urlpagename, action, item[0], repr(item[3])))
+      filename, deleted_time, deleted_by, uploaded_time = item
+      url_filename = urllib.quote(filename) 
+      text_list.append("<li><img src=\"%s\" /><a href=\"%s/%s?action=%s&amp;do=view&amp;target=%s\">%s</a> deleted by %s on %s. [<a href=\"%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s\">restore to page</a>] </li>" % ( get_icon(filename, request), baseurl, urlpagename, action, url_filename, filename, user.getUserLink(request, user.User(request, deleted_by)), request.user.getFormattedDateTime(deleted_time), baseurl, urlpagename, action, url_filename, repr(uploaded_time)))
     text_list.append('</p></div>')
 
 

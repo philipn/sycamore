@@ -1,5 +1,6 @@
 # This does the typical formatting for a comment field (as seen in the comments in recent changes, user's statistics, page revision history, etc)
 
+import urllib
 from Sycamore.widget import base
 from Sycamore.wikiutil import quoteWikiname
 from Sycamore.wikiutil import isImage
@@ -35,7 +36,7 @@ class Comment(base.Widget):
           if isImage(self.comment): file_type="image"
           else: file_type = "file"
 	  if self.pagename:
-	    link_loc = self.request.getScriptname() + '/' + quoteWikiname(self.pagename) + '?action=Files&do=view&target=' + self.comment
+	    link_loc = self.request.getScriptname() + '/' + quoteWikiname(self.pagename) + '?action=Files&do=view&target=' + urllib.quote(self.comment)
 	    self.comment = 'Upload of %s <a href="%s">%s</a>.' % (file_type, link_loc, self.comment)
 	  else:
 	    self.comment = "Upload of %s '%s'." % (file_type, self.comment)
@@ -43,7 +44,7 @@ class Comment(base.Widget):
           if isImage(self.comment): file_type="Image"
           else: file_type = "File"
 	  if self.pagename: 
-	    link_loc = self.request.getScriptname() + '/' + quoteWikiname(self.pagename) + '?action=Files&do=view&target=' + self.comment
+	    link_loc = self.request.getScriptname() + '/' + quoteWikiname(self.pagename) + '?action=Files&do=view&target=' + urllib.quote(self.comment)
 	    self.comment = '%s <a href="%s">%s</a> deleted.' % (file_type, link_loc, self.comment)
 	  else: 
 	    self.comment = "%s '%s' deleted." % (file_type, self.comment)

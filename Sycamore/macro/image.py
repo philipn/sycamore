@@ -225,6 +225,7 @@ def execute(macro, args, formatter=None):
         return formatter.rawHTML('<b>Please supply at least an image name, e.g. [[Image(image.jpg)]], where image.jpg is an image that\'s been uploaded to this page.</b>')
 
     import urllib
+    url_image_name = urllib.quote(image_name)
     # image.jpg, "caption, here, yes", 20, right --- in any order (filename first)
     # the number is the 'max' size (width or height) in pixels
 
@@ -250,10 +251,10 @@ def execute(macro, args, formatter=None):
       return wikiutil.attach_link_tag(macro.request,
                 '%s?action=Files&amp;rename=%s#uploadFileArea' % (
                     wikiutil.quoteWikiname(formatter.page.proper_name()),
-                    image_name),
+                    url_image_name),
                 linktext)
 
-    full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&amp;do=view&amp;target=" + image_name
+    full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&amp;do=view&amp;target=" + url_image_name
     # put the caption in the db if it's new and if we're not in preview mode
     if not formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption, macro.request.cursor)
     if caption:
