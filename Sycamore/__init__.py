@@ -14,4 +14,4 @@ __directory__ = os.path.dirname(__file__)
 sys.path.extend([os.path.abspath(os.path.join(__directory__, '..')),
                  os.path.abspath(os.path.join(__directory__, '..', 'share'))])
 
-__version__ = '0.1a'
+__version__ = '0.1b'
