@@ -354,7 +354,8 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     if in_wiki_interface:
       request.http_headers()
       if request.user.valid: request.user.checkFavorites(pagename)
-      wikiutil.send_title(request, _('Differences for "%s"') % (page.proper_name(),), pagename=pagename)
+      wikiutil.simple_send_title(request, pagename, strict_title='Diferences for "%s"' % pagename)
+      request.write('<div class="minorTitle">Differences:</div>')
     else:
       l.append("Differences for %s" % (page.proper_name()))
   
