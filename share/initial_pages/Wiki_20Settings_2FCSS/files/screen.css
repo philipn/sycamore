@@ -609,6 +609,12 @@ td.logo_banner { padding: 0; vertical-align: middle; }
         text-decoration: none;
 }
 
+.minorTitle {
+   text-align: center;
+   margin-top: .4em;
+   font-size: x-large;
+}
+
 #desctext {
         margin: 0;
         margin-left: 12px;
@@ -662,6 +668,7 @@ td.logo_banner { padding: 0; vertical-align: middle; }
         color: white;
         height: 75px;
         padding: 0;
+        width: 200px;
 }
 .user_area table {
         vertical-align: top;
