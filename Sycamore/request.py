@@ -58,7 +58,7 @@ class RequestBase(object):
         ("Expires", "-1")
     ]
 
-    def __init__(self, properties={}):
+    def __init__(self, properties={}, process_dicts=True):
         self.writestack = []
 	self.filestack = []
 	self.getText = None
@@ -75,7 +75,8 @@ class RequestBase(object):
 	self.db_connect()
         
         self.user = user.User(self)
-        self.dicts = self.initdicts()
+        if process_dicts:
+          self.dicts = self.initdicts()
 
         if config.theme_force:
             theme_name = config.theme_default
@@ -674,11 +675,11 @@ class RequestCLI(RequestBase):
 
 class RequestDummy(RequestBase):
   """ A fakeish request object that doesn't actually connect to any interfaces. """
-  def __init__(self):
+  def __init__(self, process_dicts=True):
     self.output_buffer = []
     self.input_buffer = []
     self.setup_args()
-    RequestBase.__init__(self)
+    RequestBase.__init__(self, process_dicts=process_dicts)
 
   def setup_args(self):
     return self._setup_vars_from_std_env({})
