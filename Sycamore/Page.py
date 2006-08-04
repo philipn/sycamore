@@ -832,11 +832,9 @@ class Page(object):
           self.request.mc.delete("links:%s" % key)
           if type == 'page save new':
              pagecount = wikidb.getPageCount(self.request) + 1
-             self.request.mc.set('active_page_count', pagecount)
              self.request.mc.set("pagename:%s" % key, self.proper_name())
           elif type == 'page save delete':
              pagecount = wikidb.getPageCount(self.request) - 1
-             self.request.mc.set('active_page_count', pagecount)
              self.request.mc.set("pagename:%s" % key, False)
           else:
              if self.exists():
