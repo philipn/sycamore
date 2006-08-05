@@ -646,13 +646,15 @@ basic_pages = init_basic_pages()
 
 if __name__ == '__main__':
   from Sycamore import request
-  req = request.RequestDummy()
+  req = request.RequestDummy(process_dicts=False)
   cursor = req.cursor
   init_db(cursor)
   create_tables(cursor)
   create_views(cursor)
   create_other_stuff(cursor)
+  req.dicts = req.initdicts()
   insert_pages(cursor)
+ 
   build_search_index()
 
   plist = wikiutil.getPageList(req)
