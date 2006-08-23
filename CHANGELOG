@@ -1,0 +1,5 @@
+0.1b: Generic files support.  All uploaded files are versioned like images.  [[File]] macro added.  CSS and some relevant images, such as the wiki logo, are now in the wiki itself.  Manage these on the "Wiki Settings" page.
+
+      UPGRADING:  run share/convert/2006_07_25_files.py to update from 0.1a to 0.1b.
+
+0.1a: Basic Sycamore.
