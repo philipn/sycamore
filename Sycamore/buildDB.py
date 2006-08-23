@@ -596,7 +596,8 @@ def create_other_stuff(cursor):
  cursor.execute("INSERT into mapCategoryDefinitions values (99, NULL, 'Other');", isWrite=True)
  print "other stuff created"
 
-def insert_pages(cursor, flat_page_dict=None, plist=None, without_files=False):
+def insert_pages(request, flat_page_dict=None, plist=None, without_files=False):
+ cursor = request.cursor
  print "inserting basic pages..."
  if not flat_page_dict: flat_page_dict = basic_pages
  if not plist: plist = flat_page_dict.keys()
@@ -613,7 +614,7 @@ def insert_pages(cursor, flat_page_dict=None, plist=None, without_files=False):
           xsize, ysize = Files.openImage(content).size
           file_dict['xsize'] = xsize
           file_dict['ysize'] = ysize
-      wikidb.putFile(req, file_dict)
+      wikidb.putFile(request, file_dict)
 
 
 def build_search_index():
@@ -653,7 +654,7 @@ if __name__ == '__main__':
   create_views(cursor)
   create_other_stuff(cursor)
   req.dicts = req.initdicts()
-  insert_pages(cursor)
+  insert_pages(req)
  
   build_search_index()
 

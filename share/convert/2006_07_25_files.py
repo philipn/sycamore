@@ -170,7 +170,7 @@ images_list = [ ("logo_background.png", logo_background) ]
 if config.image_logo: images_list.append(("logo.png", logo))
 flat_page_dict['Wiki Settings/Images'].files = images_list
 
-buildDB.insert_pages(cursor, flat_page_dict)
+buildDB.insert_pages(req, flat_page_dict)
 
 plist = wikiutil.getPageList(req)
 maintenance.buildCaches(plist)
