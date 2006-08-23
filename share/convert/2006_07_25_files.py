@@ -128,14 +128,6 @@ for result in results:
     cursor.execute("INSERT into oldFiles (name, attached_to_pagename, file, uploaded_by, uploaded_time, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(name)s, %(attached_to_pagename)s, %(image)s, %(uploaded_by)s, %(uploaded_time)s, %(deleted_time)s, %(deleted_by)s, %(uploaded_by_ip)s, %(deleted_by_ip)s, %(attached_to_pagename_propercased)s)", oldimage_dict, isWrite=True)
     cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time) values (%(name)s, %(attached_to_pagename)s, %(xsize)s, %(ysize)s, %(uploaded_time)s)", oldimage_dict, isWrite=True)
 
-# remove old views
-cursor.execute("DROP VIEW deletedImageChanges")
-cursor.execute("DROP VIEW oldImageChanges")
-cursor.execute("DROP VIEW currentImageChanges")
-
-# remove the old tables
-cursor.execute("DROP TABLE images")
-cursor.execute("DROP TABLE oldImages")
 
 # get current theme information
 theme_location = os.path.join(config.web_root, config.url_prefix[1:], config.theme_default)
@@ -174,5 +166,14 @@ buildDB.insert_pages(req, flat_page_dict)
 
 plist = wikiutil.getPageList(req)
 maintenance.buildCaches(plist)
+
+# remove old views
+cursor.execute("DROP VIEW deletedImageChanges")
+cursor.execute("DROP VIEW oldImageChanges")
+cursor.execute("DROP VIEW currentImageChanges")
+
+# remove the old tables
+cursor.execute("DROP TABLE images")
+cursor.execute("DROP TABLE oldImages")
 
 req.db_disconnect()
