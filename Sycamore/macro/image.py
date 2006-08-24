@@ -2,7 +2,7 @@
 # -*- coding: iso-8859-1 -*-
 from Sycamore import config, wikiutil, wikidb
 from Sycamore.action import Files
-import sys, re, os, array, time
+import sys, re, os, array, time, urllib
 
 #  [[Image(filename, caption, size, alignment, thumb, noborder)]]
 #  
@@ -224,8 +224,6 @@ def execute(macro, args, formatter=None):
     if not args:
         return formatter.rawHTML('<b>Please supply at least an image name, e.g. [[Image(image.jpg)]], where image.jpg is an image that\'s been uploaded to this page.</b>')
 
-    import urllib
-    url_image_name = urllib.quote(image_name)
     # image.jpg, "caption, here, yes", 20, right --- in any order (filename first)
     # the number is the 'max' size (width or height) in pixels
 
@@ -234,6 +232,8 @@ def execute(macro, args, formatter=None):
       image_name, caption, thumbnail, px_size, alignment, border = getArguments(args, macro.request)
     except:
       return formatter.rawHTML('[[Image(%s)]]' % wikiutil.escape(args))
+
+    url_image_name = urllib.quote(image_name)
 
     if formatter.isPreview() or formatter.page.prev_date:
       if macro.formatter.processed_thumbnails.has_key((pagename, image_name)) and (thumbnail or caption):
