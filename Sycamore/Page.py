@@ -682,7 +682,7 @@ class Page(object):
 		import marshal
                 code = marshal.loads(cache.content())
             except ValueError: #bad marshal data
-	    	print 'bad marshal'
+	    	#print 'bad marshal'
                 needsupdate = 1
 
         # render page
@@ -814,7 +814,7 @@ class Page(object):
                 page.set_raw_body(self.get_raw_body())
                 page.send_page(content_only=1)
             except:
-	        print "ERROR"
+	        #print "ERROR"
                 import traceback
                 traceback.print_exc()
         	cache = caching.CacheEntry(self.page_name, request)
