@@ -517,11 +517,11 @@ def do_upload(pagename, request):
        is_image = True
 
        f2e = {'PNG': ['.png'], 'JPEG': ['.jpg', '.jpeg'], 'GIF': ['.gif']}
-       imfe = f2e.get(im.format, '')[0]
+       imfe = f2e.get(im.format, '')
    
        if ext.lower() not in imfe:
          msg += _("File extension %s did not match image format %s, changing extension to %s.<br/>" % (ext, im.format, imfe))
-         ext = imfe
+         ext = imfe[0]
 
     # save file
     request.cursor.execute("SELECT name from files where attached_to_pagename=%(pagename)s and name=%(filename)s", {'pagename':pagename.lower(), 'filename':target})
