@@ -79,7 +79,11 @@ class Pool(object):
             return ConnectionFairy(self)
             
         try:
-            return self._threadconns[thread.get_ident()]
+            agent = self._threadconns[thread.get_ident()]
+            if not agent.alive:
+                agent = ConnectionFairy(self)
+            self._threadconns[thread.get_ident()] = agent
+            return agent
         except KeyError:
             agent = ConnectionFairy(self)
             self._threadconns[thread.get_ident()] = agent
@@ -88,7 +92,7 @@ class Pool(object):
     def get(self):
         raise NotImplementedError()
         
-    def return_conn(self, conn):
+    def return_conn(self, conn, alive=True):
         raise NotImplementedError()
 
     def log(self, msg):
@@ -102,13 +106,15 @@ class ConnectionFairy(object):
         except:
             self.connection = None
             raise
+        self.alive = True
     def cursor(self):
         return CursorFairy(self, self.connection.cursor())
     def __getattr__(self, key):
         return getattr(self.connection, key)
     def __del__(self):
         if self.connection is not None:
-            self.pool.return_conn(self.connection)
+            if self.alive:
+                self.pool.return_conn(self.connection)
             self.pool = None
             self.connection = None
             

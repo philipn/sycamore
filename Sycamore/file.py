@@ -17,11 +17,10 @@ def fileSend(request):
   # let's test against it using their possibly configured regular expression.  this is to prevent image hotlinking
   if config.referer_regexp and request.http_referer:
     allowed = re.search(config.referer_regexp, request.http_referer, re.IGNORECASE)
-  else: allowed = True
+  else:
+    allowed = True
   
   if not allowed:
-    # this should do a 'return' when incorporated into the Sycamore code
-    #return
     return
   
   deleted = False

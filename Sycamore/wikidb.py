@@ -14,15 +14,15 @@ from Sycamore.support import pool
 import time, array
 
 if config.db_type == 'mysql':
-  dbapi = __import__("MySQLdb")
+  dbapi_module = __import__("MySQLdb")
 elif config.db_type == 'postgres':
-  dbapi = __import__("psycopg2")
+  dbapi_module = __import__("psycopg2")
 
 pool_size = config.db_pool_size
 max_overflow = config.db_max_overflow
 
-Binary = dbapi.Binary
-dbapi = pool.manage(dbapi, pool_size=pool_size, max_overflow=max_overflow)
+Binary = dbapi_module.Binary
+dbapi = pool.manage(dbapi_module, pool_size=pool_size, max_overflow=max_overflow)
 dbapi.Binary = Binary
 
 def fixUpStrings(item):
@@ -46,7 +46,18 @@ class WikiDB(object):
     self.do_commit = False
 
   def close(self):
-    self.db.close()
+    if config.db_type == 'mysql':
+        try:
+            self.db.close()
+        except dbapi_module.OperationalError, (errno, strerror):
+            if errno == 2006:
+                del self.db.db
+                # just pass, essentially
+            else:
+                raise dbapi_module.OperationalError, x
+    else:
+        self.db.close()
+
     del self.db
   
   def cursor(self):
@@ -58,7 +69,15 @@ class WikiDB(object):
 
   def rollback(self):
     if self.db:
-      self.db.rollback()
+        if config.db_type == 'mysql':
+            try:
+                self.db.rollback()
+            except dbapi_module.OperationalError, (errno, strerror):
+                if errno == 2006:
+                    del self.db.db
+                    # just pass, essentially
+                else:
+                    raise dbapi_module.OperationalError, x
 
 class WikiDBCursor(object):
   def __init__(self, db):
@@ -75,7 +94,18 @@ class WikiDBCursor(object):
     if isWrite:
       self.db.do_commit = True
     if args: args = _fixArgs(args)
-    self.db_cursor.execute(query, args) 
+
+    if config.db_type == 'mysql':
+        try:
+            self.db_cursor.execute(query, args) 
+        except dbapi_module.OperationalError, (errno, strerror):
+            if errno == 2006:
+                    self.db.ping()
+                    self.db_cursor.execute(query, args) 
+            else:
+                raise dbapi_module.OperationalError, x
+    else:
+        self.db_cursor.execute(query, args) 
 
   def executemany(self, query, args_seq=(), isWrite=False):
     if not self.db.db:
@@ -87,7 +117,18 @@ class WikiDBCursor(object):
       self.db.do_commit = True
     if args_seq:
       args_seq = [ _fixArgs(arg) for arg in args_seq ]
-    self.db_cursor.executemany(query, args_seq) 
+
+    if config.db_type == 'mysql':
+            try:
+                self.db_cursor.executemany(query, args_seq) 
+            except dbapi_module.OperationalError, (errno, strerror):
+                if errno == 2006:
+                    self.db.ping()
+                    self.db_cursor.executemany(query, args_seq) 
+                else:
+                    raise dbapi_module.OperationalError, x
+    else:
+        self.db_cursor.executemany(query, args_seq) 
 
   def fetchone(self):
     return fixUpStrings(self.db_cursor.fetchone())
@@ -97,8 +138,17 @@ class WikiDBCursor(object):
 
   def close(self):
     if self.db_cursor:
-      self.db_cursor.close()
-      del self.db_cursor
+        if config.db_type == 'mysql':
+            try:
+                self.db_cursor.close()
+            except dbapi_module.OperationalError, (errno, strerror):
+                if errno == 2006:
+                    self.db_cursor.close()
+                else:
+                    raise dbapi_module.OperationalError, x
+        else:
+            self.db_cursor.close()
+        del self.db_cursor
     return
 
 def _fixArgs(args):
@@ -165,6 +215,29 @@ def real_connect():
     d['charset'] = 'utf8'
   
   db = dbapi.connect(**d)
+  if config.db_type == 'mysql':
+    had_error = False
+    try:
+        db.ping()
+    except dbapi_module.OperationalError, (errno, strerror):
+        if errno == 2006:
+            had_error = True
+            while had_error:
+                db.alive = False
+                del db
+                db = dbapi.connect(**d)
+                # keep trying to get a good connection from the pool
+                try:
+                    db.ping()
+                except dbapi_module.OperationalError, (errno, strerror):
+                    if errno == 2006:
+                        had_error = True
+                    else:
+                        had_error = False
+                else:
+                    had_error = False
+        else:
+            raise dbapi_module.OperationalError, x
   
   return db
 
