@@ -95,17 +95,7 @@ class WikiDBCursor(object):
       self.db.do_commit = True
     if args: args = _fixArgs(args)
 
-    if config.db_type == 'mysql':
-        try:
-            self.db_cursor.execute(query, args) 
-        except dbapi_module.OperationalError, (errno, strerror):
-            if errno == 2006:
-                    self.db.ping()
-                    self.db_cursor.execute(query, args) 
-            else:
-                raise dbapi_module.OperationalError, x
-    else:
-        self.db_cursor.execute(query, args) 
+    self.db_cursor.execute(query, args) 
 
   def executemany(self, query, args_seq=(), isWrite=False):
     if not self.db.db:
@@ -118,17 +108,7 @@ class WikiDBCursor(object):
     if args_seq:
       args_seq = [ _fixArgs(arg) for arg in args_seq ]
 
-    if config.db_type == 'mysql':
-            try:
-                self.db_cursor.executemany(query, args_seq) 
-            except dbapi_module.OperationalError, (errno, strerror):
-                if errno == 2006:
-                    self.db.ping()
-                    self.db_cursor.executemany(query, args_seq) 
-                else:
-                    raise dbapi_module.OperationalError, x
-    else:
-        self.db_cursor.executemany(query, args_seq) 
+    self.db_cursor.executemany(query, args_seq) 
 
   def fetchone(self):
     return fixUpStrings(self.db_cursor.fetchone())
