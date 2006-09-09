@@ -60,19 +60,19 @@ class RequestBase(object):
 
     def __init__(self, properties={}, process_dicts=True):
         self.writestack = []
-	self.filestack = []
-	self.getText = None
+        self.filestack = []
+        self.getText = None
 
-	self.generating_cache = False
-	self.set_cache = False
+        self.generating_cache = False
+        self.set_cache = False
         self.postCommitActions = []  # list of things to do after committing data to the database
         if config.memcache:
           self.mc = MemcachePool.getMC()
-	#if not properties: properties = wikiutil.prepareAllProperties()
+        #if not properties: properties = wikiutil.prepareAllProperties()
         #self.__dict__.update(properties)
-	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'links': {}, 'acls': {}, 'interwiki': None, 'file_dict': {}} # per-request cache
+        self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'links': {}, 'acls': {}, 'interwiki': None, 'file_dict': {}} # per-request cache
 
-	self.db_connect()
+        self.db_connect()
         
         self.user = user.User(self)
         if process_dicts:
@@ -97,18 +97,18 @@ class RequestBase(object):
 
         self.sent_headers = False
         self.user_headers = []
-	self.status = ''
-	self.output_buffer = []
+        self.status = ''
+        self.output_buffer = []
 
         self.i18n = i18n
         self.lang = i18n.requestLanguage(self) 
         self.getText = lambda text, i18n=self.i18n, request=self, lang=self.lang: i18n.getText(text, request, lang)
-	self.pagename = None
-	self.pagename_propercased = None
+        self.pagename = None
+        self.pagename_propercased = None
 
         # XXX Removed call to i18n.adaptcharset()
   
-	self.previewing_page = False
+        self.previewing_page = False
 
         self.reset()
 
@@ -131,8 +131,8 @@ class RequestBase(object):
         self.query_string = env.get('QUERY_STRING', '')
         self.request_method = env.get('REQUEST_METHOD', None)
         
-	self.remote_addr = env.get('REMOTE_ADDR')
-	self.proxy_addr = None
+        self.remote_addr = env.get('REMOTE_ADDR')
+        self.proxy_addr = None
 
         if env.has_key('HTTP_X_FORWARDED_FOR') and config.trust_x_forwarded_for:
             xff = env.get('HTTP_X_FORWARDED_FOR')
@@ -150,12 +150,12 @@ class RequestBase(object):
             self.auth_username = env.get('REMOTE_USER','')
 
         # should we compress output?
-	self.do_gzip = False
-	if config.do_gzip:
-	  for encoding in self.http_accept_encoding.split(','):
-	    if encoding.lower() == 'gzip':
-	      self.do_gzip = True
-	      break
+        self.do_gzip = False
+        if config.do_gzip:
+          for encoding in self.http_accept_encoding.split(','):
+            if encoding.lower() == 'gzip':
+              self.do_gzip = True
+              break
 
     def reset(self):
         """ Reset request state.
@@ -212,7 +212,7 @@ class RequestBase(object):
             self.filestack.append(file)
         else: # restore saved output file
             self.write = self.writestack.pop()
-	    self.filestack.pop()
+            self.filestack.pop()
 
     def reset_output(self):
         """ restore default output method
@@ -284,9 +284,9 @@ class RequestBase(object):
             fixedResult = []
             for i in values:
                 if isinstance(i, cgi.MiniFieldStorage):
-		    if type(i.value) == str:
-		      fixedResult.append(i.value.decode(config.charset))
-	 	    else:
+                    if type(i.value) == str:
+                      fixedResult.append(i.value.decode(config.charset))
+                    else:
                       fixedResult.append(i.value)
                 elif isinstance(i, cgi.FieldStorage):
                     fixedResult.append(i.value)
@@ -302,9 +302,9 @@ class RequestBase(object):
         # http://www.w3.org/TR/REC-html40/appendix/notes.html#h-B.2.1
         if pagename:
             try:
-		pagename = unicode(pagename, 'utf-8')
+                pagename = unicode(pagename, 'utf-8')
             except UnicodeError:
-		pagename = None  # will send to front page
+                pagename = None  # will send to front page
         return pagename
 
     def getBaseURL(self):
@@ -343,7 +343,7 @@ class RequestBase(object):
       zbuf = cStringIO.StringIO()
       zfile = gzip.GzipFile(mode='wb', fileobj=zbuf, compresslevel=9)
       if type(data) == unicode:
-	data = data.encode('utf-8')
+        data = data.encode('utf-8')
       else:
         data = data.decode(config.db_charset).encode('utf-8')
       zfile.write(data)
@@ -379,8 +379,8 @@ class RequestBase(object):
         if self.db.do_commit:
           self.db.commit()
           commited = True
-	else:
-	  self.db.rollback()
+        else:
+          self.db.rollback()
       else:
         self.db.rollback()
 
@@ -396,7 +396,7 @@ class RequestBase(object):
         _ = self.getText
         #self.open_logs()
         if self.isForbidden():
-	    self.status = "403 FORBIDDEN"
+            self.status = "403 FORBIDDEN"
             self.http_headers([('Content-Type', 'text/plain')])
             self.write('You are not allowed to access this!\n')
             return self.finish()
@@ -404,7 +404,7 @@ class RequestBase(object):
         
         # parse request data
         try:
-	    from Sycamore.Page import Page
+            from Sycamore.Page import Page
             self.args = self.setup_args()
             self.form = self.args 
             path_info = self.getPathinfo()
@@ -420,23 +420,23 @@ class RequestBase(object):
                 pagename = wikiutil.unquoteWikiname(path_info[1:])
                 oldlink = wikiutil.unquoteFilename(path_info[1:])
 
-	    pagename = self.recodePageName(pagename)
+            pagename = self.recodePageName(pagename)
             oldlink = self.recodePageName(oldlink)
-	    self.pagename = pagename
+            self.pagename = pagename
 
-	    pagename_propercased = ''
-	    oldlink_propercased = ''
-	    if pagename: 
-	      pagename_exists_name = Page(pagename, self).exists()
-	      if pagename_exists_name: pagename_propercased = pagename_exists_name
-	      if oldlink:
+            pagename_propercased = ''
+            oldlink_propercased = ''
+            if pagename: 
+              pagename_exists_name = Page(pagename, self).exists()
+              if pagename_exists_name: pagename_propercased = pagename_exists_name
+              if oldlink:
                  oldlink_exists_name = Page(oldlink, self).exists()
-	         if oldlink_exists_name: oldlink_propercased = oldlink_exists_name
+                 if oldlink_exists_name: oldlink_propercased = oldlink_exists_name
 
-	      if pagename_propercased:
-	        self.pagename_propercased = pagename_propercased
-	      else:
-	        self.pagename = pagename
+              if pagename_propercased:
+                self.pagename_propercased = pagename_propercased
+              else:
+                self.pagename = pagename
  
         except Page.ExcessiveLength, msg:
             Page(config.page_front_page, self).send_page(msg=msg)
@@ -450,14 +450,14 @@ class RequestBase(object):
 
         # Imports
         from Sycamore.Page import Page
-	if self.query_string.startswith('sendfile=true'):
-	  from Sycamore.file import fileSend
-	  self.args = self.setup_args()
+        if self.query_string.startswith('sendfile=true'):
+          from Sycamore.file import fileSend
+          self.args = self.setup_args()
           self.form = self.args 
 
-	  fileSend(self)
-	  return self.finish()
-	   
+          fileSend(self)
+          return self.finish()
+           
 
         if self.query_string == 'action=xmlrpc':
             from Sycamore.wikirpc import xmlrpc
@@ -481,7 +481,7 @@ class RequestBase(object):
             # handle request
             from Sycamore import wikiaction
 
-	    #The following "if" is to deal with the switchover to urls with Page_names_like_this.
+            #The following "if" is to deal with the switchover to urls with Page_names_like_this.
             if config.domain and (config.domain == "daviswiki.org" or config.domain == "rocwiki.org") and self.http_referer.find(config.domain) == -1:
                   if oldlink and oldlink_propercased:
                      pagename = oldlink
@@ -509,7 +509,7 @@ class RequestBase(object):
                     query = wikiutil.unquoteWikiname(self.query_string) or \
                         wikiutil.getSysPage(self, config.page_front_page).proper_name()
 
-		#self.http_headers()
+                #self.http_headers()
                 Page(query, self).send_page(count_hit=1)
 
             # generate page footer
@@ -530,7 +530,7 @@ class RequestBase(object):
             pass
 
         except: # catch and print any exception
-	    had_error = True
+            had_error = True
             saved_exc = sys.exc_info()
             self.reset_output()
             self.http_headers()
@@ -559,8 +559,8 @@ class RequestBase(object):
         if url.find("://") == -1:
             url = self.getQualifiedURL(url)
 
-	self.status = "302 FOUND"
-	self.user_headers = [("Location", url)]
+        self.status = "302 FOUND"
+        self.user_headers = [("Location", url)]
 
     def print_exception(self, type=None, value=None, tb=None, limit=None):
         if type is None:
@@ -619,7 +619,7 @@ class RequestCLI(RequestBase):
         sys.stdout.flush()
         
     def finish(self, had_error=False, dont_do_db=False):
-	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
+        RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         # flush the output, ignore errors caused by the user closing the socket
         try:
             sys.stdout.flush()
@@ -758,9 +758,9 @@ class RequestWSGI(RequestBase):
             @param start_response: the standard WSGI response-starting function
         """
         self._setup_vars_from_std_env(env)
-	self.start_response = start_response
-	self.env = env
-	properties = {}
+        self.start_response = start_response
+        self.env = env
+        properties = {}
         RequestBase.__init__(self, properties=properties)
 
     def setup_args(self):
@@ -775,14 +775,14 @@ class RequestWSGI(RequestBase):
     def write(self, data_string, raw=False):
         """ Write to output stream.
         """
-	if not raw:
-	  if type(data_string) == str:
-	    data_string = data_string.decode('utf-8')
+        if not raw:
+          if type(data_string) == str:
+            data_string = data_string.decode('utf-8')
 
-	  if not self.filestack:
-	    self.output_buffer.append(data_string.encode('utf-8'))
-	  else:
-	    self.filestack[-1].write(data_string.encode('utf-8'))
+          if not self.filestack:
+            self.output_buffer.append(data_string.encode('utf-8'))
+          else:
+            self.filestack[-1].write(data_string.encode('utf-8'))
         else:
           # some sort of raw binary data.  write directly without encoding and hope for the best!
           if not self.filestack:
@@ -800,25 +800,25 @@ class RequestWSGI(RequestBase):
     def flush(self):
         """ Flush output stream.
         """
-	if self.do_gzip:
-	  return  # Don't know if it's possible to sent gzip'ed content in chunks
-	else:
-  	  self.wsgi_output(''.join(self.output_buffer))
+        if self.do_gzip:
+          return  # Don't know if it's possible to sent gzip'ed content in chunks
+        else:
+          self.wsgi_output(''.join(self.output_buffer))
 
-	self.output_buffer = []
+        self.output_buffer = []
 
     def finish(self, had_error=False, dont_do_db=False):
-	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
+        RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         """ Call finish method of WSGI request to finish handling
             of this request.
         """
-	if not self.sent_headers: self.http_headers()
-	# we return a list as per the WSGI spec
-	if self.do_gzip:
-	  text = ''.join(self.output_buffer)
-	  compressed_content = self.compress(text)
-	  return [compressed_content] # WSGI spec wants a list returned
-	else:
+        if not self.sent_headers: self.http_headers()
+        # we return a list as per the WSGI spec
+        if self.do_gzip:
+          text = ''.join(self.output_buffer)
+          compressed_content = self.compress(text)
+          return [compressed_content] # WSGI spec wants a list returned
+        else:
           return self.output_buffer
 
 
@@ -828,8 +828,8 @@ class RequestWSGI(RequestBase):
 
     def getScriptname(self):
         """ Return the scriptname part of the URL ('/path/to/my.cgi'). """
-	if not config.relative_dir: return ''
-	return "/%s" % config.relative_dir
+        if not config.relative_dir: return ''
+        return "/%s" % config.relative_dir
 
 
     def getPathinfo(self):
@@ -857,21 +857,21 @@ class RequestWSGI(RequestBase):
     def http_headers(self, more_headers=[]):
         """ Send out HTTP headers. Possibly set a default content-type.
         """
-	if not self.sent_headers:
+        if not self.sent_headers:
           # send http headers and get the write callable
-	  all_headers = more_headers + self.user_headers
-	  if not all_headers:
-	    all_headers = [("Content-Type", "text/html; charset=%s" % config.charset)]
+          all_headers = more_headers + self.user_headers
+          if not all_headers:
+            all_headers = [("Content-Type", "text/html; charset=%s" % config.charset)]
 
           if self.do_gzip:
-	    all_headers.append(("Content-encoding", "gzip"))
-	    all_headers.append(("Vary", "Accept-Encoding"))
+            all_headers.append(("Content-encoding", "gzip"))
+            all_headers.append(("Vary", "Accept-Encoding"))
 
-	  if not self.status:
-	    self.status = '200 OK'
+          if not self.status:
+            self.status = '200 OK'
 
-	  self.wsgi_output = self.start_response(self.status, all_headers)
-	  self.sent_headers = True
+          self.wsgi_output = self.start_response(self.status, all_headers)
+          self.sent_headers = True
 
 ##################################
 ### Misc methods

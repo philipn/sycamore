@@ -25,6 +25,8 @@ Binary = dbapi_module.Binary
 dbapi = pool.manage(dbapi_module, pool_size=pool_size, max_overflow=max_overflow)
 dbapi.Binary = Binary
 
+MAX_CONNECTION_ATTEMPTS = pool_size + 10
+
 def fixUpStrings(item):
   def doFixUp(i):
     if type(i) == array.array:
@@ -38,7 +40,7 @@ def fixUpStrings(item):
   if type(item) == tuple or type(item) == list:
     return [ doFixUp(i) for i in item ]
   return doFixUp(item)
-      
+
 
 class WikiDB(object):
   def __init__(self, db):
@@ -46,19 +48,9 @@ class WikiDB(object):
     self.do_commit = False
 
   def close(self):
-    if config.db_type == 'mysql':
-        try:
-            self.db.close()
-        except dbapi_module.OperationalError, (errno, strerror):
-            if errno == 2006:
-                del self.db.db
-                # just pass, essentially
-            else:
-                raise dbapi_module.OperationalError, x
-    else:
+    if self.db and self.db.alive:
         self.db.close()
-
-    del self.db
+        del self.db
   
   def cursor(self):
     # TODO: need to make sure we set autocommit off in other dbs
@@ -68,16 +60,48 @@ class WikiDB(object):
     self.db.commit()
 
   def rollback(self):
-    if self.db:
-        if config.db_type == 'mysql':
-            try:
-                self.db.rollback()
-            except dbapi_module.OperationalError, (errno, strerror):
-                if errno == 2006:
-                    del self.db.db
-                    # just pass, essentially
-                else:
-                    raise dbapi_module.OperationalError, x
+    if self.db and self.db.alive:
+        self.db.rollback()
+
+
+def _test_connection(db):
+    """
+    Tries to issue a test query.  If it fails because the connection is dead or because the database went away then we try to fix this.
+    """
+    def _try_execute():
+        test_query = "SELECT 1"
+        had_error = False
+        try:
+            db.db_cursor = db.db.cursor()
+            db.db_cursor.execute(test_query)
+            db.db_cursor.fetchone()
+        except:
+             had_error = True
+
+        return had_error
+
+    had_error = _try_execute()
+    
+    i = 0
+    cant_connect = False
+    while had_error and i < MAX_CONNECTION_ATTEMPTS:
+        i += 1
+        db.db.alive = False # mark as dead
+        del db.db
+        db.db_cursor = None
+        # keep trying to get a good connection from the pool
+        try:
+            db.db = real_connect()
+        except:
+            had_error = True
+            cant_connect = True
+            break
+
+        had_error = _try_execute()
+
+    if had_error and (cant_connect or i == MAX_CONNECTION_ATTEMPTS):
+        raise db.ConnectionError, "Could not connect to database."
+
 
 class WikiDBCursor(object):
   def __init__(self, db):
@@ -85,30 +109,36 @@ class WikiDBCursor(object):
     if db.db: self.db_cursor = db.db.cursor()
     else: self.db_cursor = None
 
-  def execute(self, query, args={}, isWrite=False):
-    if not self.db.db:
-      # connect to the db for real for the first time 
-      self.db.db = real_connect()
-      self.db_cursor = self.db.db.cursor()
+  class ConnectionError(Exception):
+    pass
 
+  def execute(self, query, args={}, isWrite=False):
     if isWrite:
       self.db.do_commit = True
     if args: args = _fixArgs(args)
 
-    self.db_cursor.execute(query, args) 
+    if not self.db.db:
+        # connect to the db for real for the first time 
+        self.db.db = real_connect()
+        _test_connection(self)
+        self.db_cursor.execute(query, args) 
+        
+    else:
+        self.db_cursor.execute(query, args) 
 
   def executemany(self, query, args_seq=(), isWrite=False):
-    if not self.db.db:
-      # connect to the db for real for the first time 
-      self.db.db = real_connect()
-      self.db_cursor = self.db.db.cursor()
-
     if isWrite:
       self.db.do_commit = True
     if args_seq:
       args_seq = [ _fixArgs(arg) for arg in args_seq ]
 
-    self.db_cursor.executemany(query, args_seq) 
+    if not self.db.db:
+        # connect to the db for real for the first time 
+        self.db.db = real_connect()
+        _test_connection(self)
+        self.db_cursor.executemany(query, args_seq) 
+    else: 
+        self.db_cursor.executemany(query, args_seq) 
 
   def fetchone(self):
     return fixUpStrings(self.db_cursor.fetchone())
@@ -118,18 +148,8 @@ class WikiDBCursor(object):
 
   def close(self):
     if self.db_cursor:
-        if config.db_type == 'mysql':
-            try:
-                self.db_cursor.close()
-            except dbapi_module.OperationalError, (errno, strerror):
-                if errno == 2006:
-                    self.db_cursor.close()
-                else:
-                    raise dbapi_module.OperationalError, x
-        else:
-            self.db_cursor.close()
+        self.db_cursor.close()
         del self.db_cursor
-    return
 
 def _fixArgs(args):
     # Converts python floats to limited-precision float strings
@@ -217,8 +237,8 @@ def real_connect():
                 else:
                     had_error = False
         else:
-            raise dbapi_module.OperationalError, x
-  
+            raise dbapi_module.OperationalError, (errno, strerror)
+
   return db
 
 def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=None, size=None):
