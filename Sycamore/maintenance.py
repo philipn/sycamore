@@ -102,7 +102,12 @@ if __name__ == "__main__":
     req = request.RequestDummy()
 
     timenow = time.time()
-    tmp_db_location = os.path.join(os.path.join(config.search_db_location, ".."), "search.%s" % timenow)
+    search_dir_path = config.search_db_location
+    if not os.path.isdir(search_dir_path):
+        os.mkdir(search_dir_path)
+        print 'search directoy does not exisits, creating...'
+
+    tmp_db_location = os.path.join(os.path.join(search_dir_path, ".."), "search.%s" % timenow)
     os.mkdir(tmp_db_location)
 
     plist = wikiutil.getPageList(req, objects=True)
