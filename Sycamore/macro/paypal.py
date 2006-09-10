@@ -1,5 +1,5 @@
 import re, string
-from Sycamore import config, wikiutil
+from Sycamore import config
 
 Dependencies = []
 

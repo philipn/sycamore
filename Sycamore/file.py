@@ -72,8 +72,9 @@ def fileSend(request):
   # we're good to go to output the image
   if modified_time_unix is None: modified_time_unix = 0
   datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
+  contentstring = 'filename="%s"' % filename
   # images are usually compressed anyway, so let's not bother gziping
   request.do_gzip = False
-  request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring)])
+  request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring), ("Content-Disposition", contentstring)])
   #output image
   request.write(file, raw=True)

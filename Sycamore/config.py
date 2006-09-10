@@ -162,6 +162,7 @@ _cfg_defaults = {
         'print':       ("%(q_page_name)s?action=print", _("Print"), "print"),
         'view':        ("%(q_page_name)s", _("View"), "view"),
         },
+    'paypal_address': 'donate@example.com',
     # this is for prevention of hotlinking.  leave blank if you don't care about people leeching images.
     # to match against any url from any subdomain of daviswiki we would write:
     # 'http\:\/\/(([^\/]*\.)|())daviswiki\.org\/.*'
