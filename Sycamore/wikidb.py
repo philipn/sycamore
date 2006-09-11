@@ -28,18 +28,18 @@ dbapi.Binary = Binary
 MAX_CONNECTION_ATTEMPTS = pool_size + 10
 
 def fixUpStrings(item):
-  def doFixUp(i):
-    if type(i) == array.array:
-      return i.tostring()
-    elif type(i) == str:
-      return i.decode(config.db_charset)
-    elif type(i) == tuple:
-      return fixUpStrings(i)
-    return i
+    def doFixUp(i):
+        if type(i) == array.array:
+          return i.tostring()
+        elif type(i) == str:
+          return i.decode(config.db_charset)
+        elif type(i) == tuple:
+          return fixUpStrings(i)
+        return i
 
-  if type(item) == tuple or type(item) == list:
-    return [ doFixUp(i) for i in item ]
-  return doFixUp(item)
+    if type(item) == tuple or type(item) == list:
+        return [ doFixUp(i) for i in item ]
+    return doFixUp(item)
 
 
 class WikiDB(object):
@@ -106,8 +106,10 @@ def _test_connection(db):
 class WikiDBCursor(object):
   def __init__(self, db):
     self.db = db
-    if db.db: self.db_cursor = db.db.cursor()
-    else: self.db_cursor = None
+    if db.db:
+        self.db_cursor = db.db.cursor()
+    else:
+        self.db_cursor = None
 
   class ConnectionError(Exception):
     pass
@@ -141,10 +143,19 @@ class WikiDBCursor(object):
         self.db_cursor.executemany(query, args_seq) 
 
   def fetchone(self):
-    return fixUpStrings(self.db_cursor.fetchone())
+    result = self.db_cursor.fetchone()
+    # weird pooling issue.  it calls fetchone() twice on a single call due to pooling dispatch
+    if self.db_cursor.__class__.__name__ == self.__class__.__name__:
+        result = fixUpStrings(result)
+    return result
 
   def fetchall(self):
-     return fixUpStrings(self.db_cursor.fetchall())
+    result = self.db_cursor.fetchall()
+    # weird pooling issue.  it calls fetchall() twice on a single call due to pooling dispatch
+    if self.db_cursor.__class__.__name__ == self.__class__.__name__:
+        result = fixUpStrings(result)
+    return result
+
 
   def close(self):
     if self.db_cursor:
@@ -430,11 +441,11 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
           add_query.append(' where changeTime >= %(max_days_ago)s')
         else: 
           add_query.append(' where changeTime >= %(max_days_ago)s and changeTime >= %(changes_since)s')
-	printed_where = True
+        printed_where = True
       else:
         if not changes_since: 
           add_query.append(' and changeTime >= %(max_days_ago)s')
- 	else:
+        else:
           add_query.append(' and changeTime >= %(max_days_ago)s and changeTime >= %(changes_since)s')
     #if per_page_limit:
     #  query.append(" group by %(view)s.name, %(view)s.id, %(view)s.editType, %(view)s.comment, %(view)s.userIP" % {'view':view})
@@ -484,7 +495,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     if total_changes_limit: query.append(' limit %(limit)s) as result')
     else:
       if per_page_limit:
-	query.append(""" ) as sortedChanges order by changeTime desc ) as result""")
+        query.append(""" ) as sortedChanges order by changeTime desc ) as result""")
       else:
         query.append(') as result')
 
@@ -503,12 +514,12 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
 
     def getEditor(self, request):
          from Sycamore import user
-	 from Sycamore.Page import Page
+         from Sycamore.Page import Page
          if self.userid and self.userid.strip():
            editUser = user.User(request, self.userid)
            return user.getUserLink(request, editUser)
          else:
-	   return '<em>unknown</em>'
+           return '<em>unknown</em>'
 
   lines = []
   right_now  = time.gmtime()
