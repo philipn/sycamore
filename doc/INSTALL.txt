@@ -3,9 +3,9 @@ Installing Sycamore
 -------------------
 
 :Authors:
-        David Reid
+        Rico Suave
 
-:Version: 0.1
+:Version: 0.2
 
 Dependencies
 ============
