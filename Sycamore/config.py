@@ -180,7 +180,7 @@ _cfg_defaults = {
     'talk_pages': True,
     'tmp_dir': 'tmp',
     'theme_default': 'classic',
-    'theme_force': False,
+    'theme_force': True,
     'trail_size': 5,
     'trust_x_forwarded_for': True, # use X_FORWARDED_FOR for request.remote_addr if provided.
     'tz_offset': getLocalTimeOffset(), # default time zone offset in unix time from UTC.  e.g. 3600 = 1 hour. 
