@@ -221,7 +221,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         
         # button toolbar
         self.request.write('<div id="editArea">')
-	self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.theme_name, 'img', 'buttons')))
+	self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.theme.name, 'img', 'buttons')))
 	if self.request.user.name:
 	  self.request.write("""<script type=\"text/javascript\">var userPageLink = '["%s"]';</script>""" % (self.request.user.propercased_name))
 	else:
