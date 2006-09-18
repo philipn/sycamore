@@ -20,7 +20,7 @@ def _modified_since(request, file_modified_time):
         if math.floor(file_modified_time) <= modified_since:
             return False
 
-        return True
+    return True
 
 def fileSend(request):
   # Front_Page?file=larry_coho.jpg&thumb=yes&size=240
