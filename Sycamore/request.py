@@ -666,7 +666,7 @@ class RequestCLI(RequestBase):
     def setHttpHeader(self, header):
         pass
 
-    def http_headers(self, more_headers=[]):
+    def http_headers(self, more_headers=[], send_headers=True):
         pass
 
     def http_redirect(self, url):
@@ -743,7 +743,7 @@ class RequestDummy(RequestBase):
       """ Save header for later send. """
       pass
 
-  def http_headers(self, more_headers=[]):
+  def http_headers(self, more_headers=[], send_headers=True):
       """ Send out HTTP headers. Possibly set a default content-type.
       """
       pass
@@ -854,14 +854,17 @@ class RequestWSGI(RequestBase):
         self.user_headers.append(header)
 
 
-    def http_headers(self, more_headers=[]):
+    def http_headers(self, more_headers=[], send_headers=True):
         """ Send out HTTP headers. Possibly set a default content-type.
         """
         if not self.sent_headers:
-          # send http headers and get the write callable
-          all_headers = more_headers + self.user_headers
-          if not all_headers:
-            all_headers = [("Content-Type", "text/html; charset=%s" % config.charset)]
+          if send_headers:
+            # send http headers and get the write callable
+            all_headers = more_headers + self.user_headers
+            if not all_headers:
+              all_headers = [("Content-Type", "text/html; charset=%s" % config.charset)]
+          else:
+            all_headers = []
 
           if self.do_gzip:
             all_headers.append(("Content-encoding", "gzip"))

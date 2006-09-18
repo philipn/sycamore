@@ -3,12 +3,24 @@
 
 from Sycamore import wikidb
 from Sycamore.macro.image import checkTicket
-import os, urllib, mimetypes, re, time
+import os, urllib, mimetypes, re, time, calendar, math, email
+from email.Utils import parsedate_tz, mktime_tz
 from Sycamore import config
 from Sycamore.wikiutil import unquoteWikiname
 
-# We get the pagename as a wikiutil.quoteWikiname()
-# We wikiutil.unquoteWikiname() it and then grab the given image from the pagename from the db
+def _modified_since(request, file_modified_time):
+    modified_since_str = request.env.get('HTTP_IF_MODIFIED_SINCE')
+    if modified_since_str:
+        try:
+            modified_since = mktime_tz(parsedate_tz(modified_since_str))
+        except:
+            # couln't parse
+            return True
+
+        if math.floor(file_modified_time) <= modified_since:
+            return False
+
+        return True
 
 def fileSend(request):
   # Front_Page?file=larry_coho.jpg&thumb=yes&size=240
@@ -71,10 +83,16 @@ def fileSend(request):
 
   # we're good to go to output the image
   if modified_time_unix is None: modified_time_unix = 0
+  if not _modified_since(request, modified_time_unix): # if we're sent an If-Modified-Since header and the file hasn't been modified, send 304 Not Modified
+    request.do_gzip = False
+    request.status = "304 Not Modified"
+    request.http_headers()
+    return
   datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
   contentstring = 'filename="%s"' % filename
   # images are usually compressed anyway, so let's not bother gziping
   request.do_gzip = False
   request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring), ("Content-Disposition", contentstring)])
   #output image
-  request.write(file, raw=True)
+  #request.write(file, raw=True)
+  request.write('file here')
