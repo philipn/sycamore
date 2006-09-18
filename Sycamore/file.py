@@ -94,5 +94,4 @@ def fileSend(request):
   request.do_gzip = False
   request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring), ("Content-Disposition", contentstring)])
   #output image
-  #request.write(file, raw=True)
-  request.write('file here')
+  request.write(file, raw=True)
