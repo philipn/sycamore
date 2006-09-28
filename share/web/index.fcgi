@@ -13,6 +13,12 @@ sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
 # you may need to put something like this here if you don't have the required python modules in your path:
 #sys.path.extend(['/home/philip/lib/python/'])
 
+# if you are using this as an "external" fastcgi server, leave this the way it is.
+# (e.g. FastCgiExternalServer in Apache or when using host/local options in lighttpd)
+bindAddress = ('localhost', 8882)
+# ..otherwise, uncomment this line:
+#bindAddress = None
+
 from Sycamore.support.wsgi_server.fcgi import WSGIServer
 from Sycamore.request import RequestWSGI
 from logging import NOTSET
@@ -31,7 +37,7 @@ def run_as_daemon():
       do_run()
 
 def do_run():
-    WSGIServer(basic_handle_request, bindAddress=('localhost', 8882)).run()
+    WSGIServer(basic_handle_request, bindAddress=bindAddress).run()
 
 if __name__ == '__main__':
     try:
