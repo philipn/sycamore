@@ -60,6 +60,9 @@ def execute(pagename, request):
       item_guid.appendChild(rss_dom.createTextNode("%s, %s" % (line.ed_time, wikiutil.quoteWikiname(line.pagename))))
       item_description = rss_dom.createElement("description")
       if line.action in ['SAVE', 'SAVENEW', 'RENAME', 'COMMENT_MACRO', 'SAVE/REVERT', 'DELETE']:
+        page = Page(line.pagename, request)
+        if not request.user.may.read(page):
+            continue 
         version2 = Page(line.pagename, request, prev_date=line.ed_time).get_version()
         version1 = version2 - 1
         description = "%s %s" % (line.comment, do_diff(line.pagename, request, in_wiki_interface=False, text_mode=True, version1=version1, version2=version2))
