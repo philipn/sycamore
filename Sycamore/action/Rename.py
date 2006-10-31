@@ -65,6 +65,7 @@ def copy_files(oldpagename, newpagename, request):
 def execute(pagename, request):
     _ = request.getText
     actname = __name__.split('.')[-1]
+    pagename = pagename.strip() # to ensure consistency
     page = PageEditor(pagename, request)
     pagetext = page.get_raw_body()
     msg = ''
