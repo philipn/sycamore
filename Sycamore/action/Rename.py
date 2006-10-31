@@ -65,7 +65,6 @@ def copy_files(oldpagename, newpagename, request):
 def execute(pagename, request):
     _ = request.getText
     actname = __name__.split('.')[-1]
-    pagename = pagename.strip() # to ensure consistency
     page = PageEditor(pagename, request)
     pagetext = page.get_raw_body()
     msg = ''
@@ -88,7 +87,7 @@ def execute(pagename, request):
             msg = _('Please use the interactive user interface to rename pages!')
         else:
             renamecomment = request.form.get('comment', [''])[0]
-            newpagename = request.form.get('newpagename')[0]
+            newpagename = request.form.get('newpagename')[0].strip()
             try:
               newpage = PageEditor(newpagename, request)
             except Page.ExcessiveLength, msg:
