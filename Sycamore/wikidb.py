@@ -616,7 +616,13 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   query = buildQuery(query_max_days, query_total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global, request)
   #print query % {'max_days_ago': '"'+str(max_days_ago)+'"', 'limit': '"'+str(total_changes_limit)+'"', 'userFavoritesFor': '"'+str(userFavoritesFor)+'"', 'pagename': '"'+str(page)+'"'}
   #print query % {'max_days_ago': '\''+str(query_max_days)+'\'', 'limit': '\''+str(query_total_changes_limit)+'\'', 'userFavoritesFor': '\''+str(userFavoritesFor)+'\'', 'pagename': '\''+str(page)+'\'', 'changes_since': '\''+str(changes_since)+'\'', 'wiki_id': '\'' + str(request.config.wiki_id) + '\''}
-  request.cursor.execute(query, {'max_days_ago': query_max_days, 'limit': query_total_changes_limit, 'userFavoritesFor': userFavoritesFor, 'pagename': page, 'changes_since':changes_since, 'wiki_id': request.config.wiki_id})
+  request.cursor.execute(query, {'max_days_ago': query_max_days, 
+                                 'limit': query_total_changes_limit, 
+                                 'userFavoritesFor': userFavoritesFor, 
+                                 'pagename': page, 
+                                 'changes_since':changes_since, 
+                                 'wiki_id': request.config.wiki_id,
+                                 'max_recent_changes': config.max_recent_changes})
  
   edit = request.cursor.fetchone()
   
