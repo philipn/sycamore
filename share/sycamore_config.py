@@ -14,14 +14,12 @@
 import os.path
 __directory__ = os.path.dirname(os.path.abspath(__file__))
 
-# If you run several wikis on one host (commonly called a wiki farm),
-# uncommenting the following allows you to load global settings for
-# all your wikis. You will then have to create "farm_config.py" in
-# the MoinMoin package directory.
-# this file is also used for the blacklist (which, by, default, has nothing in it)..just leave it uncommented and it won't cause any problems, promise.
-from farmconfig import *
+# this file is used for the blacklist (which, by, default, has nothing in it)..just leave it uncommented and it won't cause any problems, promise.
+from blacklist import *
 
 # basic options (you normally need to change these)
+wiki_farm = True
+wiki_name = 'sycamore'
 sitename = 'Sycamore Default Install'
 interwikiname = None
 interwiki_map = 'Interwiki Map'
@@ -29,15 +27,16 @@ interwiki_map = 'Interwiki Map'
 #no slashes at the end on these guys !!
 data_dir = os.path.join(__directory__, 'data')
 
-# this is the root where, say, a href="/" resolves to (considering whther or not you have a domain)
+# this is the root where, say, a href="/" resolves to (considering whether or not you have a domain)
 web_root = os.path.join(__directory__, 'web')
 
-# this is what's after the url if your wiki is in a directory
-# e.g. '' (nothing) for the root, and '/mywiki' if it's in directory mywiki
+# roughly, this is what's after the url if your wiki is in a directory
+# no trailing slash
 web_dir = ''
 
-# this is where the theme css is stored
+# this is the directory where the images and javascript for wiki stuff is stored
 #  this is relative to the web server's root
+# no trailing slash
 url_prefix = '/wiki'
 
 #displayed logo. If you don't want an image logo, comment this out and the sitename will be used as a text-based logo.
@@ -53,10 +52,13 @@ catchphrase = 'Your phrase here..'
 # if there is no index.cgi then it would be "wiki"
 # this is anything after the root of where your web stuff is installed
 relative_dir = ''
+# DYNAMIC relative_dir:
+# relative_dir can also be of the form (string, quoted parameters), e.g ("wikis/%s", "wiki_name")
+#relative_dir = ("wikis/%s", "wiki_name")
 
 #your domain (used for cookies, etc)
-# uncomment only if you've got a domain and want cookies to work across subdomains
-domain = 'localhost'
+# uncomment only if you've got a domain
+wiki_base_domain = 'wikispot.org'
 
 # turn to 0 if you want to disable the built-in talk-page theme stuff
 talk_pages = 1
@@ -85,8 +87,16 @@ db_user_password = ''
 # (setting db_host = 'localhost' usually makes a local networked connection ;)
 db_host = '' 
 
+gmaps_api_key = 'ABQIAAAAOEBBNZASx3d_UuJ3mi57ohSCaCGm-etKP9QViL3d8ut3crpNDBQl8unPg-aqvvDWomJwzffIt8PZgw'
+
 # location of the GNU Diff3 application.
 diff3_location = '/usr/bin/diff3'
+
+# == CAPTCHAS ==
+# locmtion of the sox application
+sox_location = '/opt/local/bin/sox'
+
+# == End Captcha stuff ==
 
 #Memcache settings.  This is if you want a high-performance wiki.
 memcache = True
@@ -99,7 +109,20 @@ has_xapian = True
 search_db_location = os.path.join(data_dir, 'search')
 
 # do we want to use the remote sycamore-xapian databse?
-#remote_search = ('127.0.0.1', 33432)
+remote_search = ('127.0.0.1', 33432)
+
+# farm settings
+# leave blank unless you want a wiki farm
+wiki_farm = True
+wiki_farm_dir = ''
+wiki_farm_subdomains = True
+# turn on web based wiki creation to allow _anyone_ that can access your site to create a wiki
+# don't turn this on unless you know what you're doing, 'mate!
+allow_web_based_wiki_creation = True
+# message to display when they someone tries to go to a wiki that doesn't exist
+wiki_farm_no_exist_msg = ("""<p>The wiki %s does not exist!</p>
+<p>You might want to <a href="http://wikispot.org/Interwiki_Search">search all wikis</a>.  If you think this wiki should exist, you can <a href="http://wikispot.org/Create_a_wiki">create a wiki</a> by ths name.</p>
+<p>You might just be looking for more information about <a href="http://wikispot.org">Wiki Spot</a> or other <a href="http://wikispot.org/Wiki_Index">Wiki Spot wikis</a>.""", 'wiki_name')
 
 # Referer regular expression is used to filter out http referers from image viewing.
 # It's for stopping image hotlinking, basically.
@@ -108,6 +131,8 @@ search_db_location = os.path.join(data_dir, 'search')
 #referer_regexp = '^http\:\/\/(([^\/]*\.)|())daviswiki\.org((\/.*)|())$'
 # here's another example
 #referer_regexp = '^http\:\/\/(([^\/]*\.)|())localhost((\/.*)|())$'
+
+page_footer1 = '<div class="wikiSpotFooter">A Wiki Spot wiki.  Wiki Spot is a 501(c)3 non-profit organization that helps communities collaborate via wikis.</div>'
 
 # encoding and WikiName char sets
 # (change only for outside America or Western Europe)
@@ -123,12 +148,10 @@ httpd_port = 80
 httpd_user = "root"
 
 theme_default = 'eggheadbeta'
-theme_force = True
-acl_enabled = 1
-acl_rights_default = "PhilipNeustrom:admin,read,write,delete,revert AdminGroup:admin,read,write,delete,revert BannedGroup:read Trusted:read,write,revert,delete Known:read,write,delete,revert All:read,write"
 
 allow_all_mimetypes = True
 max_file_size = 5000
 
 mail_smarthost = "localhost"
+#mail_smarthost_auth = ('username', 'password')
 mail_from = "dont_respond@daviswiki.org"

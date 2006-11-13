@@ -25,14 +25,13 @@ import os, re
 from Sycamore import config, wikiutil
 from Sycamore.Page import Page
 
-
 # Functions
 def _getWordsFiles():
     """Check a list of possible word files"""
     candidates = []
 
     # load a list of possible word files
-    localdict = os.path.join(config.moinmoin_dir, 'dict')
+    localdict = os.path.join(config.data_dir, 'word_dictionaries')
     if os.path.isdir(localdict):
         candidates.extend(map(
             lambda f, d=localdict: os.path.join(d, f), os.listdir(localdict)))
@@ -117,7 +116,7 @@ def _addLocalWords(request):
     newwords = ' '.join(newwords)
 
     # get the page contents
-    lsw_page = PageEditor(config.page_local_spelling_words, request)
+    lsw_page = PageEditor(request.config.page_local_spelling_words, request)
     words = lsw_page.get_raw_body()
 
     # add the words to the page and save it
@@ -138,7 +137,7 @@ def checkSpelling(page, request, own_form=1):
     wordsdict = _loadDict(request)
 
     localwords = {}
-    lsw_page = Page(config.page_local_spelling_words, request)
+    lsw_page = Page(request.config.page_local_spelling_words, request)
     if lsw_page.exists(): _loadWordsString(request, localwords, lsw_page.get_raw_body())
 
     # init status vars & load page

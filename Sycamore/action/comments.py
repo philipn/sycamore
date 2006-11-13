@@ -36,7 +36,10 @@ def execute(pagename, request):
               if request.user.anonymous:
                   userId = request.user.ip
               else:
-                  userId = '["' + request.user.propercased_name + '"]'
+                  if config.user_page_prefix:
+                    userId = '["%s%s" %s]' % (config.user_page_prefix, request.user.propercased_name, request.user.propercased_name)
+                  else:
+                    userId = '["%s"]' % request.user.propercased_name
 
               now = time.time()
 	      now_formatted = request.user.getFormattedDateTime(now, global_time=True)

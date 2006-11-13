@@ -3,8 +3,9 @@
     Sycamore - DeletePage action
 
     This action allows you to delete a page. Note that the standard
-    config lists this action as excluded!
+    acl lists this action as excluded!
 
+    @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -18,6 +19,7 @@ def execute(pagename, request):
     _ = request.getText
     actname = __name__.split('.')[-1]
     page = PageEditor(pagename, request)
+    permanent = False
 
     msg = ''
 
@@ -48,7 +50,9 @@ def execute(pagename, request):
           msg = "Comments must be less than %s characters long." % wikiaction.MAX_COMMENT_LENGTH
           return page.send_page(msg)
 
-        msg = page.deletePage(comment)
+        if request.form.has_key('permanent') and request.form['permanent'][0] and request.user.may.admin(page):
+          permanent = True
+        msg = page.deletePage(comment, permanent=permanent)
 
         return page.send_page(
                 msg = _('Page "%s" was successfully deleted!') % (pagename,))
@@ -56,25 +60,32 @@ def execute(pagename, request):
     # send deletion form
     url = page.url()
     ticket = _createTicket()
-    querytext = _('Really delete this page?')
     button = _('Delete')
-    comment_label = _("Reason for deletion")
+    comment_label = _("Reason for deletion:")
+
+    if request.user.may.admin(page):
+      admin_label = """<p>Permanently remove old versions: <input type="checkbox" name="permanent" value="1"></p>"""
+    else:
+      admin_label = ''
     formhtml = """
 <form method="GET" action="%(url)s">
-<strong>%(querytext)s</strong>
 <input type="hidden" name="action" value="%(actname)s">
 <input type="hidden" name="ticket" value="%(ticket)s">
-<input type="submit" name="button" value="%(button)s">
 <p>
-%(comment_label)s<br>
+%(comment_label)s
+</p>
+<p>
 <input type="text" name="comment" size="60" maxlength="80">
+<input type="submit" name="button" value="%(button)s">
+</p>
+%(admin_label)s
 </form>""" % {
     'url': url,
-    'querytext': querytext,
     'actname': actname,
     'ticket': ticket,
     'button': button,
     'comment_label': comment_label,
+    'admin_label': admin_label,
 }
 
     return page.send_page(msg=formhtml)

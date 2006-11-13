@@ -33,13 +33,13 @@ class Formatter:
             from Sycamore.formatter.text_html import Formatter
             self.formatter = Formatter(request, store_pagelinks=1, preview=0)
 
-	self._preview = kw.get('preview', 0)
+        self._preview = kw.get('preview', 0)
         self.static = static
         self.code_fragments = []
         self.__formatter = "formatter"
         self.__parser = "parser"
         self.request = request
-	self.name = 'text_python'
+        self.name = 'text_python'
         # XXX never used???
         #self.__static_macros = ['BR', 'GoTo', 'TableOfContents', 'Anchor', 'Icon']
         #self.__static_macros.extend(i18n.languages.keys())
@@ -47,11 +47,11 @@ class Formatter:
         self.__in_pre = 0
         self.text_cmd_begin = '\nrequest.write("""'
         self.text_cmd_end = '""")\n'
-
+        self.page = None
 
     def isPreview(self):
         if self._preview: return True
-	return False
+        return False
 
     def assemble_code(self, text):
         """inserts the code into the generated text
@@ -109,11 +109,14 @@ class Formatter:
                         (adjust, self.__parser, callback, arg_list, arg_dict))
 
     def pagelink(self, pagename, text=None, **kw):
-	return Page(pagename, self.request).link_to(text, kw)
+        return Page(pagename, self.request).link_to(text, kw)
+
+    def setPage(self, page):
+        self.page = page
 
     def interwikilink(self, url, text, **kw):
         return self.__insert_code('request.write(%s.interwikilink(%r, %r, **%r))' %
-	                (self.__formatter, url, text, kw))
+                        (self.__formatter, url, text, kw))
 
     def add_code(self, code_text):
         return self.__insert_code(code_text)

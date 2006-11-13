@@ -1,10 +1,12 @@
 import sys, socket, getopt, threading, time, copy, os, cPickle
 import __init__ # woo hackmagic
-sys.path.extend(['/Users/philipneustrom/sycamore_base'])
+__directory__ = os.path.dirname(__file__)
+share_directory = os.path.abspath(os.path.join(__directory__, '..', 'share'))
+sys.path.extend([share_directory]),
 from Sycamore import request, wikiutil, search
 from Sycamore.Page import Page
 
-SPOOL_WAIT_TIME = 5*60 # the amount of time to wait, in seconds, until processing a spool
+SPOOL_WAIT_TIME = 10 # the amount of time to wait, in seconds, until processing a spool
 
 keep_processing = True
 
@@ -41,44 +43,55 @@ def usage():
     print " d : run as daemon."
     print ""
 
-def process_search(terms, client):
+def process_search(terms, wiki_name, client, p_start_loc, t_start_loc):
     global db_location
     req = request.RequestDummy()
-    thesearch = search.XapianSearch(None, req, db_location=db_location, processed_terms=terms)
+    if wiki_name:
+        req.switch_wiki(wiki_name)
+        wiki_global = False
+    else:
+        wiki_global = True
+    thesearch = search.XapianSearch(None, req, db_location=db_location, processed_terms=terms, wiki_global=wiki_global,
+        p_start_loc=p_start_loc, t_start_loc=t_start_loc)
     thesearch.process()
     results = (thesearch.title_results, thesearch.text_results)
     thesearch_encoded = wikiutil.quoteFilename(cPickle.dumps(results))
     output = client.makefile('w',0)
     output.write(thesearch_encoded)
-    output.write("\n")
+    output.write("\n\nE\n\n")
 
 def process_spool(spool):
     global db_location
     if not spool.item_queue: return
     req = request.RequestDummy()
-    timenow = time.time() 
-    tmp_db_location = os.path.join(os.path.join(db_location, ".."), "search.%s" % timenow)
-    os.mkdir(tmp_db_location)
+    #timenow = time.time() 
+    #tmp_db_location = os.path.join(os.path.join(db_location, ".."), "search.%s" % timenow)
+    #os.mkdir(tmp_db_location)
     while spool.item_queue:
-      item = spool.item_queue.pop(0)
-      type = spool.item_dict[item]
-      page = Page(item, req)
-      if type == 'add':
-        search.index(page, db_location=tmp_db_location)
-      elif type == 'del':
-        search.remove(page, db_location=tmp_db_location)
+        item = spool.item_queue.pop(0)
+        type = spool.item_dict[item]
+        pagename, wiki_name = item
+        if wiki_name:
+            page = Page(pagename, req, wiki_name=wiki_name)
+        else:
+            page = Page(pagename, req)
+
+        if type == 'add':
+            search.index(page, db_location=db_location)
+        elif type == 'del':
+            search.remove(page, db_location=db_location)
     req.db_disconnect()
 
     # in POSIX os.rename is atomic
-    for filename in os.listdir(os.path.join(tmp_db_location, "title")):
-      os.rename(os.path.join(os.path.join(tmp_db_location, "title"), filename), os.path.join(os.path.join(db_location, "title"), filename))
+    #for filename in os.listdir(os.path.join(tmp_db_location, "title")):
+    #  os.rename(os.path.join(os.path.join(tmp_db_location, "title"), filename), os.path.join(os.path.join(db_location, "title"), filename))
 
-    for filename in os.listdir(os.path.join(tmp_db_location, "text")):
-      os.rename(os.path.join(os.path.join(tmp_db_location, "text"), filename), os.path.join(os.path.join(db_location, "text"), filename))
+    #for filename in os.listdir(os.path.join(tmp_db_location, "text")):
+    #  os.rename(os.path.join(os.path.join(tmp_db_location, "text"), filename), os.path.join(os.path.join(db_location, "text"), filename))
 
-    os.rmdir(os.path.join(tmp_db_location, "title"))
-    os.rmdir(os.path.join(tmp_db_location, "text"))
-    os.rmdir(os.path.join(tmp_db_location))
+    #os.rmdir(os.path.join(tmp_db_location, "title"))
+    #os.rmdir(os.path.join(tmp_db_location, "text"))
+    #os.rmdir(os.path.join(tmp_db_location))
 
 def load_spool():
    """
@@ -120,42 +133,75 @@ def servespool():
     save_spool()
       
 def serveclient(client):
+    def get_wiki():
+        wiki_name = data[0]
+        if wiki_name == '*':
+            wiki_name = None
+        return wiki_name
+
+    def handle_add():
+        client.close()
+        pagename = wikiutil.unquoteFilename(data[0])
+        spool_lock.acquire()
+        spool.mark_for_add((pagename, wiki_name))
+        spool_lock.release()
+
+    def handle_delete():
+        client.close()
+        pagename = wikiutil.unquoteFilename(data[0])
+        spool_lock.acquire()
+        spool.mark_for_remove((pagename, wiki_name))
+        spool_lock.release()
+
+    def handle_search():
+        lines = data
+        p_start_loc = int(data[0])
+        t_start_loc = int(data[1])
+        terms = [ wikiutil.unquoteFilename(word) for word in data[2:] ]
+        process_search(terms, wiki_name, client, p_start_loc, t_start_loc)
+        client.close()
+        
     global spool_lock, spool
+    wiki_name = None
 
     input = client.makefile('r', 0)
     type = None
+    data = None
     lines = []
+    requests = []
     for line in input:
-      line = line.strip()
-      if not line: break
+        line = line.strip()
+        if not line:
+            if type == 'E': # end
+                break
+            else:
+                # reset.  get ready for next request
+                requests.append(lines)
+                type = None
+                lines = []
+                continue
 
-      if not type:
-        type = line
-      else:
+        if not type:
+            type = line
         lines.append(line)
+
+    for request in requests:
+        type = request[0]
+        data = request[1:]
+        
+        if type == 'F':
+            wiki_name = get_wiki()
+        elif type == 'A':
+            handle_add() 
+        elif type == 'D':
+            handle_delete()  
+        elif type == 'S':
+            handle_search()
+        else:
+            client.close()
+            return "Error with client protocol."
+
     input.close()
-
-
-    if type == 'A':
-      client.close()
-      pagename = wikiutil.unquoteFilename(lines[0])
-      spool_lock.acquire()
-      spool.mark_for_add(pagename)
-      spool_lock.release()
-    elif type == 'D':
-      client.close()
-      pagename = wikiutil.unquoteFilename(lines[0])
-      spool_lock.acquire()
-      spool.mark_for_remove(pagename)
-      spool_lock.release()
-    elif type == 'S':
-      terms = [ wikiutil.unquoteFilename(line) for line in lines ]
-      process_search(terms, client)
-      client.close()
-    else:
-      return "Error with client protocol."
-      
-    client.close()
 
 db_location = None
 

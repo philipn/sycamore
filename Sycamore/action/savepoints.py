@@ -5,17 +5,17 @@ from Sycamore import config, user, util, wikiutil, mapping
 from Sycamore.Page import Page
 
 def clean(text):
-	text=text.replace('\x85','&#8230;') # elipsis
-	text=text.replace('\x91','&#8216;') # opening single quote
-	text=text.replace('\x92','&#8217;') # closing single quote
-	text=text.replace('\x93','&#8220;') # opening double quote
-	text=text.replace('\x94','&#8221;') # closing double quote
-	text=text.replace('\x96','&#8211;') # en-dash
-	text=text.replace('\x97','&#8212;') # em-dash
-	return text
+        text=text.replace('\x85','&#8230;') # elipsis
+        text=text.replace('\x91','&#8216;') # opening single quote
+        text=text.replace('\x92','&#8217;') # closing single quote
+        text=text.replace('\x93','&#8220;') # opening double quote
+        text=text.replace('\x94','&#8221;') # closing double quote
+        text=text.replace('\x96','&#8211;') # en-dash
+        text=text.replace('\x97','&#8212;') # em-dash
+        return text
 
 def execute(pagename, request):
-    if not config.has_wiki_map:  return
+    if not config.has_old_wiki_map:  return
 
     actname = __name__.split('.')[-1]
 
@@ -42,7 +42,7 @@ def execute(pagename, request):
     # we need to convert it to the proper map xml format
     mapPoints = mapping.convert_xml(dom)
     pagename = pagename.lower()
-	
+        
     mapping.update_points(mapPoints, request, pagename=pagename)
 
     request.write('Your map changes have been saved.')

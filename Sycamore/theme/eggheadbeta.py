@@ -3,10 +3,16 @@
     Sycamore default theme.  Base code copied from rightsidebar MoinMoin theme.
 """
 from Sycamore.Page import Page
-from Sycamore import config, wikiutil
+from Sycamore import config, wikiutil, farm, user
 from classic import Theme as ThemeBase
 from Sycamore.widget import subpagelinks
-import string 
+import string, urllib
+
+if config.wiki_farm:
+    png_behavior = "behavior: url('http://%s%s%s/pngbehavior.htc');" % (config.wiki_base_domain, config.web_dir, config.url_prefix)
+else:
+    png_behaviour = "behavior: url('%s%s/pngbehavior.htc');" % (config.web_dir, config.url_prefix)
+ 
 
 class Theme(ThemeBase):
     """ here are the functions generating the html responsible for
@@ -51,57 +57,62 @@ class Theme(ThemeBase):
         images_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_images)
         if has_file(self.request, images_pagename, 'logo.png'):
           html.append('<img align="middle" src="%s" alt="wiki logo"></a>' % (getAttachUrl(images_pagename, 'logo.png', self.request)))
-	else: html.append('<div id="logo_text">%s</div></a>' % config.sitename)
+        else: html.append('<div id="logo_text">%s</div></a>' % self.request.config.sitename)
 
         return ''.join(html)
 
     def new_iconbar(self, d):
       return """<td valign="bottom">&nbsp;&nbsp;&nbsp;&nbsp;</td>
-      	     %s
-	     %s
-	     %s
-	     %s
-	     """ % (self.editicon(d), self.infoicon(d), self.talkicon(d), self.mapicon(d))
+             %s
+             %s
+             %s
+             %s
+             """ % (self.editicon(d), self.infoicon(d), self.talkicon(d), self.mapicon(d))
 
     def editicon(self,d):
       editable = self.request.user.may.edit(d['page'])
       if editable:
         if self.isEdit(): status = 'Selected'
-	else: status = ''
-	return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
-	   '%s<br/>Edit' % self.make_icon('edit', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
+        else: status = ''
+        return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
+           '%s<br/>Edit' % self.make_icon('edit', style=png_behavior)))
       else:  return ''
 
     def infoicon(self, d):
        if self.isInfo(): status = 'Selected' 
        else: status = ''
        return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info',
-	   '%s<br/>Info' % self.make_icon('info', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
+           '%s<br/>Info' % self.make_icon('info', style=png_behavior)))
 
     def talkicon(self, d):
-      if not config.talk_pages: return ''
+      if not self.request.config.talk_pages: return ''
 
       if d['page'].isTalkPage():
-         article_name = d['page_name'][:len(d['page_name'])-5]
+         article_name = wikiutil.talk_to_article_pagename(d['page_name'])
          return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(article_name),
-         '%s<br/>Article' % self.make_icon('article', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
+         '%s<br/>Article' % self.make_icon('article', style=png_behavior)))
       else:
-        talk_page = Page(d['page_name']+'/Talk', self.request)
+        talk_page = Page(wikiutil.article_to_talk_pagename(d['page_name']), self.request)
         if talk_page.exists():
           return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-         '%s<br/>Talk' % self.make_icon('talk', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
+         '%s<br/>Talk' % self.make_icon('talk', style=png_behavior)))
         else:
           # if the viewer can't edit the talk page, let's spare them from looking at a useless link to an empty page:
           if not self.request.user.may.edit(talk_page):
             return ''
           return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-         '%s<br/>Talk' % self.make_icon('talk', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix)))
+         '%s<br/>Talk' % self.make_icon('talk', style=png_behavior)))
 
 
     def mapicon(self, d):
+      if not config.has_old_wiki_map:
+          action = 'doshow();loadMap();'
+      else:
+          action = 'doshow();';
+
       if self.showapplet:
-        return """<td class="pageIcon" id="show"><a href="#" style="text-decoration: none;"onclick="doshow();">%s<br/>Map</a></td>
-	          <td style="display: none;" class="pageIcon" id="hide"><a href="#" style="text-decoration: none;" onclick="dohide();">%s<br/>Map</a></td>""" % (self.make_icon('viewmap', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix), self.make_icon('hidemap', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix))
+        return """<td class="pageIcon" id="show"><a href="#" style="text-decoration: none;" onclick="%s">%s<br/>Map</a></td>
+                  <td style="display: none;" class="pageIcon" id="hide"><a href="#" style="text-decoration: none;" onclick="dohide();">%s<br/>Map</a></td>""" % (action,self.make_icon('viewmap', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix), self.make_icon('hidemap', style="behavior: url('%s/pngbehavior.htc');" % config.url_prefix))
       else: return ''
 
 
@@ -133,8 +144,8 @@ class Theme(ThemeBase):
 
             html.append('<td id="title_text"><h1>%s</h1>%s</td>' % (
                 pagename_html, polite_html))
-	    html.append(self.new_iconbar(d))
-	    
+            html.append(self.new_iconbar(d))
+            
         else:
             html.append('<td id="title_text"><h1>%s</h1></td>' % wikiutil.escape(d['title_text']))
         return ''.join(html)
@@ -149,14 +160,36 @@ class Theme(ThemeBase):
         """
         _ = self.request.getText
         if self.request.user.valid:
-	    html = """<form action="%s" method="POST">
-<input type="hidden" name="action" value="userform">
-<input type="hidden" name="logout" value="Logout">
+            watch_wiki = ''
+            if config.wiki_farm:
+                if not self.request.user.isWatchingWiki(self.request.config.wiki_name):
+                    watch_wiki = """| %s """ % Page(d['page_name'], self.request).link_to(
+                        know_status=True, know_status_exists=True,
+                        text='watch this wiki',
+                        querystr='action=watch_wiki&wikiname=%s' % self.request.config.wiki_name)
+
+            if config.wiki_farm:
+                wiki_base_url = farm.getBaseFarmURL(self.request)
+            else:
+                wiki_base_url = '%s/' % self.request.getScriptname()
+            html = """
 <div class="user_area">
-<table class="user" align="right"><tr><td>Welcome, %s<br/></td></tr><tr><td align="right"><a href="%s/User_Preferences"><img src="%s" class="actionButton" alt="settings"></a></td></tr>
-<tr><td align="right"><input type="image" name="Submit" value="Submit" src="%s" class="actionButton"></td></tr></table></div></form>""" % (self.request.getScriptname(), wikiutil.link_tag(self.request, self.request.user.propercased_name), self.request.getScriptname(), self.img_url('settings.png'), self.img_url('logout.png'))
+<div class="welcome">Welcome, %s</div><div class="user_items">(<a href="%sUser_Preferences">settings</a> %s| <a href="%s/%s?action=userform&amp;logout=Logout">logout</a>)</div></div>""" % (user.getUserLink(self.request, self.request.user), wiki_base_url, watch_wiki, self.request.getScriptname(), d['q_page_name'])
         else:
-            html = """<form action="%s/%s" method="POST">
+            if config.wiki_farm:
+                post_url = farm.getBaseFarmURL(self.request)
+                our_wiki_url = '%s/%s' % (self.request.getBaseURL(), d['q_page_name'])
+                base_wiki = post_url
+                farm_params = """
+<input type="hidden" name="backto_wiki" value="%s">
+<input type="hidden" name="backto_page" value="%s">
+<input type="hidden" name="qs" value="%s">
+""" % (self.request.config.wiki_name, urllib.quote(our_wiki_url), urllib.quote(self.request.query_string))
+            else:
+                farm_params = ''
+                post_url = '%s/%s' % (self.request.getScriptname(), d['q_page_name'])
+                base_wiki = '%s/' % self.request.getScriptname()
+            html = """<form action="%s" method="POST" onsubmit="if (!canSetCookies()) { alert('You need cookies enabled to log in.'); return false;}">
 <input type="hidden" name="action" value="userform">
 <div class="login_area">
 <table>
@@ -164,9 +197,9 @@ class Theme(ThemeBase):
 <td colspan="2" align="left" nowrap><input class="formfields" size="22" name="username" type="text"></td> </tr> <tr>
 <td align="right">Password:</td>
 <td colspan="2" align="left" nowrap> <input class="formfields" size="22" type="password" name="password"> 
-<input type="hidden" name="login" value="Login">
-</td></tr><tr><td></td><td align="left" nowrap><input type="image" src="%s" name="login" value="Login" class="actionButton" alt="login"></td><td align="right"><a href="%s/User_Preferences?new_user=1"><img src="%s" class="actionButton" alt="new user"></a></td></tr></table></div></form>""" % (self.request.getScriptname(), d['q_page_name'], self.img_url('login.png'), self.request.getScriptname(), self.img_url('newuser.png'))
-	    
+<input type="hidden" name="login" value="Login">%s
+</td></tr><tr><td></td><td align="left" nowrap>(<a href="%sUser_Preferences?new_user=1">new user</a>)</td><td align="right"><input type="submit" name="login" value="Login" alt="login"></td></tr></table></div></form>""" % (post_url, farm_params, base_wiki)
+            
         return html
 
     def navibar(self, d):
@@ -195,21 +228,21 @@ class Theme(ThemeBase):
 
     def isEdit(self):
         """
-	Are we in the page editing interface?
-	"""
-	if self.request.form.has_key('action') and self.request.form['action'][0] == 'edit':
-	  return True
-	else:
-	  return False
+        Are we in the page editing interface?
+        """
+        if (self.request.form.has_key('action') and self.request.form['action'][0] == 'edit') or (self.request.form.has_key('action') and self.request.form['action'][0] == 'savepage' and self.request.form.has_key('button_preview')):
+          return True
+        else:
+          return False
 
     def isInfo(self):
         """
-	Are we in the info interface?
-	"""
-	if self.request.form.has_key('action') and (self.request.form['action'][0] == 'info' or self.request.form['action'][0] == 'Files' or self.request.form['action'][0] == 'userinfo'):
-	  return True
-	else:
-	  return False
+        Are we in the info interface?
+        """
+        if self.request.form.has_key('action') and (self.request.form['action'][0] == 'info' or self.request.form['action'][0] == 'Files' or self.request.form['action'][0] == 'userinfo'):
+          return True
+        else:
+          return False
         
     def navbar(self, d):
         """
@@ -221,42 +254,42 @@ class Theme(ThemeBase):
         """
         _ = self.request.getText
 
-	lower_page_name = d['page_name'].lower()
+        lower_page_name = d['page_name'].lower()
         
         if self.request.user.valid:
-	    html = ['<div class="tabArea">']
-	    in_preset_tab = False
-	    for tab in config.tabs_user:
-	      tabclass = 'tab'
-	      lower_tab = tab.lower()
-	      if lower_tab == lower_page_name:
-	        tabclass = '%s activeTab' % tabclass
-		in_preset_tab = True
-	      if lower_tab == 'bookmarks' and  self.request.user.hasUnseenFavorite():
-	        tabclass = '%s notice' % tabclass
+            html = ['<div class="tabArea">']
+            in_preset_tab = False
+            for tab in self.request.config.tabs_user:
+              tabclass = 'tab'
+              lower_tab = tab.lower()
+              if lower_tab == lower_page_name:
+                tabclass = '%s activeTab' % tabclass
+                in_preset_tab = True
+              if lower_tab == 'bookmarks' and  self.request.user.hasUnseenFavorite():
+                tabclass = '%s notice' % tabclass
 
               html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
 
-	    if not in_preset_tab and d['page_name']:
+            if not in_preset_tab and d['page_name']:
               html.append('<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a> ')
         else:
             html = ['<div class="tabArea">']
-	    in_preset_tab = False
-	    for tab in config.tabs_nonuser:
-	      tabclass = 'tab'
-	      lower_tab = tab.lower()
-	      if lower_tab == lower_page_name:
-	        tabclass = '%s activeTab' % tabclass
-		in_preset_tab = True
+            in_preset_tab = False
+            for tab in self.request.config.tabs_nonuser:
+              tabclass = 'tab'
+              lower_tab = tab.lower()
+              if lower_tab == lower_page_name:
+                tabclass = '%s activeTab' % tabclass
+                in_preset_tab = True
 
               html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))
 
-	    if not in_preset_tab and d['page_name']:
+            if not in_preset_tab and d['page_name']:
               html.append('<a href="%(script_name)s/%(q_page_name)s" class="tab activeTab">%(page_name)s</a> ')
 
 
-	html.append('</div>')
-	html = ''.join(html) % d
+        html.append('</div>')
+        html = ''.join(html) % d
 
         return html
 
@@ -287,59 +320,65 @@ class Theme(ThemeBase):
         """
         _ = self.request.getText
         html = []
-	actions_in_footer = False
+        actions_in_footer = False
         if keywords.get('editable', 1):
             editable = self.request.user.may.edit(d['page'])
-	    if editable:
-	      d['last_edit_info'] = d['page'].last_modified_str()
-	    else: d['last_edit_info'] = ''
+            if editable:
+              d['last_edit_info'] = d['page'].last_modified_str()
+            else: d['last_edit_info'] = ''
 
             html.append('<script language="JavaScript" type="text/javascript">\nvar donate2=new Image();donate2.src="%s";var donate=new Image();donate.src="%s";</script><div id="footer"><table width="100%%" border="0" cellspacing="0" cellpadding="0"><tr>' % (self.img_url('donate2.png'), self.img_url('donate.png')))
-	    # noedit is a keyword that tells us if we are in an area where an edit link just logically makes no sense, such as the info tab.
-	    if not keywords.get('noedit'):
-	        if editable:
-	          if d['last_edit_info']:
-	            html.append('<td align="left" width="50%">')
-	          else:
-	            html.append('<td align="left" width="24%">')
-	        else:
-                    if not self.request.user.isFavoritedTo(d['lower_page_name']):
-	              html.append('<td align="left" width="20%">')
-                    else:
-	              html.append('<td align="left" width="10%">')
-
+            # noedit is a keyword that tells us if we are in an area where an edit link just logically makes no sense, such as the info tab.
+            leftwidth = '10'
+            if not keywords.get('noedit'):
                 if editable:
-		    actions_in_footer = True
+                  if d['last_edit_info']:
+                    leftwidth = '50'
+                  else:
+                    leftwidth = '24'
+                else:
+                    if not self.request.user.isFavoritedTo(d['page']):
+                      leftwidth = '20'
+                    else:
+                      leftwidth = '10'
+            html.append('<td align="left" width="%s%%">' % leftwidth)
+
+            if not keywords.get('noedit'):
+                if editable:
+                    actions_in_footer = True
                     html.append("%s" % (
                         wikiutil.link_tag(self.request, d['q_page_name']+'?action=edit', _('Edit'))))
 
-		if not self.request.user.anonymous:
-		    if not self.request.user.isFavoritedTo(d['lower_page_name']):
-		      actions_in_footer = True
-		      if editable:
+                if not self.request.user.anonymous:
+                    if not self.request.user.isFavoritedTo(d['page']):
+                      actions_in_footer = True
+                      if editable:
                         html.append(" or %s" % (
                             wikiutil.link_tag(self.request, d['q_page_name']+'?action=favorite', _('Bookmark'))))
-		      else: 
+                      else: 
                         html.append("%s" % (
                             wikiutil.link_tag(self.request, d['q_page_name']+'?action=favorite', _('Bookmark'))))
 
                 if actions_in_footer: html.append(' this page')
 
-	        if d['last_edit_info']:
+                if d['last_edit_info']:
                     html.append(' %(last_edit_info)s' % d)
-	
+        
             cc_button = '<a href="http://creativecommons.org/licenses/by/2.0/"><img alt="Creative Commons License" border="0" src="%s"/></a>' % self.img_url('cc.png')
-	    if config.license_text:
-	      if config.footer_buttons:
-                html.append('<td align="center" valign="middle"><div class="license">%s</div></td>' % config.license_text)
-                html.append('<td align="right" valign="middle" width="%spx" style="padding-right: 5px;">%s</td></tr></table></div>' % (len(config.footer_buttons)*100, ' '.join(config.footer_buttons)))
-	      else:
-                html.append('<td align="center" valign="middle"><div class="license">%s</div></td></tr></table></div>' % (config.license_text))
-	    else:
-	      if config.footer_buttons:
-                html.append('<td align="right" valign="middle" width="%spx" style="padding-right: 5px;">%s</td></tr></table></div>' % (len(config.footer_buttons)*100, ' '.join(config.footer_buttons)))
-	      else:
-                html.append('</tr></table></div>' % (cc_button))
+            if self.request.config.license_text:
+              html.append('<td align="center" valign="middle"><div class="license">%s</div></td>' % self.request.config.license_text)
+              if self.request.config.footer_buttons:
+                html.append('<td align="right" valign="middle" width="%spx" style="padding-right: 5px;">%s</td></tr></table></div>' % (len(self.request.config.footer_buttons)*100, ' '.join(self.request.config.footer_buttons)))
+              else:
+                if not actions_in_footer:
+                    html.append('<td align="right" valign="middle" width="%s%%" style="padding-right: 5px;"> </td></tr></table></div>' % leftwidth)
+                else:
+                    html.append('<td align="right" valign="middle" width="20px" style="padding-right: 5px;"> </td></tr></table></div>')
+            else:
+              if self.request.config.footer_buttons:
+                html.append('<td align="right" valign="middle" width="%spx" style="padding-right: 5px;">%s</td></tr></table></div>' % (len(self.request.config.footer_buttons)*100, ' '.join(self.request.config.footer_buttons)))
+              else:
+                html.append('</tr></table></div>')
 
         return ''.join(html)
         
@@ -359,28 +398,46 @@ class Theme(ThemeBase):
         dict['newtitle'] = None
         dict['newtitle'] = dict['title']
         if dict['title'] == 'Front Page':
-            dict['newtitle'] = config.catchphrase
-	dict['web_dir'] = config.web_dir
-	if dict['newtitle'] is config.catchphrase: 
-          if config.catchphrase:
-        	html = """
+            dict['newtitle'] = self.request.config.catchphrase
+        
+        dict['web_dir'] = config.web_dir
+
+        if d['page'].hasMapPoints() and not self.request.config.has_old_wiki_map:
+            dict['wiki_name'] = self.request.config.wiki_name
+            if config.wiki_farm:
+                dict['map_base'] = farm.getBaseFarmURL(self.request)
+            else:
+                dict['map_base'] = self.request.getBaseURL()
+            dict['gmaps_api_key'] = self.request.config.gmaps_api_key or config.gmaps_api_key
+            dict['map_html'] = """<script src="http://maps.google.com/maps?file=api&v=2&key=%(gmaps_api_key)s" type="text/javascript"></script>
+<script src="%(web_dir)s/wiki/gmap.js" type="text/javascript"></script>
+<script type="text/javascript">var map_url="%(map_base)s?action=gmaps&wiki=%(wiki_name)s";var point_count=1;</script>""" % dict
+        else:
+            dict['map_html']  = ''
+
+        if dict['newtitle'] is self.request.config.catchphrase: 
+          if self.request.config.catchphrase:
+                html = """
 <title>%(sitename)s - %(newtitle)s</title><script
 src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
+%(map_html)s
 %(stylesheets_html)s
-		""" % dict
+                """ % dict
           else:
-        	html = """
+                html = """
 <title>%(sitename)s</title><script
 src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
+%(map_html)s
 %(stylesheets_html)s
-		""" % dict
+                """ % dict
 
-	else:
+        else:
                 html = """
 <title>%(newtitle)s - %(sitename)s</title><script
 src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
+%(map_html)s
 %(stylesheets_html)s
-                """ % dict	
+                """ % dict      
 
         return html
 
@@ -393,11 +450,16 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         @return: page header html
         """
         title_str = '"%s"' %  d['title_text']
-	if config.has_wiki_map and d['page_name'] and d['page'].hasMapPoints() and not self.isEdit():
+        if d['page_name'] and d['page'].hasMapPoints() and not self.isEdit():
            self.showapplet = True
         apphtml = ''
         if self.showapplet:
-           apphtml = '<table id="map" width="810" height="460" style="display: none; margin-top: -1px;" border="0" cellpadding="0" cellspacing="0"><tr><td bgcolor="#ccddff" style="border-right: 1px dashed #aaaaaa; border-bottom: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, d['script_name'], d['page_name'], d['script_name'])
+           if config.has_old_wiki_map:
+               map_html = """<applet code="WikiMap.class" archive="%s/wiki/map.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet>"""% (config.web_dir, config.web_dir, d['script_name'], d['page_name'], d['script_name'])
+               apphtml = '<div id="map" style="width: 810px; height: 460px; display: none; margin-top: -1px;">%s</div>' % map_html 
+           else:
+                apphtml = '<div id="mapContainer" style="width: 478px; height: 330px; display: none;"><div id="map" style="width: 450px; height: 300px; position: relative; display: none;"></div></div>'
+
         dict = {
             'config_header1_html': self.emit_custom_html(config.page_header1),
             'config_header2_html': self.emit_custom_html(config.page_header2),
@@ -450,7 +512,7 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
 
     # Footer stuff #######################################################
     
-    def searchform(self, d):
+    def searchform(self, d, wiki_global=False):
         """
         assemble HTML code for the search forms
         
@@ -463,11 +525,15 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
             'search_title': _("Search"),
             'search_html': _("Search: %(textsearch)s&nbsp;&nbsp;") % d,
         }
+        if wiki_global:
+            dict['search_action'] = 'global_search'
+        else:
+            dict['search_action'] = 'search'
         dict.update(d)
         
         html = """
 <form method="GET" action="%(script_name)s/%(q_page_name)s">
-<input type="hidden" name="action" value="search">
+<input type="hidden" name="action" value="%(search_action)s">
 %(search_html)s
 </form>
 """ % dict
@@ -485,7 +551,7 @@ src="%(web_dir)s/wiki/utils.js" type="text/javascript"></script>
         @return: page footer html
         """
 
-	return "%s<br/>" % self.edittext_link(d, **keywords)
+        return """%s<div class="wikiGlobalFooter" align="center">%s</div>""" % (self.edittext_link(d, **keywords), config.page_footer1)
         
 def execute(request):
     """

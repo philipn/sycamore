@@ -10,7 +10,7 @@
 
 # Imports
 import re, time, cStringIO, urllib
-from Sycamore import config, user, util, wikiutil, wikidb
+from Sycamore import config, user, util, wikiutil, wikidb, farm
 from Sycamore.Page import Page
 from Sycamore.formatter.text_html import Formatter
 from Sycamore.widget.comments import Comment
@@ -35,55 +35,71 @@ def getPageStatus(lines, pagename, request):
     for edit in lines:
       if edit.action != 'ATTNEW' and edit.action != 'ATTDEL':
         if edit.action != 'DELETE':
-	   request.req_cache['pagenames'][pagename.lower()] = pagename
-	else: request.req_cache['pagenames'][pagename.lower()] = False
+	   request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = pagename
+	else: request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = False
 	break
-      
 
-def format_page_edits(macro, lines, showcomments, bookmark, formatter):
-    request = macro.request
+def format_page_edit_icon(request, lines, page, hilite, bookmark, formatter):
+    is_new = lines[-1].action == 'SAVENEW'
+    is_event = lines[-1].action == 'NEWEVENT'
+    if not page.exists():
+        if lines[0].ed_time:
+            # indicate page was deleted
+            html_link = '<div class="rcTag"><div class="rcTagDeleted">deleted</div></div>'
+        else:
+            # indicate page was never created
+            html_link = '<div class="rcTag">&nbsp;</div>'
+    elif is_new:
+        # show "NEW" icon if page was created after the user's bookmark
+        if len(lines) == 1: 
+           html_link = '<div class="rcTag"><div class="rcTagNew">new</div></div>'
+        else:
+           tag = 'changes'
+           diff = 'action=diff&at_date=%s' % (repr(lines[0].ed_time))
+           html_link = '<div class="rcTag"><div class="rcTagNew">%s</div></div>' % page.link_to(querystr=diff, text=tag)
+    elif hilite:
+        # show bolder status if page was edited after the user's rc bookmark
+        tag = 'changes'
+        html_link = '<div class="rcTag"<div class="rcTagChanges">%s</div></div>' % page.link_to(
+                                      querystr="action=diff&date=%s" % str(bookmark),
+                                      text=tag)
+    else:
+        # show normal changes link else
+        tag = 'changes'
+        diff = 'action=diff&at_date=%s' % (repr(lines[0].ed_time))
+        html_link = '<div class="rcTag"><div class="rcTagChanges">%s</div></div>' % page.link_to(
+                                      querystr=diff,
+                                      text=tag)
+
+    return html_link
+      
+def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_global=False):
     _ = request.getText
     d = {} # dict for passing stuff to theme
     line = lines[0]
     d['show_comments'] = showcomments
     pagename = line.pagename
     tnow = time.time()
-    is_new = lines[-1].action == 'SAVENEW'
-    is_event = lines[-1].action == 'NEWEVENT'
+    
     # check whether this page is newer than the user's bookmark
     hilite = line.ed_time > (bookmark or line.ed_time)
-    page = Page(line.pagename, request)
-    getPageStatus(lines, pagename, macro.request)
-
-    html_link = ''
-    if not page.exists():
-        # indicate page was deleted
-        html_link = request.theme.make_icon('deleted', actionButton=True)
-    elif is_new:
-        # show "NEW" icon if page was created after the user's bookmark
-        if len(lines) == 1: 
-           html_link = request.theme.make_icon('new', actionButton=True)
-        else:
-           img = request.theme.make_icon('new', actionButton=True)
-           html_link = wikiutil.link_tag(request,wikiutil.quoteWikiname(pagename) + "?action=diff", img)
-    elif hilite:
-        # show "UPDATED" icon if page was edited after the user's bookmark
-        img = request.theme.make_icon('updated', actionButton=True)
-        html_link = wikiutil.link_tag(request,
-                                      "%s?action=diff&date=%s" % (wikiutil.quoteWikiname(pagename), str(bookmark)),
-                                      img, formatter=macro.formatter, pretty_url=1)
+    if wiki_global:
+        page = Page(line.pagename, request, wiki_name=line.wiki_name)
     else:
-        # show "DIFF" icon else
-        img = request.theme.make_icon('diffrc', actionButton=True)
-        html_link = wikiutil.link_tag(request,
-                                      "%s?action=diff" % wikiutil.quoteWikiname(line.pagename),
-                                      img, formatter=macro.formatter, pretty_url=1)
+        page = Page(line.pagename, request)
+    getPageStatus(lines, pagename, request) # can infer 'exists?' from current rc data?
 
+    html_link = format_page_edit_icon(request, lines, page, hilite, bookmark, formatter)
+    
     # print name of page, with a link to it
     force_split = len(page.page_name) > _MAX_PAGENAME_LENGTH
     
-    d['icon_html'] = html_link
-    d['pagelink_html'] = page.link_to(text=pagename)
+    d['rc_tag_html'] = html_link
+
+    if wiki_global:
+        d['pagelink_html'] = '%s <span class="minorText">(on %s)</span>' % (page.link_to(text=pagename), farm.link_to_wiki(line.wiki_name, formatter))
+    else:
+        d['pagelink_html'] = page.link_to(text=pagename) 
     
     # print time of change
     d['time_html'] = None
@@ -104,7 +120,7 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
             if nummins > 1:
                txttime = '%s %s minutes' % (str(txthrs), str(nummins))
             if nummins == 0 and numhrs == 0:
-               numsecs = int(tnow - line.ed_time)%60
+               numsecs = int(tnow - line.ed_time) % 60
                txttime = '%s second' % str(numsecs)
                if numsecs > 1:
                  txttime = '%ss' % txttime
@@ -123,18 +139,12 @@ def format_page_edits(macro, lines, showcomments, bookmark, formatter):
     comments = []
     for idx in range(len(lines)):
         comment = Comment(request, lines[idx].comment,
-			  lines[idx].action, page.proper_name()).render()
+			  lines[idx].action, page).render()
 	comments.append(comment)
     
     d['changecount'] = len(lines)
     d['comments'] = comments
 
-    img = request.theme.make_icon('info')
-    info_html = wikiutil.link_tag(request,
-                                  "%s?action=info" % wikiutil.quoteWikiname(line.pagename),
-                                  img, formatter=macro.formatter, pretty_url=1)
-    d['info_html'] = info_html
-    
     return request.theme.recentchanges_entry(d)
     
 def cmp_lines(first, second):
@@ -144,13 +154,20 @@ def execute(macro, args, formatter=None, **kw):
     if not formatter: formatter = macro.formatter
 
     request = macro.request
-
     _ = request.getText
 
+    pagename = formatter.page.page_name
+    q_pagename = wikiutil.quoteWikiname(pagename)
+    rc_page = Page(pagename, request)
+
     d = {}
-    page_path = request.getScriptname() + request.getPathinfo()
-    pagename = request.getPathinfo()[1:]
-    d['q_page_name'] = wikiutil.quoteWikiname(pagename)
+    d['q_page_name'] = q_pagename
+    d['page'] = rc_page
+
+    if args == 'global':
+        wiki_global = True
+    else:
+        wiki_global = False
 
     # flush output because getting all the changes may take a while in some cases
     # this may actually be bad for web server performance
@@ -160,14 +177,17 @@ def execute(macro, args, formatter=None, **kw):
     max_days = min(int(request.form.get('max_days', [0])[0]), _DAYS_SELECTION[-1])
 
     # get bookmark from valid user
-    bookmark = request.user.getBookmark()
+    bookmark = request.user.getBookmark(wiki_global=wiki_global)
 
     # default to _MAX_DAYS for useres without bookmark
     if not max_days:
         max_days = _MAX_DAYS
     d['rc_max_days'] = max_days
 
-    lines = wikidb.getRecentChanges(request, max_days=max_days, changes_since=bookmark)
+    if wiki_global:
+        lines = wikidb.getRecentChanges(request, max_days=max_days, changes_since=bookmark, wiki_global=wiki_global, on_wikis=request.user.getWatchedWikis())
+    else:
+        lines = wikidb.getRecentChanges(request, max_days=max_days, changes_since=bookmark, wiki_global=wiki_global)
 
     tnow = time.time()
     msg = ""
@@ -177,25 +197,23 @@ def execute(macro, args, formatter=None, **kw):
     d['show_comments'] = None
     d['show_comments'] = showComments
     if showComments == 1:
-        d['show_comments_html'] = '[%s]' % wikiutil.link_tag(request, "%s?action=showcomments&hide=1" % pagename, "Hide comments")
+        d['show_comments_html'] = rc_page.link_to(querystr="action=showcomments&hide=1", text="Hide comments")
     else:
-        d['show_comments_html'] = '[%s]' % wikiutil.link_tag(request, "%s?action=showcomments" % pagename, "Show comments")
+        d['show_comments_html'] = rc_page.link_to(querystr="action=showcomments", text="Show comments")
 
     # add bookmark link if valid user
     d['rc_curr_bookmark'] = None
     d['rc_update_bookmark'] = None
     if request.user.valid:
-        d['rc_curr_bookmark'] = _('(will show you only changes made since you last pressed \'clear\')')
+        d['rc_curr_bookmark'] = ''
+        if wiki_global:
+            globalstr = '&global=1'
+        else:
+            globalstr = ''
         if bookmark:
-            d['rc_curr_bookmark'] = "%s [%s]" % ( _('(currently set to %s)') % request.user.getFormattedDateTime(bookmark), 
-                 wikiutil.link_tag(request, "%s?action=bookmark&time=del" % pagename, _("Show all changes")) )
-
-        d['rc_update_bookmark'] = wikiutil.link_tag(
-            request,
-	    "%s?action=bookmark&time=%d" % (pagename, tnow), 
-            _("Clear observed changes")
-            )
-    
+            d['rc_curr_bookmark'] = " | %s" % rc_page.link_to(querystr="action=bookmark&time=del%s" % globalstr, text=_("Show all changes"))
+                 
+        d['rc_update_bookmark'] = ' | %s' % rc_page.link_to(querystr="action=bookmark&time=%d%s" % (tnow, globalstr), text=_("Clear observed changes"))
         
     # give known user the option to extend the normal display
     if request.user.valid:
@@ -210,15 +228,16 @@ def execute(macro, args, formatter=None, **kw):
     request.write(request.theme.recentchanges_header(d))
     
     pages = {}
-    ignore_pages = {}
-
     today = request.user.getTime(tnow)[0:3]
     this_day = today
     day_count = 0
+    
+    if not lines:
+        request.write("<p>No recent changes.  Quick &mdash; change something while nobody's looking!</p>")
 
     for line in lines:
         line.page = Page(line.pagename, macro.request)
-	# 2006-05 calling may here is too expensive.  just show them the page.  on the off change they can't read it, then, well, clicking on it won't be too productive for them.
+	    # 2006-05 calling acl 'may' here is too expensive.  just show them the page.  on the off change they can't read it, then, well, clicking on it won't be too productive for them.
         #if not request.user.may.read(line.page):
         #    continue
         if not line.ed_time: continue
@@ -230,24 +249,18 @@ def execute(macro, args, formatter=None, **kw):
             and len(pages) > 0):
             # new day or bookmark reached: print out stuff 
             this_day = day
-            for page in pages:
-                ignore_pages[page] = None
             pages = pages.values()
             pages.sort(cmp_lines)
             pages.reverse()
             d['show_comments'] = showComments        
             d['bookmark_link_html'] = None
             if request.user.valid:
-                d['bookmark_link_html'] = wikiutil.link_tag(
-                    request,
-                        pagename + "?action=bookmark&time=%d" % (pages[0][0].ed_time,),
-                        _("set bookmark")
-                        )
+                d['bookmark_link_html'] = rc_page.link_to(querystr="action=bookmark&time=%d" % pages[0][0].ed_time, text=_("set bookmark"))
             d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)
             request.write(request.theme.recentchanges_daybreak(d))
             
-            for page in pages:
-                request.write(format_page_edits(macro, page, showComments, bookmark, formatter))
+            for page_line in pages:
+                request.write(format_page_edits(request, page_line, showComments, bookmark, formatter, wiki_global=wiki_global))
             day_count += 1
             pages = {}
             if max_days and (day_count >= max_days):
@@ -257,41 +270,32 @@ def execute(macro, args, formatter=None, **kw):
             # new day but no changes
             this_day = day
 
-        if ignore_pages.has_key(line.pagename):
-            continue
-        
         # end listing by default if user has a bookmark and we reached it
         if not max_days and not hilite:
             msg = _('<h5>Bookmark reached</h5>')
             break
 
-        if pages.has_key(line.pagename):
-            pages[line.pagename].append(line)
+        if pages.has_key((line.pagename, line.wiki_name)):
+            pages[(line.pagename, line.wiki_name)].append(line)
         else:
-            pages[line.pagename] = [line]
+            pages[(line.pagename, line.wiki_name)] = [line]
     else:
         if len(pages) > 0:
             # end of loop reached: print out stuff 
             # XXX duplicated code from above
             # but above does not trigger if have the first day in wiki history
-            for page in pages:
-                ignore_pages[page] = None
             pages = pages.values()
             pages.sort(cmp_lines)
             pages.reverse()
             
             d['bookmark_link_html'] = None
             if request.user.valid:
-                d['bookmark_link_html'] = wikiutil.link_tag(
-                    request,
-                        "%s?action=bookmark&time=%d" % (pagename, pages[0][0].ed_time),
-                        _("set bookmark")
-                        )
+                d['bookmark_link_html'] = rc_page.link_to(querystr="action=bookmark&time=%d" % pages[0][0].ed_time,text=_("set bookmark"))
             d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)
             request.write(request.theme.recentchanges_daybreak(d))
             
-            for page in pages:
-                request.write(format_page_edits(macro, page, showComments, bookmark, formatter))
+            for page_line in pages:
+                request.write(format_page_edits(request, page_line, showComments, bookmark, formatter, wiki_global=wiki_global))
     
 
     d['rc_msg'] = msg

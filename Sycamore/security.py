@@ -29,7 +29,7 @@ class Permissions:
     def __init__(self, user):
         """ Calculate the permissons `user` has.
         """
-        self.name = user.propercased_name
+        self.name = user.name
         self.request = user.request
 
     def read(self, page, **kw):
@@ -46,19 +46,7 @@ class Permissions:
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(page).may(self.request, self.name, "write")
-
-    def save(self, editor, newtext, datestamp, **kw):
-        """ Check whether user may save a page.
-
-            `editor` is the PageEditor instance, the other arguments are
-            those of the `PageEditor.saveText` method.
-
-            The current msg presented to the user ("You are not allowed
-            to edit any pages.") is a bit misleading, this will be fixed
-            if we add policy-specific msgs.
-        """
-        return self.edit(editor)
+        return self.getACL(page).may(self.request, self.name, "edit")
 
     def delete(self, page, **kw):
         """ Check whether user may delete this page.
@@ -67,14 +55,6 @@ class Permissions:
             policies and is not used currently.
         """
         return self.getACL(page).may(self.request, self.name, "delete")
-
-    def revert(self, page, **kw):
-        """ Check whether user may revert this page.
-
-            `kw` allows passing more information without breaking user
-            policies and is not used currently.
-        """
-        return self.getACL(page).may(self.request, self.name, "revert")
 
     def admin(self, page, **kw):
         """ Check whether user may administrate this page.

@@ -24,9 +24,9 @@ from Sycamore.util import pysupport
 #############################################################################
 
 names = [ "titleindex",
-         "systeminfo", "pagecount", "userpreferences",
+         "systeminfo", "pagecount", "userpreferences", "generalsettings", "securitysettings", "usergroups",
          # Macros with arguments
-         "icon", "date", "datetime", "anchor", "mailto", "getval",
+         "icon", "date", "datetime", "anchor", "mailto", "getval", "search",
 ]
 
 # external macros
@@ -67,7 +67,6 @@ class Macro:
         "goto"        : [],
         "wordindex"   : ["namespace"],
         "titleindex"  : ["namespace"],
-        "interwiki"   : ["pages"],  # if interwikimap is editable
         "systeminfo"  : ["pages"],
         "pagecount"   : ["namespace"],
         "icon"        : ["user"], # users have different themes and user prefs
@@ -78,6 +77,7 @@ class Macro:
         "anchor"      : [],
         "mailto"      : ["user"],
         "getval"      : ["pages"],
+        "search"      : [],
         }
 
     # we need the lang macros to execute when html is generated,
@@ -133,27 +133,6 @@ class Macro:
         else:
             return ["time"]
 
-    def _m_search(self, type):
-        _ = self._
-        if self.form.has_key('value'):
-            default = wikiutil.unquoteWikiname(self.form["value"][0])
-        else:
-            default = ''
-        boxes = ''
-        if type == "fullsearch":
-            boxes = (
-                  '<br><input type="checkbox" name="context" value="40" checked="checked">'
-                + _('Display context of search results')
-                + '<br><input type="checkbox" name="case" value="1">'
-                + _('Case-sensitive searching')
-            )
-        return self.formatter.rawHTML((
-            '<form method="GET">'
-            '<input type="hidden" name="action" value="%s">'
-            '<input name="value" size="30" value="%s">&nbsp;'
-            '<input type="submit" value="%s">'
-            '%s</form>') % (type, wikiutil.escape(default, quote=1), _("Go"), boxes))
-
     
     def _macro_titleindex(self, args, formatter=None):
         if not formatter: formatter = self.formatter
@@ -162,8 +141,8 @@ class Macro:
         index_letters = []
         allpages = int(self.form.get('allpages', [0])[0]) != 0
         pages = wikiutil.getPageList(self.request, alphabetize=False)
-  	pages_deco = [ (pagename.lower(), pagename) for pagename in pages ]
-	pages_deco.sort()
+        pages_deco = [ (pagename.lower(), pagename) for pagename in pages ]
+        pages_deco.sort()
         pages = [ word for lower_word, word in pages_deco ]
         #list(wikiutil.getPageList(config.text_dir))
         # pages = filter(self.request.user.may.read, pages)
@@ -172,9 +151,6 @@ class Macro:
         current_letter = None
         #for name in pages:
         #    html.append(' %s ' % name)
-        relative_dir = ''
-        if config.relative_dir:
-            relative_dir = '/' + config.relative_dir
         for name in pages:
             if 1: #self.request.user.may.read(name):
                 letter = name[0].upper()
@@ -194,10 +170,10 @@ class Macro:
                     current_letter = letter
                 else:
                     html.append('<br>')
-                html.append('<a href="%s/%s">%s</a>\n' % (relative_dir, wikiutil.quoteWikiname(name), name))
+                html.append('<a href="%s%s">%s</a>\n' % (self.request.getScriptname(), wikiutil.quoteWikiname(name), name))
 #Page(name).link_to(self.request, attachment_indicator=1))
 
-	index = ''
+        index = ''
         ## add rss link
         #if 0: # if wikixml.ok: # XXX currently switched off (not implemented)
         #    from Sycamore import wikixml
@@ -235,7 +211,7 @@ class Macro:
 
 
     def _macro_systeminfo(self, args, formatter):
-	"""
+        """
         import operator, sys
         from cStringIO import StringIO
         from Sycamore import processor
@@ -291,9 +267,9 @@ class Macro:
         buf.write('</dl')
 
         return self.formatter.rawHTML(buf.getvalue())
-	"""
-	
-	return self.formatter.rawHTML('<i>System Info macro is turned off.  It uses too much CPU to be actively used, so if you\'re an admin and want to use it for a minute, then edit wikimacro.py and turn it on.  Otherwise, leave it off! :)</i>')
+        """
+        
+        return self.formatter.rawHTML('<i>System Info macro is turned off.  It uses too much CPU to be actively used, so if you\'re an admin and want to use it for a minute, then edit wikimacro.py and turn it on.  Otherwise, leave it off! :)</i>')
 
 
     def _macro_pagecount(self, args, formatter=None):
@@ -304,7 +280,7 @@ class Macro:
 
     def _macro_icon(self, args, formatter=None):
         if not formatter: formatter = self.formatter
-	self.request.formatter = formatter
+        self.request.formatter = formatter
         icon = args.lower()
         return self.request.theme.make_icon(icon, actionButton=True)
 
@@ -357,6 +333,35 @@ class Macro:
         from Sycamore import userform
         return formatter.rawHTML(userform.getUserForm(self.request))
 
+    def _macro_generalsettings(self, arg, formatter=None):
+        if not formatter: formatter = self.formatter
+        from Sycamore import sitesettings
+        return formatter.rawHTML(sitesettings.getGeneralForm(self.request))
+
+    def _macro_securitysettings(self, arg, formatter=None):
+        if not formatter: formatter = self.formatter
+        from Sycamore import sitesettings
+        return formatter.rawHTML(sitesettings.getSecurityForm(self.request))
+
+    def _macro_usergroups(self, arg, formatter=None):
+        if not formatter: formatter = self.formatter
+        from Sycamore import sitesettings
+        return formatter.rawHTML(sitesettings.getUserGroupForm(self.request))
+
+    def _macro_search(self, arg, formatter=None):
+        if not formatter: formatter = self.formatter
+        alt, img_url, x, y = self.request.theme.get_icon('searchbutton')
+        d = { 'img_url': img_url, 'alt': alt, 'q_pagename': wikiutil.quoteWikiname(formatter.page.page_name) }
+        if arg and arg.lower() == 'global':
+            d['search_action'] = 'global_search'
+        else:
+            d['search_action'] = 'search'
+        search_html = """<span><form method="GET" action="%(q_pagename)s" style="display:inline !important;">
+<input type="hidden" name="action" value="%(search_action)s">
+<input class="formfields" type="text" name="inline_string" value="" size="25" maxlength="50">&nbsp;<input type="image" src="%(img_url)s" alt="%(alt)s">&nbsp;&nbsp;
+</form></span>""" % d
+        return formatter.rawHTML(search_html)
+
     def _macro_anchor(self, args, formatter=None):
         if not formatter: formatter = self.formatter
         return formatter.anchordef(args or "anchor")
@@ -393,13 +398,6 @@ class Macro:
 
         return result
 
-
-    def _macro_getval(self, args, formatter=None):
-        if not formatter: formatter = self.formatter
-        page,key = args.split(',')
-        d = self.request.dicts.dict(page)
-        result = d.get(key,'')
-        return formatter.text(result)
 
 def prepareCached(text):
   return 'request.write("' + text + '")'

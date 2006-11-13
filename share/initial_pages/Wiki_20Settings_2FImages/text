@@ -1,4 +1,16 @@
-This page contains some images that are used throughout your wiki.  To change these images, simply change the images on this page:
-    
-  * [[File(logo.png)]] -- This is the primary logo of the wiki.  By default, this is not included.  Upload a logo to create this.
-  * [[File(logo_background.png)]] -- This is the 'background' behind the logo or main text of your wiki.  This is refered to in ["../CSS" the CSS].
+This page contains some images that are used throughout your wiki.  To upload new images, click the links that say "Upload new image.." To change images, click on them on this page and then press "replace file."
+
+== Main logo of the wiki ==
+[[Image(logo.png, noborder)]]
+
+By default, this is not included.  Upload a logo to create this.
+
+== Small logo of the wiki ==
+[[Image(tinylogo.png, noborder)]]
+
+This is the small logo of the wiki.  It is the image others will see when linking to your wiki.  It must be 16x16 pixels.  By default, this is not included.  Upload a logo to create this.
+
+== Background logo ==
+[[Image(logo_background.png, noborder)]]
+
+This is the 'background' behind the logo or main text of your wiki.  This is refered to in ["../CSS" the CSS].

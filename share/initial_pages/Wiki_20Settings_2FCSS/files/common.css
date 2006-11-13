@@ -3,38 +3,38 @@
 /* content styles */
 
 html {
-	height: 100%;
-	margin:0;
-	padding:0;
+    height: 100%;
+    margin:0;
+    padding:0;
 }
 
 h2 {
-	font-size: 2em;
+    font-size: 2em;
         font-weight: normal;
         border-bottom: 1px dashed #aaaaaa;
 }
 
 h3 {
-	font-size: 1.5em;
+    font-size: 1.5em;
         font-weight: normal;
 }
 
 h4 {
-	font-size: 1.3em;
-	font-weight:normal;
+    font-size: 1.3em;
+    font-weight:normal;
 }
 
 h5 {
-	font-size: 1.2em;
-	font-weight: normal;
+    font-size: 1.2em;
+    font-weight: normal;
 }
 h6 {
-	font-size: 1.1em;
+    font-size: 1.1em;
         font-weight: normal;
 }
 
 li p {
-	margin: .2em 0;
+    margin: .2em 0;
 }
 
 li.gap {
@@ -51,19 +51,19 @@ img.transparentImg
 }
     
 a img {
-	border: 0;
+    border: 0;
 }
 
 a img.border {
-	border: 1px solid #000000;
+    border: 1px solid #000000;
 }
 
 img {
-	border: 1px solid #000000;
+    border: 1px solid #000000;
         behavior: url("pngbehavior.htc");
 }
 img.photo {
-	border: 2px solid #ff0000;
+    border: 2px solid #ff0000;
 }
 
 img.borderless {
@@ -89,11 +89,11 @@ input.actionButton:hover {
 }
 
 img.drawing {
-	border: 0;
+    border: 0;
 }
 
 dt {
-	font-weight: bold;
+    font-weight: bold;
 }
 
 pre {
@@ -104,8 +104,8 @@ pre {
 }
 
 .footnotes ul {
-	padding: 0 0em !important;
-	margin: .3em 1.2em 1em !important;
+    padding: 0 0em !important;
+    margin: .3em 1.2em 1em !important;
 }
 
 .footnotes li span {
@@ -138,3 +138,18 @@ strong.highlight
     font-weight: inherit;
     padding: 1pt;
 }
+
+.wikiGlobalFooter
+{
+    padding-top: .4em;
+}
+
+.wikiSpotFooter
+{
+    text-align: center;
+    font-size: 8pt;
+    width: 60%;
+    padding: 0 1em 1em 1em;
+    color: gray;
+}
+

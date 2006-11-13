@@ -2,6 +2,7 @@
 """
     Sycamore - Page class
 
+    @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -10,13 +11,15 @@
 import cStringIO, os, re, urllib, os.path, random
 from Sycamore import config, user, util, wikiutil, wikidb 
 import cPickle
+from copy import copy
 #import Sycamore.util.web
+
+MAX_PAGENAME_LENGTH = 100
 
 class Page(object):
     """Page - Manage an (immutable) page associated with a WikiName.
        To change a page's content, use the PageEditor class.
     """
-    MAX_PAGENAME_LENGTH = 100
     class ExcessiveLength(Exception):
         pass
 
@@ -29,33 +32,42 @@ class Page(object):
         efficient.
 
         @param page_name: Wiki name of the page
-	@param cursor: db cursor 
+        @param cursor: db cursor 
         @keyword prev_date: date of older revision
-	@keyword revision: revision number of older revision
+        @keyword revision: revision number of older revision
         @keyword formatter: formatter instance
-	@keyword req_cache: per-req cache of some information
+        @keyword wiki_name: name of a wiki to switch to for this page (wiki farms only)
         """
-        if len(page_name) > self.MAX_PAGENAME_LENGTH:
-          msg = "Page names must be less than %s characters!" % self.MAX_PAGENAME_LENGTH
+        if len(page_name) > MAX_PAGENAME_LENGTH:
+          msg = "Page names must be less than %s characters!" % MAX_PAGENAME_LENGTH
           raise self.ExcessiveLength, msg
+
+        self.on_wiki_name = request.config.wiki_name # the wiki we are _actually_ on
+        wiki_name = keywords.get('wiki_name')
+        if wiki_name and request.config.wiki_name != wiki_name:
+            request = _copy_wiki_request(wiki_name, request)
+        if not wiki_name:
+            wiki_name = request.config.wiki_name
+        self.wiki_name = wiki_name
+
         self.page_name = page_name.lower()
-	self.given_name = page_name
-	self.request = request
+        self.given_name = page_name
+        self.request = request
         self.cursor = request.cursor
-	self.date = None
+        self.date = None
 
         self.prev_date = keywords.get('prev_date')
-	if self.prev_date:
-	  self.prev_date = float(self.prev_date)
-	  self.version = self.date_to_version_number(self.prev_date)
-	  self.date = self.prev_date
-	else:
-	  # see if they gave revision info 
-	  self.version = keywords.get('version')
-	  if self.version:
-	    self.version = int(self.version)
-	    self.prev_date = self.version_number_to_date(self.version)
-	    self.date = self.prev_date
+        if self.prev_date:
+          self.prev_date = float(self.prev_date)
+          self.version = self.date_to_version_number(self.prev_date)
+          self.date = self.prev_date
+        else:
+          # see if they gave revision info 
+          self.version = keywords.get('version')
+          if self.version:
+            self.version = int(self.version)
+            self.prev_date = self.version_number_to_date(self.version)
+            self.date = self.prev_date
 
         self._raw_body = None
         self._raw_body_modified = 0
@@ -64,6 +76,7 @@ class Page(object):
         if keywords.has_key('formatter'):
             self.formatter = keywords.get('formatter')
             self.default_formatter = 0
+            self.formatter.request = self.request
         else:
             self.default_formatter = 1
 
@@ -71,7 +84,7 @@ class Page(object):
       # returns date this page/verison was created
       if self.version and not self.date:
         self.date = self.version_number_to_date(self.version)
-	return self.date
+        return self.date
       elif not self.date:
         self.date = self.last_edit_info()[0]
       return self.date
@@ -80,23 +93,29 @@ class Page(object):
       # returns date this page/verison was created
       if self.date and not self.version:
         self.version = self.date_to_version_number(self.date)
-	return self.version
+        return self.version
       elif not self.version:
         self.date = self.last_edit_info()[0]
-	self.version = self.date_to_version_number(self.date)
+        self.version = self.date_to_version_number(self.date)
       return self.version
 
 
     def version_number_to_date(self, version_number):
         # Returns the unix timestamp of the editTime of this version of the page.
-        self.cursor.execute("SELECT editTime from allPages where name=%(page_name)s order by editTime asc limit 1 offset %(version)s;", {'page_name':self.page_name, 'version':version_number-1})
+        if self.request.req_cache['pageVersionDate'].has_key((self.page_name, version_number, self.request.config.wiki_id)):
+            return self.request.req_cache['pageVersionDate'][(self.page_name, version_number, self.request.config.wiki_id)]
+        self.cursor.execute("SELECT editTime from allPages where name=%(page_name)s and wiki_id=%(wiki_id)s order by editTime asc limit 1 offset %(version)s;", {'page_name':self.page_name, 'version':version_number-1, 'wiki_id': self.request.config.wiki_id})
         result = self.cursor.fetchone()
+        self.request.req_cache['pageVersionDate'][(self.page_name, version_number, self.request.config.wiki_id)] = result[0]
         return result[0]
 
     def date_to_version_number(self, date):
         # Returns the version number of a given date of this page
-        self.cursor.execute("SELECT count(editTime) from allPages where name=%(page_name)s and editTime<=%(date)s;", {'page_name':self.page_name, 'date':date})
+        if self.request.req_cache['pageDateVersion'].has_key((self.page_name, date, self.request.config.wiki_id)):
+            return self.request.req_cache['pageDateVersion'][(self.page_name, date, self.request.config.wiki_id)]
+        self.cursor.execute("SELECT count(editTime) from allPages where name=%(page_name)s and editTime<=%(date)s and wiki_id=%(wiki_id)s;", {'page_name':self.page_name, 'date':date, 'wiki_id': self.request.config.wiki_id})
         result = self.cursor.fetchone()
+        self.request.req_cache['pageDateVersion'][(self.page_name, date, self.request.config.wiki_id)] = result[0]
         return result[0]
 
 
@@ -110,9 +129,12 @@ class Page(object):
         return caching.pageInfo(self).edit_info
       else:
         # We're generating the cache, so let's just get the edit info manually from the DB
-	self.request.cursor.execute("SELECT editTime, userEdited from curPages where name=%(pagename)s", {'pagename':self.page_name})
-	result = self.request.cursor.fetchone()
-        if result: return result
+        if not self.prev_date:
+            self.request.cursor.execute("SELECT editTime, userEdited from curPages where name=%(pagename)s and wiki_id=%(wiki_id)s", {'pagename':self.page_name, 'wiki_id':self.request.config.wiki_id})
+        else:
+            self.request.cursor.execute("SELECT editTime, userEdited from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s and editTime=%(prev_date)s", {'pagename':self.page_name, 'prev_date':self.prev_date, 'wiki_id':self.request.config.wiki_id})
+        result = self.request.cursor.fetchone()
+        if result: return (result[0], result[1].strip())
         else: return None
 
       
@@ -132,7 +154,7 @@ class Page(object):
         @rtype: string
         @return: timestamp and editor information
         """
-	request = self.request
+        request = self.request
         if not self.exists():
             return None
 
@@ -140,8 +162,8 @@ class Page(object):
         result = None
         if last_edit_info:
           editTimeUnix, userEditedID = last_edit_info
-	  editTime = request.user.getFormattedDateTime(editTimeUnix)
-	  result = "(last edited %(time)s)" % {
+          editTime = request.user.getFormattedDateTime(editTimeUnix)
+          result = "(last edited %(time)s)" % {
                   'time': editTime,
               }
 
@@ -160,11 +182,11 @@ class Page(object):
       Some functions, such as diff, like to use an inexact previous date.  We convert this to a real previous date of a page, or return False.
       """
       if self.prev_date:
-        self.request.cursor.execute("SELECT editTime from allPages where name=%(pagename)s and editTime<=%(date)s order by editTime desc limit 1", {'date':self.prev_date, 'pagename':self.page_name})
-	result = self.request.cursor.fetchone()
-	if not result: return False
-	self.prev_date = result[0]
-	return self.prev_date
+        self.request.cursor.execute("SELECT editTime from allPages where name=%(pagename)s and editTime<=%(date)s and wiki_id=%(wiki_id)s order by editTime desc limit 1", {'date':self.prev_date, 'pagename':self.page_name, 'wiki_id':self.request.config.wiki_id})
+        result = self.request.cursor.fetchone()
+        if not result: return False
+        self.prev_date = result[0]
+        return self.prev_date
 
 
     def exists(self):
@@ -174,24 +196,24 @@ class Page(object):
         @rtype: bool or string
         @return: false, if page doesn't exist. otherwise returns proper pagename
         """
-	proper_pagename = False
-	memcache_hit = False
-	if self.request.req_cache['pagenames'].has_key(self.page_name):
-	  return self.request.req_cache['pagenames'][self.page_name]
-	if config.memcache:
-	  proper_pagename = self.request.mc.get("pagename:%s" % wikiutil.quoteFilename(self.page_name))
-	  if proper_pagename is not None:
-	    memcache_hit = True
-	  else: proper_pagename = False
-	if not proper_pagename and not memcache_hit:
-	  self.cursor.execute("SELECT propercased_name from curPages where name=%(pagename)s", {'pagename': self.page_name})
-	  result = self.cursor.fetchone()
-	  if result: proper_pagename = result[0]
-	  if config.memcache:
-	    self.request.mc.add("pagename:%s" % wikiutil.quoteFilename(self.page_name), proper_pagename)
+        proper_pagename = False
+        memcache_hit = False
+        if self.request.req_cache['pagenames'].has_key((self.page_name, self.wiki_name)):
+          return self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)]
+        if config.memcache:
+          proper_pagename = self.request.mc.get("pagename:%s" % wikiutil.mc_quote(self.page_name))
+          if proper_pagename is not None:
+            memcache_hit = True
+          else: proper_pagename = False
+        if not proper_pagename and not memcache_hit:
+          self.cursor.execute("SELECT propercased_name from curPages where name=%(pagename)s and wiki_id=%(wiki_id)s", {'pagename': self.page_name, 'wiki_id': self.request.config.wiki_id})
+          result = self.cursor.fetchone()
+          if result: proper_pagename = result[0]
+          if config.memcache:
+            self.request.mc.add("pagename:%s" % wikiutil.mc_quote(self.page_name), proper_pagename)
 
-        self.request.req_cache['pagenames'][self.page_name] = proper_pagename
-	return proper_pagename
+        self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)] = proper_pagename
+        return proper_pagename
 
 
     def size(self):
@@ -201,12 +223,12 @@ class Page(object):
         @rtype: int
         @return: page size, 0 for non-existent pages.
         """
-	if not self._raw_body:
-	  body = self.get_raw_body()
-	else: body = self._raw_body
+        if not self._raw_body:
+          body = self.get_raw_body()
+        else: body = self._raw_body
         if body is not None:
             return len(body)
-	else: return 0
+        else: return 0
 
     def isRedirect(self):
         """
@@ -223,17 +245,16 @@ class Page(object):
       else: 
         return caching.pageInfo(Page(self.page_name, self.request)).has_map
 
-
     def human_size(self):
-	"""
-	Human-readable (in 'words') size of the page.
-	"""
-	if not self._raw_body:
-	  body = self.get_raw_body()
-	else: body = self._raw_body
-	if body is not None:
-	    return len(body.split())
-	else: return 0
+        """
+        Human-readable (in 'words') size of the page.
+        """
+        if not self._raw_body:
+          body = self.get_raw_body()
+        else: body = self._raw_body
+        if body is not None:
+            return len(body.split())
+        else: return 0
 
     def mtime(self):
         """
@@ -242,31 +263,24 @@ class Page(object):
         @rtype: int
         @return: mtime of page (or 0 if page does not exist)
         """
-	if not self.prev_date:
-	   info = self.last_edit_info()
-	   if info and info[0]:
-	     return info[0]
-	   return 0
-        else:
-	  self.cursor.execute("SELECT editTime from allPages where name=%(page_name)s and editTime <= %(prev_date)s order by editTime desc limit 1;", {'page_name':self.page_name, 'prev_date':self.prev_date})
-        result = self.cursor.fetchone()
-	if result:
-          if result[0]: return result[0]
-	else: return 0
+        info = self.edit_info()
+        if info and info[0]:
+           return info[0]
+        return 0
 
     def ctime(self):
         """
-	Gets the cached time of the page.
-	"""
-	from Sycamore import caching
-	cache = caching.CacheEntry(self.page_name, self.request)
-	return cache.mtime()
+        Gets the cached time of the page.
+        """
+        from Sycamore import caching
+        cache = caching.CacheEntry(self.page_name, self.request)
+        return cache.mtime()
 
     def mtime_printable(self, t=None):
         """
         Get printable modification timestamp of this page.
 
-       	@ optional param t: unix mtime 
+        @ optional param t: unix mtime 
         @rtype: string
         @return: formatted string with mtime of page
         """
@@ -279,16 +293,16 @@ class Page(object):
 
     def get_meta_text(self):
       """
-      Returns the meta text of a page.  This includes things that start iwth # at the beginning of page's text, such as #acl and #redirect.
+      Returns the meta text of a page.  This includes things that start with # at the beginning of page's text
       """
       if self.exists():
         from Sycamore import caching
-	if not self.request.generating_cache:
+        if not self.request.generating_cache:
           return caching.pageInfo(self).meta_text
-	else:
-	  # we are generating the cache so we need to get this directly
-	  return caching.find_meta_text(self)
-	  
+        else:
+          # we are generating the cache so we need to get this directly
+          return caching.find_meta_text(self)
+          
       else: return ''
               
     
@@ -300,30 +314,31 @@ class Page(object):
         @rtype: string
         @return: raw page contents of this page
         """
-	text = None
+        text = None
         if self._raw_body is None:
-	  if not self.prev_date:
-	    if config.memcache and not fresh:
-	      text = self.request.mc.get("page_text:%s" % (wikiutil.quoteFilename(self.page_name.lower())))
+          if not self.prev_date:
+            if config.memcache and not fresh:
+              text = self.request.mc.get("page_text:%s" % (wikiutil.mc_quote(self.page_name.lower())))
 
-	    if text is None:
-	      self.cursor.execute("SELECT text from curPages where name=%(page_name)s", {'page_name':self.page_name})
-	      result = self.cursor.fetchone()
-	      if result: text = result[0]
-	      else: text = ''
-	      if config.memcache and not fresh:
-	        self.request.mc.add("page_text:%s" % wikiutil.quoteFilename(self.page_name.lower()), text)
-	  else:
-	    if config.memcache and not fresh:
-	      text = self.request.mc.get("page_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.prev_date)))
-	    if not text:
-	      self.cursor.execute("SELECT text, editTime from allPages where (name=%(page_name)s and editTime<=%(prev_date)s) order by editTime desc limit 1", {'page_name':self.page_name, 'prev_date':self.prev_date})
-	      result = self.cursor.fetchone()
-	      if result: text = result[0]
-	      else: text = ''
-	      if config.memcache and not fresh:
-	        self.request.mc.add("page_text:%s,%s" % (wikiutil.quoteFilename(self.page_name.lower()), repr(self.prev_date)), text)
+            if text is None:
+              self.cursor.execute("SELECT text from curPages where name=%(page_name)s and wiki_id=%(wiki_id)s", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id})
+              result = self.cursor.fetchone()
+              if result: text = result[0]
+              else: text = ''
+              if config.memcache and not fresh:
+                self.request.mc.add("page_text:%s" % wikiutil.mc_quote(self.page_name.lower()), text)
+          else:
+            if config.memcache and not fresh:
+              text = self.request.mc.get("page_text:%s,%s" % (wikiutil.mc_quote(self.page_name.lower()), repr(self.prev_date)))
+            if text is None:
+              self.cursor.execute("SELECT text, editTime from allPages where name=%(page_name)s and editTime<=%(prev_date)s and wiki_id=%(wiki_id)s order by editTime desc limit 1", {'page_name':self.page_name, 'prev_date':self.prev_date, 'wiki_id':self.request.config.wiki_id})
+              result = self.cursor.fetchone()
+              if result: text = result[0]
+              else: text = ''
+              if config.memcache and not fresh:
+                self.request.mc.add("page_text:%s,%s" % (wikiutil.mc_quote(self.page_name.lower()), repr(self.prev_date)), text)
             
+          if text is None: text = ''
           self.set_raw_body(text)
 
         return self._raw_body
@@ -343,9 +358,9 @@ class Page(object):
         if not modified and config.memcache:
           if set_cache or self.request.set_cache:
             if not self.prev_date:
-              self.request.mc.set('page_text:%s' % wikiutil.quoteFilename(self.page_name.lower()), body)
+              self.request.mc.set('page_text:%s' % wikiutil.mc_quote(self.page_name.lower()), body)
             else:
-              self.request.mc.set('page_text:%s' % wikiutil.quoteFilename(self.page_name.lower()), body)
+              self.request.mc.set('page_text:%s,%s' % (wikiutil.mc_quote(self.page_name.lower()), repr(self.prev_date)), body)
 
 
     def url(self, querystr=None):
@@ -374,38 +389,38 @@ class Page(object):
         @param anchor: if specified, make a link to this anchor
         @keyword attachment_indicator: if 1, add attachment indicator after link tag
         @keyword css_class: css class to use
-	@keyword know_status: for slight optimization.  if True that means we know whether the page exists or not
-	   (saves a query)
-	  @ keyword know_status exists: if True that means the page exists, if False that means it doesn't
+        @keyword know_status: for slight optimization.  if True that means we know whether the page exists or not
+           (saves a query)
+          @ keyword know_status exists: if True that means the page exists, if False that means it doesn't
         @rtype: string
         @return: formatted link
         """
-	request = self.request
-	if know_status_exists and know_status: know_exists = True
-	else: know_exists = False
+        request = self.request
+        if know_status_exists and know_status: know_exists = True
+        else: know_exists = False
         text = text
         fmt = getattr(self, 'formatter', None)
         if not know_status:
           if self.exists():
-	  	know_exists = True
-		url_name = self.proper_name()
+                know_exists = True
+                url_name = self.proper_name()
           else:
-		if self.given_name and not guess_case:  # did we give Page(a name of a page here..) ?
-		  url_name = self.given_name
-	        elif guess_case:
-		  self.request.cursor.execute("SELECT propercased_name from allPages where name=%(name)s and editTime=%(latest_mtime)s", {'name':self.page_name, 'latest_mtime':self.mtime()})
-	          result = self.request.cursor.fetchone()
-	          if result: url_name = result[0]
-		else:
-		  url_name = self.given_name
-	    
+                if self.given_name and not guess_case:  # did we give Page(a name of a page here..) ?
+                  url_name = self.given_name
+                elif guess_case:
+                  self.request.cursor.execute("SELECT propercased_name from allPages where name=%(name)s and editTime=%(latest_mtime)s and wiki_id=%(wiki_id)s", {'name':self.page_name, 'latest_mtime':self.mtime(), 'wiki_id':self.request.config.wiki_id})
+                  result = self.request.cursor.fetchone()
+                  if result: url_name = result[0]
+                else:
+                  url_name = self.given_name
+            
         else:
-	  url_name = self.given_name
+          url_name = self.given_name
           
-	url = wikiutil.quoteWikiname(url_name)
+        url = wikiutil.quoteWikiname(url_name)
 
-	if not text:
-	  text = url_name
+        if not text:
+          text = url_name
  
         if querystr:
             querystr = util.web.makeQueryString(querystr)
@@ -418,12 +433,16 @@ class Page(object):
             from Sycamore.action import AttachFile
             attach_link = AttachFile.getIndicator(request, self.page_name)
 
+        if self.wiki_name != self.on_wiki_name:
+            kw['absolute'] = True
+
         if know_exists:
             return '%s%s' % (wikiutil.link_tag(request, url, text, formatter=fmt, **kw),  attach_link)
         else:
             kw['css_class'] = 'nonexistent'
             return '%s%s' % (wikiutil.link_tag(request, url, text, formatter=fmt, **kw), attach_link)
 
+        
     def send_page(self, msg=None, **keywords):
         """
         Output the formatted page.
@@ -434,20 +453,21 @@ class Page(object):
         @keyword count_hit: if 1, add an event to the log
         @keyword hilite_re: a regular expression for highlighting e.g. search results
         """
-	request = self.request
+        from Sycamore import farm
+        request = self.request
         _ = request.getText
 
         # determine modes
         if request.form:
-	  print_mode = request.form.has_key('action') and request.form['action'][0] == 'print'
-	else: print_mode = False
+          print_mode = request.form.has_key('action') and request.form['action'][0] == 'print'
+        else: print_mode = False
         content_only = keywords.get('content_only', 0)
         content_id = keywords.get('content_id', 'content')
         self.hilite_re = keywords.get('hilite_re', None)
-	self.preview = keywords.get('preview', 0)
-	if self.preview: self.request.previewing_page = True
+        self.preview = keywords.get('preview', 0)
+        if self.preview: self.request.previewing_page = True
         if msg is None: msg = ""
-	polite_msg = ""
+        polite_msg = ""
 
         # load the meta-text
         meta_text = self.get_meta_text()
@@ -519,16 +539,36 @@ class Page(object):
                 # note that by including "action=show", we prevent
                 # endless looping (see code in "request") or any
                 # cascaded redirection
-                pi_redirect = args
-                if request.form.has_key('action') or request.form.has_key('redirect') or content_only: continue
+                wikitag_bad = True
+                if args.startswith('wiki:'):
+                    # grab the url that points to this page on this wiki.
+                    possible_wiki_url = wikiutil.format_interwiki_words(args.split(), in_farm=True)[0][5:] # cuts out 'wiki:' and removes possible "quotes" from wiki url
+                    wikitag, wikiurl, wikitail, wikitag_bad, wikitype = wikiutil.resolve_wiki(request, possible_wiki_url) 
+                if wikitag_bad:
+                    pi_redirect = args
 
-                if self.request.user.valid: self.request.user.checkFavorites(self.page_name)
+                    if self.request.user.valid: self.request.user.checkFavorites(self)
 
-                request.http_redirect('%s/%s?action=show&redirect=%s' % (
-                    request.getScriptname(),
-                    wikiutil.quoteWikiname(pi_redirect),
-                    urllib.quote_plus(self.proper_name(), ''),))
-                return
+                    if request.form.has_key('action') or request.form.has_key('redirect') or content_only: continue
+                    request.http_redirect('%s/%s?action=show&redirect=%s' % (
+                        request.getScriptname(),
+                        wikiutil.quoteWikiname(pi_redirect),
+                        urllib.quote_plus(self.proper_name(), ''),))
+                else:
+                    pi_redirect = args
+                    # we are redirecting to a different wiki.
+                    wikiurl = wikiutil.mapURL(wikiurl)
+                    if wikitype == wikiutil.INTERWIKI_FARM_TYPE:
+                        # it only makes sense to do redirection within the farm..at least for now
+                        if Page(wikitail, request, wiki_name=wikitag).exists():
+                            # only want to quote if page name is sane..
+                            wikitail = wikiutil.quoteWikiname(wikitail)
+                        redirect_url = wikiutil.join_wiki(wikiurl, wikitail)
+                        if request.form.has_key('action') or request.form.has_key('redirect') or content_only: continue
+                        request.http_redirect('%s?action=show&redirect=%s&wiki=%s' % (
+                            redirect_url,
+                            urllib.quote_plus(self.proper_name(), ''), self.request.config.wiki_name))
+                        return
             elif verb == "acl":
                 # We could build it here, but there's no request.
                 pass
@@ -540,36 +580,59 @@ class Page(object):
         # start document output
         doc_leader = self.formatter.startDocument(self.page_name)
         if not content_only:
-            if self.request.user.valid: self.request.user.checkFavorites(self.page_name)
+            if self.request.user.valid: self.request.user.checkFavorites(self)
 
             # send the document leader
             request.http_headers()
             request.write(doc_leader)
 
             # send the page header
-	    proper_name = self.proper_name()
+            proper_name = self.proper_name()
             if self.default_formatter:
                 page_needle = self.page_name
-                if config.allow_subpages and page_needle.count('/'):
+                if self.request.config.allow_subpages and page_needle.count('/'):
                     page_needle = '/' + page_needle.split('/')[-1]
                 link = '%s/%s?action=info&links=1' % (
                     request.getScriptname(),
                     wikiutil.quoteWikiname(proper_name))
 
                 title = proper_name
-                if self.prev_date:
-                    msg = "<strong>%s</strong><br>%s" % (
+                if self.prev_date and not msg:
+                    msg = "<strong>%s</strong>" % (
                         _('Version %(version)s (%(date)s)') % {'version': self.get_version(),
-			'date': request.user.getFormattedDateTime(self.prev_date) },
-                            
-                        msg)
+                        'date': request.user.getFormattedDateTime(self.prev_date) },
+                        )
                 
                 if request.form.has_key('redirect'):
                     redir = request.form['redirect'][0]
-                    polite_msg = 'Redirected from ' + wikiutil.link_tag(request, wikiutil.quoteWikiname(redir) + '?action=show', redir)
-                if pi_redirect and not msg:
-                    msg = '<strong>%s</strong><br>' % (_('This page redirects to page %(page)s') % {'page': Page(pi_redirect, request).link_to()})
+                    if not request.form.has_key('wiki'):
+                        # local redirect
+                        polite_msg = 'Redirected from %s' % wikiutil.link_tag(request, wikiutil.quoteWikiname(redir) + '?action=show', redir)
+                    else:
+                        # interwiki redirect
+                        wiki_name = request.form['wiki'][0]
+                        redir_from = Page(redir, request, wiki_name=wiki_name).link_to(know_status=True,
+                            know_status_exists=True, querystr="action=show")
+                        # we don't use farm.link_to_page() here b/c we always want to link in-farm rather than risk linking out-farm,
+                        # because that won't make any sense in this context.  (wikis can over-ride wiki:namehere to go, instead, out-farm)
                         
+                        # their front page can be called something else
+                        orig_wiki = request.config.wiki_name
+                        request.switch_wiki(wiki_name)
+                        front_page = request.config.page_front_page
+                        request.switch_wiki(orig_wiki)
+
+                        on_wiki = farm.link_to_page(wiki_name, front_page, self.formatter, force_farm=True, text=wiki_name)
+                        polite_msg = 'Redirected from %s on %s' % (redir_from, on_wiki)
+                if pi_redirect and not msg:
+                    if wikitag_bad:
+                        # internal redirect
+                        page_link = Page(pi_redirect, request).link_to()
+                        msg = '<strong>%s</strong><br>' % (_('This page redirects to page %(page)s') % {'page': page_link})
+                    elif wikitype == wikiutil.INTERWIKI_FARM_TYPE:
+                        # redirect to wiki in farm
+                        page_link = farm.link_to_page(wikitag, wikiutil.unquoteWikiname(wikitail), self.formatter, no_icon=False)
+                        msg = '<strong>%s</strong><br>' % (_('This page redirects to page %(page)s') % {'page': page_link})
                 
                 # Page trail
                 trail = None
@@ -606,8 +669,8 @@ class Page(object):
         # start wiki content div
         # Content language and direction is set by the theme
         lang_attr = request.theme.content_lang_attr()
-	if self.hilite_re:
-		request.write('<table width="100%%"><tr><td align="right">[<strong class="highlight">%s</strong>]</td></tr></table>' % self.link_to(text="highlighting off"))
+        if self.hilite_re:
+                request.write('<table width="100%%"><tr><td align="right">[<strong class="highlight">%s</strong>]</td></tr></table>' % self.link_to(text="highlighting off"))
         if not self.preview:
           request.write('<div id="%s" class="%s wikipage" %s>\n' % (content_id, content_id, lang_attr))
         else:
@@ -622,7 +685,6 @@ class Page(object):
             # parse the text and send the page content
             self.send_page_content(Parser)
 
-            
         # end wiki content div
         request.write('<div style="clear: both;"></div></div>\n')
         
@@ -641,13 +703,15 @@ class Page(object):
         """
         Output the formatted wiki page, using caching, if possible.
 
-        @param request: the request object
         @param Parser: the Parser
         @param body: text of the wiki page
         @param needsupdate: if 1, force update of the cached compiled page
         """
-	body = ''
-	request = self.request
+        if self.request.sent_page_content:
+            self.request.write(self.request.sent_page_content)
+            return
+        body = ''
+        request = self.request
         formatter_name = str(self.formatter.__class__).\
                          replace('Sycamore.formatter.', '').\
                          replace('.Formatter', '')
@@ -658,7 +722,7 @@ class Page(object):
             (not formatter_name in config.caching_formats) or
             self.preview): 
             # parse the text and send the page content
-	    body = self.get_raw_body()
+            body = self.get_raw_body()
             Parser(body, request).format(self.formatter)
             return
 
@@ -679,33 +743,34 @@ class Page(object):
         # load cache
         if not needsupdate:
             try:
-		import marshal
+                import marshal
                 code = marshal.loads(cache.content())
             except ValueError: #bad marshal data
-	    	print 'bad marshal'
+                #print 'bad marshal'
                 needsupdate = 1
 
         # render page
         if needsupdate:
-	    body = self.get_raw_body(fresh=True)
+            body = self.get_raw_body(fresh=True)
 
             from Sycamore.formatter.text_python import Formatter
             formatter = Formatter(request, ["page"], self.formatter, preview=True)
 
-	    # clear the page's dependencies
-	    caching.clear_dependencies(self.page_name, request)
+            # clear the page's dependencies
+            caching.clear_dependencies(self.page_name, request)
 
-	    # need to do HTML parsing to get the pagelinks
-	    from Sycamore.formatter.text_html import Formatter
+            # need to do HTML parsing to get the pagelinks
+            from Sycamore.formatter.text_html import Formatter
             html_formatter = Formatter(request, store_pagelinks=1)
             html_formatter.setPage(self)
-	    buffer = cStringIO.StringIO()
-	    request.redirect(buffer)
-	    html_parser = Parser(body, request)
-	    html_parser.format(html_formatter)
-	    request.redirect()
+            buffer = cStringIO.StringIO()
+            request.redirect(buffer)
+            html_parser = Parser(body, request)
+            html_parser.format(html_formatter)
+            request.redirect()
             
             import marshal
+            formatter.setPage(self)
             buffer = cStringIO.StringIO()
             request.redirect(buffer)
             parser = Parser(body, request)
@@ -715,9 +780,9 @@ class Page(object):
             buffer.close()
             links = html_formatter.pagelinks_propercased
             src = formatter.assemble_code(text)
-	    #request.write(src) # debug 
+            #print src # debug 
             code = compile(src, self.page_name, 'exec')
-	    code_string = marshal.dumps(code)
+            code_string = marshal.dumps(code)
             cache.update(code_string, links)
             update_links = True
         else:
@@ -728,17 +793,17 @@ class Page(object):
         formatter = self.formatter
         macro_obj = wikimacro.Macro(parser)
         try:
- 	    # figure out the link status' all at once to improve performance on pages w/lots of links
-  	    caching.getPageLinks(self.page_name, self.request, update=update_links)
+            # figure out the link status' all at once to improve performance on pages w/lots of links
+            caching.getPageLinks(self.page_name, self.request, update=update_links)
 
-	    # execute the python code we serialized -- this prints the page content and macros/etc
+            # execute the python code we serialized -- this prints the page content and macros/etc
             exec code
         except 'CacheNeedsUpdate': # if something goes wrong, try without caching
-	    body = self.get_raw_body()
+            body = self.get_raw_body()
             self.send_page_content(Parser, body, needsupdate=1)
             cache = caching.CacheEntry(key, request)
             
-
+    
     def _emptyPageText(self):
         """
         Output the default page content for new pages.
@@ -746,7 +811,7 @@ class Page(object):
         @param request: the request object
         """
         from Sycamore.action import LikePages
-	request = self.request
+        request = self.request
         _ = request.getText
   
         request.write(self.formatter.paragraph(1))
@@ -790,22 +855,22 @@ class Page(object):
 
     def buildCache(self, type=None):
         """
-	builds the page's cache.
-	"""
+        builds the page's cache.
+        """
         # this is normally rarely called, but is here to fill the cache
         # in existing wikis; thus, we do a "null" send_page here, which
         # is not efficient, but reduces code duplication
         # !!! it is also an evil hack, and needs to be removed
         # !!! by refactoring Page to separate body parsing & send_page
-	from Sycamore import caching
-	request = self.request
-	buffer = cStringIO.StringIO()
+        from Sycamore import caching
+        request = self.request
+        buffer = cStringIO.StringIO()
         request.redirect(buffer)
-	request.generating_cache = True
+        request.generating_cache = True
         request.set_cache = True
         request.mode_getpagelinks = 1
 
-        self.request.req_cache['pagenames'][self.page_name] = self.proper_name()  # set the page name / page exists
+        self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)] = self.proper_name()  # set the page name / page exists
 
         try:
             try:
@@ -814,20 +879,20 @@ class Page(object):
                 page.set_raw_body(self.get_raw_body())
                 page.send_page(content_only=1)
             except:
-	        print "ERROR"
+                #print "ERROR"
                 import traceback
                 traceback.print_exc()
-        	cache = caching.CacheEntry(self.page_name, request)
+                cache = caching.CacheEntry(self.page_name, request)
                 cache.clear()
         finally:
             request.mode_getpagelinks = 0
             request.redirect()
-	    buffer.close()
+            buffer.close()
             if hasattr(request, '_fmt_hd_counters'):
                 del request._fmt_hd_counters
 
         if config.memcache:
-          key = wikiutil.quoteFilename(self.page_name.lower())
+          key = wikiutil.mc_quote(self.page_name.lower())
           #clears the content of the cache regardless of whether or not the page needs an update
           self.request.mc.delete("links:%s" % key)
           if type == 'page save new':
@@ -838,7 +903,7 @@ class Page(object):
              if self.exists():
                self.request.mc.set("pagename:%s" % key, self.proper_name())
 
-          if self.page_name.lower() == config.interwikimap.lower():
+          if self.page_name.lower() == self.request.config.interwikimap.lower():
              self.request.mc.delete('interwiki')
 
         request.mode_getpagelinks = 0
@@ -850,12 +915,12 @@ class Page(object):
         Get a list of the links on this page.
         
         @param request: the request object
-	@param docache:  set to False to make this fast for macro functions, otherwise it might create the cache on a whole number of pages, redirecting the request object and causing trouble.
+        @param docache:  set to False to make this fast for macro functions, otherwise it might create the cache on a whole number of pages, redirecting the request object and causing trouble.
         @rtype: list
         @return: page names this page links to
         """
-	from Sycamore import caching
-	request = self.request
+        from Sycamore import caching
+        request = self.request
         if not self.exists(): return []
 
         key = self.page_name
@@ -881,7 +946,7 @@ class Page(object):
                 if hasattr(request, '_fmt_hd_counters'):
                     del request._fmt_hd_counters
 
-	return caching.getPageLinks(self.page_name, request)
+        return caching.getPageLinks(self.page_name, request)
 
     def isTalkPage(self):
        pagename = self.proper_name()
@@ -891,19 +956,17 @@ class Page(object):
        return False
 
     def getPageLinksTo(self):
-	"""
-	Returns a list of page names of pages that link to this page.
-	"""
-	links = []
-        self.cursor.execute("SELECT curPages.propercased_name from links, curPages where destination_pagename=%(page_name)s and source_pagename=curPages.name", {'page_name':self.page_name})
+        """
+        Returns a list of page names of pages that link to this page.
+        """
+        links = []
+        self.cursor.execute("SELECT curPages.propercased_name from links, curPages where destination_pagename=%(page_name)s and source_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id})
         result = self.cursor.fetchone()
-	while result:
-   	  links.append(result[0])
-	  result = self.cursor.fetchone()
+        while result:
+          links.append(result[0])
+          result = self.cursor.fetchone()
 
-	return links
-
-    _acl_cache = {}
+        return links
 
     def getACL(self):
         """
@@ -913,30 +976,19 @@ class Page(object):
         @rtype: dict
         @return: ACLs of this page
         """
-        if self.request.req_cache['acls'].has_key(self.page_name): return self.request.req_cache['acls'][self.page_name]
+        import wikiacl
+        acl = wikiacl.getACL(self.page_name, self.request)
 
-        if not config.acl_enabled:
-            import wikiacl
-            return wikiacl.AccessControlList()
-        # mtime check for forked long running processes
-        acl = None
-        if self.exists():
-            mtime = self.mtime()
-        else:
-            mtime = 0
-        if self._acl_cache.has_key(self.page_name):
-            (omtime, acl) = self._acl_cache[self.page_name]
-            if omtime < mtime:
-                acl = None
-        if acl is None:
-            import wikiacl
-            meta_text = ''
-            if self.exists():
-              meta_text = self.get_meta_text()
-
-            acl = wikiacl.parseACL(meta_text)
-            self._acl_cache[self.page_name] = (mtime, acl)
-
-        self.request.req_cache['acls'][self.page_name] = acl
         return acl
+
+def _copy_wiki_request(wiki_name, request):
+        """
+        Returns a copy of request, except with request.config = Config(wiki_name, request)
+        Hackish because we don't want to copy certain things.
+        """
+        req_copy = copy(request)
+        req_copy.mc = copy(request.mc)
+        req_copy.switch_wiki(wiki_name)
+        req_copy.req_cache = request.req_cache
+        return req_copy
 

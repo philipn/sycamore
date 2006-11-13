@@ -36,9 +36,9 @@ def execute(macro, args, formatter=None):
     _guard = 1
     cursor = macro.request.cursor
     if showUsers(macro.request):
-      cursor.execute("SELECT curPages.propercased_name from curPages left join links on links.destination_pagename=curPages.name where links.destination_pagename is NULL")
+      cursor.execute("SELECT curPages.propercased_name from curPages left join links on (links.destination_pagename=curPages.name and links.wiki_id=%(wiki_id)s and curPages.wiki_id=%(wiki_id)s) where curPages.wiki_id=%(wiki_id)s and links.destination_pagename is NULL", {'wiki_id': macro.request.config.wiki_id})
     else:
-      cursor.execute("SELECT curPages.propercased_name from curPages left join links on links.destination_pagename=curPages.name left join users on users.name=curPages.name where links.destination_pagename is NULL and users.name is NULL")
+      cursor.execute("SELECT curPages.propercased_name from curPages left join links on (links.destination_pagename=curPages.name and links.wiki_id=%(wiki_id)s and curPages.wiki_id=%(wiki_id)s) left join userWikiInfo on (userWikiInfo.user_name=curPages.name and curPages.wiki_id=%(wiki_id)s and userWikiInfo.wiki_id=%(wiki_id)s) where curPages.wiki_id=%(wiki_id)s and links.destination_pagename is NULL and userWikiInfo.user_name is NULL", {'wiki_id': macro.request.config.wiki_id})
      
     orphanednames_result = cursor.fetchall()
     _guard = 0

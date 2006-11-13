@@ -1,5 +1,5 @@
-This page contains the CSS that controls the look of your wiki.  To change the look of you wiki, change the following CSS files on this page:
-    
-  * [[File(screen.css)]] -- The primary CSS file 
-  * [[File(common.css)]] -- The secondary and somewhat general CSS file 
+This page contains Cascading Style Sheets (CSS) that control the look of your wiki.  You should be familar with CSS before changing these files.  To change the look of your wiki, change the following CSS files on this page:
+
+  * [[File(screen.css)]] -- The primary CSS file
+  * [[File(common.css)]] -- The secondary and somewhat general CSS file
   * [[File(print.css)]] -- The CSS file that determines what a printed page ought to look like

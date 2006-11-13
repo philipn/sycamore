@@ -61,6 +61,7 @@ class Element:
 
     def __init__(self, **kw):
         for key in kw.keys():
+            if key == 'html_class': key = 'class'
             key = key.lower()
             if not self._ATTRS.has_key(key):
                 raise AttributeError(
@@ -69,6 +70,9 @@ class Element:
 
         self.attrs = self._DEFAULT_ATTRS.copy()
         self.attrs.update(kw)
+        if self.attrs.has_key('html_class'):  # class=".." is illegal python
+          self.attrs['class'] = self.attrs['html_class']
+          del self.attrs['html_class']
 
     def tagname(self):
         return self.__class__.__name__.lower()
@@ -602,6 +606,7 @@ class TEXTAREA(CompositeElement):
         'cols': None,
         'name': None,
         'rows': None,
+        'id': None,
     }
 
 class TFOOT(CompositeElement):

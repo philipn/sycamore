@@ -3,27 +3,48 @@
 
 from Sycamore import wikidb
 from Sycamore.macro.image import checkTicket
-import os, urllib, mimetypes, re, time
 from Sycamore import config
 from Sycamore.wikiutil import unquoteWikiname
+from Sycamore.Page import Page
 
-# We get the pagename as a wikiutil.quoteWikiname()
-# We wikiutil.unquoteWikiname() it and then grab the given image from the pagename from the db
+import os, urllib, mimetypes, re, time, calendar, math, email
+from email.Utils import parsedate_tz, mktime_tz
 
-def fileSend(request):
+def _modified_since(request, file_modified_time):
+    modified_since_str = request.env.get('HTTP_IF_MODIFIED_SINCE')
+    if modified_since_str:
+        try:
+            modified_since = mktime_tz(parsedate_tz(modified_since_str))
+        except:
+            # couln't parse
+            return True
+
+        if math.floor(file_modified_time) <= modified_since:
+            return False
+
+    return True
+
+
+def fileSend(request, pagename=None, filename=None):
   # Front_Page?file=larry_coho.jpg&thumb=yes&size=240
 
   # httpd_referer is like "http://daviswiki.org/blahblah/page?test=goajf" -- the whole string.
   # let's test against it using their possibly configured regular expression.  this is to prevent image hotlinking
   if config.referer_regexp and request.http_referer:
     allowed = re.search(config.referer_regexp, request.http_referer, re.IGNORECASE)
-  else: allowed = True
+  else:
+    allowed = True
   
-  if not allowed:
-    # this should do a 'return' when incorporated into the Sycamore code
-    #return
+  if not pagename:
+    pagename = request.pagename
+
+  # if they aren't allowed to view this page or this image (bad referer) then don't send them the image
+  if allowed:
+    if not request.user.may.read(Page(pagename, request)):
+      return
+  else:
     return
-  
+
   deleted = False
   version = 0
   thumbnail = False
@@ -31,10 +52,9 @@ def fileSend(request):
   ticket = None
   size = None
 
-  pagename = request.pagename
-
-  filename_encoded = request.form['file'][0]
-  filename = urllib.unquote(filename_encoded)
+  if not filename:
+    filename_encoded = request.form['file'][0]
+    filename = urllib.unquote(filename_encoded)
   
   if request.form.has_key('deleted'):
     if request.form['deleted'][0] == 'true': deleted = True
@@ -72,9 +92,15 @@ def fileSend(request):
 
   # we're good to go to output the image
   if modified_time_unix is None: modified_time_unix = 0
+  if not _modified_since(request, modified_time_unix): # if we're sent an If-Modified-Since header and the file hasn't been modified, send 304 Not Modified
+    request.do_gzip = False
+    request.status = "304 Not Modified"
+    request.http_headers()
+    return
   datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
+  length = len(file)
   # images are usually compressed anyway, so let's not bother gziping
   request.do_gzip = False
-  request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring)])
+  request.http_headers([("Content-Type", mimetype), ("Content-Length", length), ("Last-Modified", datestring)])
   #output image
   request.write(file, raw=True)

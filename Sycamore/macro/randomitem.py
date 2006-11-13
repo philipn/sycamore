@@ -75,7 +75,10 @@ def execute(macro, args, formatter=None):
     else:
         quotes = [quote.strip() for quote in quotes]
         quotes = [quote[2:] for quote in quotes if quote.startswith('* ')]
-        quote = random.choice(quotes)
+        if quotes:
+          quote = random.choice(quotes)
+        else:
+          quote = ''
 
         page.set_raw_body(quote, 1)
         out = cStringIO.StringIO()

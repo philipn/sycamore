@@ -61,11 +61,10 @@ def sendmail(request, to, subject, text, **kw):
         
     try:
         server = smtplib.SMTP(config.mail_smarthost, 25, config.domain)
-
         try:
             #server.set_debuglevel(1)
             if config.mail_login:
-                user, pwd = config.mail_login.split()
+                user, pwd = config.mail_login
                 server.login(user, pwd)
             server.sendmail(mail_from, to, msg.as_string())
         finally:

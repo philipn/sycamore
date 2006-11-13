@@ -6,7 +6,7 @@ from Sycamore.PageEditor import PageEditor
 from Sycamore.Page import Page
 import xml.dom.minidom
 
-creator_text = 'The %s Robot' % config.sitename
+creator_text = 'The %s Robot' % request.config.sitename
 
 #def clean(text):
 #	text=text.replace('\x85','&#8230;') # elipsis
@@ -104,9 +104,9 @@ def execute(pagename, request):
 def doRSS(request):
     #set up the RSS file
     rss_init_text = """<?xml version="1.0" ?>
-<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>%s Events Board</title><link>http://%s%s/Events_Board</link><description>Events occuring soon, taken from the %s Events Board.</description><language>en-us</language>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>%s Events Board</title><link>%s</link><description>Events occuring soon, taken from the %s Events Board.</description><language>en-us</language>
 </channel>
-</rss>""" % (config.sitename, config.domain, request.getScriptname(), config.sitename)
+</rss>""" % (request.config.sitename, Page("Events Board", request).link_to(), request.config.sitename)
 
     rss_dom = xml.dom.minidom.parseString(rss_init_text)
     channel = rss_dom.getElementsByTagName("channel")[0]
@@ -134,14 +134,14 @@ def doRSS(request):
         rss_text = []
 	events = []
 	timenow = time.time()
-        today_struct = time.gmtime(timenow+config.tz_offset)
+        today_struct = time.gmtime(timenow+request.config.tz_offset)
         today = list(today_struct[0:3]) + [0,0,0,0,0,0]
-        today = calendar.timegm(today) - config.tz_offset
-        tomorrow_struct = time.gmtime(timenow+60*60*24+config.tz_offset)
+        today = calendar.timegm(today) - request.config.tz_offset
+        tomorrow_struct = time.gmtime(timenow+60*60*24+request.config.tz_offset)
         tomorrow = list(tomorrow_struct[0:3]) + [0,0,0,0,0,0]
-        tomorrow = calendar.timegm(tomorrow) - config.tz_offset
+        tomorrow = calendar.timegm(tomorrow) - request.config.tz_offset
 
-	request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where event_time >= %(today)s and event_time < %(tomorrow)s", {'today':today, 'tomorrow':tomorrow})
+	request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where event_time >= %(today)s and event_time < %(tomorrow)s and wiki_id=%(wiki_id)s", {'today':today, 'tomorrow':tomorrow, 'wiki_id':request.config.wiki_id})
 	result = request.cursor.fetchone()
 	while result:
 	  events.append(result)
@@ -151,7 +151,7 @@ def doRSS(request):
 	    event_time_unix = event[1]
 
 	    # stupid date stuff
-	    time_struct = time.gmtime(event_time_unix+config.tz_offset)
+	    time_struct = time.gmtime(event_time_unix+request.config.tz_offset)
 	    year = time_struct[0]
 	    month = time_struct[1]
 	    day = time_struct[2]
@@ -293,21 +293,18 @@ def findMonth(month):
     return months[int(month)-1]
 
 def writeEvent(request, event_text, event_name, event_location, event_time_unix, posted_by):
-    request.cursor.execute("SELECT max(uid) from events")
-    max_id = 0
-    result = request.cursor.fetchone()
-    if result:
-     if result[0]: max_id = result[0]
-    id = max_id + 1
     posted_time = time.time()
-    request.cursor.execute("INSERT into events (uid, event_time, posted_by, text, location, event_name, posted_time, posted_by_ip) values (%(id)s, %(event_time_unix)s, %(posted_by)s, %(event_text)s, %(event_location)s, %(event_name)s, %(posted_time)s, %(userip)s)", {'id':id, 'event_time_unix':event_time_unix, 'posted_by':posted_by, 'event_text':event_text, 'event_location':event_location, 'event_name':event_name, 'posted_time':posted_time, 'userip':request.remote_addr}, isWrite=True)
-
+    if config.db_type == 'mysql':
+        request.cursor.execute("INSERT into events (uid, event_time, posted_by, text, location, event_name, posted_time, posted_by_ip, wiki_id) values (NULL, %(event_time_unix)s, %(posted_by)s, %(event_text)s, %(event_location)s, %(event_name)s, %(posted_time)s, %(userip)s, %(wiki_id)s)", {'id':id, 'event_time_unix':event_time_unix, 'posted_by':posted_by, 'event_text':event_text, 'event_location':event_location, 'event_name':event_name, 'posted_time':posted_time, 'userip':request.remote_addr, 'wiki_id':request.config.wiki_id}, isWrite=True)
+    else:
+        request.cursor.execute("INSERT into events (uid, event_time, posted_by, text, location, event_name, posted_time, posted_by_ip, wiki_id) values (NEXTVAL('events_seq'), %(event_time_unix)s, %(posted_by)s, %(event_text)s, %(event_location)s, %(event_name)s, %(posted_time)s, %(userip)s, %(wiki_id)s)", {'id':id, 'event_time_unix':event_time_unix, 'posted_by':posted_by, 'event_text':event_text, 'event_location':event_location, 'event_name':event_name, 'posted_time':posted_time, 'userip':request.remote_addr, 'wiki_id':request.config.wiki_id}, isWrite=True)
+    
     if config.memcache:
       # clear out today's events cache if the event is for today
-      event_time_struct = time.gmtime(event_time_unix+config.tz_offset)
+      event_time_struct = time.gmtime(event_time_unix+request.config.tz_offset)
       event_day_unix = calendar.timegm(list(event_time_struct[0:3]) + [0,0,0,0,0,0])
 
-      today_struct = time.gmtime(posted_time+config.tz_offset)
+      today_struct = time.gmtime(posted_time+request.config.tz_offset)
       today = list(today_struct[0:3]) + [0,0,0,0,0,0]
       today_unix = calendar.timegm(today)
       if event_day_unix == today_unix:

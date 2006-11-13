@@ -45,7 +45,7 @@ class Theme(object):
         # FileAttach (is this used?)
         'attach':     ("%(attach_count)s",       "moin-attach.png",  7, 15),
         # RecentChanges
-	'event':      ("New Event",              "devil.png", 15, 15),
+        'event':      ("New Event",              "devil.png", 15, 15),
         'rss':        ("[RSS]",                  "moin-rss.png",    36, 14),
         'deleted':    ("[DELETED]",              "sycamore-deleted.png",59, 13),
         'updated':    ("[UPDATED]",              "sycamore-updated.png",59, 13),
@@ -89,7 +89,7 @@ class Theme(object):
         """
         self.request = request
 
-    def img_url(self, img):
+    def img_url(self, img, wiki_global=False):
         """
         generate an img url
 
@@ -97,7 +97,10 @@ class Theme(object):
         @rtype: string
         @return: the image url
         """
-        return "%s/%s/img/%s" % (config.url_prefix, self.name, img)
+        if wiki_global:
+            return "http://%s%s%s/%s/img/%s" % (config.wiki_base_domain, config.web_dir, config.url_prefix, self.name, img)
+        else:
+            return "%s%s/%s/img/%s" % (config.web_dir, config.url_prefix, self.name, img)
 
     def css_url(self, basename, theme = None):
         """
@@ -196,7 +199,7 @@ class Theme(object):
         html.append('</ul>')
         return ''.join(html)
 
-    def get_icon(self, icon):
+    def get_icon(self, icon, wiki_global=False):
         try:
             ret = self.icons[icon]
         except KeyError: # if called from [[Icon(file)]] we have a filename, not a key
@@ -209,9 +212,9 @@ class Theme(object):
                     break
             else:
                 ret = ("", icon, "", "")
-        return (ret[0], self.img_url(ret[1])) + ret[2:]
+        return (ret[0], self.img_url(ret[1], wiki_global=wiki_global)) + ret[2:]
    
-    def make_icon(self, icon, vars=None, actionButton=False, style=None):
+    def make_icon(self, icon, vars=None, actionButton=False, style=None, html_class='borderless'):
         """
         This is the central routine for making <img> tags for icons!
         All icons stuff except the top left logo, smileys and search
@@ -222,9 +225,13 @@ class Theme(object):
         @rtype: string
         @return: icon html (img tag)
         """
+        if config.wiki_farm:
+            wiki_global = True
+        else: 
+            wiki_global = False
         if vars is None:
             vars = {}
-        alt, img, w, h = self.get_icon(icon)
+        alt, img, w, h = self.get_icon(icon, wiki_global=True)
         try:
             alt = alt % vars
         except KeyError, err:
@@ -232,24 +239,24 @@ class Theme(object):
         if self.request:
             alt = self.request.getText(alt)
         try:
-	    if actionButton: 
+            if actionButton: 
               tag = self.request.formatter.image(html_class="actionButton", src=img, alt=alt, width=w, height=h)
-	    else:
-    	      if style:
-                tag = self.request.formatter.image(html_class="borderless", src=img, alt=alt, width=w, height=h, style=style)
-	      else: 
-                tag = self.request.formatter.image(html_class="borderless", src=img, alt=alt, width=w, height=h)
+            else:
+              if style:
+                tag = self.request.formatter.image(html_class=html_class, src=img, alt=alt, width=w, height=h, style=style)
+              else: 
+                tag = self.request.formatter.image(html_class=html_class, src=img, alt=alt, width=w, height=h)
         except AttributeError: # XXX FIXME if we have no formatter or no request 
             if actionButton:
-	      tag = '<img class="actionButton" src="%s" alt="%s" width="%s" height="%s">' % (
+              tag = '<img class="actionButton" src="%s" alt="%s" width="%s" height="%s">' % (
                 img, alt, w, h)
-	    else: 
+            else: 
               if style:
-	        tag = '<img class="borderless" src="%s" alt="%s" width="%s" height="%s" style="%s">' % (
-                  img, alt, w, h, style)
-	      else:
-	        tag = '<img class="borderless" src="%s" alt="%s" width="%s" height="%s" style="%s">' % (
-                  img, alt, w, h, style)
+                tag = '<img class="%s" src="%s" alt="%s" width="%s" height="%s" style="%s">' % (
+                  html_class, img, alt, w, h, style)
+              else:
+                tag = '<img class="%s" src="%s" alt="%s" width="%s" height="%s" style="%s">' % (
+                  html_class, img, alt, w, h, style)
 
         return tag
 
@@ -590,13 +597,12 @@ class Theme(object):
         """
         _ = self.request.getText
         html = []
-        html.append('<tr height="10"></tr><tr>\n')
         
-        html.append('<td width="100" class="rcicon1">%(icon_html)s</td>\n' % d)
+        html.append('<div class="rcEntry"><div class="rcpageline">%(rc_tag_html)s\n' % d)
         
-        html.append('<td valign="center" class="rcpagelink">%(pagelink_html)s' % d)
+        html.append('<span class="rcpagelink">%(pagelink_html)s</span>' % d)
          
-        html.append('&nbsp;<span align="right" class="rctime">')
+        html.append('<span class="rctime">')
         if d['time_html']:
             html.append("last modified %(time_html)s" % d)
         showcomments = 1
@@ -608,8 +614,7 @@ class Theme(object):
             else:
               com = '(' + com + ')'
             html.append(' by </span><span class="rceditor" title=%s>%s</span> <span class="rccomment">%s' % (d['editors'][0][1], d['editors'][0][0],com ))
-        html.append('</span></td>\n')
-        html.append('</tr>')
+        html.append('</span></span></div>\n')
 
         num = 0
         if d['editors'] and d['show_comments'] == 1:
@@ -617,10 +622,10 @@ class Theme(object):
                   com = d['comments'][num]
                   if not com:
                     com = '(No comment)'
-                  html.append('<tr><td>&nbsp;</td><td class="rccomment" title="%s">%s&nbsp;&nbsp;<span class="rceditor">%s</span></td></tr>' % (ip, com, editor))
+                  html.append('<div class="rccomment" title="%s">%s <span class="rceditor">%s</span></div>' % (ip, com, editor))
                   num = num + 1
 
-        
+        html.append('</div>')
         return ''.join(html)
     
     def recentchanges_daybreak(self, d):
@@ -635,10 +640,10 @@ class Theme(object):
             set_bm = '&nbsp;<span style="font-size: 13px;">[%(bookmark_link_html)s]</span>' % d
         else:
             set_bm = ''
-        return ('<tr class="rcdaybreak"><td colspan="%d">'
+        return ('<div class="rcdaybreak">'
                 '<h2>%s'
                 '%s</h2>'
-                '</td></tr>\n') % (2, d['date'], set_bm)
+                '</div>\n') % (d['date'], set_bm)
 
     def recentchanges_header(self, d):
         """
@@ -650,12 +655,8 @@ class Theme(object):
         """
         _ = self.request.getText
 
-        html = ['<div class="recentchanges" %s>\n<table cellspacing="0" width="100%%">' % self.ui_lang_attr()]
-		
-        if self.request.user.valid: html.append('<tr><td>')
-
-        if d['rc_update_bookmark']:
-            html.append("%(rc_update_bookmark)s %(rc_curr_bookmark)s<br>" % d)
+        html = ['<div class="recentchanges" %s>\n<div class="rcHeader">' % self.ui_lang_attr()]
+                
         if d['rc_days']:
             days = []
             for day in d['rc_days']:
@@ -663,15 +664,17 @@ class Theme(object):
                     days.append('<strong>%d</strong>' % day)
                 else:
                     days.append(
-                        wikiutil.link_tag(self.request,
-                            '%s?max_days=%d' % (d['q_page_name'], day),
-                            str(day)))
+                        d['page'].link_to(
+                            querystr='max_days=%d' % day,
+                            text=str(day))
+                        )
             days = ' | '.join(days)
             html.append((_("Show all changes in the last %s days.") % (days,)))
-        if self.request.user.valid and d['show_comments_html']:
-            html.append(' ' + d['show_comments_html'])
 
-        html.append('</td></tr>\n</div>\n<table>\n')
+        if self.request.user.valid:
+            html.append(' (%(show_comments_html)s %(rc_update_bookmark)s%(rc_curr_bookmark)s)' % d)
+
+        html.append('</div>\n')
         return ''.join(html)
 
     def recentchanges_footer(self, d):
@@ -683,11 +686,9 @@ class Theme(object):
         @return: recentchanges footer html
         """
         _ = self.request.getText
-        html = ''
-        html += '</table>\n'
+        html = '</div>\n'
         if d['rc_msg']:
             html += "<br>%(rc_msg)s\n" % d
-        html += '</div>\n'
         return html
 
     #

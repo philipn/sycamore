@@ -1,12 +1,13 @@
 from Sycamore import config, wikidb
 import xml.dom.minidom
 
-def pointsToXML(cursor):
+def pointsToXML(request):
+    cursor = request.cursor
     xml_init_text = '<?xml version="1.0" ?><data></data>'
     points_dom = xml.dom.minidom.parseString(xml_init_text)
     data = points_dom.getElementsByTagName("data")[0]
 
-    cursor.execute("SELECT id, img, name from mapCategoryDefinitions;")
+    cursor.execute("SELECT id, img, name from mapCategoryDefinitions where wiki_id=%(wiki_id)s;", {'wiki_id':request.config.wiki_id})
     cat_definitions = cursor.fetchall()
     masterCat = points_dom.createElement("category")
     masterCat.setAttribute("id", "0")
@@ -21,7 +22,7 @@ def pointsToXML(cursor):
   
     max_point_id = 1 # we give ID to the applet but we don't need it.  not sure why the applet does..
     pages = points_dom.createElement("pages")
-    cursor.execute("SELECT curPages.propercased_name, m.x, m.y, c.id, m.id from mapPoints as m, mapPointCategories as c, curPages where curPages.name=c.pagename and m.x=c.x and m.y=c.y order by curPages.propercased_name;")
+    cursor.execute("SELECT curPages.propercased_name, m.x, m.y, c.id, m.id from mapPoints as m, mapPointCategories as c, curPages where curPages.name=c.pagename and m.x=c.x and m.y=c.y and curPages.wiki_id=m.wiki_id and curPages.wiki_id=%(wiki_id)s order by curPages.propercased_name;", {'wiki_id':request.config.wiki_id})
     pages_points = cursor.fetchall()
     points_cat_dict = {}
     for pagename, x, y, cat_id, point_id in pages_points:
@@ -45,8 +46,8 @@ def pointsToXML(cursor):
       point.appendChild(location)
       for category_id in cat_list:
         cat = points_dom.createElement("cat")
-	cat.setAttribute("id", str(category_id))
-	point.appendChild(cat)
+        cat.setAttribute("id", str(category_id))
+        point.appendChild(cat)
       pages.appendChild(point)
         
     if pages_points: data.appendChild(pages)
@@ -55,4 +56,4 @@ def pointsToXML(cursor):
 
 def execute(pagename, request):
   request.http_headers([("Content-Type", "application/xml")])
-  request.write(pointsToXML(request.cursor))
+  request.write(pointsToXML(request))

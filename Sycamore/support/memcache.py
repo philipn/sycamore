@@ -53,7 +53,7 @@ except ImportError:
     import pickle
 
 __author__    = "Evan Martin <martine@danga.com>"
-__version__ = "1.31"
+__version__ = "1.33"
 __copyright__ = "Copyright (C) 2003 Danga Interactive"
 __license__   = "Python"
 
@@ -482,6 +482,8 @@ class _Host:
         self.deaduntil = 0
         self.socket = None
 
+        self.buffer = ''
+
     def _check_dead(self):
         if self.deaduntil and self.deaduntil > time.time():
             return 1
@@ -511,6 +513,7 @@ class _Host:
             self.mark_dead("connect: %s" % msg[1])
             return None
         self.socket = s
+        self.buffer = ''
         return s
     
     def close_socket(self):
@@ -522,18 +525,24 @@ class _Host:
         self.socket.sendall(cmd + '\r\n')
 
     def readline(self):
-        buffers = ''
+        buf = self.buffer
         recv = self.socket.recv
-        while 1:
-            data = recv(1)
+        while True:
+            index = buf.find('\r\n')
+            if index >= 0:
+                break
+            data = recv(4096)
             if not data:
                 self.mark_dead('Connection closed while reading from %s'
                         % repr(self))
                 break
-            if data == '\n' and buffers and buffers[-1] == '\r':
-                return(buffers[:-1])
-            buffers = buffers + data
-        return(buffers)
+            buf += data
+        if index >= 0:
+            self.buffer = buf[index+2:]
+            buf = buf[:index]
+        else:
+            self.buffer = ''
+        return buf
 
     def expect(self, text):
         line = self.readline()
@@ -542,11 +551,12 @@ class _Host:
         return line
     
     def recv(self, rlen):
-        buf = ''
         recv = self.socket.recv
+        buf = self.buffer
         while len(buf) < rlen:
-            buf = buf + recv(rlen - len(buf))
-        return buf
+            buf += recv(4096)
+        self.buffer = buf[rlen:]
+        return buf[:rlen]
 
     def __str__(self):
         d = ''
@@ -563,8 +573,6 @@ def check_key(key):
       raise Client.MemcachedKeyLengthError, "Key length is > %s" % SERVER_MAX_KEY_LENGTH
     for char in key:
       if ord(char) < 33:
-        print ord(char), char
-	print key
         raise Client.MemcachedKeyCharacterError, "Control characters not allowed"
 
 def _doctest():

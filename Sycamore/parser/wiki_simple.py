@@ -40,6 +40,8 @@ class Parser:
             '|'.join(attachment_schemas) + 
             (config.url_schemas and '|' + '|'.join(config.url_schemas) or ''))
 
+    EOL_RE = re.compile(r'\r?\n')
+
     # some common rules
     word_rule = r'(?:(?<![%(l)s])|^)%(parent)s(?:%(subpages)s(?:[%(u)s][%(l)s]+){2,})+(?![%(u)s%(l)s]+)' % {
         'u': config.upperletters,
@@ -57,7 +59,7 @@ class Parser:
     dl_rule = r"^\s+.*?::\s"
 
     # the big, fat, ugly one ;)
-    formatting_rules = r"""(?:(?P<emph_ibb>'''''(?=[^']+'''))
+    formatting_a = r"""(?P<emph_ibb>'''''(?=[^']+'''))
 (?P<emph_ibi>'''''(?=[^']+''))
 (?P<emph_ib_or_bi>'{5}(?=[^']))
 (?P<emph>'{2,3})
@@ -70,25 +72,27 @@ class Parser:
 (?P<pre>(\{\{\{ ?|\}\}\}))
 (?P<rule>-{4,})
 (?P<strike>(--X)|(X--))
-(?P<mdash>--(-){0,1}))
+(?P<mdash>--(-){0,1})
 (?P<li>^\s+\*)
 (?P<ol>%(ol_rule)s)
-(?P<dl>%(dl_rule)s)
+(?P<dl>%(dl_rule)s)"""
+    formatting_b = r"""
 (?P<url_bracket>\[((%(url)s)\:|#|\:)[^\s\]]+(\s[^\]]+)?\])
 (?P<url>%(url_rule)s)
 (?P<email>[-\w._+]+\@[\w-]+\.[\w.-]+)
 (?P<alert>\/!\\)
-(?P<smiley>(?<=\s)(%(smiley)s)(?=\s))
-(?P<smileyA>^(%(smiley)s)(?=\s))
-(?P<ent>[<>&])"""  % {
+(?P<ent>[<>&])"""
+
+    formatting_rules_dict = {
         'url': url_pattern,
         'punct': punct_pattern,
-        'macronames': '|'.join(wikimacro.names),
         'ol_rule': ol_rule,
         'dl_rule': dl_rule,
-        'url_rule': url_rule,
-        'smiley': '|'.join(map(re.escape, config.smileys.keys()))}
+        'url_rule': url_rule
+         }
 
+    formatting_rules = ("(?:%s)%s" % (formatting_a,formatting_b)) % formatting_rules_dict
+        
     def __init__(self, raw, request, **kw):
         self.raw = raw
         self.request = request
@@ -115,7 +119,7 @@ class Parser:
         # holds the nesting level (in chars) of open lists
         self.list_indents = []
         self.list_types = []
-	
+        
 
     def _close_item(self, result):
         #result.append("<!-- close item begin -->\n")
@@ -127,9 +131,7 @@ class Parser:
             result.append(self.formatter.definition_desc(0))
         #result.append("<!-- close item end -->\n")
 
-
     def interwiki(self, url_and_text, **kw):
-        # TODO: maybe support [wiki:Page http://wherever/image.png] ?
         if len(url_and_text) == 1:
             url = url_and_text[0]
             text = None
@@ -137,42 +139,26 @@ class Parser:
             url, text = url_and_text
 
         url = url[5:] # remove "wiki:"
+
+
         if text is None:
             tag, tail = wikiutil.split_wiki(url)
             if tag:
                 text = tail
+                                
             else:
                 text = url
-                url = ""
-        #elif config.allow_subpages and url[0] == wikiutil.CHILD_PREFIX:
-        #    # fancy link to subpage [wiki:/SubPage text]
-        #    return self._word_repl(url, text)
-        elif Page(url, self.request).exists():
-            # fancy link to local page [wiki:LocalPage text]
-            return self._word_repl(url, text)
+        
+        tag, tail = wikiutil.split_wiki(url)
+        
+        if tag == tail == None:
+            if Page(url, self.request).exists():
+                # fancy link to local page [wiki:LocalPage text]
+                return self._word_repl(url, text)
+            else:
+                return self._word_repl(url, text)
 
-        wikitag, wikiurl, wikitail, wikitag_bad = wikiutil.resolve_wiki(self.request, url)
-        wikiurl = wikiutil.mapURL(wikiurl)
-        href = wikiutil.join_wiki(wikiurl, wikitail)
-
-        # check for image URL, and possibly return IMG tag
-        if not kw.get('pretty_url', 0) and wikiutil.isPicture(wikitail):
-            return self.formatter.image(src=href)
-
-        # link to self?
-        if wikitag is None:
-            return self._word_repl(wikitail)
-              
-        # return InterWiki hyperlink
-        if wikitag_bad:
-            html_class = 'badinterwiki'
-        else:
-            html_class = 'interwiki'
-        text = self.highlight_text(text) # also cgi.escapes if necessary
-
-        icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}) 
-        return self.formatter.url(href, icon + text,
-            title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class)
+        return self.formatter.interwikilink(url, text) #, kw)
 
 
     def _u_repl(self, word):
@@ -260,48 +246,45 @@ class Parser:
 
 
     def _word_repl(self, word, text=None):
-        """Handle WikiNames."""
+        """Handle linked wiki page names."""
 
         # check for parent links
         # !!! should use wikiutil.AbsPageName here, but setting `text`
         # correctly prevents us from doing this for now
-        if config.allow_subpages and word.startswith(self.PARENT_PREFIX):
-	    alt_text = True # for making error prettier
-	    if not text:
-	      text = word
-	      alt_text = False
-	    base_pagename = self.formatter.page.page_name
-	    split_base_pagename = base_pagename.split('/')
-	    split_pagename = word.split('/')
+        if self.request.config.allow_subpages and word.startswith(self.PARENT_PREFIX):
+            alt_text = True # for making error prettier
+            if not text:
+              text = word
+              alt_text = False
+            base_pagename = self.formatter.page.page_name
+            split_base_pagename = base_pagename.split('/')
+            split_pagename = word.split('/')
             for entry in split_pagename:
-	      if entry == '..':
-	        try:
-	          split_base_pagename.pop()
-		except IndexError:
-		  # Their link makes no sense
-		  if alt_text: return '["%s" %s]' % (word, text)
-		  else: return '["%s"]' % word
-	      else:
-	        split_base_pagename.append(entry)
-	    if split_base_pagename:
-	      word = split_base_pagename[0]
-	      if len(word) > 1:
+              if entry == '..':
+                try:
+                  split_base_pagename.pop()
+                except IndexError:
+                  # Their link makes no sense
+                  if alt_text: return '["%s" %s]' % (word, text)
+                  else: return '["%s"]' % word
+              else:
+                split_base_pagename.append(entry)
+            if split_base_pagename:
+              word = split_base_pagename[0]
+              if len(word) > 1:
                 for entry in split_base_pagename[1:]:
                   word += '/' + entry
 
         if not text:
-	    text = word
+            text = word
         # if a simple, self-referencing link, emit it as plain text
         if self.is_a_page:
-	  if word.lower() == self.formatter.page.page_name:
+          if word.lower() == self.formatter.page.page_name:
             return text 
-        if config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
+        if self.request.config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
             word = self.formatter.page.proper_name() + word
         text = self.highlight_text(text)
-        if word == text:
-            return self.formatter.pagelink(word)
-        else:
-            return self.formatter.pagelink(word, text)
+        return self.formatter.pagelink(word, text)
 
     def _notword_repl(self, word):
         """Handle !NotWikiNames."""
@@ -323,28 +306,27 @@ class Parser:
 
         #return self.formatter.url(word, text=self.highlight_text(word))
         scheme = word.split(":", 1)[0]
-	if not (scheme == "http"):
-        	if scheme == "wiki": return self.interwiki([word])
-        	if scheme in self.attachment_schemas:
-            		return self.attachment([word])
-        	return self.formatter.url(word, text=self.highlight_text(word))
+        if not (scheme == "http"):
+                if scheme == "wiki": return self.interwiki([word])
+                if scheme in self.attachment_schemas:
+                        return self.attachment([word])
+                return self.formatter.url(word, text=self.highlight_text(word))
 
-	elif scheme == "http":
-		words = word.split(':', 1)
-        	if wikiutil.isPicture(word) and re.match(self.url_rule, word):
-            		text = self.formatter.image(title=word, alt=word, src=word)
-			return self.formatter.rawHTML(text)
-        	else:
-            		text = web.getLinkIcon(self.request, self.formatter, scheme)
-            		text += self.highlight_text(word)
-        	return self.formatter.url(word, text, 'external', pretty_url=1, unescaped=1)
+        elif scheme == "http":
+                words = word.split(':', 1)
+                if wikiutil.isPicture(word) and re.match(self.url_rule, word):
+                        text = self.formatter.image(title=word, alt=word, src=word)
+                        return self.formatter.rawHTML(text)
+                else:
+                        text = web.getLinkIcon(self.request, self.formatter, scheme)
+                        text += self.highlight_text(word)
+                return self.formatter.url(word, text, 'external', pretty_url=1, unescaped=1)
 
 
     def _wikiname_bracket_repl(self, word):
-        """Handle special-char wikinames."""
         wikiname = word[2:-2]
         if wikiname:
-	    if string.find(wikiname, "http://") is not -1:
+            if string.find(wikiname, "http://") is not -1:
                 return self.formatter.rawHTML('<b>!!&mdash;You wrote</b> %s<b>, you probably meant to write</b> [%s] <b>(or just </b>%s<b>) to make an outside the wiki link&mdash;!!</b>' % (word, wikiname, wikiname))
             return self._word_repl(wikiname)
         else:
@@ -370,7 +352,9 @@ class Parser:
               return self.formatter.url(words[0], self.highlight_text(words[0][1:]))
 
         scheme = words[0].split(":", 1)[0]
-        if scheme == "wiki": return self.interwiki(words, pretty_url=1)
+        if scheme == "wiki":
+          words = wikiutil.format_interwiki_words(words)
+          return self.interwiki(words, pretty_url=1)
         #if scheme in self.attachment_schemas:
         #    return self.attachment(words, pretty_url=1)
 
@@ -379,7 +363,7 @@ class Parser:
         else:
             text = web.getLinkIcon(self.request, self.formatter, scheme)
             if len(words) == 1:
-	        text += self.highlight_text(words[0])
+                text += self.highlight_text(words[0])
             else:
                 text += self.highlight_text(words[1])
         return self.formatter.url(words[0], text, 'external', pretty_url=1, unescaped=1)
@@ -689,14 +673,8 @@ class Parser:
         return word
 
     def _mdash_repl(self, word):
-	"""Convert -- to &mdash;"""
-	return "&mdash;"
-
-    def _smiley_repl(self, word):
-        """Handle smileys."""
-        return wikiutil.getSmiley(word, self.formatter)
-
-    _smileyA_repl = _smiley_repl
+        """Convert -- to &mdash;"""
+        return "&mdash;"
 
 
     def _comment_repl(self, word):
@@ -714,7 +692,7 @@ class Parser:
         if macro_name.count("("):
             macro_name, args = macro_name.split('(', 1)
             args = args[:-1]
-            macro_name = macro_name.lower()
+        macro_name = macro_name.lower()
 
         # create macro instance
         if self.macro is None:
@@ -806,17 +784,17 @@ class Parser:
         """ For each line, scan through looking for magic
             strings, outputting verbatim any intervening text.
         """
-	if formatter.__dict__.has_key('page'):
-	  self.is_a_page = True
-	else: self.is_a_page = False
+        if formatter.__dict__.has_key('page'):
+          self.is_a_page = True
+        else: self.is_a_page = False
 
         self.formatter = formatter
-	self.hilite_re = ''
+        self.hilite_re = ''
 
         # prepare regex patterns
         rules = self.formatting_rules.replace('\n', '|')
-        rules = rules + r'|(?P<wikiname_bracket>\["[^\[\]]+?"\])'
-	rules = rules + r'|(?P<bracket_link>\["[^\[\]]+?" [^\[\]]+?\])'
+        rules = rules + r'|(?P<wikiname_bracket>\["[^\[\]"]+?"\])'
+        rules = rules + r'|(?P<bracket_link>\["[^\[\]]+?" [^\[\]]+?\])'
         if config.bang_meta:
             rules = r'(?P<notword>!%(word_rule)s)|%(rules)s' % {
                 'word_rule': self.word_rule,
@@ -827,9 +805,9 @@ class Parser:
         if config.allow_numeric_entities:
             rules = r'(?P<ent_numeric>&#\d{1,5};)|' + rules
 
-        scan_re = re.compile(rules)
-        number_re = re.compile(self.ol_rule)
-        term_re = re.compile(self.dl_rule)
+        scan_re = re.compile(rules,re.IGNORECASE)
+        number_re = re.compile(self.ol_rule,re.IGNORECASE)
+        term_re = re.compile(self.dl_rule,re.IGNORECASE)
         indent_re = re.compile("^\s*")
         eol_re = re.compile(r'\r?\n')
 
@@ -893,8 +871,6 @@ class Parser:
                 # paragraph break on empty lines
                 if not line.strip():
                     #self.request.write("<!-- empty line start -->\n")
-                    #if self.formatter.in_p:
-                    #    self.request.write(self.formatter.paragraph(0))
                     if self.in_table:
                         self.request.write(self.formatter.table(0))
                         self.in_table = 0
@@ -969,4 +945,5 @@ class Parser:
         if self.in_pre: self.request.write(self.formatter.preformatted(0))
         if self.in_table: self.request.write(self.formatter.table(0))
         self.request.write(self._undent())
+
 

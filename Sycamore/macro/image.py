@@ -2,7 +2,7 @@
 # -*- coding: iso-8859-1 -*-
 from Sycamore import config, wikiutil, wikidb
 from Sycamore.action import Files
-import sys, re, os, array, time
+import sys, re, os, array, time, urllib
 
 #  [[Image(filename, caption, size, alignment, thumb, noborder)]]
 #  
@@ -25,41 +25,43 @@ Dependencies = []
 
 default_px_size = 192
 
-def recordCaption(pagename, linked_from_pagename, image_name, caption, cursor):
+def recordCaption(pagename, linked_from_pagename, image_name, caption, request):
    # records the caption to the db so that we can easily look it up
    # very simple -- no versioning or anything.  just keeps it there for easy/quick reference
    #  (linked_from_pagename is for future use)
-   mydict = {'pagename': pagename.lower(), 'image_name': image_name, 'caption': caption, 'linked_from_pagename': linked_from_pagename}
-   cursor.execute("SELECT image_name from imageCaptions where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s", mydict)
+   cursor = request.cursor
+   mydict = {'pagename': pagename.lower(), 'image_name': image_name, 'caption': caption, 'linked_from_pagename': linked_from_pagename, 'wiki_id': request.config.wiki_id}
+   cursor.execute("SELECT image_name from imageCaptions where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s and wiki_id=%(wiki_id)s", mydict)
    result = cursor.fetchone()
    if result:
-     cursor.execute("UPDATE imageCaptions set caption=%(caption)s where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s", mydict)
+     cursor.execute("UPDATE imageCaptions set caption=%(caption)s where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s and wiki_id=%(wiki_id)s", mydict)
    else:
-     cursor.execute("INSERT into imageCaptions (attached_to_pagename, image_name, caption, linked_from_pagename) values (%(pagename)s, %(image_name)s, %(caption)s, %(linked_from_pagename)s)", mydict)
+     cursor.execute("INSERT into imageCaptions (attached_to_pagename, image_name, caption, linked_from_pagename, wiki_id) values (%(pagename)s, %(image_name)s, %(caption)s, %(linked_from_pagename)s, %(wiki_id)s)", mydict)
 
-def deleteCaption(pagename, linked_from_pagename, image_name, cursor):
-   cursor.execute("DELETE from imageCaptions where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s", {'pagename':pagename.lower(), 'image_name':image_name, 'linked_from_pagename':linked_from_pagename})
+def deleteCaption(pagename, linked_from_pagename, image_name, request):
+   request.cursor.execute("DELETE from imageCaptions where attached_to_pagename=%(pagename)s and image_name=%(image_name)s and linked_from_pagename=%(linked_from_pagename)s and wiki_id=%(wiki_id)s", {'pagename':pagename.lower(), 'image_name':image_name, 'linked_from_pagename':linked_from_pagename, 'wiki_id':request.config.wiki_id})
 
 
-def getImageSize(pagename, image_name, cursor):
+def getImageSize(pagename, image_name, request):
     # gets the size of an image (not a thumbnail) in the DB
-    cursor.execute("SELECT xsize, ysize from imageInfo where attached_to_pagename=%(pagename)s and name=%(image_name)s", {'pagename':pagename.lower(), 'image_name':image_name})
-    result = cursor.fetchone()
+    request.cursor.execute("SELECT xsize, ysize from imageInfo where attached_to_pagename=%(pagename)s and name=%(image_name)s and wiki_id=%(wiki_id)s", {'pagename':pagename.lower(), 'image_name':image_name, 'wiki_id':request.config.wiki_id})
+    result = request.cursor.fetchone()
     if result:
       return (result[0], result[1])
     else:
       return (0, 0)
 
-def touchCaption(pagename, linked_from_pagename, image_name, caption, cursor):
+def touchCaption(pagename, linked_from_pagename, image_name, caption, request):
     stale = True
     db_caption = ''
-    cursor.execute("SELECT caption from imageCaptions where attached_to_pagename=%(pagename)s and linked_from_pagename=%(linked_from_pagename)s and image_name=%(image_name)s", {'pagename':pagename.lower(), 'linked_from_pagename':linked_from_pagename, 'image_name':image_name})
+    cursor = request.cursor
+    cursor.execute("SELECT caption from imageCaptions where attached_to_pagename=%(pagename)s and linked_from_pagename=%(linked_from_pagename)s and image_name=%(image_name)s and wiki_id=%(wiki_id)s", {'pagename':pagename.lower(), 'linked_from_pagename':linked_from_pagename, 'image_name':image_name, 'wiki_id':request.config.wiki_id})
     result = cursor.fetchone()
     if result: db_caption = result[0] 
     if caption != db_caption: 
-      recordCaption(pagename, linked_from_pagename, image_name, caption, cursor)
+      recordCaption(pagename, linked_from_pagename, image_name, caption, request)
     if not caption:
-      deleteCaption(pagename, linked_from_pagename, image_name, cursor)
+      deleteCaption(pagename, linked_from_pagename, image_name, request)
 
 def touchThumbnail(request, pagename, image_name, maxsize, formatter):
     # we test formatter.name because we use isPreview() to force some things to be ignored on the second-formatting phase with the python formatter.
@@ -71,7 +73,7 @@ def touchThumbnail(request, pagename, image_name, maxsize, formatter):
       return (generateThumbnail(request, pagename, image_name, maxsize, temporary=True, ticket=ticket), ticket)
     cursor = request.cursor
     # first we see if the thumbnail is there with the proper size
-    cursor.execute("SELECT xsize, ysize from thumbnails where name=%(image_name)s and attached_to_pagename=%(pagename)s", {'image_name':image_name, 'pagename':pagename.lower()})
+    cursor.execute("SELECT xsize, ysize from thumbnails where name=%(image_name)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", {'image_name':image_name, 'pagename':pagename.lower(), 'wiki_id':request.config.wiki_id})
     result = cursor.fetchone()
     if result:
      if result[0] and result[1]:
@@ -224,8 +226,6 @@ def execute(macro, args, formatter=None):
     if not args:
         return formatter.rawHTML('<b>Please supply at least an image name, e.g. [[Image(image.jpg)]], where image.jpg is an image that\'s been uploaded to this page.</b>')
 
-    import urllib
-    url_image_name = urllib.quote(image_name)
     # image.jpg, "caption, here, yes", 20, right --- in any order (filename first)
     # the number is the 'max' size (width or height) in pixels
 
@@ -235,13 +235,15 @@ def execute(macro, args, formatter=None):
     except:
       return formatter.rawHTML('[[Image(%s)]]' % wikiutil.escape(args))
 
+    url_image_name = urllib.quote(image_name)
+
     if formatter.isPreview() or formatter.page.prev_date:
       if macro.formatter.processed_thumbnails.has_key((pagename, image_name)) and (thumbnail or caption):
          return '<em style="background-color: #ffffaa; padding: 2px;">A thumbnail or caption may be displayed only once per image.</em>'
       macro.formatter.processed_thumbnails[(pagename, image_name)] = True
 
     #is the original image even on the page?
-    macro.request.cursor.execute("SELECT name from files where name=%(image_name)s and attached_to_pagename=%(pagename)s", {'image_name':image_name, 'pagename':pagename.lower()})
+    macro.request.cursor.execute("SELECT name from files where name=%(image_name)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", {'image_name':image_name, 'pagename':pagename.lower(), 'wiki_id':macro.request.config.wiki_id})
     result = macro.request.cursor.fetchone()
     image_exists = result
 
@@ -256,7 +258,7 @@ def execute(macro, args, formatter=None):
 
     full_size_url = baseurl + "/" + urlpagename + "?action=" + action + "&amp;do=view&amp;target=" + url_image_name
     # put the caption in the db if it's new and if we're not in preview mode
-    if not formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption, macro.request.cursor)
+    if not formatter.isPreview(): touchCaption(pagename, pagename, image_name, caption, macro.request)
     if caption:
       # parse the caption string
       caption = wikiutil.wikifyString(caption, formatter.request, formatter.page, formatter=formatter)
@@ -277,7 +279,7 @@ def execute(macro, args, formatter=None):
       else:
         html.append('<span class="%s thumb noborder" style="width: %spx;"><a style="color: black;" href="%s"><img src="%s" alt="%s"/></a></span>' % (floatSide, int(x)+2, full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, thumb=True, size=px_size, ticket=ticketString), image_name))
     else:
-      x, y = getImageSize(pagename, image_name, macro.request.cursor)
+      x, y = getImageSize(pagename, image_name, macro.request)
       if not border and not caption:
         img_string = '<a href="%s"><img class="borderless" src="%s" alt="%s"/></a>' % (full_size_url, Files.getAttachUrl(pagename, image_name, macro.request, ticket=ticketString), image_name)
       elif border and not caption:

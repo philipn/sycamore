@@ -1,4 +1,4 @@
-/*  screen.css - Sycamore Default Styles */
+/*  print.css - Sycamore print styles */
 
 /* content styles */
 #toolbar {
@@ -130,6 +130,48 @@ div.pageEditInfo {
  width: 100%;
 }
 
+.downloadLink {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  font-weight: bold;
+}
+
+.downloadLink img {
+  border: none;
+  padding-right: 2px;
+}
+
+.ileLink {
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+.fileLink img {
+  border: none;
+  padding-right: 2px;
+}
+
+.imageDisplay {
+  padding-top: 2px;
+}
+
+.fileList {
+  padding-bottom: 2px;
+}
+
+.fileList ul {
+  list-style-type: none;
+  padding-left: 10px;
+}
+
+.fileList li {
+  padding-left: 0px;
+}
+
+.fileList img {
+  border: none;
+  padding-right: 5px;
+}
 
 div.enlarge {
   width: 100px;
@@ -225,7 +267,7 @@ a.smalltab.smallactiveTab, a.smalltab.smallactiveTab:hover, a.smalltab.smallacti
 }
 
 .formbutton {
-	cursor: pointer;
+        cursor: pointer;
         cursor: hand;
         font-family:  Verdana, sans-serif;
         font-size: 11px;
@@ -249,14 +291,21 @@ body {
     font-size: 13px;
     background: White;
     font-weight: normal;
-    color: Black;
+    color: black;
+    background-color: white;
 }
 
 h2, h3, h4, h5, h6 {
         font-family: Verdana, sans-serif;
         color: black;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         clear:both;
+        padding-top: 2px;
+        margin-top: 8px;
+}
+
+h3, h4, h5, h6 {
+       margin-top: 10px;
 }
 
 h1 a, h2 a, h3 a{
@@ -333,8 +382,8 @@ table.inlinepage {
         text-decoration: none;
         font-family:  Verdana, sans-serif;
         font-size: 1.8em;
-	clear: both;
-	margin-bottom: .4em;
+        clear: both;
+        margin-bottom: .4em;
 }
 
 
@@ -387,7 +436,7 @@ a.tinyNonexistent:hover {
 
 a.noBorder { text-decoration: none; }
 
-div.actionBoxes { padding-bottom: 15pt; }
+.actionBoxes { padding-bottom: 15pt; }
 
 #sth_legend div.actionBoxes { padding: 0 0 15pt 10pt; }
 
@@ -395,21 +444,20 @@ td .actionBoxes { margin: 0 !important; padding: 0 !important; }
 
 td .actionBoxes span { margin: 6pt 0 0 0!important; }
 
-div.actionBoxes a { text-decoration: none; } 
+.actionBoxes a { text-decoration: none; } 
 
 span.actionBoxSelected { border: none !important;
         font-weight:bold;
 }
 
-div.actionBoxes span { margin:0 3pt 0 0;
+.actionBoxes span { margin:0 3pt 0 0;
         padding: 2pt 3pt 2pt 3pt;
-        float:left;
         font-size: 8pt;
         border:1px solid rgb(170, 170, 170);
         background:#f5f5f5;
 }
 
-div.actionBoxes a { text-decoration: none; } 
+.actionBoxes a { text-decoration: none; } 
 
 span.actionBoxSelected { border: none !important;
         font-weight:bold;
@@ -503,8 +551,8 @@ a.nostyle { text-decoration: none !important; }
         border-bottom: 1px dashed #AAAAAA;
         padding-top: 0pt;
         padding-bottom: 0pt;
-	vertical-align: middle;
-	width: 100%;
+        vertical-align: middle;
+        width: 100%;
 }
 #title_area_table { width: 100%; }
 #title h1 {
@@ -525,9 +573,9 @@ td.user_banner table { margin: 5px !important; }
         padding-top: 0px;
         padding-bottom: 0px;
         background-color: #000000;
-	background-image: url(../img/floater.png);
+        background-image: url(Images?sendfile=true&file=logo_background.png);
         background-repeat: no-repeat;
-	font-size: 10pt;
+        font-size: 10pt;
         background-position: 15px; 
 }
 
@@ -558,6 +606,12 @@ td.logo_banner { padding: 0; vertical-align: middle; }
         font-family:  Verdana, sans-serif;
         font-weight: bold;
         text-decoration: none;
+}
+
+.minorTitle {
+   text-align: center;
+   margin-top: .4em;
+   font-size: x-large;
 }
 
 #desctext {
@@ -605,39 +659,62 @@ td.logo_banner { padding: 0; vertical-align: middle; }
 
 .user {
         text-align: center;
-	font-size: 10pt;
+        font-size: 10pt;
         color: white;
 }
 
 .user_area {
-        color: white;
-	height: 75px;
-	padding: 0;
+         color: white;
+    padding: 0;
+    padding: 8px;
+    margin: 0;
+}
+
+.user_area a {
+        color: blue;
 }
 .user_area table {
-	vertical-align: top;
+        vertical-align: top;
         text-align: center;
 }
 
 .user_area td { padding: 2px !important; margin: 0 !important;}
 
+.user_area .welcome { 
+        margin-bottom: 10px;
+        display: inline;
+}
+
+.user_area .user_items {
+        margin-top: 4px;
+        font-size: 80%;
+        margin-left: 5px;
+}  
+
 .login_area {
         color: white;
-	height: 75px;
-	padding: 0;
+        height: 75px; 
+        padding: 0;
 }
+
+.login_area input {
+        font-size: x-small;
+}
+
+.login_area a {
+        color: blue;
+}
+
 .login_area table {
-	vertical-align: top;
+        vertical-align: top;
         text-align: center;
 }
 
 .login_area td { padding: 1px !important; margin: 0 !important;}
 
-
 .user a {
         margin-top: 10px;
         text-align: center;
-        color: blue;
 }
 
 .user a:visited {
@@ -685,7 +762,7 @@ margin-bottom: 0.25em;
         margin-left: 10px;
         margin-right: 10px;
         margin-top: 10px;
-	margin-bottom: 10px;
+        margin-bottom: 10px;
         padding-left: 5px;
         border: 1px dashed #ff0000;
         color: red;
@@ -787,36 +864,63 @@ div.editInfo { margin-top: 10pt; }
            padding: 0 .3em;
 }
 
-.rcdaybreak td {
+.rcTag {
+        text-align: left;
+        font-size: 80%;
+        white-space: nowrap;
+        width: 5em;
+        float: left;
+        margin-right: 1em;
+        background-color: none;
 }
 
-.rcdaybreak a {
-      
+.rcTag a { text-decoration: none; }
+
+.rcTagNew {
+        padding: 2px;
+        text-align: center;
+        background-color: #ffff99;
 }
 
-.rcicon1, .rcicon2 {
-        border: 0px;
-        text-align: right;
-        width: 50px;
+.rcTagChanges {
+        padding: 2px;
+        text-align: center;
+        background-color: #dfdfdd;
+}
+
+.rcTagDeleted {
+        padding: 2px;
+        text-align: center;
+        background-color: #ff9999;
 }
 
 .rcpagelink {
        font-size: 14px;
 }
 
+.rcpageline {
+       margin-bottom: .5em;
+}
+
 .rctime {
-        width: 250px;
+    margin-left: .8em;
         font-size: 14px;
         color: #4d4d4d;
 }
 
 .rceditor {
         color: #000088;
+        margin-left: .2em;
 }
 
 .rccomment {
         color: #4d4d4d;
-        text-indent: 20px;
+        text-indent: 6em;
+        margin-bottom: .3em;
+}
+
+.rcEntry {
+        margin-bottom: 1em;
 }
 
 .favtime {
@@ -845,8 +949,8 @@ div.editInfo { margin-top: 10pt; }
 .diff {
         width:100%;
         border: 1px solid gray;
-	margin-bottom: 6px;
-	margin-top: 2px;
+        margin-bottom: 6px;
+        margin-top: 2px;
 }
 
 .diff td { border: 1px solid gray; padding: 4px 2px 4px 2px; }
@@ -869,3 +973,56 @@ div.editInfo { margin-top: 10pt; }
         font-weight: bold;
 }
 
+.settings_form_item {
+  margin-top: 1.2em;
+}
+
+.settings_form_label {
+  font-size: 12pt;
+  margin-bottom: .3em;
+}
+
+.settings_form_label .optional {
+  font-size: 9pt;
+  margin-left: .5em;
+  color: gray;
+}
+
+.securitySettings {
+   margin-left: 1em;
+}
+
+.generalSettings {
+   margin-left: .4em;
+}
+
+.generalSettings .settings_form_label
+{
+  margin-left: -.18em;
+  margin-bottom: .25em;
+}
+
+/* used for [action here] boxes with brackets around them */
+.minorActionBox { 
+  font-size: 10pt;
+}
+
+.minorText {
+  margin-left: .5em;
+  color: gray;
+}
+
+.minorText a:link {
+   color: #333399;
+   text-decoration: none;
+}
+.minorText a:hover {
+   color: green;
+   text-decoration: none;
+}
+
+img.interwiki_icon {
+  border: none;
+  margin-right: .25em;
+  padding: 0;
+}

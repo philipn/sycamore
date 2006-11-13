@@ -11,6 +11,9 @@ from Sycamore import config
 _ua_match = None
 
 def isIpAddress(addr):
+    """
+    XXX THIS ONLY SUPPORTS IPv4
+    """
     try:
 	s_addr = map(int, addr.split('.'))
 	is_octet = True

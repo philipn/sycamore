@@ -1,5 +1,7 @@
 """
-   Developed by :
+   `Wrapper for memcached interface..does a little bit of other sycamore-specific stuff.
+
+   originally Developed by :
       Jehiah Czebotar
       Aryeh Katz
 
@@ -24,29 +26,45 @@ from Sycamore.support import Bogus
 from Sycamore import config
 from Sycamore.support import memcache
 
-def fixKey(key):
-  """
-  Memcache needs the key encoded.  The python memcache module doesn't do this, so we have to.
-  """
-  new_key = key
-  if type(key) == str:
-    new_key = key.decode('utf-8')
+def fixEncoding(item):
+        """
+        Memcache needs the items encoded.  The python memcache module doesn't do this, so we have to.
+        """
+        new_item = item
+        if type(item) == str:
+          new_item = item.decode('utf-8')
+      
+        if type(new_item) == unicode:
+          return new_item.encode('utf-8')
+      
+        return new_item
 
-  if type(new_key) == unicode:
-    return new_key.encode('utf-8')
+def fixKey(key, prefix):
+        """
+        Fix the encoding and also add self.prefix to the key.
+        """        
+        if prefix != '':
+          return fixEncoding('%s%s' % (prefix, key))
+        return fixEncoding(key)
 
-  return new_key
 
 class MemcachePool:
-    def __init__(self,hosts=None):
+    def __init__(self,hosts=None,prefix=''):
         self._pooled_conns=[]
         self.enabled = True
+        if prefix != '':
+            self.prefix = prefix
+        else:
+            self.prefix = ''
         if hosts:
             self._hosts=hosts
         else:
             self._hosts=self.getMCHosts()
         self.lock = threading.Lock()
-        
+
+    def setPrefix(self, prefix):
+        self.prefix = prefix
+
     def enable(self):
         self.enabled = True
     def disable(self):
@@ -82,19 +100,27 @@ class MemcachePool:
             self._pooled_conns.append(mc)
             self.lock.release()
         
-    def get(self,key):
+    def get(self,key,wiki_global=False,prefix=None):
+        if not prefix: prefix = self.prefix
         mc = self.getConnection()
-	key = fixKey(key)
+        if not wiki_global:
+          key = fixKey(key, prefix)
+        else:
+          key = fixKey(key, '')
         v = mc.get(key)
-	if type(v) == str:
-	  v = v.decode('utf-8')
+        if type(v) == str:
+          v = v.decode('utf-8')
         self.returnConnection(mc)
         return v
 
-    def set(self,key,value,time=0):
+    def set(self,key,value,time=0,wiki_global=False,prefix=None):
+        if not prefix: prefix = self.prefix
         mc = self.getConnection()
-	key = fixKey(key)
-	value = fixKey(value)
+        if not wiki_global:
+          key = fixKey(key, prefix)
+        else:
+          key = fixKey(key, '')
+        value = fixEncoding(value)
         r = mc.set(key,value,time)
         self.returnConnection(mc)
         return r
@@ -107,38 +133,58 @@ class MemcachePool:
         self.returnConnection(mc)
         return r
 
-    def add(self,key,value,time=0):
+    def add(self,key,value,time=0,wiki_global=False,prefix=None):
+        if not prefix: prefix = self.prefix
         mc = self.getConnection()
-	key = fixKey(key)
-	value = fixKey(value)
+        if not wiki_global:
+          key = fixKey(key, prefix)
+        else:
+          key = fixKey(key, '')
+        value = fixEncoding(value)
         r = mc.add(key,value,time)
         self.returnConnection(mc)
         return r
 
-    def replace(self,key,value,time=0):
+    def replace(self,key,value,time=0,wiki_global=False,prefix=None):
+        if not prefix: prefix = self.prefix
         mc = self.getConnection()
-	key = fixKey(key)
+        if not wiki_global:
+          key = fixKey(key, prefix)
+        else:
+          key = fixKey(key, '')
         r = mc.replace(key,value,time)
         self.returnConnection(mc)
         return r
 
-    def delete(self,key,time=0):
+    def delete(self,key,time=0,wiki_global=False,prefix=None):
+        if not prefix: prefix = self.prefix
         mc = self.getConnection()
-	key = fixKey(key)
+        if not wiki_global:
+          key = fixKey(key, self.prefix)
+        else:
+          key = fixKey(key, '')
         r = mc.delete(key,time)
         self.returnConnection(mc)
         return r
 
-    def incr(self,name,value=1):
+    def incr(self,name,value=1, wiki_global=False,prefix=None):
+        if not prefix: prefix = self.prefix
         mc = self.getConnection()
-	name = fixKey(name)
+        if not wiki_global:
+          name = fixKey(name, prefix)
+        else:
+          name = fixKey(name, '')
         r = mc.incr(name,value)
         self.returnConnection(mc)
         return r
 
-    def decr(self,name,value=1):
+    def decr(self,name,value=1, wiki_global=False,prefix=None):
+        if not prefix: prefix = self.prefix
         mc = self.getConnection()
-	name = fixKey(name)
+        if not wiki_global:
+          name = fixKey(name, prefix)
+        else:
+          name = fixKey(name, '')
         r = mc.decr(name,value)
         self.returnConnection(mc)
         return r
@@ -150,16 +196,20 @@ class MemcachePool:
             mc.disconnect_all()
         self.lock.release()
 
-    def get_multi(self,keys):
+    def get_multi(self,keys,wiki_global=False,prefix=None):
+        if not prefix: prefix = self.prefix
         mc = self.getConnection()
-	keys = [ fixKey(key) for key in keys ]
+        if not wiki_global:
+          keys = [ fixKey(key, self.prefix) for key in keys ]
+        else:
+          keys = [ fixKey(key, '') for key in keys ]
         v = mc.get_multi(keys)
-	v_new = []
-	for value in v:
-	  if type(value) == str:
-	    v_new.append(value.decode("utf-8"))
-	  else:
-	    v_new.append(value)
+        v_new = []
+        for value in v:
+          if type(value) == str:
+            v_new.append(value.decode("utf-8"))
+          else:
+            v_new.append(value)
         v = v_new
         self.returnConnection(mc)
         return v

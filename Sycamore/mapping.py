@@ -2,12 +2,16 @@
 """
     Sycamore - Wiki mapping support functions
 
+    NOTE:  This applies to the /old/ non-[[address]] mapping functionality.
+
+    (i.e. config.has_old_wiki_map = True)
+
     @copyright: 2005 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
 # Imports
 import xml.dom.minidom, time
-from Sycamore.wikiutil import quoteFilename
+from Sycamore.wikiutil import quoteFilename, mc_quote
 from Sycamore import config
 from Sycamore.Page import Page
 
@@ -41,7 +45,7 @@ def update_points(mapPoints, request, pagename=None):
   given_id_items_for_pagename = []
   if pagename:
     # we get all ids for the pagename so we know which ones to delete afterward
-    cursor.execute("SELECT id, x, y, created_time, created_by, created_by_ip from mapPoints where pagename=%(page_name)s", {'page_name':pagename.lower()})
+    cursor.execute("SELECT id, x, y, created_time, created_by, created_by_ip from mapPoints where pagename=%(page_name)s and wiki_id=%(wiki_id)s", {'page_name':pagename.lower(), 'wiki_id':request.config.wiki_id})
     all_id_items_result = cursor.fetchall()
     for pagename_id_item in all_id_items_result:
       all_id_items_for_pagename.append(pagename_id_item)
@@ -55,14 +59,14 @@ def update_points(mapPoints, request, pagename=None):
     categories = point[4]
 
     if id:
-      cursor.execute("SELECT created_time, created_by, created_by_ip, x, y from mapPoints where pagename=%(name)s and id=%(id)s", {'name':name, 'id':id})
+      cursor.execute("SELECT created_time, created_by, created_by_ip, x, y from mapPoints where pagename=%(name)s and id=%(id)s and wiki_id=%(wiki_id)s", {'name':name, 'id':id, 'wiki_id':request.config.wiki_id})
       result = cursor.fetchone()
       created_time = result[0]
       created_by = result[1]
       created_by_ip = result[2]
       oldx = result[3]
       oldy = result[4]
-      cursor.execute("SELECT id from mapPointCategories where pagename=%(name)s and x=%(oldx)s and y=%(oldy)s", {'name':name, 'oldx':oldx, 'oldy':oldy})
+      cursor.execute("SELECT id from mapPointCategories where pagename=%(name)s and x=%(oldx)s and y=%(oldy)s and wiki_id=%(wiki_id)s", {'name':name, 'oldx':oldx, 'oldy':oldy, 'wiki_id':request.config.wiki_id})
       result = cursor.fetchall()
       old_categories = []
       for cat_id in result:
@@ -70,30 +74,29 @@ def update_points(mapPoints, request, pagename=None):
       given_id_items_for_pagename.append((id, x, y))
 
     if id:
-      cursor.execute("INSERT into oldMapPoints (pagename, x, y, created_time, created_by, created_by_ip, deleted_time, deleted_by, deleted_by_ip, pagename_propercased) values (%(name)s, %(oldx)s, %(oldy)s, %(created_time)s, %(created_by)s, %(created_by_ip)s, %(time_now)s, %(deleted_by_id)s, %(deleted_by_ip)s, %(name_propercased)s)", {'name':name, 'name_propercased':name_propercased, 'oldx':oldx, 'oldy':oldy, 'created_time':created_time, 'created_by':created_by, 'created_by_ip':created_by_ip, 'time_now':timenow, 'deleted_by_id':request.user.id, 'deleted_by_ip':request.remote_addr}, isWrite=True)
+      cursor.execute("INSERT into oldMapPoints (pagename, x, y, created_time, created_by, created_by_ip, deleted_time, deleted_by, deleted_by_ip, pagename_propercased, wiki_id) values (%(name)s, %(oldx)s, %(oldy)s, %(created_time)s, %(created_by)s, %(created_by_ip)s, %(time_now)s, %(deleted_by_id)s, %(deleted_by_ip)s, %(name_propercased)s, %(wiki_id)s)", {'name':name, 'name_propercased':name_propercased, 'oldx':oldx, 'oldy':oldy, 'created_time':created_time, 'created_by':created_by, 'created_by_ip':created_by_ip, 'time_now':timenow, 'deleted_by_id':request.user.id, 'deleted_by_ip':request.remote_addr, 'wiki_id':request.config.wiki_id}, isWrite=True)
 
-      cursor.execute("UPDATE mapPoints set x=%(x)s, y=%(y)s, created_time=%(time_now)s, created_by=%(created_by)s, created_by_ip=%(created_by_ip)s where pagename=%(name)s and id=%(id)s and x=%(oldx)s and y=%(oldy)s", {'name':name, 'x':x, 'y':y, 'time_now':timenow, 'created_by':request.user.id, 'created_by_ip':request.remote_addr, 'name':name, 'id':id, 'oldx':oldx, 'oldy':oldy}, isWrite=True)
+      cursor.execute("UPDATE mapPoints set x=%(x)s, y=%(y)s, created_time=%(time_now)s, created_by=%(created_by)s, created_by_ip=%(created_by_ip)s where pagename=%(name)s and id=%(id)s and x=%(oldx)s and y=%(oldy)s and wiki_id=%(wiki_id)s", {'name':name, 'x':x, 'y':y, 'time_now':timenow, 'created_by':request.user.id, 'created_by_ip':request.remote_addr, 'name':name, 'id':id, 'oldx':oldx, 'oldy':oldy, 'wiki_id':request.config.wiki_id}, isWrite=True)
     else:
-      cursor.execute("SELECT max(id) from mapPoints")
-      result = cursor.fetchone()
-      if result[0]:
-        new_id = result[0] + 1
-      else: new_id = 1
-      cursor.execute("INSERT into mapPoints (pagename, x, y, created_time, created_by, created_by_ip, id, pagename_propercased) values (%(name)s, %(x)s, %(y)s, %(time_now)s, %(created_by)s, %(created_by_ip)s, %(new_id)s, %(name_propercased)s)", {'name':name, 'name_propercased':name_propercased, 'x':x, 'y':y, 'time_now':timenow, 'created_by':request.user.id, 'created_by_ip':request.remote_addr, 'new_id':new_id}, isWrite=True)
+      # we have to deal with auto increment issues here
+      if config.db_type == 'mysql':
+        cursor.execute("INSERT into mapPoints (pagename, x, y, created_time, created_by, created_by_ip, id, pagename_propercased, wiki_id) values (%(name)s, %(x)s, %(y)s, %(time_now)s, %(created_by)s, %(created_by_ip)s, NULL, %(name_propercased)s, %(wiki_id)s)", {'name':name, 'name_propercased':name_propercased, 'x':x, 'y':y, 'time_now':timenow, 'created_by':request.user.id, 'created_by_ip':request.remote_addr, 'wiki_id':request.config.wiki_id}, isWrite=True)
+      else:
+        cursor.execute("INSERT into mapPoints (pagename, x, y, created_time, created_by, created_by_ip, id, pagename_propercased, wiki_id) values (%(name)s, %(x)s, %(y)s, %(time_now)s, %(created_by)s, %(created_by_ip)s, NEXTVAL('mapPoints_seq'), %(name_propercased)s, %(wiki_id)s)", {'name':name, 'name_propercased':name_propercased, 'x':x, 'y':y, 'time_now':timenow, 'created_by':request.user.id, 'created_by_ip':request.remote_addr, 'wiki_id':request.config.wiki_id}, isWrite=True)
 
     if id:
       for old_category in old_categories:
-        cursor.execute("INSERT into oldMapPointCategories (pagename, x, y, deleted_time, id) values (%(name)s, %(x)s, %(y)s, %(time_now)s, %(old_category)s)", {'name':name, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category}, isWrite=True)
+        cursor.execute("INSERT into oldMapPointCategories (pagename, x, y, deleted_time, id, wiki_id) values (%(name)s, %(x)s, %(y)s, %(time_now)s, %(old_category)s, %(wiki_id)s)", {'name':name, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category, 'wiki_id':request.config.wiki_id}, isWrite=True)
 
     for category in categories:
-      cursor.execute("SELECT pagename from mapPointCategories where pagename=%(name)s and x=%(x)s and y=%(y)s and id=%(category)s", {'name':name, 'x':x, 'y':y, 'category':category})
+      cursor.execute("SELECT pagename from mapPointCategories where pagename=%(name)s and x=%(x)s and y=%(y)s and id=%(category)s and wiki_id=%(wiki_id)s", {'name':name, 'x':x, 'y':y, 'category':category, 'wiki_id':request.config.wiki_id})
       result = cursor.fetchone()
       if result:
-        cursor.execute("SELECT pagename from mapPointCategories where x=%(x)s and y=%(y)s and pagename=%(name)s and id=%(category)s", {'name':name, 'x':x, 'y':y, 'category':category})
+        cursor.execute("SELECT pagename from mapPointCategories where x=%(x)s and y=%(y)s and pagename=%(name)s and id=%(category)s and wiki_id=%(wiki_id)s", {'name':name, 'x':x, 'y':y, 'category':category, 'wiki_id':request.config.wiki_id})
         if not cursor.fetchone():
-           cursor.execute("UPDATE mapPointCategories set x=%(x)s, y=%(y)s where pagename=%(name)s and  id=%(category)s", {'name':name, 'x':x, 'y':y, 'category':category}, isWrite=True)
+           cursor.execute("UPDATE mapPointCategories set x=%(x)s, y=%(y)s where pagename=%(name)s and id=%(category)s and wiki_id=%(wiki_id)s", {'name':name, 'x':x, 'y':y, 'category':category, 'wiki_id':request.config.wiki_id}, isWrite=True)
       else:
-        cursor.execute("INSERT into mapPointCategories (pagename, x, y, id) values (%(name)s, %(x)s, %(y)s, %(category)s)", {'name':name, 'x':x, 'y':y, 'category':category}, isWrite=True)
+        cursor.execute("INSERT into mapPointCategories (pagename, x, y, id, wiki_id) values (%(name)s, %(x)s, %(y)s, %(category)s, %(wiki_id)s)", {'name':name, 'x':x, 'y':y, 'category':category, 'wiki_id':request.config.wiki_id}, isWrite=True)
   # delete the points they didn't send us for pagename
   if pagename:
     delete_id_items = []
@@ -102,8 +105,8 @@ def update_points(mapPoints, request, pagename=None):
       append_item = True
       for id_item2 in given_id_items_for_pagename:
         if str(id_item[0]) == str(id_item2[0]):
-	  append_item = False
-	  break
+          append_item = False
+          break
       if append_item: delete_id_items.append(id_item)
 
     # need to test if this delete code works.. 12-27-05 delete button in applet is broken so i can't tell for sure
@@ -115,19 +118,19 @@ def update_points(mapPoints, request, pagename=None):
       created_by = id_item[4]
       created_by_ip = id_item[5]
       old_categories = []
-      cursor.execute("SELECT id from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename.lower(), 'x':x, 'y':y})
+      cursor.execute("SELECT id from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s and wiki_id=%(wiki_id)s", {'pagename':pagename.lower(), 'x':x, 'y':y, 'wiki_id':request.config.wiki_id})
       result = cursor.fetchall()
       for cat_id in  result:
         old_categories.append(cat_id[0])
         
-      cursor.execute("INSERT into oldMapPoints (pagename, x, y, created_time, created_by, created_by_ip, deleted_time, deleted_by, deleted_by_ip, pagename_propercased) values (%(pagename)s, %(x)s, %(y)s, %(created_time)s, %(created_by)s, %(created_by_ip)s, %(time_now)s, %(deleted_by)s, %(deleted_by_ip)s, (select pagename_propercased from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s))", {'pagename':pagename.lower(), 'x':x, 'y':y, 'time_now':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr, 'created_by': created_by, 'created_by_ip':created_by_ip, 'created_time':created_time}, isWrite=True)
-      cursor.execute("DELETE from mapPoints where pagename=%(pagename)s and id=%(id)s", {'pagename':pagename, 'id':id}, isWrite=True)
+      cursor.execute("INSERT into oldMapPoints (pagename, x, y, created_time, created_by, created_by_ip, deleted_time, deleted_by, deleted_by_ip, pagename_propercased, wiki_id) values (%(pagename)s, %(x)s, %(y)s, %(created_time)s, %(created_by)s, %(created_by_ip)s, %(time_now)s, %(deleted_by)s, %(deleted_by_ip)s, (select pagename_propercased from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s), %(wiki_id)s)", {'pagename':pagename.lower(), 'x':x, 'y':y, 'time_now':timenow, 'deleted_by':request.user.id, 'deleted_by_ip':request.remote_addr, 'created_by': created_by, 'created_by_ip':created_by_ip, 'created_time':created_time, 'wiki_id':request.config.wiki_id}, isWrite=True)
+      cursor.execute("DELETE from mapPoints where pagename=%(pagename)s and id=%(id)s and wiki_id=%(wiki_id)s", {'pagename':pagename, 'id':id, 'wiki_id':request.config.wiki_id}, isWrite=True)
       for old_category in old_categories:
-        cursor.execute("INSERT into oldMapPointCategories (pagename, x, y, deleted_time, id) values (%(pagename)s, %(x)s, %(y)s, %(time_now)s, %(old_category)s)", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category}, isWrite=True)
-      cursor.execute("DELETE from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s", {'pagename':pagename.lower(), 'x':x, 'y':y}, isWrite=True)
+        cursor.execute("INSERT into oldMapPointCategories (pagename, x, y, deleted_time, id, wiki_id) values (%(pagename)s, %(x)s, %(y)s, %(time_now)s, %(old_category)s, %(wiki_id)s)", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'old_category':old_category, 'wiki_id':request.config.wiki_id}, isWrite=True)
+      cursor.execute("DELETE from mapPointCategories where pagename=%(pagename)s and x=%(x)s and y=%(y)s and wiki_id=%(wiki_id)s", {'pagename':pagename.lower(), 'x':x, 'y':y, 'wiki_id':request.config.wiki_id}, isWrite=True)
 
     # clear the memcache accordingly
-    key = quoteFilename(pagename.lower())
+    key = mc_quote(pagename.lower())
     request.mc.delete("page_info:%s" % key)
-    if request.req_cache['page_info'].has_key(key):
-       del request.req_cache['page_info'][key]
+    if request.req_cache['page_info'].has_key((key, request.config.wiki_id)):
+       del request.req_cache['page_info'][(key, request.config.wiki_id)]

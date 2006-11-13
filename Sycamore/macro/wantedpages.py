@@ -50,9 +50,9 @@ def execute(macro, args, formatter=None):
     wanted = []
     cursor = macro.request.cursor
     if showUsers(macro.request):
-      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name from (SELECT destination_pagename_propercased, source_pagename from links left join curPages on (destination_pagename=curPages.name) where curPages.name is NULL) as wanted, curPages as c where c.name=source_pagename order by destination_pagename_propercased")
+      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name from (SELECT destination_pagename_propercased, source_pagename from (SELECT destination_pagename_propercased, destination_pagename, source_pagename from links where wiki_id=%(wiki_id)s) as ourLinks left join curPages on (destination_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s) where curPages.name is NULL) as wanted, curPages as c where c.name=source_pagename and c.wiki_id=%(wiki_id)s order by destination_pagename_propercased;", {'wiki_id':macro.request.config.wiki_id})
     else:
-      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name from (SELECT destination_pagename_propercased, source_pagename from links left join curPages on (destination_pagename=curPages.name) left join users on (destination_pagename=users.name) where curPages.name is NULL and users.name is NULL) as wanted, curPages as c where c.name=source_pagename order by destination_pagename_propercased")
+      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name from (SELECT destination_pagename_propercased, source_pagename from (SELECT destination_pagename_propercased, destination_pagename, source_pagename from links where wiki_id=%(wiki_id)s) as ourLinks left join curPages on (destination_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s) left join userWikiInfo on (destination_pagename=userWikiInfo.user_name and userWikiInfo.wiki_id=%(wiki_id)s) where curPages.name is NULL and userWikiInfo.user_name is NULL) as wanted, curPages as c where c.name=source_pagename and c.wiki_id=%(wiki_id)s order by destination_pagename_propercased;", {'wiki_id':macro.request.config.wiki_id})
       
     wanted_results = cursor.fetchall()
     if wanted_results:

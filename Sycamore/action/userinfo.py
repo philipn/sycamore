@@ -13,35 +13,35 @@ def display_bookmarks(request, userpage):
   theuser = user.User(request, name=userpage)
   bookmarks = theuser.getFavoriteList()
   request.write('<div class="userFavoritesList">')
-  for pagename in bookmarks:
-    request.write('<span class="userFavoriteItem">%s</span>' % Page(pagename, request).link_to(guess_case=True))
+  for page in bookmarks:
+    request.write('<span class="userFavoriteItem">%s</span>' % page.link_to(guess_case=True))
   request.write('</div>')
   
 
 def display_edits(request, userpage):
     def printNextPrev(request, pagename, last_edit, offset_given):
         #prints the next and previous links, if they're needed
-	if last_edit == 1 and not offset_given: return 
+        if last_edit == 1 and not offset_given: return 
 
-	html = []
-	if last_edit != 1:
-	    html.append('<div class="actionBoxes" style="margin-right:10px !important; float: left !important;"><span><a href="%s/%s?action=userinfo&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), pagename, offset_given+1))
-	if offset_given:
-	    html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=userinfo&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), pagename, offset_given-1))
-	html.append('<div style="clear: both;"></div>')
+        html = []
+        if last_edit != 1:
+            html.append('<div class="actionBoxes" style="margin-right:10px !important; float: left !important;"><span><a href="%s/%s?action=userinfo&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), pagename, offset_given+1))
+        if offset_given:
+            html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=userinfo&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), pagename, offset_given-1))
+        html.append('<div style="clear: both;"></div>')
 
-	return [''.join(html)]
+        return [''.join(html)]
 
 
     _ = request.getText
 
     edits = TupleDataset()
     edits.columns = [
-	Column('page', label=_('Page')),
-	Column('mtime', label=_('Date'), align='right'),
-	Column('ip', label=_('From IP')),
-	Column('comment', label=_('Comment')),
-	Column('', label=_(''))
+        Column('page', label=_('Page')),
+        Column('mtime', label=_('Date'), align='right'),
+        Column('ip', label=_('From IP')),
+        Column('comment', label=_('Comment')),
+        Column('', label=_(''))
     ]
 
 
@@ -51,68 +51,69 @@ def display_edits(request, userpage):
     this_edit = 0
     offset_given = int(request.form.get('offset', [0])[0])
     if not offset_given: 
-	offset = 0
+        offset = 0
     else:
-	offset = offset_given*100 - offset_given
+        offset = offset_given*100 - offset_given
 
     userid = getUserId(userpage, request)
-    request.cursor.execute("SELECT count(editTime) from allPages where userEdited=%(userid)s", {'userid':userid})
+    request.cursor.execute("SELECT count(editTime) from allPages where userEdited=%(userid)s and wiki_id=%(wiki_id)s", {'userid':userid, 'wiki_id':request.config.wiki_id})
     count_result = request.cursor.fetchone()
 
     if count_result: 
-	totalEdits = count_result[0]
+        totalEdits = count_result[0]
 
-    request.cursor.execute("SELECT count(DISTINCT name) from allPages where userEdited=%(userid)s" , {'userid':userid})
+    request.cursor.execute("SELECT count(DISTINCT name) from allPages where userEdited=%(userid)s and wiki_id=%(wiki_id)s" , {'userid':userid, 'wiki_id':request.config.wiki_id})
     count_result = request.cursor.fetchone()
     
     if count_result:
-	editedPages = count_result[0]
+        editedPages = count_result[0]
 
-    request.cursor.execute("SELECT name, editTime, userIP, editType, comment from allPages where userEdited=%(userid)s order by editTime desc limit 100 offset %(offset)s", {'userid':userid, 'offset':offset})
+    request.cursor.execute("SELECT name, editTime, userIP, editType, comment from allPages where userEdited=%(userid)s and wiki_id=%(wiki_id)s order by editTime desc limit 100 offset %(offset)s", {'userid':userid, 'offset':offset, 'wiki_id':request.config.wiki_id})
     results = request.cursor.fetchall()
 
     if results:
-	has_edits = True
+        has_edits = True
     
     count = 1
     for edit in results:
-	this_edit = 1 + totalEdits - count - offset
+        this_edit = 1 + totalEdits - count - offset
 
-	pagename = edit[0]
-	mtime = edit[1]
-	userIp = edit[2]
-	editType = edit[3]
-	comment = edit[4]
+        pagename = edit[0]
+        mtime = edit[1]
+        userIp = edit[2]
+        editType = edit[3]
+        comment = edit[4]
 
-	page = Page(pagename, request)
+        page = Page(pagename, request)
 
-	version = page.date_to_version_number(mtime)
-	actions = page.link_to(text=_('show'), querystr='action=diff&amp;version2=%s&amp;version1=%s' % (version, version-1))
-		     
-	comment = Comment(request, comment, editType).render()
+        version = page.date_to_version_number(mtime)
+        actions = page.link_to(text=_('show'), querystr='action=diff&amp;version2=%s&amp;version1=%s' % (version, version-1))
+                     
+        comment = Comment(request, comment, editType).render()
 
-	edits.addRow((page.link_to(),
-		      request.user.getFormattedDateTime(mtime),
-		      userIp,
-		      comment,
-		      actions))
-	count += 1
+        edits.addRow((page.link_to(),
+                      request.user.getFormattedDateTime(mtime),
+                      userIp,
+                      comment,
+                      actions))
+        count += 1
     
     if has_edits:
-	request.write('<p>This user has made <b>%d</b> edits on <b>%d</b> pages.</p>' % (totalEdits, editedPages))
+        request.write('<p>This user has made <b>%d</b> edits on <b>%d</b> pages.</p>' % (totalEdits, editedPages))
 
-	request.write('<div id="useredits">')
-	request.formatter = Formatter(request)
-	edit_table = DataBrowserWidget(request)
-	edit_table.setData(edits)
-	edit_table.render(append=printNextPrev(request, userpage, this_edit, offset_given))
-	request.write('</div>')
+        request.write('<div id="useredits">')
+        request.formatter = Formatter(request)
+        edit_table = DataBrowserWidget(request)
+        edit_table.setData(edits)
+        edit_table.render(append=printNextPrev(request, userpage, this_edit, offset_given))
+        request.write('</div>')
     else:
-	request.write("<p>This user hasn't edited any pages.</p>")
+        request.write("<p>This user hasn't edited any pages.</p>")
 
 
 def execute(pagename, request):
     _ = request.getText
+    page = Page(pagename, request)
 
     request.http_headers()
 
@@ -120,7 +121,7 @@ def execute(pagename, request):
 
 
     request.write('<div id="content" class="content">\n\n')
-    InfoBar(request, pagename).render()
+    InfoBar(request, page).render()
     request.write('<div id="tabPage">')
 
     request.write('<h3>Bookmarks</h3>\n')

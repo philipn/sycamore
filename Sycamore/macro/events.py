@@ -73,9 +73,9 @@ def full_events(events, are_events_today, htmltext, macro):
     yesterday_struct = time.gmtime(time.time()-60*60*24)
     yesterday = list(yesterday_struct[0:3]) + [0,0,0,0,0,0]
     yesterday = calendar.timegm(yesterday)
-    macro.request.cursor.execute("SELECT event_name, event_time from events where event_time<%(yesterday)s", {'yesterday':yesterday})
-    macro.request.cursor.execute("DELETE from events where event_time<%(yesterday)s", {'yesterday':yesterday})
-    macro.request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events order by event_time")
+    macro.request.cursor.execute("SELECT event_name, event_time from events where event_time<%(yesterday)s and wiki_id=%(wiki_id)s", {'yesterday':yesterday, 'wiki_id':macro.request.config.wiki_id})
+    macro.request.cursor.execute("DELETE from events where event_time<%(yesterday)s and wiki_id=%(wiki_id)s", {'yesterday':yesterday, 'wiki_id':macro.request.config.wiki_id})
+    macro.request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where wiki_id=%(wiki_id)s order by event_time", {'wiki_id':macro.request.config.wiki_id})
     result = macro.request.cursor.fetchone()
     while result:
       events.append(result) 
@@ -235,7 +235,7 @@ def do_mini_events(events, are_events_today, htmltext, macro):
     tomorrow = calendar.timegm(tomorrow) - macro.request.user.tz_offset
 
     if config.memcache:
-      if config.tz_offset == macro.request.user.tz_offset:
+      if macro.request.config.tz_offset == macro.request.user.tz_offset:
         #relative time makes 'today' different
 	events = macro.request.mc.get("today_events")
       else:
@@ -244,7 +244,7 @@ def do_mini_events(events, are_events_today, htmltext, macro):
 	  htmltext += events.text
 	  return
 
-    cursor.execute("SELECT event_name, uid from events where event_time >= %(today)s and event_time < %(tomorrow)s", {'today':today, 'tomorrow':tomorrow})
+    cursor.execute("SELECT event_name, uid from events where event_time >= %(today)s and event_time < %(tomorrow)s and wiki_id=%(wiki_id)s", {'today':today, 'tomorrow':tomorrow, 'wiki_id':macro.request.config.wiki_id})
     events_result = cursor.fetchall()
     if not events_result:
       todays_events.append('<p><i>No events were posted for today on the <a href="%s/Events_Board">Events Board</a>.  Post one!</i></p>' % macro.request.getScriptname())
@@ -258,7 +258,7 @@ def do_mini_events(events, are_events_today, htmltext, macro):
     htmltext += todays_events
 
     if config.memcache:
-      if config.tz_offset == macro.request.user.tz_offset:
+      if macro.request.config.tz_offset == macro.request.user.tz_offset:
         event = TodaysEvents(today, todays_events)
         macro.request.mc.set("today_events", event)
       else:

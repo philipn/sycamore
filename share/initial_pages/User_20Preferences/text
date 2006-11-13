@@ -1,10 +1,1 @@
-#acl AdminGroup:admin,read,write,delete,revert All:read
 [[UserPreferences]]
-
-= First time =
-/!\ Your email is needed for you to be able to recover lost login data.
-
-If you click on '''[[GetText(Create Profile)]]''', a user profile will be created for you and you will be logged in immediately.
-
-= Forgot password? =
-If you forgot your password, attempt to log in via the login box in the upper right hand corner of the screen and you will be given further instruction.

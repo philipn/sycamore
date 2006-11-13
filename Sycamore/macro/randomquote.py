@@ -24,6 +24,15 @@ from Sycamore.Page import Page, wikiutil
 
 Dependencies = ["time"]
 
+p_len = len('<p>\n')
+end_p_len = len('</p>')
+
+def _stripOuterParagraph(quote):
+    """
+    We always put <p>'s around things, so in this case let's remove the outer-most <p>'s.
+    """
+    return quote[ p_len: len(quote)-end_p_len+1]
+
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
     _ = macro.request.getText
@@ -53,7 +62,7 @@ def execute(macro, args, formatter=None):
 
     if quote.lower().find("randomquote") == -1:
         quote = wikiutil.wikifyString(quote, macro.request, page, strong=True)
-
+        quote = _stripOuterParagraph(quote)
     #import re
     # XXX line below messes up images by cutting the div around it apart.  not sure of the use, removed 2006-5-14
     #quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)

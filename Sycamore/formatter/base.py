@@ -28,13 +28,13 @@ class FormatterBase:
         self._ = request.getText
 
         self._store_pagelinks = kw.get('store_pagelinks', 0)
-	self._preview = kw.get('preview', 0)
+        self._preview = kw.get('preview', 0)
         self.pagelinks = []
         self.pagelinks_propercased = []
         self.in_p = 0
         self.in_pre = 0
-   	self.processed_thumbnails = {}
-	self.page = None
+        self.processed_thumbnails = {}
+        self.page = None
 
     def lang(self, lang_name, text):
         raise NotImplementedError
@@ -165,7 +165,7 @@ class FormatterBase:
     
     def macro(self, macro_obj, name, args):
         # call the macro
-	name = name.lower()
+        name = name.lower()
         return macro_obj.execute(name, args, formatter=self) 
 
     def processor(self, processor_name, lines):
@@ -187,7 +187,7 @@ class FormatterBase:
             return content
         else:
             return ''
-	     
+             
     # Other ##############################################################
     
     def rawHTML(self, markup):
@@ -198,7 +198,7 @@ class FormatterBase:
             effects, like loss of markup or insertion of CDATA sections
             when output goes to XML formats.
         """
-	if type(markup) == str:
+        if type(markup) == str:
           markup = markup.decode('utf-8')
 
         return markup

@@ -1,5 +1,37 @@
+from Sycamore import config, wikiutil
+from Sycamore.action.Files import getAttachUrl
 Dependencies = []
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
-    return formatter.rawHTML('<script language="JavaScript">function addEngine(name,icon,cat){if ((typeof window.sidebar == "object") && (typeof window.sidebar.addSearchEngine == "function")){var iconPath;if(icon != "" && icon != undefined){iconPath = "http://daviswiki.org/cool_files/firefox/"+icon;}window.sidebar.addSearchEngine("http://daviswiki.org/cool_files/firefox/"+name+".src",iconPath,name,cat );}else{alert("The Firefox browser is required to install this plugin.");}}</script><a href="javascript:addEngine(\'daviswiki\',\'daviswiki.png\',\'Web\')"><img src="http://daviswiki.org/cool_files/firefox/daviswiki.png"/>&nbsp;Install the Davis Wiki search plugin!</a>')
+    image_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
+    if wikiutil.hasFile(image_pagename, 'tinylogo.png', macro.request):
+        icon_url = macro.request.getQualifiedURL('/?action=mozilla_search&amp;file=%s.png' % macro.request.config.wiki_name)
+    else:
+        icon_url = ''
+    if icon_url:
+        icon_link = """<img src="%s"/>&nbsp;""" % icon_url
+    else:
+        icon_link = ''
+    d = { 'src_url': macro.request.getQualifiedURL('/?action=mozilla_search&amp;file=%s.src' % macro.request.config.wiki_name), 
+          'sitename': macro.request.config.sitename,
+          'wikiname': macro.request.config.wiki_name,
+          'icon_url': icon_url,
+          'icon_link': icon_link, 
+        }
+
+    return formatter.rawHTML("""<script language="JavaScript">
+function addEngine(name,cat)
+{
+    if ((typeof window.sidebar == "object") && (typeof window.sidebar.addSearchEngine == "function"))
+    {
+        var iconPath = "%(icon_url)s";
+        window.sidebar.addSearchEngine("%(src_url)s",iconPath,name,cat );
+    }
+    else
+    {
+        alert("The Firefox browser is required to install this plugin.");
+    }
+}
+</script>
+<a href="javascript:addEngine(\'%(wikiname)s\',\'Web\')">%(icon_link)sInstall the %(sitename)s search plugin!</a>""" % d)

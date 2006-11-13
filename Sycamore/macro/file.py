@@ -19,7 +19,7 @@ def execute(macro, args, formatter=None):
         return formatter.rawHTML('<b>Please supply at least a file name, e.g. [[File(filename.txt)]], where filename.txt is a file that\'s been uploaded to this page.</b>')
     filename = args
 
-    macro.request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(pagename)s", {'filename':filename, 'pagename':pagename.lower()})
+    macro.request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", {'filename':filename, 'pagename':pagename.lower(), 'wiki_id':macro.request.config.wiki_id})
     result = macro.request.cursor.fetchone()
     file_exists = result
 

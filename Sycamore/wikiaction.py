@@ -22,24 +22,32 @@
 
 # Imports
 import os, re, string, time, urllib
-from Sycamore import config, util, wikiutil, user, search
+from Sycamore import config, util, wikiutil, user, search, farm
 from Sycamore.Page import Page
 from Sycamore.util import SycamoreNoFooter, pysupport
 
-NOT_ALLOWED_CHARS = '><?#[]{}|'
+NOT_ALLOWED_CHARS = '><?#[]{}|"'
 NOT_ALLOWED_CHARS_ESCAPED = re.escape(NOT_ALLOWED_CHARS)
 MAX_COMMENT_LENGTH = 80
+
+from Sycamore.Page import MAX_PAGENAME_LENGTH
 
 #############################################################################
 ### Search
 #############################################################################
 
-def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=0, tstart=0, twith=10, pwith=10):
+def do_global_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=0, tstart=0, twith=10, pwith=10):
+    do_search(pagename, request, fieldname=fieldname, inc_title=inc_title, pstart=pstart, tstart=tstart, twith=twith, pwith=pwith, action='global_search', wiki_global=True)
+
+def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=0, tstart=0, twith=10, pwith=10, action='search', wiki_global=False):
+    from Sycamore.formatter.text_html import Formatter
     _ = request.getText
     start = time.clock()
 
     # send http headers
     request.http_headers()
+
+    request.formatter = Formatter(request)
 
     # get parameters
     if request.form.has_key(fieldname):
@@ -76,38 +84,65 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     if needle[0] == needle[-1] == '"': printable_needle = needle[1:-1]
     else: printable_needle = needle
     # send title
-    wikiutil.send_title(request, _('Search results for "%s"') % (printable_needle,))
+    if wiki_global:
+        on_wiki = ' on all wikis'
+    else:
+        on_wiki = ''
+    wikiutil.send_title(request, _('Search results for "%s"%s') % (printable_needle, on_wiki))
     
     #searchlog = open(config.data_dir + '/search.log','a')
     #searchlog.write(needle + '\n')
     #searchlog.close()
 
-    this_search = search.Search(search.prepare_search_needle(needle), request, p_start_loc=pstart, t_start_loc=tstart, num_results=pwith+1) #, start_lock=)
+    this_search = search.Search(search.prepare_search_needle(needle), request, p_start_loc=pstart, t_start_loc=tstart, num_results=pwith+1, wiki_global=wiki_global) #, start_lock=)
     this_search.process()
     # don't display results they can't read
-    title_hits = [title for title in this_search.title_results if request.user.may.read(Page(title.page_name, request))]
-    full_hits = [text for text in this_search.text_results if request.user.may.read(Page(text.page_name, request))]
+    if not wiki_global:
+        title_hits = [title for title in this_search.title_results if request.user.may.read(Page(title.page_name, request))]
+        full_hits = [text for text in this_search.text_results if request.user.may.read(Page(text.page_name, request))]
+    else:
+        title_hits = []
+        full_hits = []
+
+        for title in this_search.title_results:
+            if request.user.may.read(Page(title.page_name, request, wiki_name=title.wiki_name)):
+                title_hits.append(title)
+        for text in this_search.text_results:
+            if request.user.may.read(Page(text.page_name, request, wiki_name=text.wiki_name)):
+                full_hits.append(text)
+
     request.write('<div id="content" class="wikipage content">\n') # start content div
     if len(title_hits) < 1:
             request.write('<h3>&nbsp;No title matches</h3>')
-            request.write('<table class="dialogBox"><tr><td>\n') # start content div
-            request.write('The %s does not have any entries with the exact title "' % config.sitename+ printable_needle + '" <br />')
-            request.write('Would you like to %s?' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
-            request.write('</td></tr></table>\n')
+            if not wiki_global:
+                request.write('<table class="dialogBox"><tr><td>\n') # start content div
+                request.write('The %s does not have any entries with the exact title "' % request.config.sitename+ printable_needle + '" <br />')
+                request.write('Would you like to %s?' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
+                request.write('</td></tr></table>\n')
     else:
             request.write('<h3>&nbsp;Title matches</h3>')
-            if not title_hits[0].title.lower() == printable_needle.lower():
-                    request.write('<table class="dialogBox"><tr><td>The %s does not have any entries with the exact title "' % config.sitename + printable_needle + '". <br />')
-                    request.write('Would you like to %s?</td></tr></table>' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
+            if not wiki_global:
+                if not title_hits[0].title.lower() == printable_needle.lower():
+                        request.write('<table class="dialogBox"><tr><td>The %s does not have any entries with the exact title "' % request.config.sitename + printable_needle + '". <br />')
+                        request.write('Would you like to %s?</td></tr></table>' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
+
     request.write('<ul>')
     if len(title_hits) > twith:
             for t_hit in title_hits[0:twith]:
+                if wiki_global:
+                    wiki_link = farm.link_to_wiki(t_hit.wiki_name, request.formatter)
+                    request.write('<li>%s <span class="minorText">(on %s)</span></li>' % (Page(t_hit.page_name, request, wiki_name=t_hit.wiki_name).link_to(), wiki_link))
+                else:
                     request.write('<li>%s</li>' % Page(t_hit.page_name, request).link_to())
             request.write('</ul>')
-            request.write('<p>(<a href="%s?action=search&string=%s&tstart=%s">next %s matches</a>)'
-                    % (request.getScriptname(), needle, tstart+twith, twith))
+            request.write('<p>(<a href="%s?action=%s&string=%s&tstart=%s">next %s matches</a>)'
+                    % (request.getScriptname(), action, needle, tstart+twith, twith))
     else:
             for t_hit in title_hits:
+                if wiki_global:
+                    wiki_link = farm.link_to_wiki(t_hit.wiki_name, request.formatter)
+                    request.write('<li>%s <span class="minorText">(on %s)</span></li>' % (Page(t_hit.page_name, request, wiki_name=t_hit.wiki_name).link_to(), wiki_link))
+                else:
                     request.write('<li>%s</li>' % Page(t_hit.page_name, request).link_to())
             request.write('</ul>')
     if len(full_hits) < 1:
@@ -124,15 +159,20 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         elif full_hit.percentage > 32:
           color = "#ffee55"
         request.write('<p><table><tr><td width="40" valign="middle"><table class="progbar" cellspacing="0" cellpadding="0"><tr><td height="7" width="%d" bgcolor="%s"></td><td width="%d" bgcolor="#eeeeee"></td></tr></table></td><td>' % (full_hit.percentage/3, color, 33 - full_hit.percentage/3))
-        request.write(Page(full_hit.page_name, request).link_to())
+        if wiki_global:
+            wiki_link = farm.link_to_wiki(full_hit.wiki_name, request.formatter)
+            request.write('%s <span class="minorText">(on %s)</span>' % (Page(full_hit.page_name, request, wiki_name=full_hit.wiki_name).link_to(), wiki_link))
+        else:
+            request.write(Page(full_hit.page_name, request).link_to())
+
         request.write('</td></tr></table>\n')
 
         if context:
-	  print_context(this_search, full_hit.data, request, context=context, max_context=max_context)
+          print_context(this_search, full_hit.data, request, context=context, max_context=max_context)
           
       if len(full_hits) > pwith:
-         request.write('<p>&nbsp;(<a href="%s?action=search&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
-                        % (request.getScriptname(), urllib.quote_plus(needle), pstart+pwith, pwith))
+         request.write('<p>&nbsp;(<a href="%s?action=%s&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
+                        % (request.getScriptname(), action, urllib.quote_plus(needle), pstart+pwith, pwith))
       else:
          request.write('</div></dl>')
 
@@ -155,7 +195,7 @@ def print_context(the_search, text, request, context=40, max_context=10):
  escape = wikiutil.escape
  
  terms_both = []
- for i in range(0, len(terms)):
+ for i in range(0, len(exact_terms)):
    terms_both_set = []
    if type(terms[i]) == list:
      for j in range(0, len(terms[i])):
@@ -266,10 +306,11 @@ def print_context(the_search, text, request, context=40, max_context=10):
 
 def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1=None, version2=None, diff1_date='', diff2_date=''):
     """ Handle "action=diff"
-        checking for either a "date=backupdate" parameter
-        or date1 and date2 parameters
+        checking for either a "date=backupdate" parameter or "at_date=time" parameter
+        or date1 (or version1) and date2 (or version2) parameters
     """
     l = []
+    at_date = None
     lower_pagename = pagename.lower()
     page = Page(pagename, request)
     if not request.user.may.read(page):
@@ -294,6 +335,16 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
             version2 = None
     except KeyError:
         version2 = None 
+
+    if request.form.has_key('at_date'):
+        try:
+            at_date = float(request.form['at_date'][0])
+        except:
+            pass
+
+    if at_date:
+        version2 = page.date_to_version_number(at_date)
+        version1 = version2 - 1
     
     if version1:
       if not diff1_date: diff1_date = repr(Page(pagename, request).version_number_to_date(version1))
@@ -332,16 +383,17 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
         except KeyError:
             diff1_date = -1
 
-	if diff1_date > 0:
-	  version1 = page.date_to_version_number(diff1_date)
+        if diff1_date > 0:
+          version1 = page.date_to_version_number(diff1_date)
+
+            
+    current_mtime = page.mtime()
+    current_version = page.date_to_version_number(current_mtime)
 
     if version1 is None and version2 is None:
       # we are pressing 'diff' in the recent changes/etc
-      page = Page(pagename, request)
-      current_mtime = page.mtime()
-      current_version = page.date_to_version_number(current_mtime)
-      version2 = current_version
-      version1 = current_version - 1
+      version2 = at_version
+      version1 = at_version - 1
 
     # spacing flag?
     try:
@@ -353,13 +405,13 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     
     if in_wiki_interface:
       request.http_headers()
-      if request.user.valid: request.user.checkFavorites(pagename)
+      if request.user.valid: request.user.checkFavorites(page)
       wikiutil.simple_send_title(request, pagename, strict_title='Diferences for "%s"' % pagename)
       request.write('<div class="minorTitle">Differences:</div>')
     else:
       l.append("Differences for %s" % (page.proper_name()))
   
-    # keep the order standardized	
+    # keep the order standardized       
     if (float(diff1_date)>0 and float(diff2_date)>0 and float(diff1_date)>float(diff2_date)) or \
        (float(diff1_date)==0 and float(diff2_date)>0):
         diff1_date,diff2_date = diff2_date,diff1_date
@@ -373,13 +425,13 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     olddate2 = diff2_date
 
     if diff1_date == -1:
-	request.cursor.execute("SELECT editTime from allPages where name=%(pagename)s order by editTime desc limit 2", {'pagename':lower_pagename})
-	result = request.cursor.fetchall()
-	if len(result) >= 2:
-	   first_olddate = result[1][0]
-	else:
+        request.cursor.execute("SELECT editTime from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s order by editTime desc limit 2", {'pagename':lower_pagename, 'wiki_id':request.config.wiki_id})
+        result = request.cursor.fetchall()
+        if len(result) >= 2:
+           first_olddate = result[1][0]
+        else:
            first_olddate = 0
-	
+        
         oldpage = Page(pagename, request, prev_date=first_olddate)
         oldcount1 = oldcount1 - 1
     elif diff1_date is None:
@@ -388,7 +440,7 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     else:
         if version1 is not None:
             oldpage = Page(pagename, request, version=version1)
-	    #oldpage.make_exact_prev_date() # we allow for an approximate/from-period date param for now
+            #oldpage.make_exact_prev_date() # we allow for an approximate/from-period date param for now
         else:
             oldpage = Page("$EmptyPage$", request) # XXX: ugly hack
             oldpage.set_raw_body("")    # avoid loading from db
@@ -447,16 +499,15 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
     l.append('</strong></p>')
 
     if in_wiki_interface:
-      current_mtime = Page(pagename, request).mtime()
       is_current = (current_mtime == max_mtime)
       
       if not is_current:
-	this_edit.append('<div align="right" style="margin: 2pt 0 0 0;">%s</div>' % newpage.link_to(text="next edit&rarr;", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (max_version+1, max_version)))
+        this_edit.append('<div align="right" style="margin: 2pt 0 0 0;">%s</div>' % newpage.link_to(text="next edit&rarr;", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (max_version+1, max_version)))
       if not is_oldest:
         previous_edit.append('<div align="left" style="margin: 2pt 0 0 0;">%s</div>' % newpage.link_to(text="&larr;previous edit", querystr="action=diff&amp;version2=%s&amp;version1=%s" % (min_version, min_version-1)))
         
       l.append('<div style="float:left;">%s</div><div style="float:right;">%s</div><div style="clear:both; padding: 3pt;"></div>' % (''.join(previous_edit), ''.join(this_edit)))
-	
+        
   
     from Sycamore.util.diff import diff
     if version1: l.append(diff(request, oldpage.get_raw_body(), newpage.get_raw_body(), text_mode=text_mode))
@@ -478,7 +529,7 @@ def do_info(pagename, request):
     page = Page(pagename, request)
 
     if not request.user.may.read(page):
-    	request.http_headers()
+        request.http_headers()
         page.send_page()
         return
 
@@ -486,13 +537,13 @@ def do_info(pagename, request):
         _ = request.getText
 
         # show links
-	links_to_page = page.getPageLinksTo()
+        links_to_page = page.getPageLinksTo()
         request.write('<h3>%s</h3>' % _('Links to this page'))
         if links_to_page:
             for linkingpage in links_to_page:
                 request.write("%s%s " % (Page(linkingpage, request).link_to(know_status=True, know_status_exists=True), ",."[linkingpage == links_to_page[-1]]))
             request.write("</p>")
-	else: request.write('<p>No pages link to this page.</p>')
+        else: request.write('<p>No pages link to this page.</p>')
 
         links_from_page = page.getPageLinks(request)
         request.write('<h3>%s</h3>' % _('Links from this page'))
@@ -500,24 +551,24 @@ def do_info(pagename, request):
             for linkedpage in links_from_page:
                 request.write("%s%s " % (Page(linkedpage, request).link_to(), ",."[linkedpage == links_from_page[-1]]))
             request.write("</p>")
-	else: request.write('<p>This page links to no pages.</p>')
+        else: request.write('<p>This page links to no pages.</p>')
 
 
 
     def history(page, pagename, request):
-	def printNextPrev(request, pagename, last_version, offset_given):
-	  #prints the next and previous links, if they're needed
-	  if last_version == 1 and not offset_given:
-	    return
+        def printNextPrev(request, pagename, last_version, offset_given):
+          #prints the next and previous links, if they're needed
+          if last_version == 1 and not offset_given:
+            return
 
-	  html = []
-	  if last_version != 1:
-	    html.append('<div class="actionBoxes" style="margin-right:10px !important; float: left !important;"><span><a href="%s/%s?action=info&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), wikiutil.quoteWikiname(pagename), offset_given+1))
-	  if offset_given:
-	    html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=info&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), wikiutil.quoteWikiname(pagename), offset_given-1))
-	  html.append('<div style="clear: both;"></div>')
+          html = []
+          if last_version != 1:
+            html.append('<div class="actionBoxes" style="margin-right:10px !important; float: left !important;"><span><a href="%s/%s?action=info&offset=%s">&larr;previous edits</a></span></div>' % (request.getBaseURL(), wikiutil.quoteWikiname(pagename), offset_given+1))
+          if offset_given:
+            html.append('<div class="actionBoxes" style="float: left !important;"><span><a href="%s/%s?action=info&offset=%s">next edits&rarr;</a></span></div>' % (request.getBaseURL(), wikiutil.quoteWikiname(pagename), offset_given-1))
+          html.append('<div style="clear: both;"></div>')
 
-	  return [''.join(html)]
+          return [''.join(html)]
 
 
 
@@ -529,7 +580,7 @@ def do_info(pagename, request):
 
         from Sycamore.util.dataset import TupleDataset, Column
 
-	has_history = False
+        has_history = False
 
         history = TupleDataset()
         history.columns = [
@@ -542,35 +593,35 @@ def do_info(pagename, request):
             Column('action', label=_('Action')),
             ]
 
-	versions = 0
-	# offset is n . n*100 versions
-	offset_given = int(request.form.get('offset', [0])[0])
-	if not offset_given: offset = 0
-	else:
-	   # so they see a consistent version of the page between page forward/back
-	   offset = offset_given*100 - offset_given
-        may_revert = request.user.may.revert(page)
-	request.cursor.execute("SELECT count(editTime) from allPages where name=%(pagename)s", {'pagename':lower_pagename})
-	count_result = request.cursor.fetchone()
-	if count_result: versions = count_result[0]
-	request.cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%(pagename)s order by editTime desc limit 100 offset %(offset)s", {'pagename':lower_pagename, 'offset':offset})
-	result = request.cursor.fetchall()
-	request.cursor.execute("SELECT editTime from curPages where name=%(pagename)s", {'pagename':lower_pagename})
-	currentpage_editTime_result = request.cursor.fetchone()
-	if currentpage_editTime_result: currentpage_editTime = currentpage_editTime_result[0]
-	else: currentpage_editTime = 0
-	actions = ""
-	if result: has_history = True
-	count = 1
-	this_version = 0
-	for entry in result:
-	    actions = ''
-	    this_version = 1 + versions - count - offset
+        versions = 0
+        # offset is n . n*100 versions
+        offset_given = int(request.form.get('offset', [0])[0])
+        if not offset_given: offset = 0
+        else:
+           # so they see a consistent version of the page between page forward/back
+           offset = offset_given*100 - offset_given
+        may_revert = request.user.may.edit(page)
+        request.cursor.execute("SELECT count(editTime) from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s", {'pagename':lower_pagename, 'wiki_id':request.config.wiki_id})
+        count_result = request.cursor.fetchone()
+        if count_result: versions = count_result[0]
+        request.cursor.execute("SELECT name, editTime, userEdited, editType, comment, userIP from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s order by editTime desc limit 100 offset %(offset)s", {'pagename':lower_pagename, 'offset':offset, 'wiki_id':request.config.wiki_id})
+        result = request.cursor.fetchall()
+        request.cursor.execute("SELECT editTime from curPages where name=%(pagename)s and wiki_id=%(wiki_id)s", {'pagename':lower_pagename, 'wiki_id':request.config.wiki_id})
+        currentpage_editTime_result = request.cursor.fetchone()
+        if currentpage_editTime_result: currentpage_editTime = currentpage_editTime_result[0]
+        else: currentpage_editTime = 0
+        actions = ""
+        if result: has_history = True
+        count = 1
+        this_version = 0
+        for entry in result:
+            actions = ''
+            this_version = 1 + versions - count - offset
 
-	    mtime = entry[1]
-	    comment = entry[4]
-	    editType = entry[3].strip()
-	    userIP = entry[5]
+            mtime = entry[1]
+            comment = entry[4]
+            editType = entry[3].strip()
+            userIP = entry[5]
 
             if currentpage_editTime == mtime:
                 actions = '%s&nbsp;%s' % (actions, page.link_to(
@@ -583,8 +634,8 @@ def do_info(pagename, request):
                     text=_('print'),
                     querystr='action=print'))
                 diff = '<input type="radio" name="version1" value="%s"><input type="radio" name="version2" value="%s" checked="checked">' % (this_version, this_version)
-	    else:
-	      if count==2:
+            else:
+              if count==2:
                 checked=' checked="checked"'
               else:
                 checked=""
@@ -604,18 +655,18 @@ def do_info(pagename, request):
                           text=_('revert'),
                           querystr='action=revert&amp;version=%s' % (this_version)))
                   diff = '<input type="radio" name="version1" value="%s"%s><input type="radio" name="version2" value="%s">' % (this_version,checked,this_version)
-	      else:
+              else:
                   diff = '<input type="radio" name="version1" value="%s"%s><input type="radio" name="version2" value="%s">' % (this_version,checked,this_version)
 
             
-	    from Sycamore.widget.comments import Comment
-	    comment = Comment(request, comment, editType, pagename).render()
-   	    
-	    if entry[2] and entry[2].strip():
-	    	editUser = user.User(request, entry[2].strip())
-            	editUser_text = user.getUserLink(request, editUser)
-		editUser_text = '<span title="%s">' % userIP + editUser_text + '</span>'
-	    else: editUser_text = '<i>none</i>'
+            from Sycamore.widget.comments import Comment
+            comment = Comment(request, comment, editType, page).render()
+            
+            if entry[2] and entry[2].strip():
+                editUser = user.User(request, entry[2].strip())
+                editUser_text = user.getUserLink(request, editUser)
+                editUser_text = '<span title="%s">' % userIP + editUser_text + '</span>'
+            else: editUser_text = '<i>none</i>'
             history.addRow((
                         this_version,
                         request.user.getFormattedDateTime(mtime),
@@ -624,9 +675,9 @@ def do_info(pagename, request):
                         comment or '&nbsp;',
                         actions,
                 ))
-	    count +=1
+            count +=1
 
-	last_version = this_version
+        last_version = this_version
 
         # print version history
         from Sycamore.widget.browser import DataBrowserWidget
@@ -636,15 +687,15 @@ def do_info(pagename, request):
         request.write('<div id="pageinfo" class="editInfo">')
         request.write('<input type="hidden" name="action" value="diff">\n')
 
-	if has_history:
+        if has_history:
           request.formatter = Formatter(request)
           history_table = DataBrowserWidget(request)
           history_table.setData(history)
           history_table.render(append=printNextPrev(request, pagename, last_version, offset_given))
           request.write('</div>')
           request.write('\n</form>\n')
-	else:
-	  request.write('<p>This page has no revision history.  This is probably because the page was never created.</p></div>')
+        else:
+          request.write('<p>This page has no revision history.  This is probably because the page was never created.</p></div>')
 
 
     _ = request.getText
@@ -660,13 +711,13 @@ def do_info(pagename, request):
     show_links = int(request.form.get('links', [0])[0]) != 0
     
     from Sycamore.widget.infobar import InfoBar
-    InfoBar(request, pagename).render()
+    InfoBar(request, page).render()
     request.write('<div id="tabPage">')
 
     if show_links:
-	links(page, pagename, request)
+        links(page, pagename, request)
     else:
-	history(page, pagename, request)
+        history(page, pagename, request)
 
     request.write('</div></div>\n') # end tabPage div, content div
     wikiutil.send_after_content(request)
@@ -682,7 +733,7 @@ def do_recall(pagename, request):
     if request.form.has_key('date'):
         Page(pagename, request, prev_date=request.form['date'][0]).send_page()
     elif request.form.has_key('version'):
-    	Page(pagename, request, version=request.form['version'][0]).send_page()
+        Page(pagename, request, version=request.form['version'][0]).send_page()
     else:
         Page(pagename, request).send_page()
 
@@ -691,7 +742,7 @@ def do_show(pagename, request):
     if request.form.has_key('date'):
         Page(pagename, request, prev_date=request.form['date'][0]).send_page(count_hit=1)
     elif request.form.has_key('version'):
-    	Page(pagename, request, version=request.form['version'][0]).send_page(count_hit=1)
+        Page(pagename, request, version=request.form['version'][0]).send_page(count_hit=1)
     else:
         Page(pagename, request).send_page(count_hit=1)
 
@@ -703,8 +754,66 @@ def do_content(pagename, request):
     request.http_headers()
     page = Page(pagename, request)
     request.write('<!-- Transclusion of %s -->' % request.getQualifiedURL(page.url()))
-    page.send_page(count_hit=0, content_only=1)
+    page.send_page(content_only=1)
     raise SycamoreNoFooter
+
+def do_watch_wiki(pagename, request):
+    page = Page(pagename, request)   
+    msg = ''
+    if request.form.has_key('wikiname'):
+        wikiname = request.form['wikiname'][0]
+        if wikiutil.isInFarm(wikiname, request):
+            if not request.form.has_key('del'):
+                farm.add_wiki_to_watch(wikiname, request)
+                msg = "You are now watching the %s wiki." % wikiname
+            else:
+                farm.rem_wiki_from_watch(wikiname, request)
+                msg = "You are no longer watching the %s wiki." % wikiname
+    else:
+        msg = "Error adding %s to your watched wikis." % wikiname
+    page.send_page(msg=msg)
+
+def do_mozilla_search(pagename, request):
+    """
+    Returns a mozilla search object for use with search boxes/etc.
+    """
+    from Sycamore import file
+    d = {
+          'sitename': request.config.sitename,
+          'url': request.getQualifiedURL(),
+     }
+    if request.form.has_key('file'):
+        if request.form['file'][0] == '%s.src' % request.config.wiki_name:
+            moz_src = """
+<SEARCH
+    version = "1.0"
+  name=        "%(sitename)s"
+  description= "Search on %(sitename)s"
+  action=      "%(url)s"
+  searchForm=  "%(url)s"
+  method=      "get"
+>
+
+<input name="text_new" user="">
+<input name="action" value="inlinesearch">
+<input name="button_new.x" value="0">
+<input name="context" value="40">
+
+<interpret
+  browserResultType= "result"
+  resultListStart=   "Sorted by"
+  resultListEnd=     "</ol>"
+  resultItemStart=   "<li>"
+  resultItemEnd=     "</li>"
+>
+
+</search>""" % d
+            request.http_headers()
+            request.write(moz_src)
+            return
+        elif request.form['file'][0] == '%s.png' % request.config.wiki_name:
+            file.fileSend(request, '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images), 'tinylogo.png')
+            return
 
 
 def do_edit(pagename, request):
@@ -719,14 +828,13 @@ def do_edit(pagename, request):
         PageEditor(pagename, request).sendEditor()
     else:
         _ = request.getText
-        msg = _('Invalid pagename: the characters %s are not allowed in page names.')
         not_allowed = ' '.join(NOT_ALLOWED_CHARS)
-        msg = msg % not_allowed
+        msg = _('Invalid pagename: the characters %s are not allowed in page names.  Page names must be less than %s characters.' % (not_allowed, MAX_PAGENAME_LENGTH))
 
         Page(pagename, request).send_page(msg = msg)
 
 def isValidPageName(name):
-    return not re.search('[%s]' % NOT_ALLOWED_CHARS_ESCAPED, name)
+    return not re.search('[%s]' % NOT_ALLOWED_CHARS_ESCAPED, name) and len(name) <= MAX_PAGENAME_LENGTH
 
 def do_savepage(pagename, request):
     from Sycamore.PageEditor import PageEditor
@@ -796,18 +904,18 @@ There was an edit conflict between your changes!</b> Please review the conflicts
             request.form['datestamp'] = [pg.mtime()]
             pg.sendEditor(msg=msg, comment=request.form.get('comment', [''])[0],
                               preview=verynewtext, staytop=1, had_conflict=True)
-	    return
+            return
         except pg.SaveError, msg:
             savemsg = msg
         request.reset()
         backto = request.form.get('backto', [None])[0]
         if backto:
 
-            if request.user.valid: request.user.checkFavorites(pg.page_name)
+            if request.user.valid: request.user.checkFavorites(pg)
             pg = Page(backto, request)
 
-	# clear request cache so that the user sees the page as existing
-	request.req_cache['pagenames'][pagename.lower()] = pg_proper_name
+        # clear request cache so that the user sees the page as existing
+        request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = pg_proper_name
         pg.send_page(msg=savemsg, send_headers=False)
         #request.http_redirect(pg.url())
 
@@ -820,9 +928,13 @@ def do_favorite(pagename, request):
     page = Page(pagename, request)
     if request.form.has_key('delete'):
        removed_pagename = wikiutil.unquoteWikiname(request.form.get('delete')[0]).lower()
-       request.user.favorites = request.user.getFavorites()
-       request.user.delFavorite(removed_pagename)
-       msg = _("Page '%s' removed from Bookmarks" % Page(removed_pagename, request).proper_name())
+       if request.form.has_key('wiki_name'):
+           wiki_name = request.form['wiki_name'][0]
+       else:
+            wiki_name = request.config.wiki_name
+       removed_page = Page(removed_pagename, request, wiki_name=wiki_name)
+       request.user.delFavorite(removed_page)
+       msg = _("Page '%s' removed from Bookmarks" % removed_page.proper_name())
 
     elif not request.user.may.read(page):
         msg = _("You are not allowed to bookmark a page you can't read.")
@@ -833,12 +945,12 @@ def do_favorite(pagename, request):
                 '''Click 'New User' in the upper right to make an account.''')
                 
     # This should just not display as an option if they've already got it as a favorite
-    elif request.user.isFavoritedTo(pagename):
+    elif request.user.isFavoritedTo(page):
         msg = _('You are already made this page a Bookmark.')
               
     # Favorite current page
     else:
-        if request.user.favoritePage(pagename.lower()):
+        if request.user.favoritePage(page):
             request.user.save()
         msg = _('You have added this page to your wiki Bookmarks!')
               
@@ -857,7 +969,7 @@ def do_subscribe(pagename, request):
     # check config
     elif not config.mail_smarthost:
         msg = _('''This wiki is not enabled for mail processing. '''
-                '''Contact the owner of the wiki, who can either enable email, or remove the "Subscribe" icon.''')
+                '''Contact the owner of the wiki, who can enable email.''')
 
     # check whether the user has a profile
     elif not request.user.valid:
@@ -867,7 +979,7 @@ def do_subscribe(pagename, request):
     # check whether the user has an email address
     elif not request.user.email:
         msg = _('''You didn't enter an email address in your profile. '''
-                '''Select your name (UserPreferences) in the upper right corner and enter a valid email address.''')
+                '''Select settings in the upper right corner and enter a valid email address.''')
 
     # check whether already subscribed
     elif request.user.isSubscribedTo([pagename]):
@@ -886,14 +998,38 @@ def do_subscribe(pagename, request):
 
 def do_userform(pagename, request):
     from Sycamore import userform
-    savemsg = userform.savedata(request) # we end up sending cookie headers here..possibly
+    try:
+        savemsg = userform.savedata(request) # we end up sending cookie headers here..possibly
+    except userform.BadData, msg:
+        request.setHttpHeader(("Content-Type", "text/html"))
+        request.form['new_user'] = ['1'] # hackish? yes.
+        Page(pagename, request).send_page(msg=msg)
+    else:
+        request.setHttpHeader(("Content-Type", "text/html"))
+        Page(pagename, request).send_page(msg=savemsg)
+
+def do_generalsettings(pagename, request):
+    from Sycamore import sitesettings 
+    savemsg = sitesettings.savedata_general(request) # we end up sending cookie headers here..possibly
+    request.setHttpHeader(("Content-Type", "text/html"))
+    Page(pagename, request).send_page(msg=savemsg)
+
+def do_securitysettings(pagename, request):
+    from Sycamore import sitesettings 
+    savemsg = sitesettings.savedata_security(request) # we end up sending cookie headers here..possibly
+    request.setHttpHeader(("Content-Type", "text/html"))
+    Page(pagename, request).send_page(msg=savemsg)
+
+def do_usergroupsettings(pagename, request):
+    from Sycamore import sitesettings 
+    savemsg = sitesettings.savedata_usergroups(request) # we end up sending cookie headers here..possibly
     request.setHttpHeader(("Content-Type", "text/html"))
     Page(pagename, request).send_page(msg=savemsg)
 
 def do_bookmark(pagename, request):
     if request.form.has_key('time'):
         if request.form['time'][0] =='del':
-            tm=None
+            tm = None
         else:
             try:
                 tm = int(request.form["time"][0])
@@ -902,10 +1038,12 @@ def do_bookmark(pagename, request):
     else:
         tm = time.time()
 
-    if tm is None:
-        request.user.delBookmark()
+    if request.form.has_key('global') and request.form['global']:
+        wiki_global = True
     else:
-        request.user.setBookmark(tm)
+        wiki_global = False
+
+    request.user.setBookmark(tm, wiki_global=wiki_global)
     request.http_headers()
     Page(pagename, request).send_page()
 
@@ -957,7 +1095,7 @@ def do_raw(pagename, request):
         page = Page(pagename, request, version=request.form['version'][0])
     except KeyError:
         try:
-	  page = Page(pagename, request, prev_date=request.form['date'][0])
+          page = Page(pagename, request, prev_date=request.form['date'][0])
         except KeyError:
           page = Page(pagename, request)
 

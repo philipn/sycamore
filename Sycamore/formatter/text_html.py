@@ -4,14 +4,16 @@
 
     This is a cleaned up version of text_html.py.
 
+    @copyright 2005-2006 by Pihlip Neustrom <philipn@gmail.com>
     @copyright: 2000 - 2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
 from Sycamore.formatter.base import FormatterBase
-from Sycamore import wikiutil, config, i18n
+from Sycamore import wikiutil, config, i18n, farm
 from Sycamore.Page import Page
+from Sycamore.action.Files import getAttachUrl
 
 
 #############################################################################
@@ -26,13 +28,13 @@ class Formatter(FormatterBase):
     hardspace = '&nbsp;' # XXX was: '&#160;', but that breaks utf-8
 
     def __init__(self, request, **kw):
-        apply(FormatterBase.__init__, (self, request), kw)
+        FormatterBase.__init__(self, request, **kw)
         self._in_li = 0
         self._in_code = 0
         self._base_depth = 0
         self._show_section_numbers = None
-	self.name = 'text_html'
-	self._preview = kw.get("preview", 0)
+        self.name = 'text_html'
+        self._preview = kw.get("preview", 0)
 
         if not hasattr(request, '_fmt_hd_counters'):
             request._fmt_hd_counters = []
@@ -104,30 +106,47 @@ class Formatter(FormatterBase):
 
 
     def interwikilink(self, url, text, **kw):
-        wikitag, wikiurl, wikitail, wikitag_bad = wikiutil.resolve_wiki(self.request, url)
+        wikitag, wikiurl, wikitail, wikitag_bad, wikitype = wikiutil.resolve_wiki(self.request, url, force_farm=kw.get('force_farm'))
         wikiurl = wikiutil.mapURL(wikiurl)
-        
-        href = wikiutil.join_wiki(wikiurl, wikitail)
 
         # check for image URL, and possibly return IMG tag
         #if not kw.get('pretty_url', 0) and wikiutil.isPicture(wikitail):
         #    return self.formatter.image(src=href)
-            
+
         # link to self?
         if wikitag is None:
             return self._word_repl(wikitail)
               
         # return InterWiki hyperlink
         if wikitag_bad:
-            text = "No Interwiki Link for : " + wikitag
+            text = "No Interwiki entry for: " + wikitag
             html_class = 'badinterwiki'
         else:
             html_class = 'interwiki'
         
-   #     text = self.highlight_text(text) # also cgi.escapes if necessary
-            
-        icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag})
-        
+        # if the wiki they're linking to is in our farm and if they have a defined icon then display that
+        if not kw.get('no_icon'):
+            if wikitype == wikiutil.INTERWIKI_FARM_TYPE:
+                current_wiki = self.request.config.wiki_name
+                image_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
+                self.request.switch_wiki(wikitag)
+                if wikiutil.hasFile(image_pagename, 'tinylogo.png', self.request):
+                    icon_url = getAttachUrl(image_pagename, 'tinylogo.png', self.request, base_url=farm.getWikiURL(wikitag, self.request))
+                    icon = self.image(html_class="interwiki_icon", src=icon_url, alt=wikitag)
+                else:
+                    icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}, html_class="interwiki_icon")
+                # make page link pretty (front page -> front_page)
+                if Page(wikitail, self.request).exists(): # we only want to quote if they are giving us something sane..
+                    wikitail = wikiutil.quoteWikiname(wikitail)
+                self.request.switch_wiki(current_wiki)
+            else:
+                icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}, html_class="interwiki_icon")
+        else:
+            if wikitype == wikiutil.INTERWIKI_FARM_TYPE:
+                wikitail = wikiutil.quoteWikiname(wikitail)
+            icon = ''
+
+        href = wikiutil.join_wiki(wikiurl, wikitail)
         return self.url(href, icon + text,
             title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class, show_image=False)
   
@@ -276,22 +295,22 @@ class Formatter(FormatterBase):
             else:
                 result = '</h%d>' % heading_depth
         else:
-	    if link_to_heading:
-	      title = Page(title, self.request).link_to(know_status=True, know_status_exists=True)
+            if link_to_heading:
+              title = Page(kw.get('pagename') or title, self.request).link_to(know_status=True, know_status_exists=True, text=title)
             result = '<h%d%s%s>%s%s%s</h%d>\n' % (
                 heading_depth, self._langAttr(), id_text, kw.get('icons', ''), number, title, heading_depth)
 
-	if kw.has_key('action_link'):
-	  if kw['action_link'] == 'edit':
-	    pagename = kw['pagename']
-	    backto = kw['backto']
-	    
-	    if not (self.request.form.has_key('action') and self.request.form['action'][0] == 'print') and \
-	       self.request.user.may.edit(Page(pagename, self.request)):
-	         result = '<table class="sectionEdit" width="98%%"><tr><td align="left">%s</td><td align="right">[%s]</td></tr></table>' % \
-		    (result, Page(pagename, self.request).link_to(text="edit", querystr="action=edit&backto=%s" % backto, know_status=True, know_status_exists=True))
-	    else:
-	         result = '<table class="sectionEdit" width="98%%"><tr><td align="left">%s</td></tr></table>' % result
+        if kw.has_key('action_link'):
+          if kw['action_link'] == 'edit':
+            pagename = kw['pagename']
+            backto = kw['backto']
+            
+            if not (self.request.form.has_key('action') and self.request.form['action'][0] == 'print') and \
+               self.request.user.may.edit(Page(pagename, self.request)):
+                 result = '<table class="sectionEdit" width="98%%"><tr><td align="left">%s</td><td align="right">[%s]</td></tr></table>' % \
+                    (result, Page(pagename, self.request).link_to(text="edit", querystr="action=edit&backto=%s" % backto, know_status=True, know_status_exists=True))
+            else:
+                 result = '<table class="sectionEdit" width="98%%"><tr><td align="left">%s</td></tr></table>' % result
         return result
     
     # Tables #############################################################
@@ -324,7 +343,7 @@ class Formatter(FormatterBase):
             result = '\n<div%(lang)s %(tableinfo)s>\n<table%(tableAttr)s>' % {
                 'lang': self._langAttr(),
                 'tableAttr': self._checkTableAttr(attrs, 'table'),
-		'tableinfo': 'class="wikitable"',
+                'tableinfo': 'class="wikitable"',
             }
         else:
             result = '</table>\n</div>'

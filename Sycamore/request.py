@@ -41,7 +41,69 @@ class Clock:
             outlist.append("%s = %.3fs" % timing)
         return outlist
 
+def setup_wiki_farm(request):
+     """
+     Setup environment, etc in the case of a wiki farm.
+     """
+     from Sycamore import farm
+     if hasattr(request, 'env'):
+        env = request.env
+     else:
+        return None
+     if not config.wiki_farm: return None
+     if not config.wiki_farm_subdomains:
+        if env['PATH_INFO'][1:].startswith(config.wiki_farm_dir):
+          rest_path = env['PATH_INFO'][len(config.wiki_farm_dir)+2:]
+          wiki_name_location = rest_path.find('/')
+          if wiki_name_location == -1:
+            wiki_name = rest_path
+            env['PATH_INFO'] = '/'
+          else:
+            wiki_name = rest_path[:wiki_name_location]
+            env['PATH_INFO'] = rest_path[wiki_name_location:]
+          return wiki_name
+     else:
+        domain = env.get('HTTP_HOST', '')
+        if domain.endswith(config.wiki_base_domain):
+            sub_domain = domain[:-len(config.wiki_base_domain)]
+            split_sub_domain = sub_domain.split('.')
+            if split_sub_domain[0] == 'www': # toss out www
+                split_sub_domain = split_sub_domain[1:]
+            if len(split_sub_domain) > 1:
+                wiki_name = split_sub_domain[-2]
+            else:
+                wiki_name = split_sub_domain[0]
+            return wiki_name
+        else:
+            wiki_name = farm.get_name_from_domain(domain, request)
+            if wiki_name:
+                return wiki_name
+     return None
 
+def getRelativeDir(request):
+    """
+    Sets self.relative_dir to properly reflect config.relative_dir, which can be in parameter form.
+    """
+    wiki_name = request.config.wiki_name
+    if type(config.relative_dir) == tuple:
+        format_string, items_string  = config.relative_dir
+        items = eval(items_string)
+        request.relative_dir = format_string % items
+    else:
+        request.relative_dir = config.relative_dir
+
+def backward_compatibility(request, pagename, oldlink, oldlink_propercased): 
+    """
+    Based on whether or not we're an old-school Sycamore we do various conversion operations.
+
+    We try to not break old URLs.
+    """
+    #the switchover to urls with Page_names_like_this.
+    if request.config.domain and (request.config.domain == "daviswiki.org" or request.config.domain == "rocwiki.org") and request.http_referer.find(request.config.domain) == -1:
+        if oldlink and oldlink_propercased:
+            pagename = oldlink
+
+    return pagename
 
 #############################################################################
 ### Request Data
@@ -58,36 +120,13 @@ class RequestBase(object):
         ("Expires", "-1")
     ]
 
-    def __init__(self, properties={}, process_dicts=True):
+    class WikiNoExistError(Exception):
+        pass
+
+    def __init__(self, properties={}, process_config=True, wiki_name=None):
         self.writestack = []
-	self.filestack = []
-	self.getText = None
-
-	self.generating_cache = False
-	self.set_cache = False
-        self.postCommitActions = []  # list of things to do after committing data to the database
-        if config.memcache:
-          self.mc = MemcachePool.getMC()
-	#if not properties: properties = wikiutil.prepareAllProperties()
-        #self.__dict__.update(properties)
-	self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'links': {}, 'acls': {}, 'interwiki': None, 'file_dict': {}} # per-request cache
-
-	self.db_connect()
-        
-        self.user = user.User(self)
-        if process_dicts:
-          self.dicts = self.initdicts()
-
-        if config.theme_force:
-            theme_name = config.theme_default
-        else:
-            theme_name = self.user.theme_name
-        try:
-            self.theme = wikiutil.importPlugin('theme', theme_name)(self)
-        except TypeError:
-            theme_name = config.theme_default
-            self.theme = wikiutil.importPlugin('theme', theme_name)(self)
-
+        self.filestack = []
+        self.getText = None
         self.args = None
         self.form = {}
         self.logger = None
@@ -97,25 +136,84 @@ class RequestBase(object):
 
         self.sent_headers = False
         self.user_headers = []
-	self.status = ''
-	self.output_buffer = []
+        self.status = ''
+        self.output_buffer = []
 
+        self.html_head = []
+        self.generating_cache = False
+        self.wiki_exists = True
+        self.set_cache = False
+        self.postCommitActions = []  # list of things to do after committing data to the database
+        if config.memcache:
+          self.mc = MemcachePool.getMC()
+        #if not properties: properties = wikiutil.prepareAllProperties()
+        #self.__dict__.update(properties)
+        self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'acls': {}, 'interwiki': {}, 'file_dict': {}, 'group_dict':{}, 'group_ips':{}, 'pageDateVersion':{}, 'pageVersionDate':{}, 'watchedWikis': {}, 'wiki_config':{}, 'wiki_domains':{}} # per-request cache
+
+        self.db_connect()
+
+        self.previewing_page = False
         self.i18n = i18n
-        self.lang = i18n.requestLanguage(self) 
-        self.getText = lambda text, i18n=self.i18n, request=self, lang=self.lang: i18n.getText(text, request, lang)
-	self.pagename = None
-	self.pagename_propercased = None
+        self.pagename = None
+        self.pagename_propercased = None
 
-        # XXX Removed call to i18n.adaptcharset()
-  
-	self.previewing_page = False
+        self.addresses = [] # for [[address]] macro.
+        self.save_time = None # the time our current request's save is marked for (if applicable)
+        self.sent_page_content = None
+
+        wiki_name = wiki_name or setup_wiki_farm(self)
+        if not wiki_name:
+            wiki_name = config.wiki_name
+
+        self.config = config.Config(wiki_name, self, process_config=process_config)
+        self.setup_basics()
 
         self.reset()
+
+    def setup_basics(self):
+        if self.config.active:
+            self.wiki_exists = True
+        else:
+            self.wiki_exists = False
+
+        if not self.wiki_exists:
+            theme_name = config.theme_default
+            try:
+                self.theme = wikiutil.importPlugin('theme', theme_name)(self)
+            except TypeError:
+                theme_name = self.config.theme_default
+                self.theme = wikiutil.importPlugin('theme', theme_name)(self)
+            return
+        else:
+            getRelativeDir(self)
+            self.user = user.User(self)
+
+            self.lang = i18n.requestLanguage(self) 
+            self.getText = lambda text, i18n=self.i18n, request=self, lang=self.lang: i18n.getText(text, request, lang)
+
+            # set memcache to act locally to this wiki (prefix)
+            self.mc.setPrefix(self.config.wiki_id)
+
+            theme_name = self.config.theme_default
+            try:
+                self.theme = wikiutil.importPlugin('theme', theme_name)(self)
+            except TypeError:
+                theme_name = self.config.theme_default
+                self.theme = wikiutil.importPlugin('theme', theme_name)(self)
+            # XXX Removed call to i18n.adaptcharset()
+
+
+    def switch_wiki(self, wikiname):
+        """
+        "be" wiki wikiname.
+        """
+        self.config = config.Config(wikiname, self)
+        self.mc.setPrefix(self.config.wiki_id)
 
     def _setup_vars_from_std_env(self, env):
         """ Sets the common Request members by parsing a standard
             HTTPD environment (as created as environment by most common
-            webservers. To be used by derived classes.
+            webservers). To be used by derived classes.
 
             @param env: the environment to use
         """
@@ -131,8 +229,8 @@ class RequestBase(object):
         self.query_string = env.get('QUERY_STRING', '')
         self.request_method = env.get('REQUEST_METHOD', None)
         
-	self.remote_addr = env.get('REMOTE_ADDR')
-	self.proxy_addr = None
+        self.remote_addr = env.get('REMOTE_ADDR')
+        self.proxy_addr = None
 
         if env.has_key('HTTP_X_FORWARDED_FOR') and config.trust_x_forwarded_for:
             xff = env.get('HTTP_X_FORWARDED_FOR')
@@ -150,12 +248,12 @@ class RequestBase(object):
             self.auth_username = env.get('REMOTE_USER','')
 
         # should we compress output?
-	self.do_gzip = False
-	if config.do_gzip:
-	  for encoding in self.http_accept_encoding.split(','):
-	    if encoding.lower() == 'gzip':
-	      self.do_gzip = True
-	      break
+        self.do_gzip = False
+        if config.do_gzip:
+          for encoding in self.http_accept_encoding.split(','):
+            if encoding.lower() == 'gzip':
+              self.do_gzip = True
+              break
 
     def reset(self):
         """ Reset request state.
@@ -197,6 +295,9 @@ class RequestBase(object):
         """
         self.pragma[key.lower()] = value
 
+    def isPOST(self):
+        return self.request_method == 'POST' 
+
 
     def getPageList(self, alphabetize=True, lowercase=False, objects=False):
         """ A cached version of wikiutil.getPageList().
@@ -206,13 +307,19 @@ class RequestBase(object):
             self._all_pages = wikiutil.getPageList(self, alphabetize=alphabetize, lowercase=lowercase, objects=objects)
         return self._all_pages
 
+    def initdicts(self, force_update=False, update_pagename=None):
+        from Sycamore import wikidicts
+        dicts = wikidicts.GroupDict(self)
+        dicts.scandicts(force_update=force_update, update_pagename=update_pagename)
+        return dicts
+
     def redirect(self, file=None):
         if file: # redirect output to "file"
             self.writestack.append(self.write)
             self.filestack.append(file)
         else: # restore saved output file
             self.write = self.writestack.pop()
-	    self.filestack.pop()
+            self.filestack.pop()
 
     def reset_output(self):
         """ restore default output method
@@ -238,12 +345,6 @@ class RequestBase(object):
         """
         raise "NotImplementedError"
 
-    def initdicts(self, force_update=False, update_pagename=None):
-        from Sycamore import wikidicts
-        dicts = wikidicts.GroupDict(self)
-        dicts.scandicts(force_update=force_update, update_pagename=update_pagename)
-        return dicts
-        
     def isForbidden(self):
         """ check for web spiders and refuse anything except viewing """
         forbidden = 0
@@ -284,9 +385,9 @@ class RequestBase(object):
             fixedResult = []
             for i in values:
                 if isinstance(i, cgi.MiniFieldStorage):
-		    if type(i.value) == str:
-		      fixedResult.append(i.value.decode(config.charset))
-	 	    else:
+                    if type(i.value) == str:
+                      fixedResult.append(i.value.decode(config.charset))
+                    else:
                       fixedResult.append(i.value)
                 elif isinstance(i, cgi.FieldStorage):
                     fixedResult.append(i.value)
@@ -302,15 +403,14 @@ class RequestBase(object):
         # http://www.w3.org/TR/REC-html40/appendix/notes.html#h-B.2.1
         if pagename:
             try:
-		pagename = unicode(pagename, 'utf-8')
+                pagename = unicode(pagename, 'utf-8')
             except UnicodeError:
-		pagename = None  # will send to front page
+                pagename = None  # will send to front page
         return pagename
 
     def getBaseURL(self):
         """ Return a fully qualified URL to this script. """
         return self.getQualifiedURL(self.getScriptname())
-
 
     def getQualifiedURL(self, uri=None):
         """ Return a full URL starting with schema, servername and port.
@@ -322,11 +422,13 @@ class RequestBase(object):
 
         schema, stdport = (('http', '80'), ('https', '443'))[self.is_ssl]
         host = self.http_host
+
         if not host:
             host = self.server_name
-            port = self.server_port
-            if port != stdport:
-                host = "%s:%s" % (host, port)
+
+        port = self.server_port
+        if port != stdport:
+            host = "%s:%s" % (host, port)
 
         result = "%s://%s" % (schema, host)
         if uri:
@@ -343,7 +445,7 @@ class RequestBase(object):
       zbuf = cStringIO.StringIO()
       zfile = gzip.GzipFile(mode='wb', fileobj=zbuf, compresslevel=9)
       if type(data) == unicode:
-	data = data.encode('utf-8')
+        data = data.encode('utf-8')
       else:
         data = data.decode(config.db_charset).encode('utf-8')
       zfile.write(data)
@@ -367,7 +469,11 @@ class RequestBase(object):
         f = action[0]
         if len(action) == 2:
           args = action[1]
-          f(args) 
+          f(*args)
+        elif len(action) == 3:
+          args = action[1]
+          kw_args = action[2]
+          f(*args, **kw_args)
         else:
           f()
 
@@ -379,8 +485,8 @@ class RequestBase(object):
         if self.db.do_commit:
           self.db.commit()
           commited = True
-	else:
-	  self.db.rollback()
+        else:
+          self.db.rollback()
       else:
         self.db.rollback()
 
@@ -396,15 +502,27 @@ class RequestBase(object):
         _ = self.getText
         #self.open_logs()
         if self.isForbidden():
-	    self.status = "403 FORBIDDEN"
+            self.status = "403 FORBIDDEN"
             self.http_headers([('Content-Type', 'text/plain')])
             self.write('You are not allowed to access this!\n')
             return self.finish()
 
-        
+        if not self.wiki_exists:
+             self.write('<html><head><meta name="robots" content="noindex,follow"></head><body>')
+             wiki_name = self.config.name 
+             if type(config.wiki_farm_no_exist_msg) == tuple:
+                msg, items_string = config.wiki_farm_no_exist_msg
+                items = eval(items_string)
+                no_exist_msg = msg % items
+             else:
+                no_exist_msg = config.wiki_farm_no_exist_msg
+             self.write(no_exist_msg)
+             self.write('</body></html>')
+             return self.finish()
+
         # parse request data
         try:
-	    from Sycamore.Page import Page
+            from Sycamore.Page import Page
             self.args = self.setup_args()
             self.form = self.args 
             path_info = self.getPathinfo()
@@ -420,26 +538,26 @@ class RequestBase(object):
                 pagename = wikiutil.unquoteWikiname(path_info[1:])
                 oldlink = wikiutil.unquoteFilename(path_info[1:])
 
-	    pagename = self.recodePageName(pagename)
+            pagename = self.recodePageName(pagename)
             oldlink = self.recodePageName(oldlink)
-	    self.pagename = pagename
+            self.pagename = pagename
 
-	    pagename_propercased = ''
-	    oldlink_propercased = ''
-	    if pagename: 
-	      pagename_exists_name = Page(pagename, self).exists()
-	      if pagename_exists_name: pagename_propercased = pagename_exists_name
-	      if oldlink:
+            pagename_propercased = ''
+            oldlink_propercased = ''
+            if pagename: 
+              pagename_exists_name = Page(pagename, self).exists()
+              if pagename_exists_name: pagename_propercased = pagename_exists_name
+              if oldlink:
                  oldlink_exists_name = Page(oldlink, self).exists()
-	         if oldlink_exists_name: oldlink_propercased = oldlink_exists_name
+                 if oldlink_exists_name: oldlink_propercased = oldlink_exists_name
 
-	      if pagename_propercased:
-	        self.pagename_propercased = pagename_propercased
-	      else:
-	        self.pagename = pagename
+              if pagename_propercased:
+                self.pagename_propercased = pagename_propercased
+              else:
+                self.pagename = pagename
  
         except Page.ExcessiveLength, msg:
-            Page(config.page_front_page, self).send_page(msg=msg)
+            Page(self.config.page_front_page, self).send_page(msg=msg)
             return self.finish()
 
         except: # catch and print any exception
@@ -450,14 +568,14 @@ class RequestBase(object):
 
         # Imports
         from Sycamore.Page import Page
-	if self.query_string.startswith('sendfile=true'):
-	  from Sycamore.file import fileSend
-	  self.args = self.setup_args()
+        if self.query_string.startswith('sendfile=true'):
+          from Sycamore.file import fileSend
+          self.args = self.setup_args()
           self.form = self.args 
 
-	  fileSend(self)
-	  return self.finish()
-	   
+          fileSend(self)
+          return self.finish()
+           
 
         if self.query_string == 'action=xmlrpc':
             from Sycamore.wikirpc import xmlrpc
@@ -481,10 +599,8 @@ class RequestBase(object):
             # handle request
             from Sycamore import wikiaction
 
-	    #The following "if" is to deal with the switchover to urls with Page_names_like_this.
-            if config.domain and (config.domain == "daviswiki.org" or config.domain == "rocwiki.org") and self.http_referer.find(config.domain) == -1:
-                  if oldlink and oldlink_propercased:
-                     pagename = oldlink
+            #The following "if" is to deal with various backward compatability situations
+            pagename = backward_compatibility(self, pagename, oldlink, oldlink_propercased)
 
             #if self.form.has_key('filepath') and self.form.has_key('noredirect'):
             #    # looks like user wants to save a drawing
@@ -496,7 +612,7 @@ class RequestBase(object):
                 handler = wikiaction.getHandler(action)
                 if handler:
                     handler(pagename or
-                    wikiutil.getSysPage(self, config.page_front_page).page_name, self)
+                    wikiutil.getSysPage(self, self.config.page_front_page).page_name, self)
                 else:
                     self.http_headers()
                     self.write("<p>" + _("Unknown action"))
@@ -507,9 +623,9 @@ class RequestBase(object):
                     query = pagename
                 else:
                     query = wikiutil.unquoteWikiname(self.query_string) or \
-                        wikiutil.getSysPage(self, config.page_front_page).proper_name()
+                        wikiutil.getSysPage(self, self.config.page_front_page).proper_name()
 
-		#self.http_headers()
+                #self.http_headers()
                 Page(query, self).send_page(count_hit=1)
 
             # generate page footer
@@ -530,7 +646,7 @@ class RequestBase(object):
             pass
 
         except: # catch and print any exception
-	    had_error = True
+            had_error = True
             saved_exc = sys.exc_info()
             self.reset_output()
             self.http_headers()
@@ -559,8 +675,8 @@ class RequestBase(object):
         if url.find("://") == -1:
             url = self.getQualifiedURL(url)
 
-	self.status = "302 FOUND"
-	self.user_headers = [("Location", url)]
+        self.status = "302 FOUND"
+        self.user_headers.append(("Location", url))
 
     def print_exception(self, type=None, value=None, tb=None, limit=None):
         if type is None:
@@ -619,7 +735,7 @@ class RequestCLI(RequestBase):
         sys.stdout.flush()
         
     def finish(self, had_error=False, dont_do_db=False):
-	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
+        RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         # flush the output, ignore errors caused by the user closing the socket
         try:
             sys.stdout.flush()
@@ -666,7 +782,7 @@ class RequestCLI(RequestBase):
     def setHttpHeader(self, header):
         pass
 
-    def http_headers(self, more_headers=[]):
+    def http_headers(self, more_headers=[], send_headers=True):
         pass
 
     def http_redirect(self, url):
@@ -675,11 +791,11 @@ class RequestCLI(RequestBase):
 
 class RequestDummy(RequestBase):
   """ A fakeish request object that doesn't actually connect to any interfaces. """
-  def __init__(self, process_dicts=True):
+  def __init__(self, process_config=True, wiki_name=config.wiki_name):
     self.output_buffer = []
     self.input_buffer = []
     self.setup_args()
-    RequestBase.__init__(self, process_dicts=process_dicts)
+    RequestBase.__init__(self, process_config=process_config, wiki_name=wiki_name)
 
   def setup_args(self):
     return self._setup_vars_from_std_env({})
@@ -718,8 +834,8 @@ class RequestDummy(RequestBase):
 
   def getScriptname(self):
       """ Return the scriptname part of the URL ('/path/to/my.cgi'). """
-      if not config.relative_dir: return ''
-      return "/%s" % config.relative_dir
+      if not self.relative_dir: return ''
+      return "/%s" % self.relative_dir
 
 
   def getPathinfo(self):
@@ -743,7 +859,7 @@ class RequestDummy(RequestBase):
       """ Save header for later send. """
       pass
 
-  def http_headers(self, more_headers=[]):
+  def http_headers(self, more_headers=[], send_headers=True):
       """ Send out HTTP headers. Possibly set a default content-type.
       """
       pass
@@ -751,17 +867,20 @@ class RequestDummy(RequestBase):
 class RequestWSGI(RequestBase):
     """ General interface to Web Server Gateway Interface v1.0 """
 
-    def __init__(self, env, start_response):
+    def __init__(self, env, start_response, wiki_name=None):
         """ Initializes variables from WSGI environment.
 
             @param env: the standard WSGI environment
             @param start_response: the standard WSGI response-starting function
         """
         self._setup_vars_from_std_env(env)
-	self.start_response = start_response
-	self.env = env
-	properties = {}
-        RequestBase.__init__(self, properties=properties)
+        self.start_response = start_response
+        self.env = env
+        properties = {}
+        if wiki_name:
+          RequestBase.__init__(self, properties=properties, wiki_name=wiki_name)
+        else:
+          RequestBase.__init__(self, properties=properties)
 
     def setup_args(self):
       import cgi
@@ -775,14 +894,14 @@ class RequestWSGI(RequestBase):
     def write(self, data_string, raw=False):
         """ Write to output stream.
         """
-	if not raw:
-	  if type(data_string) == str:
-	    data_string = data_string.decode('utf-8')
+        if not raw:
+          if type(data_string) == str:
+            data_string = data_string.decode('utf-8')
 
-	  if not self.filestack:
-	    self.output_buffer.append(data_string.encode('utf-8'))
-	  else:
-	    self.filestack[-1].write(data_string.encode('utf-8'))
+          if not self.filestack:
+            self.output_buffer.append(data_string.encode('utf-8'))
+          else:
+            self.filestack[-1].write(data_string.encode('utf-8'))
         else:
           # some sort of raw binary data.  write directly without encoding and hope for the best!
           if not self.filestack:
@@ -800,25 +919,25 @@ class RequestWSGI(RequestBase):
     def flush(self):
         """ Flush output stream.
         """
-	if self.do_gzip:
-	  return  # Don't know if it's possible to sent gzip'ed content in chunks
-	else:
-  	  self.wsgi_output(''.join(self.output_buffer))
+        if self.do_gzip:
+          return  # Don't know if it's possible to sent gzip'ed content in chunks
+        else:
+          self.wsgi_output(''.join(self.output_buffer))
 
-	self.output_buffer = []
+        self.output_buffer = []
 
     def finish(self, had_error=False, dont_do_db=False):
-	RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
+        RequestBase.finish(self, had_error=had_error, dont_do_db=dont_do_db)
         """ Call finish method of WSGI request to finish handling
             of this request.
         """
-	if not self.sent_headers: self.http_headers()
-	# we return a list as per the WSGI spec
-	if self.do_gzip:
-	  text = ''.join(self.output_buffer)
-	  compressed_content = self.compress(text)
-	  return [compressed_content] # WSGI spec wants a list returned
-	else:
+        if not self.sent_headers: self.http_headers()
+        # we return a list as per the WSGI spec
+        if self.do_gzip:
+          text = ''.join(self.output_buffer)
+          compressed_content = self.compress(text)
+          return [compressed_content] # WSGI spec wants a list returned
+        else:
           return self.output_buffer
 
 
@@ -828,8 +947,8 @@ class RequestWSGI(RequestBase):
 
     def getScriptname(self):
         """ Return the scriptname part of the URL ('/path/to/my.cgi'). """
-	if not config.relative_dir: return ''
-	return "/%s" % config.relative_dir
+        if not self.relative_dir: return ''
+        return "/%s" % self.relative_dir
 
 
     def getPathinfo(self):
@@ -854,32 +973,35 @@ class RequestWSGI(RequestBase):
         self.user_headers.append(header)
 
 
-    def http_headers(self, more_headers=[]):
+    def http_headers(self, more_headers=[], send_headers=True):
         """ Send out HTTP headers. Possibly set a default content-type.
         """
-	if not self.sent_headers:
-          # send http headers and get the write callable
-	  all_headers = more_headers + self.user_headers
-	  if not all_headers:
-	    all_headers = [("Content-Type", "text/html; charset=%s" % config.charset)]
+        if not self.sent_headers:
+          if send_headers:
+            # send http headers and get the write callable
+            all_headers = more_headers + self.user_headers
+            if not all_headers:
+              all_headers = [("Content-Type", "text/html; charset=%s" % config.charset)]
+          else:
+            all_headers = []
 
           if self.do_gzip:
-	    all_headers.append(("Content-encoding", "gzip"))
-	    all_headers.append(("Vary", "Accept-Encoding"))
+            all_headers.append(("Content-encoding", "gzip"))
+            all_headers.append(("Vary", "Accept-Encoding"))
 
-	  if not self.status:
-	    self.status = '200 OK'
+          if not self.status:
+            self.status = '200 OK'
 
-	  self.wsgi_output = self.start_response(self.status, all_headers)
-	  self.sent_headers = True
+          self.wsgi_output = self.start_response(self.status, all_headers)
+          self.sent_headers = True
 
 ##################################
 ### Misc methods
 #################################
 def basic_handle_request(env, start_response):
-    if env.get('QUERY_STRING', '') == 'profile':
-      import profile
-      prof = profile.Profile()
-      prof.runctx('RequestWSGI(env,start_response).run()', globals(), locals())
-      prof.dump_stats('prof.%s' % time.time())
+    #if env.get('QUERY_STRING', '') == 'profile':
+    #  import profile
+    #  prof = profile.Profile()
+    #  prof.runctx('RequestWSGI(env,start_response).run()', globals(), locals())
+    #  prof.dump_stats('prof.%s' % time.time())
     return RequestWSGI(env, start_response).run()
