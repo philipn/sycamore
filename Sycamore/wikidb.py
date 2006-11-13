@@ -487,10 +487,8 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       else:
         add_query.append(' and')
 
-      add_query.append(' limit %(max_recent_changes)s')
-
       if changes_since:
-        add_query.append(' and changeTime >= %(changes_since)s')
+        add_query.append(' changeTime >= %(changes_since)s')
 
       add_query.append(' and wiki_id=%(wiki_id)s')
 
@@ -621,8 +619,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
                                  'userFavoritesFor': userFavoritesFor, 
                                  'pagename': page, 
                                  'changes_since':changes_since, 
-                                 'wiki_id': request.config.wiki_id,
-                                 'max_recent_changes': config.max_recent_changes})
+                                 'wiki_id': request.config.wiki_id})
  
   edit = request.cursor.fetchone()
   

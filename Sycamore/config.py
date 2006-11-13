@@ -215,7 +215,6 @@ _cfg_defaults_global = {
     'mail_smarthost': None,
     'mail_smarthost_auth': None,
     'mail_from': None,
-    'max_recent_changes': 500,
     'max_macro_size': 50,
     'max_file_size': 500,  # max file size in Kb
     'memcache': False,
