@@ -463,21 +463,6 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
   # betta' with this line object so we can move away from array indexing
   def addQueryConditions(view, query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global):
     add_query = []
-    #if per_page_limit and userFavoritesFor:
-    #   if view != 'eventChanges':
-    #     add_query.append("""
-    #     SELECT groupedChanges.name as name, groupedChanges.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from
-    #     (
-    #        SELECT %(view)s.propercased_name as name, max(%(view)s.changeTime) as changeTime from %(view)s, userFavorites as f, users as u where u.name=f.username and f.page=%(view)s.name and u.id=%%(userFavoritesFor)s and %(view)s.wiki_id=%(wiki_id)s and f.wiki_id=%(wiki_id)s group by %(view)s.propercased_name
-    #     ) as groupedChanges, %(view)s where groupedChanges.name=%(view)s.propercased_name and groupedChanges.changeTime=%(view)s.changeTime and groupedChanges.changeTime is not NULL
-    #     """ % {'view': view, 'wiki_id': request.config.wiki_id} )
-    #   else:
-    #     add_query.append("""
-    #        SELECT groupedChanges.name as name, groupedChanges.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from
-    #        (
-    #           SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime from %(view)s, userFavorites as f, users as u where u.name=f.username and f.page=%(view)s.name and u.id=%%(userFavoritesFor)s and %(view)s.wiki_id=%(wiki_id)s group by %(view)s.name
-    #        ) as groupedChanges, %(view)s where groupedChanges.name=%(view)s.name and groupedChanges.changeTime=%(view)s.changeTime and groupedChanges.changeTime is not NULL
-    #        """ % {'view': view, 'wiki_id': request.config.wiki_id} )
 
     if per_page_limit:
        if view != 'eventChanges':
@@ -497,28 +482,28 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
 
     if max_days_ago:
       if not printed_where:
-        if not changes_since:
-          add_query.append(' where changeTime >= %(max_days_ago)s and wiki_id=%(wiki_id)s')
-        else: 
-          add_query.append(' where changeTime >= %(max_days_ago)s and changeTime >= %(changes_since)s and wiki_id=%(wiki_id)s')
+        add_query.append(' where')
         printed_where = True
       else:
-        if not changes_since: 
-          add_query.append(' and changeTime >= %(max_days_ago)s and wiki_id=%(wiki_id)s')
-        else:
-          add_query.append(' and changeTime >= %(max_days_ago)s and changeTime >= %(changes_since)s and wiki_id=%(wiki_id)s')
-    #if per_page_limit:
-    #  query.append(" group by %(view)s.name, %(view)s.id, %(view)s.editType, %(view)s.comment, %(view)s.userIP" % {'view':view})
+        add_query.append(' and')
+
+      add_query.append(' limit %(max_recent_changes)s')
+
+      if changes_since:
+        add_query.append(' and changeTime >= %(changes_since)s')
+
+      add_query.append(' and wiki_id=%(wiki_id)s')
+
     if total_changes_limit and not per_page_limit:
       if not printed_where:
-        add_query.append(" where changeTime is not NULL and wiki_id=%%(wiki_id)s order by changeTime desc limit %s)" % total_changes_limit)
+        add_query.append(' where')
       else:
-        add_query.append(" and changeTime is not NULL and wiki_id=%%(wiki_id)s order by changeTime desc limit %s)" % total_changes_limit)
+        add_query.append(' and')
+
+      add_query.append(" changeTime is not NULL and wiki_id=%%(wiki_id)s order by changeTime desc limit %s)" % total_changes_limit)
 
     elif not total_changes_limit and per_page_limit:
       pass
-    elif page:
-      add_query.append(')')
     else:
       add_query.append(')')
     
