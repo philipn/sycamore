@@ -490,7 +490,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       if changes_since:
         add_query.append(' changeTime >= %(changes_since)s')
 
-      add_query.append(' and wiki_id=%(wiki_id)s')
+      add_query.append(' wiki_id=%(wiki_id)s')
 
     if total_changes_limit and not per_page_limit:
       if not printed_where:
@@ -612,7 +612,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
 
   # so, let's compile all the different types of changes together!
   query = buildQuery(query_max_days, query_total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global, request)
-  #print query % {'max_days_ago': '"'+str(max_days_ago)+'"', 'limit': '"'+str(total_changes_limit)+'"', 'userFavoritesFor': '"'+str(userFavoritesFor)+'"', 'pagename': '"'+str(page)+'"'}
+#   print query % {'max_days_ago': '"'+str(max_days_ago)+'"', 'limit': '"'+str(total_changes_limit)+'"', 'userFavoritesFor': '"'+str(userFavoritesFor)+'"', 'pagename': '"'+str(page)+'"'}
   #print query % {'max_days_ago': '\''+str(query_max_days)+'\'', 'limit': '\''+str(query_total_changes_limit)+'\'', 'userFavoritesFor': '\''+str(userFavoritesFor)+'\'', 'pagename': '\''+str(page)+'\'', 'changes_since': '\''+str(changes_since)+'\'', 'wiki_id': '\'' + str(request.config.wiki_id) + '\''}
   request.cursor.execute(query, {'max_days_ago': query_max_days, 
                                  'limit': query_total_changes_limit, 
