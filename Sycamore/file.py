@@ -99,8 +99,9 @@ def fileSend(request, pagename=None, filename=None):
     return
   datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
   length = len(file)
+  contentstring = 'filename="%s"' % filename
   # images are usually compressed anyway, so let's not bother gziping
   request.do_gzip = False
-  request.http_headers([("Content-Type", mimetype), ("Content-Length", length), ("Last-Modified", datestring)])
+  request.http_headers([("Content-Type", mimetype), ("Content-Length", length), ("Last-Modified", datestring), ("Content-Disposition", contentstring)])
   #output image
   request.write(file, raw=True)

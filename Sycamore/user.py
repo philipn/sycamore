@@ -177,7 +177,8 @@ class User(object):
         self.css_url = ""
         self.language = ""
         self.theme_name = self.request.config.theme_default
-        self.tz_offset = self.request.config.tz_offset
+        self.tz = self.request.config.tz
+        self.tz_offset = 0
         self.rc_bookmark = 0
         self.rc_showcomments = 1
         self.favorites = None
@@ -296,6 +297,7 @@ class User(object):
         if self.is_login:
           self._init_login()
 
+        self.tz_offset = wikiutil.getTimeOffset(self.tz)
 
 #    def __filename(self):
 #        """
@@ -321,7 +323,7 @@ class User(object):
           if config.memcache:
             result = self.request.mc.get('users:%s' % self.id, wiki_global=True)
           if not result:
-            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark, propercased_name from users where id=%(userid)s", {'userid':self.id})
+            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz, rc_bookmark, propercased_name from users where id=%(userid)s", {'userid':self.id})
             data = self.request.cursor.fetchone()
             if data:
               user_data = {'enc_password': ''}
@@ -337,7 +339,7 @@ class User(object):
               user_data['edit_on_doubleclick'] = data[9]
               user_data['theme_name'] = data[10]
               user_data['last_saved'] = data[11]
-              user_data['tz_offset'] = data[12] or self.request.config.tz_offset
+              user_data['tz'] = data[12] or self.request.config.tz
               user_data['rc_bookmark'] = data[13]
               user_data['propercased_name'] = data[14]
               result = user_data
@@ -381,7 +383,7 @@ class User(object):
           if config.memcache:
             user_data = self.request.mc.get('users:%s' % self.id, wiki_global=True)
           if not user_data:
-            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz_offset, rc_bookmark, rc_showcomments, propercased_name from users where id=%(userid)s", {'userid':self.id})
+            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz, rc_bookmark, rc_showcomments, propercased_name from users where id=%(userid)s", {'userid':self.id})
             data = self.request.cursor.fetchone()
 
             user_data = {'enc_password': ''}
@@ -397,7 +399,7 @@ class User(object):
             user_data['edit_on_doubleclick'] = data[9]
             user_data['theme_name'] = data[10]
             user_data['last_saved'] = data[11]
-            user_data['tz_offset'] = data[12] or self.request.config.tz_offset
+            user_data['tz'] = data[12] or self.request.config.tz
             user_data['rc_bookmark'] = data[13]
             user_data['rc_showcomments'] = data[14]
             user_data['propercased_name'] = data[15]
@@ -459,7 +461,7 @@ class User(object):
 
     def getUserdict(self):
         #Returns dictionary of all relevant user values -- essentially an entire user's relevant information
-        return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz_offset':self.tz_offset, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments, 'propercased_name': self.propercased_name, 'wiki_info':self.wiki_info}
+        return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz':self.tz, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments, 'propercased_name': self.propercased_name, 'wiki_info':self.wiki_info}
 
 
     def save(self, new_user=False):
@@ -478,11 +480,11 @@ class User(object):
           # account doesn't exist yet
           userdict['join_date'] = time.time()
           userdict['id'] = self.id
-          self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz_offset, propercased_name, rc_bookmark, rc_showcomments) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz_offset)s, %(propercased_name)s, %(rc_bookmark)s, %(rc_showcomments)s)", userdict, isWrite=True)
+          self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz, propercased_name, rc_bookmark, rc_showcomments) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz)s, %(propercased_name)s, %(rc_bookmark)s, %(rc_showcomments)s)", userdict, isWrite=True)
           if config.memcache:
             self.request.mc.set("users:%s" % self.id, userdict, wiki_global=True)
         else:
-          self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz_offset=%(tz_offset)s, propercased_name=%(propercased_name)s, rc_bookmark=%(rc_bookmark)s, rc_showcomments=%(rc_showcomments)s where id=%(id)s", userdict, isWrite=True)
+          self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz=%(tz)s, propercased_name=%(propercased_name)s, rc_bookmark=%(rc_bookmark)s, rc_showcomments=%(rc_showcomments)s where id=%(id)s", userdict, isWrite=True)
           if config.memcache:
             self.request.mc.set("users:%s" % self.id, userdict, wiki_global=True)
                 
@@ -642,7 +644,7 @@ class User(object):
         @rtype: int
         @return: tm tuple adjusted for user's timezone
         """
-        if self.tz_offset and not global_time: 
+        if not global_time: 
             return datetime.tmtuple(tm + self.tz_offset)
         else: 
             return datetime.tmtuple(tm + self.request.config.tz_offset)

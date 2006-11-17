@@ -164,7 +164,7 @@ def create_tables(cursor):
      last_edit_date double,
      rc_bookmark double,
      rc_showcomments tinyint default 1,
-     tz_offset int,
+     tz varchar(50),
      last_wiki_edited int,
      propercased_name varchar(100) not null
      ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
@@ -192,7 +192,7 @@ def create_tables(cursor):
      last_edit_date double precision,
      rc_bookmark double precision,
      rc_showcomments smallint default 1,
-     tz_offset int,
+     tz varchar(50),
      last_wiki_edited int,
      propercased_name varchar(100) not null
      );""", isWrite=True)
@@ -867,11 +867,11 @@ def create_views(cursor):
 def create_config(request):
    from Sycamore import farm
    farm.create_config(config.wiki_name, request)
-   #config_dict = config.reduce_to_local_config(config.CONFIG_VARS)
-   #site_conf = config.Config(config.wiki_name, request, process_config=False)
-   #request.config = site_conf
-   #request.config.active = True
-   #request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
+   config_dict = config.reduce_to_local_config(config.CONFIG_VARS)
+   site_conf = config.Config(config.wiki_name, request, process_config=False)
+   request.config = site_conf
+   request.config.active = True
+   request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
    request.setup_basics()
 
 def create_other_stuff(request):

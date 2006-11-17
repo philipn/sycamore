@@ -19,12 +19,6 @@
 import time, cPickle
 from copy import copy
 
-def getLocalTimeOffset():
-  if time.daylight:
-    return -1*time.altzone
-  else:
-    return -1*time.timezone
-
 # Try to import sycamore_config. If it fails, either someone forgot sycamore_config,
 # or someone who doesn't know sycamore_config might be required, tried to import
 # us or something (Page, for example) which imports us.
@@ -60,8 +54,10 @@ def reduce_to_local_config(d):
 
 class Config(object):
     def __init__(self, wiki_name, request, process_config=True):
+        from wikiutil import getTimeOffset
         self.wiki_id = None
         self.__dict__.update(self._get_config(wiki_name, request, process_config))
+        self.tz_offset = getTimeOffset(self.tz)
 
     def get_dict(self):
         essentials = {}
@@ -333,7 +329,7 @@ _cfg_defaults_local = {
     'sitename': 'Sycamore default install',
     'talk_pages': True,
     'theme_default': 'eggheadbeta',
-    'tz_offset': getLocalTimeOffset(), # default time zone offset in unix time from UTC.  e.g. 3600 = 1 hour. 
+    'tz': 'UTC',
     'tabs_nonuser': ['Front Page', 'Map', 'People', 'Recent Changes'],
     'tabs_user': ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes'],
     'footer_buttons': [],

@@ -7,10 +7,14 @@
 
 # Imports
 import os, re, urllib, difflib, string
-from Sycamore import config, util, wikidb
-from Sycamore.util import pysupport
 import time, cStringIO
 from copy import copy
+
+from Sycamore import config, util, wikidb
+from Sycamore.util import pysupport
+from support import pytz
+
+DAY_IN_SECONDS = 86400
 
 # constants for page names
 PARENT_PREFIX = "../" # changing this might work, but it's not tested
@@ -69,6 +73,14 @@ def simpleStrip(request, text):
     text = simpleParse(request, text)
     text = re.sub(r'\<[^\>]+\>', r'', text)
     return text
+
+def getTimeOffset(tz_string):
+    def _utcoffset(timezone):
+        utc_offset_delta = timezone.utcoffset(timezone)
+        return utc_offset_delta.days*DAY_IN_SECONDS + utc_offset_delta.seconds
+
+    tz = pytz.timezone(tz_string)
+    return _utcoffset(tz)
 
 def mc_quote(s):
   """ Quoting for memcached use."""

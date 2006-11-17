@@ -14,6 +14,8 @@ from Sycamore.Page import Page
 import Sycamore.util.web
 import Sycamore.util.mail
 import Sycamore.util.datetime
+from Sycamore.support import pytz
+from Sycamore.support import pytz
 from Sycamore.widget import html
 
 _debug = 0
@@ -324,7 +326,10 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 theuser.edit_cols = util.web.getIntegerInput(self.request, 'edit_cols', theuser.edit_cols, 30, 100)
         
                 # time zone
-                theuser.tz_offset = util.web.getIntegerInput(self.request, 'tz_offset', theuser.tz_offset, -84600, 84600)
+                tz = form.get('tz', theuser.tz)[0]
+                if tz not in pytz.common_timezones:
+                    tz = theuser.tz
+                theuser.tz = tz
         
                 # try to get the (optional) theme
                 #theuser.theme_name = form.get('theme_name', [config.theme_default])[0]
@@ -456,40 +461,13 @@ class UserSettings:
 
     def _tz_select(self):
         """ Create time zone selection. """
-        if self.request.user.tz_offset: tz = self.request.user.tz_offset
-        else: tz = self.request.config.tz_offset
+        tz  = self.request.user.tz
 
         options = []
-        now = time.time()
-        for halfhour in range(-47, 48):
-            offset = halfhour * 1800
-            t = now + offset
-
-            options.append((
-                offset,
-                '%s [%s%s:%s]' % (
-                    time.strftime(config.datetime_fmt, util.datetime.tmtuple(t)),
-                    "+-"[offset < 0],
-                    string.zfill("%d" % (abs(offset) / 3600), 2),
-                    string.zfill("%d" % (abs(offset) % 3600 / 60), 2),
-                ),
-            ))
+        for timezone in pytz.common_timezones:
+            options.append((timezone, timezone))
  
-        return util.web.makeSelection('tz_offset', options, tz)
-
-
-#    def _dtfmt_select(self):
-#        """ Create date format selection. """
-#        _ = self._
-#        try:
-#            selected = [
-#                k for k, v in self._date_formats.items()
-#                    if v == self.request.user.datetime_fmt][0]
-#        except IndexError:
-#            selected = ''
-#        options = [('', _('Default'))] + self._date_formats.items()
-#
-#        return util.web.makeSelection('datetime_fmt', options, selected)
+        return util.web.makeSelection('tz', options, tz)
 
 
     def _lang_select(self):

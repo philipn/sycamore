@@ -902,7 +902,10 @@ def view_file(pagename, request):
     # send header & title
     pagetitle = filename + " on " + request.config.sitename
     request.http_headers()
-    wikiutil.simple_send_title(request, pagename, strict_title='Image \'%s\' on "%s"' % (filename, pagename))
+    if wikiutil.isImage(filename):
+        wikiutil.simple_send_title(request, pagename, strict_title='Image \'%s\' on "%s"' % (filename, pagename))
+    else:
+        wikiutil.simple_send_title(request, pagename, strict_title='File \'%s\' on "%s"' % (filename, pagename))
 
     # send body
     request.write('<div id="content" class="content">')
