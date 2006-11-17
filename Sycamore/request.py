@@ -209,7 +209,8 @@ class RequestBase(object):
         "be" wiki wikiname.
         """
         self.config = config.Config(wikiname, self)
-        self.mc.setPrefix(self.config.wiki_id)
+        if config.memcache:
+            self.mc.setPrefix(self.config.wiki_id)
 
     def _setup_vars_from_std_env(self, env):
         """ Sets the common Request members by parsing a standard
