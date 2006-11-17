@@ -192,7 +192,8 @@ class RequestBase(object):
             self.getText = lambda text, i18n=self.i18n, request=self, lang=self.lang: i18n.getText(text, request, lang)
 
             # set memcache to act locally to this wiki (prefix)
-            self.mc.setPrefix(self.config.wiki_id)
+            if config.memcache
+                self.mc.setPrefix(self.config.wiki_id)
 
             theme_name = self.config.theme_default
             try:
