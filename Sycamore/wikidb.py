@@ -550,13 +550,14 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
 
   if not userFavoritesFor and not on_wikis and not fresh:
       changes = None
-      changes = request.mc.get('rc:%s' % mc_quote(page))
-      if changes is not None:
-          if total_changes_limit:
-              changes = changes[:total_changes_limit]
-          if changes_since:
-              changes = _get_changes_since(changes_since, changes)
-          return changes
+      if config.memcache:
+        changes = request.mc.get('rc:%s' % mc_quote(page))
+        if changes is not None:
+            if total_changes_limit:
+                changes = changes[:total_changes_limit]
+            if changes_since:
+                changes = _get_changes_since(changes_since, changes)
+            return changes
   elif on_wikis:
       # get rc for each wiki in on_wikis list
       changes = []
