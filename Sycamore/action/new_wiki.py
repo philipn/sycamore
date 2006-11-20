@@ -61,9 +61,8 @@ def send_validation_email(wikiname, request):
     else:
         code = _createCode(request)
         text = "To create your wiki, %s, follow go to this URL: %s?action=new_wiki&wikiname=%s&code=%s . Note that this magic wiki-creating URL will expire in 30 minutes." % (wikiname, farm.getBaseFarmURL(request), wikiname, code)
-        print text
-        #mailok, msg = mail.sendmail(request, [request.user.email], 
-        #        'Creating your wiki..', text, mail_from=config.mail_from)
+        mailok, msg = mail.sendmail(request, [request.user.email], 
+                'Creating your wiki..', text, mail_from=config.mail_from)
         msg = "An email with instructions has been sent to your email address, %s.  Check your mail!" % request.user.email
 
     return msg
