@@ -515,10 +515,7 @@ def isTemplatePage(pagename):
     @rtype: bool
     @return: true if page is a template page
     """
-    global _TEMPLATE_RE
-    if _TEMPLATE_RE is None:
-        _TEMPLATE_RE = re.compile(config.page_template_regex)
-    return _TEMPLATE_RE.search(pagename) is not None
+    return pagename.startswith(config.page_template_prefix)
 
 def isGroupPage(pagename):
     """

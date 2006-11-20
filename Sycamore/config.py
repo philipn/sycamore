@@ -224,11 +224,7 @@ _cfg_defaults_global = {
     'page_header1': '',
     'page_header2': '',
     
-    'page_category_regex': '^Category[A-Z]',
-    #'page_dict_regex': '[a-z]\s{0,1}Dict$',
-    #'page_form_regex': '[a-z]Form$',
-    'page_group_regex': '[a-z]\s{0,1}Group$',
-    'page_template_regex': 'Template$',
+    'page_template_prefix': 'Templates/',
 
 
     # These icons will show in this order in the iconbar, unless they

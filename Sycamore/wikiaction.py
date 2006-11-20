@@ -910,7 +910,6 @@ There was an edit conflict between your changes!</b> Please review the conflicts
         request.reset()
         backto = request.form.get('backto', [None])[0]
         if backto:
-
             if request.user.valid: request.user.checkFavorites(pg)
             pg = Page(backto, request)
 
@@ -1000,9 +999,10 @@ def do_userform(pagename, request):
     from Sycamore import userform
     try:
         savemsg = userform.savedata(request) # we end up sending cookie headers here..possibly
-    except userform.BadData, msg:
+    except userform.BadData, (msg, new_user):
         request.setHttpHeader(("Content-Type", "text/html"))
-        request.form['new_user'] = ['1'] # hackish? yes.
+        if new_user:
+            request.form['new_user'] = ['1'] # hackish? yes.
         Page(pagename, request).send_page(msg=msg)
     else:
         request.setHttpHeader(("Content-Type", "text/html"))

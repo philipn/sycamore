@@ -103,6 +103,8 @@ class UserSettingsHandler(object):
         isdisabled = False
         if form.get('disabled', [0])[0] == '1':
                 isdisabled = True
+
+        new_user = int(form.get('new_user', [0])[0])
         # wiki farm authentication
 
         # we want them to be able to sign back in right after they click the 'logout' GET link, hence this test
@@ -273,7 +275,6 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
         else:
             if not self.request.isPOST():
                 return """Use the interactive interface to change settings!"""
-            new_user = True
             # save user's profile, first get user instance
             theuser = user.User(self.request)
     
@@ -282,14 +283,14 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 theuser.propercased_name = form['username'][0].replace('\t', ' ').strip()
                 theuser.name = theuser.propercased_name.lower()
             elif form.has_key('username'):
-                raise BadData, _("Please enter a user name!")
+                raise BadData, (_("Please enter a user name!"), new_user)
     
             if self.request.user.name and (self.request.user.name != theuser.name):
               # they are still logged on and are trying to make a new account
-              raise BadData, _("Please log out before creating an account.")
+              raise BadData, (_("Please log out before creating an account."), new_user)
             if user.getUserId(theuser.name, self.request):
                 if theuser.name != self.request.user.name:
-                    raise BadData, _("User name already exists!")
+                    raise BadData, (_("User name already exists!"), new_user)
                 else:
                     new_user = False
 
@@ -302,9 +303,9 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
 
                 # Check if password is given and matches with password repeat
                 if password != password2:
-                    raise BadData, _("Passwords don't match!")
+                    raise BadData, (_("Passwords don't match!"), new_user)
                 if not password and new_user:
-                    raise BadData, _("Please specify a password!")
+                    raise BadData, (_("Please specify a password!"), new_user)
                 if password:
                     theuser.enc_password = user.encodePassword(password)
 
@@ -318,8 +319,8 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 theuser.email = form.get('email', [''])[0]
 
                 if not theuser.email or not re.match(".+@.+\..{2,}", theuser.email):
-                    return _("Please provide your email address - without that you could not "
-                             "get your login data via email just in case you lose it.")
+                    raise BadData, (_("Please provide your email address - without that you could not "
+                             "get your login data via email just in case you lose it."), new_user)
         
                 # editor size
                 theuser.edit_rows = util.web.getIntegerInput(self.request, 'edit_rows', theuser.edit_rows, 10, 60)
@@ -333,6 +334,11 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
         
                 # try to get the (optional) theme
                 #theuser.theme_name = form.get('theme_name', [config.theme_default])[0]
+
+                wiki_for_userpage = form.get('wiki_for_userpage', [''])[0].lower()
+                if wiki_for_userpage and not wikiutil.isInFarm(wiki_for_userpage, self.request):
+                    raise BadData, (_('"%s" is not the name of a wiki.' % wiki_for_userpage), new_user)
+                theuser.wiki_for_userpage = wiki_for_userpage
     
                 # User CSS URL
                 theuser.css_url = form.get('css_url', [''])[0]
@@ -355,20 +361,20 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 theuser.propercased_name = theuser.propercased_name.replace(' ','') # strip spaces, we don't allow them anyway
                 theuser.name = theuser.propercased_name.lower()
                 if theuser.propercased_name.find(' ') != -1:
-                    raise BadData, _("Invalid username: spaces are not allowed in user names")
+                    raise BadData, (_("Invalid username: spaces are not allowed in user names"), new_user)
                 elif re.search('[%s]' % NOT_ALLOWED_CHARS_ESCAPED, theuser.propercased_name):
-                    raise BadData, _("Invalid username: the characters %s are not allowed in usernames." % NOT_ALLOWED_CHARS)
+                    raise BadData, (_("Invalid username: the characters %s are not allowed in usernames." % NOT_ALLOWED_CHARS), new_user)
                 elif len(theuser.propercased_name) > MAX_USERNAME_LENGTH:
-                    raise BadData, _("Invalid username: a username can be at most %s characters long." % MAX_USERNAME_LEGNTH)
+                    raise BadData, (_("Invalid username: a username can be at most %s characters long." % MAX_USERNAME_LEGNTH), new_user)
                 elif not theuser.email or not re.match(".+@.+\..{2,}", theuser.email):
-                    raise BadData, _("Please provide your email address - without that you could not "
-                             "get your login data via email just in case you lose it.")
+                    raise BadData, (_("""Please provide your email address - without that you could not 
+                             get your login data via email just in case you lose it."""), new_user)
                 name_exists = user.getUserId(theuser.name, self.request)
                 if name_exists:
-                    raise BadData, _("This user name already belongs to somebody else.")
+                    raise BadData, (_("This user name already belongs to somebody else."), new_user)
                 email_exists = user.getUserIdByEmail(theuser.email, self.request)
                 if email_exists:
-                    raise BadData, _("This email already belongs to somebody else.")
+                    raise BadData, (_("This email already belongs to somebody else."), new_user)
 
                 # try to get the password and pw repeat
                 password = form.get('password', [''])[0]
@@ -376,9 +382,9 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
 
                 # Check if password is given and matches with password repeat
                 if password != password2:
-                    raise BadData, _("Passwords don't match!")
+                    raise BadData, (_("Passwords don't match!"), new_user)
                 if not password and new_user:
-                    raise BadData, _("Please specify a password!")
+                    raise BadData, (_("Please specify a password!"), new_user)
                 if password:
                     theuser.enc_password = user.encodePassword(password)
 
@@ -534,7 +540,8 @@ class UserSettings:
         _ = self._
         form_html = []
         if self.request.form.has_key('new_user'):
-          if self.request.form['new_user']: new_user = True
+          if self.request.form['new_user'][0]:
+            new_user = True
 
         # different form elements depending on login state
         html_uid = ''
@@ -567,7 +574,6 @@ class UserSettings:
             ),
           ], option_text = user_name_help_text)
 
-
         if new_user:
             self.make_row(_('Password'), [
                 html.INPUT(
@@ -585,6 +591,14 @@ class UserSettings:
                 html.INPUT(
                   type="text", size=40, name="email", value=self.request.user.email
                 )])
+
+            if new_user: new_user_int = 1
+            else: new_user_int = 0
+            self.make_row('', [
+                html.INPUT(
+                  type="hidden", name="new_user", value=new_user_int
+                )])
+
 
             # Add buttons for new user
             button_cell = []
@@ -605,24 +619,19 @@ class UserSettings:
             self.make_form()
 
             self._inner.append(html.Raw('<h2>General Settings</h2>'))
+            
             self.make_row(_('Email'), [
                 html.INPUT(
                   type="text", size=40, name="email", value=self.request.user.email
                 )])
+
 
             self.make_row(_('Time zone'), [
                 _('Your time is'), ' ',
                 self._tz_select(),
             ])
 
-            self.make_row(_('Editor size'), [
-                html.INPUT(type="text", size=3, maxlength=3,
-                    name="edit_cols", value=self.request.user.edit_cols),
-                ' x ',
-                html.INPUT(type="text", size=3, maxlength=3,
-                    name="edit_rows", value=self.request.user.edit_rows),
-            ])
-
+            
             self.make_row('', [
                 html.INPUT(type="checkbox", name='remember_me', value=1,
                             checked=getattr(self.request.user, 'remember_me', 0)),
@@ -633,6 +642,24 @@ class UserSettings:
                 'Open editor on double click'
 
                 ])
+
+
+            if config.wiki_farm:
+                # FIXME: make the link link somewhere sane based on current context.
+                self.make_row(_('Name of wiki to keep user page on'), [
+                        html.Raw('<div><span style="vertical-align: bottom;">' + self.request.theme.make_icon('interwiki', {'wikitag': self.request.user.wiki_for_userpage}, html_class="interwiki_icon") + '</span>'),
+                        html.INPUT(
+                            type="text", size=20, maxlength=farm.WIKINAME_MAX_LENGTH, name="wiki_for_userpage", value=self.request.user.wiki_for_userpage),
+                        html.Raw('</div>')
+                        ], option_text=_('(Leave empty for multiple user pages)')) 
+
+            self.make_row(_('Editor size'), [
+                html.INPUT(type="text", size=3, maxlength=3,
+                    name="edit_cols", value=self.request.user.edit_cols),
+                ' x ',
+                html.INPUT(type="text", size=3, maxlength=3,
+                    name="edit_rows", value=self.request.user.edit_rows),
+            ])
 
 
             #if not config.theme_force:

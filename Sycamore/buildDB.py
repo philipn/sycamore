@@ -166,7 +166,8 @@ def create_tables(cursor):
      rc_showcomments tinyint default 1,
      tz varchar(50),
      last_wiki_edited int,
-     propercased_name varchar(100) not null
+     propercased_name varchar(100) not null,
+     wiki_for_userpage varchar(100),
      ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
   elif config.db_type == 'postgres':
    cursor.execute("""create table users
@@ -194,7 +195,8 @@ def create_tables(cursor):
      rc_showcomments smallint default 1,
      tz varchar(50),
      last_wiki_edited int,
-     propercased_name varchar(100) not null
+     propercased_name varchar(100) not null,
+     wiki_for_userpage varchar(100),
      );""", isWrite=True)
  
   cursor.execute("CREATE INDEX users_name on users (name);", isWrite=True)

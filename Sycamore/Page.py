@@ -671,19 +671,23 @@ class Page(object):
         lang_attr = request.theme.content_lang_attr()
         if self.hilite_re:
                 request.write('<table width="100%%"><tr><td align="right">[<strong class="highlight">%s</strong>]</td></tr></table>' % self.link_to(text="highlighting off"))
-        if not self.preview:
-          request.write('<div id="%s" class="%s wikipage" %s>\n' % (content_id, content_id, lang_attr))
+
+        if self.request.sent_page_content:
+            self.request.write(self.request.sent_page_content)
         else:
-          request.write('<div class="%s wikipage" %s>\n' % (content_id, lang_attr))
+            if not self.preview:
+              request.write('<div id="%s" class="%s wikipage" %s>\n' % (content_id, content_id, lang_attr))
+            else:
+              request.write('<div class="%s wikipage" %s>\n' % (content_id, lang_attr))
         
-        # new page?
-        if not self.exists() and not content_only and not self.prev_date:
-            self._emptyPageText()
-        elif not request.user.may.read(self):
-            request.write("<strong>%s</strong><br>" % _("You are not allowed to view this page."))
-        else:
-            # parse the text and send the page content
-            self.send_page_content(Parser)
+            # new page?
+            if not self.exists() and not content_only and not self.prev_date:
+                self._emptyPageText()
+            elif not request.user.may.read(self):
+                request.write("<strong>%s</strong><br>" % _("You are not allowed to view this page."))
+            else:
+                # parse the text and send the page content
+                self.send_page_content(Parser)
 
         # end wiki content div
         request.write('<div style="clear: both;"></div></div>\n')
@@ -707,9 +711,7 @@ class Page(object):
         @param body: text of the wiki page
         @param needsupdate: if 1, force update of the cached compiled page
         """
-        if self.request.sent_page_content:
-            self.request.write(self.request.sent_page_content)
-            return
+        
         body = ''
         request = self.request
         formatter_name = str(self.formatter.__class__).\
@@ -827,23 +829,24 @@ class Page(object):
             templates.sort()
 
             request.write(self.formatter.paragraph(1) +
-                self.formatter.text(_('Whenever appropriate, please use one of these templates:')) +
+                self.formatter.text(_('Or use one of these templates:')) +
                 self.formatter.paragraph(0))
 
             # send list of template pages
             request.write(self.formatter.bullet_list(1))
             for page in templates:
+                pagename = page[len('Templates/'):]
                 request.write(self.formatter.listitem(1) +
                     wikiutil.link_tag(request, "%s?action=edit&amp;template=%s" % (
                         wikiutil.quoteWikiname(self.proper_name()),
                         wikiutil.quoteWikiname(page)),
-                    page) +
+                    "Create as " + pagename) +
                     self.formatter.listitem(0))
             request.write(self.formatter.bullet_list(0))
 
         request.write(self.formatter.paragraph(1) +
             self.formatter.text('To create your own templates, ' 
-                'add a page with a name ending with "Template," such as Business Template.') +
+                'add a page with a name starting with Templates/, such as Templates/Bussiness.') +
             self.formatter.paragraph(0))
 
         # list similar pages that already exist

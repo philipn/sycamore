@@ -240,6 +240,17 @@ class Parser:
         return result
 
 
+    def _unify_userpage(self, word):
+        """If this is a userpage, let's link to the one they set as their home."""
+        from Sycamore import user
+        if word.lower().startswith(config.user_page_prefix.lower()):
+            username = word[len(config.user_page_prefix):]
+            theuser = user.User(self.request, name=username)
+            if theuser.exists() and theuser.wiki_for_userpage and theuser.wiki_for_userpage != self.request.config.wiki_name:
+                return user.getUserLink(self.request, theuser)
+                
+        return False
+
     def _alert_repl(self, word):
         """show alert icon."""
         return self.request.theme.make_icon('attention.png')
@@ -284,7 +295,9 @@ class Parser:
         if self.request.config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
             word = self.formatter.page.proper_name() + word
         text = self.highlight_text(text)
-        return self.formatter.pagelink(word, text)
+        # is this a link to a user page?
+        userpage_link = self._unify_userpage(word)
+        return userpage_link or self.formatter.pagelink(word, text)
 
     def _notword_repl(self, word):
         """Handle !NotWikiNames."""
