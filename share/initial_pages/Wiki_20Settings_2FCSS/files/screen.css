@@ -936,6 +936,7 @@ div.editInfo { margin-top: 10pt; }
 .favcomment {
         color: #4d4d4d;
         font-size: 12px;
+        line-height: 1.5em;
 }
 
 .rcrss {
