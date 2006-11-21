@@ -1185,7 +1185,7 @@ def send_title(request, text, **keywords):
 
     if request.config.noindex_everywhere:
         user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
-    elif (not crawl) or (request.request_method == 'POST'):
+    elif (not crawl) or (request.request_method == 'POST') or not request.user.may.read(page):
         user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
     elif not page.exists():
         user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
