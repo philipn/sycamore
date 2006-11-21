@@ -4,11 +4,7 @@ Dependencies = []
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
-    image_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
-    if wikiutil.hasFile(image_pagename, 'tinylogo.png', macro.request):
-        icon_url = macro.request.getQualifiedURL('/?action=mozilla_search&amp;file=%s.png' % macro.request.config.wiki_name)
-    else:
-        icon_url = ''
+    icon_url = macro.request.getQualifiedURL('/?action=mozilla_search&amp;file=%s.png' % macro.request.config.wiki_name)
     if icon_url:
         icon_link = """<img src="%s"/>&nbsp;""" % icon_url
     else:

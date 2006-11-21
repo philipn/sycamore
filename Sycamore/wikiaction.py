@@ -812,7 +812,11 @@ def do_mozilla_search(pagename, request):
             request.write(moz_src)
             return
         elif request.form['file'][0] == '%s.png' % request.config.wiki_name:
-            file.fileSend(request, '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images), 'tinylogo.png')
+            image_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
+            if wikiutil.hasFile(image_pagename, 'tinylogo.png', request):
+                file.fileSend(request, '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images), 'tinylogo.png')
+            else:
+                file.staticFileSend(request, request.theme.get_icon('interwiki')[1], 'sycamore.png')
             return
 
 

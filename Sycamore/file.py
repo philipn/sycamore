@@ -24,6 +24,21 @@ def _modified_since(request, file_modified_time):
 
     return True
 
+def staticFileSend(request, file_path, filename):
+    file_path = os.path.join(config.web_root, file_path[1:])
+    static_file = open(file_path, 'r')
+    file_content = ''.join(static_file.readlines())
+    static_file.close()
+    mimetype = mimetypes.guess_type(file_path)[0]
+    modified_time_unix = os.path.getmtime(file_path)
+    datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT'
+    length = len(file_content)
+    contentstring = 'filename="%s"' % filename
+    # images are usually compressed anyway, so let's not bother gziping
+    request.do_gzip = False
+    request.http_headers([("Content-Type", mimetype), ("Content-Length", length), ("Last-Modified", datestring), ("Content-Disposition", contentstring)])
+    #output image
+    request.write(file_content, raw=True)
 
 def fileSend(request, pagename=None, filename=None):
   # Front_Page?file=larry_coho.jpg&thumb=yes&size=240

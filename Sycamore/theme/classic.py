@@ -27,42 +27,23 @@ class Theme(object):
         # key         alt                        icon filename      w   h
         # ------------------------------------------------------------------
         # navibar
-        'help':       ("%(page_help_contents)s", "moin-help.png",   12, 11),
-        'find':       ("%(page_find_page)s",     "moin-search.png", 12, 12),
-        'diff':       ("Diffs",                  "moin-diff.png",   47, 15),
         'info':       ("Info",                   "info.png",   24, 24),
         'edit':       ("Edit",                   "edit.png",   24, 24),
         'talk':       ("Talk",                   "talk.png",   24, 24),
         'article':    ("Article",             "article.png",   24, 24),
         'viewmap':       ("View Map",                   "viewmap.png",   24, 24),
         'hidemap':       ("Hide Map",                   "hidemap.png",   24, 24),
-        'unsubscribe':("Unsubscribe",            "moin-unsubscribe.png",  14, 10),
-        'subscribe':  ("Subscribe",              "moin-subscribe.png",14, 10),
-        'raw':        ("Raw",                    "moin-raw.png",    12, 13),
-        'xml':        ("XML",                    "moin-xml.png",    20, 13),
-        'print':      ("Print",                  "moin-print.png",  16, 14),
-        'view':       ("View",                   "moin-show.png",   12, 13),
-        # FileAttach (is this used?)
-        'attach':     ("%(attach_count)s",       "moin-attach.png",  7, 15),
         # RecentChanges
         'event':      ("New Event",              "devil.png", 15, 15),
-        'rss':        ("[RSS]",                  "moin-rss.png",    36, 14),
         'deleted':    ("[DELETED]",              "sycamore-deleted.png",59, 13),
         'updated':    ("[UPDATED]",              "sycamore-updated.png",59, 13),
         'new':        ("[NEW]",                  "sycamore-new.png",    59, 13),
         'diffrc':     ("[DIFF]",                 "sycamore-diff.png",   59, 13),
         # General
-        'bottom':     ("[BOTTOM]",               "moin-bottom.png", 14, 10),
-        'top':        ("[TOP]",                  "moin-top.png",    14, 10),
         'www':        ("[WWW]",                  "sycamore-www.png",    14, 11),
-        'mailto':     ("[MAILTO]",               "moin-email.png",  14, 10),
-        'news':       ("[NEWS]",                 "moin-news.png",   10, 11),
-        'telnet':     ("[TELNET]",               "moin-telnet.png", 10, 11),
-        'ftp':        ("[FTP]",                  "moin-ftp.png",    11, 11),
-        'file':       ("[FILE]",                 "moin-ftp.png",    11, 11),
         # search forms
-        'searchbutton': ("[?]",                  "moin-search.png", 12, 12),
-        'interwiki':  ("[%(wikitag)s]",          "moin-inter.png",  16, 16),
+        'searchbutton': ("[?]",                  "search.png", 12, 12),
+        'interwiki':  ("[%(wikitag)s]",          "inter.png",  16, 16),
     }
 
     # ??? Why do we need stylesheet_print? the standard stylesheets
