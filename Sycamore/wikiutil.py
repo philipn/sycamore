@@ -1135,11 +1135,9 @@ def simple_send_title(request, pagename, msg='', strict_title=''):
    page_needle = pagename
    if config.allow_subpages and page_needle.count('/'):
      page_needle = '/' + page_needle.split('/')[-1]
-   link = '%s/%s?action=info&links=1' % (
-     request.getScriptname(),
-     quoteWikiname(pagename))
+   has_link = True
 
-   send_title(request, pagename, pagename=pagename, link=link, msg=msg, strict_title=strict_title)
+   send_title(request, pagename, pagename=pagename, has_link=has_link, msg=msg, strict_title=strict_title)
 
 
 def send_title(request, text, **keywords):
@@ -1291,7 +1289,7 @@ def send_title(request, text, **keywords):
         'theme': request.theme.name,
         'script_name': request.getScriptname(),
         'title_text': text,
-        'title_link': keywords.get('link', ''),
+        'title_link': keywords.get('has_link', ''),
         'script_name': request.getScriptname(),
         'site_name': config.sitename,
         'page': page,             # necessary???

@@ -120,14 +120,11 @@ class PageEditor(Page):
         page_needle = self.page_name
         if config.allow_subpages and page_needle.count('/'):
           page_needle = '/' + page_needle.split('/')[-1]
-        link = '%s/%s?action=info&general=1' % (
-         self.request.getScriptname(),
-         wikiutil.quoteWikiname(self.page_name))
 
         wikiutil.send_title(self.request,
             self.proper_name(),
             pagename=self.proper_name(),
-            link=link,
+            has_link=True,
            strict_title='Editing "%s"' % self.proper_name()
         )
 

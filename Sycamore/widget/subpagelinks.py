@@ -17,20 +17,17 @@ class SubpageLinks(base.Widget):
         while n <= max_number_possible:
             pagename = possible_subpages[-n]
             parent_pagename = '/'.join(possible_subpages[:-n])
-            if not parent_pagename:  # at end
-                pagelinks.append((pagename, pagename))
-            pagenames_queue.insert(0, pagename)
             parent_page = Page(parent_pagename, self.request)
-            if parent_page.exists() or parent_page.page_name == 'users':
-                display_pagename = '/'.join(pagenames_queue)
+            pagenames_queue.append(pagename)
+            if parent_page.exists():
+                display_name = '/'.join(pagenames_queue)
+                pagelinks.append(('%s/%s' % (parent_pagename, display_name), display_name))
                 pagenames_queue = []
-                pagelinks.append(("%s/%s" % (parent_pagename, display_pagename), display_pagename))
-            # tested all possible pagenames & we have no parent page that exists
-            elif n == (max_number_possible-1) and len(pagenames_queue) == (max_number_possible-1):
-                pagelinks = [(self.pagename, self.pagename)]
-                break
+
             n += 1
 
+        pagenames_queue.reverse()
+        pagelinks.append(('/'.join(pagenames_queue), '/'.join(pagenames_queue)))
         pagelinks.reverse()
         return pagelinks
 

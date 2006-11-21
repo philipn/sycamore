@@ -592,9 +592,7 @@ class Page(object):
                 page_needle = self.page_name
                 if self.request.config.allow_subpages and page_needle.count('/'):
                     page_needle = '/' + page_needle.split('/')[-1]
-                link = '%s/%s?action=info&links=1' % (
-                    request.getScriptname(),
-                    wikiutil.quoteWikiname(proper_name))
+                has_link = True
 
                 title = proper_name
                 if self.prev_date and not msg:
@@ -639,7 +637,7 @@ class Page(object):
                 #if not print_mode and request.user.valid and request.user.show_page_trail:
                 #    request.user.addTrail(self.page_name)
                 #    trail = request.user.getTrail()
-                wikiutil.send_title(request, title, link=link, msg=msg,
+                wikiutil.send_title(request, title, has_link=has_link, msg=msg,
                     pagename=proper_name, print_mode=print_mode, pi_refresh=pi_refresh,
                     allow_doubleclick=1, trail=trail, polite_msg=polite_msg)
 
