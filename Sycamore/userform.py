@@ -657,7 +657,7 @@ class UserSettings:
                 for name in wikis_for_userpage_options:
                     selection_tuples.append((name, name))
                 wikis_for_userpage_options = selection_tuples
-                wikis_for_userpage_options.insert(0, ('', '(each wiki)'))
+                wikis_for_userpage_options.insert(0, ('', 'each wiki (default)'))
 
                 self.make_row(_('User page'), [
                         html.Raw('<div><span style="vertical-align: bottom;">My name links to my user page on ' + self.request.theme.make_icon('interwiki', {'wikitag': self.request.user.wiki_for_userpage}, html_class="interwiki_icon") + '</span>'),
