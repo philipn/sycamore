@@ -1,5 +1,5 @@
 # Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
-import sys, os, shutil
+import sys, os, shutil, time
 import __init__ # woo hackmagic
 __directory__ = os.path.dirname(__file__)
 share_directory = os.path.abspath(os.path.join(__directory__, '..', 'share'))
