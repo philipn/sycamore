@@ -480,17 +480,20 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       add_query.append(' where %(view)s.name=%%(pagename)s and %(view)s.changeTime is not NULL and wiki_id=%(wiki_id)s' % {'view':view, 'wiki_id':request.config.wiki_id})
       printed_where = True
 
-    if max_days_ago:
-      if not printed_where:
-        add_query.append(' where')
+    if not printed_where:
         printed_where = True
-      else:
+        add_query.append(' where')
+    else:
         add_query.append(' and')
 
-      if changes_since:
-        add_query.append(' changeTime >= %(changes_since)s')
-
-      add_query.append(' wiki_id=%(wiki_id)s')
+    if max_days_ago:
+        if changes_since:
+            add_query.append(' changeTime >= %(changes_since)s and')
+    else:
+        if changes_since:
+            add_query.append(' changeTime >= %(changes_since)s and')
+      
+    add_query.append(' wiki_id=%(wiki_id)s')
 
     if total_changes_limit and not per_page_limit:
       if not printed_where:
