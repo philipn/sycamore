@@ -492,18 +492,6 @@ def resolve_wiki(request, wikiurl, force_farm=False):
 ### Page types (based on page names)
 #############################################################################
 
-def isSystemPage(request, pagename):
-    """
-    Is this a system page? Uses System Pages Group internally.
-    
-    @param request: the request object
-    @param pagename: the page name
-    @rtype: bool
-    @return: true if page is a system page
-    """
-    return (request.dicts.has_member('System Pages Group', pagename) or
-        isTemplatePage(pagename))
-
 #def isEditorBackup(pagename):
 #    return pagename.endswith('/MoinEditorBackup')
 

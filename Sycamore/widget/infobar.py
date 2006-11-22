@@ -15,7 +15,7 @@ class InfoBar(base.Widget):
     infoTabs = [['Revision History', 'action=info', None, '&offset='],
                 ['Links', 'action=info&links=1', None],
                 ['Files', 'action=Files', None, True], # last "True" -> has sub-areas
-                ["User's Info", 'action=userinfo', isUserPage]
+                ["User's Info", 'action=userinfo', isUserPage, '&offset=']
                ]
 
     before, after = '<li>', '</li>'
