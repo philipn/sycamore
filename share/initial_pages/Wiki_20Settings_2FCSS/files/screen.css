@@ -860,8 +860,12 @@ div.preview {
 
 div.editInfo { margin-top: 10pt; }
 
-#useredits td {
-           padding: 0 .3em;
+#useredits table {
+        width: 100%;
+}
+
+#useredits table td {
+        padding: .3em .3em .3em .3em;
 }
 
 .rcTag {
