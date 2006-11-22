@@ -120,7 +120,7 @@ def execute(macro, args, formatter=None, **kw):
           if page_line.ed_time > bookmark:
             # We do bold
             edit_icon = format_page_edit_icon(request, [page_line], page, True, bookmark, formatter)
-            line_of_text = '<div class="rcpagelink"><b>%s</b> &nbsp; %s%s<b>' % (edit_icon, page.link_to(), wiki_link)
+            line_of_text = '<div class="rcpagelink"><span><b>%s</b> &nbsp; %s%s<b>' % (edit_icon, page.link_to(), wiki_link)
             line_of_text = line_of_text + " &nbsp;" + '<span align="right" style="font-size: 12px;">' + 'last modified '
             line_of_text = line_of_text + '%s %s' % (find_month[day[1]], day[2])
             line_of_text = line_of_text + time.strftime(" at %I:%M %p</b> by</span>", page_line.time_tuple) + '<span class="faveditor">'
@@ -128,13 +128,13 @@ def execute(macro, args, formatter=None, **kw):
               line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (page_line.getEditor(request), page_line.comment)
             else:
               line_of_text = line_of_text + ' %s</span>' % (page_line.getEditor(request))
-            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="%s/%s?action=favorite&delete=%s&wiki_name=%s">Remove</a>]</span>' % (request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), wikiutil.quoteWikiname(page_line.pagename), page.wiki_name) + '</div>'
+            line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="%s/%s?action=favorite&delete=%s&wiki_name=%s">Remove</a>]</span>' % (request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), wikiutil.quoteWikiname(page_line.pagename), page.wiki_name) + '</span></div>'
 
           else:
             edit_icon = format_page_edit_icon(request, [page_line], page, False, bookmark, formatter)
             # We don't do bold
             if page_line.ed_time: # page has been created
-                line_of_text = '<div class="rcpagelink">%s &nbsp; %s%s &nbsp;<span " class="favtime">last modified ' % (edit_icon, page.link_to(), wiki_link)
+                line_of_text = '<div class="rcpagelink"><span>%s &nbsp; %s%s &nbsp;<span class="favtime">last modified ' % (edit_icon, page.link_to(), wiki_link)
                 line_of_text = line_of_text + '%s %s' % (find_month[day[1]], day[2]) 
                 line_of_text = line_of_text + time.strftime(" at %I:%M %p by</span>", page_line.time_tuple) + '<span class="faveditor">'
                 if page_line.comment:
@@ -143,11 +143,11 @@ def execute(macro, args, formatter=None, **kw):
                    line_of_text = line_of_text + ' %s</span>' % (page_line.getEditor(request))
 
                 line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="%s/%s?action=favorite&delete=%s&wiki_name=%s">Remove</a>]</span>' % (request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), wikiutil.quoteWikiname(page_line.pagename), page.wiki_name)
-                line_of_text = line_of_text + '</div>'
+                line_of_text = line_of_text + '</span></div>'
             else: # page has NOT been created
-                line_of_text = '<div class="rcpagelink">%s &nbsp; %s%s &nbsp;<span align="right" class="favtime">page has not been created yet</span>' % (edit_icon, page.link_to(), wiki_link)
+                line_of_text = '<div class="rcpagelink"><span>%s &nbsp; %s%s &nbsp;<span align="right" class="favtime">page has not been created yet</span>' % (edit_icon, page.link_to(), wiki_link)
                 line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="%s/%s?action=favorite&delete=%s&wiki_name=%s">Remove</a>]</span>' % (request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), wikiutil.quoteWikiname(page_line.pagename), page.wiki_name)
-                line_of_text = line_of_text + '</div>'
+                line_of_text = line_of_text + '</span></div>'
 
 
           seen_list.append((pagename, line_of_text))

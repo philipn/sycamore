@@ -60,7 +60,7 @@ def format_page_edit_icon(request, lines, page, hilite, bookmark, formatter):
     elif hilite:
         # show bolder status if page was edited after the user's rc bookmark
         tag = 'changes'
-        html_link = '<div class="rcTag"<div class="rcTagChanges">%s</div></div>' % page.link_to(
+        html_link = '<div class="rcTag"><div class="rcTagChanges">%s</div></div>' % page.link_to(
                                       querystr="action=diff&date=%s" % str(bookmark),
                                       text=tag)
     else:
