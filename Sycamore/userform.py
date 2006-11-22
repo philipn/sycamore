@@ -338,7 +338,10 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 wiki_for_userpage = form.get('wiki_for_userpage', [''])[0].lower()
                 if wiki_for_userpage and not wikiutil.isInFarm(wiki_for_userpage, self.request):
                     raise BadData, (_('"%s" is not the name of a wiki.' % wiki_for_userpage), new_user)
-                theuser.wiki_for_userpage = wiki_for_userpage
+                if wiki_for_userpage != theuser.wiki_for_userpage:
+                    # they have changed the wiki! time to do something differently
+                    msg = _("<p>User preferences saved!</p><p><strong>Note:</strong> It may take a bit for all links to your name to point to the new wiki.</p>")
+                    theuser.wiki_for_userpage = wiki_for_userpage
     
                 # User CSS URL
                 theuser.css_url = form.get('css_url', [''])[0]
@@ -627,7 +630,7 @@ class UserSettings:
 
 
             self.make_row(_('Time zone'), [
-                _('Your time is'), ' ',
+                _('My time zone is'), ' ',
                 self._tz_select(),
             ])
 
