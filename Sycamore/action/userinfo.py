@@ -23,7 +23,7 @@ def display_bookmarks(request, userpage):
         request.write('<h3>%s</h3>' % farm.link_to_wiki(wiki_name, request.formatter))
     request.write('<div class="userFavoritesList">')
     for pagename in bookmarks[wiki_name]:
-        request.write('<span class="userFavoriteItem">%s</span>' % Page(pagename, request, wiki_name=wiki_name).link_to())
+        request.write('<span class="userFavoriteItem">%s</span>' % Page(pagename, request, wiki_name=wiki_name).link_to(guess_case=True))
     if farm:
         request.write('</div>')
   
@@ -105,7 +105,7 @@ def display_edits(request, userpage, on_pagename):
         page = Page(pagename, request, wiki_name=wiki_name)
 
         version = page.date_to_version_number(mtime)
-        show_page = page.link_to(querystr='action=diff&amp;version2=%s&amp;version1=%s' % (version, version-1))
+        show_page = page.link_to(querystr='action=diff&amp;version2=%s&amp;version1=%s' % (version, version-1), guess_case=True)
                      
         comment = Comment(request, comment, editType).render()
 

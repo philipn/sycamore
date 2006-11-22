@@ -903,6 +903,7 @@ def insert_acl(plist, flat_page_dict, request):
      wikiacl.setACL(pagename, flat_page_dict[pagename].acl, request) 
 
 def insert_pages(request, flat_page_dict=None, plist=None, without_files=False):
+ timenow = time.time()
  cursor = request.cursor
  if not flat_page_dict: flat_page_dict = basic_pages
  if not plist: plist = flat_page_dict.keys()
@@ -910,8 +911,8 @@ def insert_pages(request, flat_page_dict=None, plist=None, without_files=False):
  for pagename in plist:
    request.req_cache['pagenames'][pagename.lower()] = pagename # for caching
    flatpage = flat_page_dict[pagename]
-   cursor.execute("INSERT into curPages (name, text, cachedText, editTime, cachedTime, userEdited, propercased_name, wiki_id) values (%(pagename)s, %(pagetext)s, NULL, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, NULL, %(propercased_name)s, %(wiki_id)s);", {'pagename':pagename.lower(), 'pagetext':flatpage.text, 'propercased_name':pagename, 'wiki_id': request.config.wiki_id}, isWrite=True)
-   cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP, propercased_name, wiki_id) values (%(pagename)s, %(pagetext)s, UNIX_TIMESTAMP('2005-11-09 14:44:00'), NULL, 'SAVENEW', 'System page', NULL, %(propercased_name)s, %(wiki_id)s);", {'pagename':pagename.lower(), 'pagetext':flatpage.text, 'propercased_name':pagename, 'wiki_id': request.config.wiki_id}, isWrite=True)
+   cursor.execute("INSERT into curPages (name, text, cachedText, editTime, cachedTime, userEdited, propercased_name, wiki_id) values (%(pagename)s, %(pagetext)s, NULL, %(timenow)s, NULL, NULL, %(propercased_name)s, %(wiki_id)s);", {'pagename':pagename.lower(), 'pagetext':flatpage.text, 'propercased_name':pagename, 'wiki_id': request.config.wiki_id, 'timenow': timenow}, isWrite=True)
+   cursor.execute("INSERT into allPages (name, text, editTime, userEdited, editType, comment, userIP, propercased_name, wiki_id) values (%(pagename)s, %(pagetext)s, %(timenow)s, NULL, 'SAVENEW', 'System page', NULL, %(propercased_name)s, %(wiki_id)s);", {'pagename':pagename.lower(), 'pagetext':flatpage.text, 'propercased_name':pagename, 'wiki_id': request.config.wiki_id, 'timenow': timenow}, isWrite=True)
    file_dict['pagename'] = pagename
    for filename, content in flatpage.files:
       file_dict['filename'] = filename
