@@ -77,6 +77,7 @@ def clear_page_caches(request):
     maintenance.clearCaches(request.config.wiki_name, plist, doprint=False)
 
 def create_wiki(wikiname, adminname, request):
+    from Sycamore.wikidb import setRecentChanges
     wikiname = wikiname.lower()
     is_in_farm = wikiutil.isInFarm(wikiname, request)
     is_valid_name = isValidWikiName(wikiname)
@@ -90,6 +91,7 @@ def create_wiki(wikiname, adminname, request):
         setup_admin(adminname, request)
         clear_page_caches(request)
         build_search_index(request)
+        setRecentChanges(request)
         request.switch_wiki(old_wiki)
         return None
 
