@@ -869,7 +869,7 @@ div.editInfo { margin-top: 10pt; }
         font-size: 80%;
         white-space: nowrap;
         width: 5em;
-        float: left;
+/*        float: left;  */
         margin-right: 1em;
         background-color: none;
 }
@@ -896,6 +896,10 @@ div.editInfo { margin-top: 10pt; }
 
 .rcpagelink {
        font-size: 14px;
+}
+
+.rcpagelink span {
+       vertical-align: top;
 }
 
 .rcpageline {
@@ -936,7 +940,6 @@ div.editInfo { margin-top: 10pt; }
 .favcomment {
         color: #4d4d4d;
         font-size: 12px;
-        line-height: 1.5em;
 }
 
 .rcrss {
@@ -1967,6 +1970,7 @@ div.editInfo { margin-top: 10pt; }
 .favcomment {
         color: #4d4d4d;
         font-size: 12px;
+        line-height: 1.5em;
 }
 
 .rcrss {
@@ -2067,11 +2071,12 @@ img.interwiki_icon {
   background-color: #ccddff;
   border-right: 1px dashed #aaaaaa;
   border-bottom: 1px dashed #aaaaaa;
-  margin-top: -1px;
+  border-top: 5px solid #ccddff;
+  margin-top: -5px;
 }
 
 #map {
   top: 12px;
   border: 1px solid gray;
-  left: 12px
+  left: 10px
 }
