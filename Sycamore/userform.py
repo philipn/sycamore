@@ -646,12 +646,20 @@ class UserSettings:
 
             if config.wiki_farm:
                 # FIXME: make the link link somewhere sane based on current context.
-                self.make_row(_('Name of wiki to keep user page on'), [
+
+                # prepare list of possible userpage locations
+                wikis_for_userpage_options = self.request.user.getWatchedWikis()
+                if self.request.user.wiki_for_userpage:
+                    wikis_for_userpage_options[self.request.user.wiki_for_userpage] = None
+                wikis_for_userpage_options[farm.getBaseWikiName(self.request)] = None
+                wikis_for_userpage_options = wikis_for_userpage_options.keys()
+                wikis_for_userpage_options.insert(0, '')
+
+                self.make_row(_('Wiki to keep user page on'), [
                         html.Raw('<div><span style="vertical-align: bottom;">' + self.request.theme.make_icon('interwiki', {'wikitag': self.request.user.wiki_for_userpage}, html_class="interwiki_icon") + '</span>'),
-                        html.INPUT(
-                            type="text", size=20, maxlength=farm.WIKINAME_MAX_LENGTH, name="wiki_for_userpage", value=self.request.user.wiki_for_userpage),
+                        util.web.makeSelection('wiki_for_userpage', wikis_for_userpage_options, selectedval=self.request.user.wiki_for_userpage),
                         html.Raw('</div>')
-                        ], option_text=_('(Leave empty for multiple user pages)')) 
+                        ], option_text=_('(Watched wikis only.  Leave empty for multiple pages)')) 
 
             self.make_row(_('Editor size'), [
                 html.INPUT(type="text", size=3, maxlength=3,

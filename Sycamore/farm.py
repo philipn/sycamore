@@ -142,6 +142,9 @@ def isBaseWiki(request):
     """
     return request.config.wiki_id == 1
 
+def getBaseWikiName(request):
+    return config.wiki_name
+
 
 if __name__ == '__main__':
    request = request.RequestDummy() 
