@@ -653,13 +653,17 @@ class UserSettings:
                     wikis_for_userpage_options[self.request.user.wiki_for_userpage] = None
                 wikis_for_userpage_options[farm.getBaseWikiName(self.request)] = None
                 wikis_for_userpage_options = wikis_for_userpage_options.keys()
-                wikis_for_userpage_options.insert(0, '')
+                selection_tuples = []
+                for name in wikis_for_userpage_options:
+                    selection_tuples.append((name, name))
+                wikis_for_userpage_options = selection_tuples
+                wikis_for_userpage_options.insert(0, ('', '(multiple user pages)'))
 
                 self.make_row(_('Wiki to keep user page on'), [
                         html.Raw('<div><span style="vertical-align: bottom;">' + self.request.theme.make_icon('interwiki', {'wikitag': self.request.user.wiki_for_userpage}, html_class="interwiki_icon") + '</span>'),
                         util.web.makeSelection('wiki_for_userpage', wikis_for_userpage_options, selectedval=self.request.user.wiki_for_userpage),
                         html.Raw('</div>')
-                        ], option_text=_('(Watched wikis only.  Leave empty for multiple pages)')) 
+                        ], option_text=_('(Choosing from watched wikis.)')) 
 
             self.make_row(_('Editor size'), [
                 html.INPUT(type="text", size=3, maxlength=3,
