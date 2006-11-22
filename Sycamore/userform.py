@@ -659,8 +659,8 @@ class UserSettings:
                 wikis_for_userpage_options = selection_tuples
                 wikis_for_userpage_options.insert(0, ('', '(each wiki)'))
 
-                self.make_row(_('My name links to my user page on'), [
-                        html.Raw('<div><span style="vertical-align: bottom;">' + self.request.theme.make_icon('interwiki', {'wikitag': self.request.user.wiki_for_userpage}, html_class="interwiki_icon") + '</span>'),
+                self.make_row(_('User page'), [
+                        html.Raw('<div><span style="vertical-align: bottom;">My name links to my user page on ' + self.request.theme.make_icon('interwiki', {'wikitag': self.request.user.wiki_for_userpage}, html_class="interwiki_icon") + '</span>'),
                         util.web.makeSelection('wiki_for_userpage', wikis_for_userpage_options, selectedval=self.request.user.wiki_for_userpage),
                         html.Raw('</div>')
                         ], option_text=_('(Choosing from watched wikis.)')) 
