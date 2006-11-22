@@ -102,7 +102,7 @@ def display_edits(request, userpage, on_pagename):
         comment = edit[4]
         wiki_name = edit[5]
 
-        page = Page(pagename, request)
+        page = Page(pagename, request, wiki_name=wiki_name)
 
         version = page.date_to_version_number(mtime)
         show_page = page.link_to(querystr='action=diff&amp;version2=%s&amp;version1=%s' % (version, version-1))

@@ -395,6 +395,7 @@ class Page(object):
         @rtype: string
         @return: formatted link
         """
+        url_name = ''
         request = self.request
         if know_status_exists and know_status: know_exists = True
         else: know_exists = False
