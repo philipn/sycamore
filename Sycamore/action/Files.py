@@ -23,6 +23,8 @@ import xml.dom.minidom
 
 action_name = __name__.split('.')[-1]
 
+f2e = {'PNG': ['.png'], 'JPEG': ['.jpg', '.jpeg'], 'GIF': ['.gif']}
+
 icon_dict = {
 '.pdf': 'file-pdf.png',
 '.ps': 'file-pdf.png',
@@ -585,6 +587,7 @@ def getExtension(request, target, filename):
     return ext
 
 
+
 def do_upload(pagename, request):
     import cStringIO
     from PIL import Image
@@ -650,7 +653,6 @@ def do_upload(pagename, request):
 
        is_image = True
 
-       f2e = {'PNG': ['.png'], 'JPEG': ['.jpg', '.jpeg'], 'GIF': ['.gif']}
        imfe = f2e.get(im.format, '')
    
        if ext.lower() not in imfe:

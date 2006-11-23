@@ -235,6 +235,9 @@ def execute(macro, args, formatter=None):
     except:
       return formatter.rawHTML('[[Image(%s)]]' % wikiutil.escape(args))
 
+    if not wikiutil.isImage(image_name):
+      return "%s does not seem to be an image file." % image_name
+
     url_image_name = urllib.quote(image_name)
 
     if formatter.isPreview() or formatter.page.prev_date:

@@ -40,10 +40,12 @@ elif config.db_type == 'mysql': RAND_FUNCTION = 'rand()'
 
 def isImage(filename):
   import mimetypes
+  from Sycamore.action.Files import f2e
   guess = mimetypes.guess_type(filename)
   if guess[0]:
-    return ((guess[0].split('/'))[0] == 'image')
-  return False
+     return ((guess[0].split('/'))[0]).upper() in f2e
+  #  return ((guess[0].split('/'))[0] == 'image')
+  #return False
 
 def prepareAllProperties():
   # sets up the consistent data between requests.  right now, this is just the db connection
