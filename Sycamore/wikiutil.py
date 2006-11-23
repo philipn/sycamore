@@ -43,7 +43,7 @@ def isImage(filename):
   from Sycamore.action.Files import f2e
   guess = mimetypes.guess_type(filename)
   if guess[0]:
-     return ((guess[0].split('/'))[0] == 'image') and ((guess[0].split('/'))[0]).upper() in f2e
+     return ((guess[0].split('/'))[0] == 'image') and ((guess[0].split('/'))[1]).upper() in f2e
   return False
 
 def prepareAllProperties():
