@@ -664,7 +664,7 @@ td.logo_banner { padding: 0; vertical-align: middle; }
 }
 
 .user_area {
-         color: white;
+    color: white;
     padding: 0;
     padding: 8px;
     margin: 0;
@@ -673,6 +673,11 @@ td.logo_banner { padding: 0; vertical-align: middle; }
 .user_area a {
         color: blue;
 }
+
+.user_area a:visted {
+        color: blue;
+}
+
 .user_area table {
         vertical-align: top;
         text-align: center;
@@ -2051,7 +2056,7 @@ div.editInfo { margin-top: 10pt; }
   color: gray;
 }
 
-.minorText a:link {
+.minorText a {
    color: #333399;
    text-decoration: none;
 }
