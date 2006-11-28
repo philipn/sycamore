@@ -523,6 +523,26 @@ div.userFavoritesList
   padding: 2px;
 }
 
+div.userFavoritesList h4
+{
+  margin-top: 0;
+}
+
+div.userFavoritesList div
+{
+  margin-left: 1em;
+}
+
+div.userFavoritesList h4 a
+{
+  text-decoration: none;
+}
+
+.userWatchedWikisList span
+{
+  margin-right: 1em;
+}
+
 span.userFavoriteItem
 {
   padding: 0 10px 0 0;
@@ -671,11 +691,7 @@ td.logo_banner { padding: 0; vertical-align: middle; }
 }
 
 .user_area a {
-        color: blue;
-}
-
-.user_area a:visted {
-        color: blue;
+        color: blue!important;
 }
 
 .user_area table {
