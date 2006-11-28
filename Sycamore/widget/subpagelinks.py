@@ -19,7 +19,7 @@ class SubpageLinks(base.Widget):
             parent_pagename = '/'.join(possible_subpages[:-n])
             parent_page = Page(parent_pagename, self.request)
             pagenames_queue.append(pagename)
-            if parent_page.exists():
+            if parent_page.exists() or parent_page.page_name == 'users':
                 display_name = '/'.join(pagenames_queue)
                 pagelinks.append(('%s/%s' % (parent_pagename, display_name), display_name))
                 pagenames_queue = []

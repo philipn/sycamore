@@ -501,7 +501,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       else:
         add_query.append(' and')
 
-      add_query.append(" changeTime is not NULL and wiki_id=%%(wiki_id)s order by changeTime desc limit %s)" % total_changes_limit)
+      add_query.append(" changeTime is not NULL and id is not NULL and wiki_id=%%(wiki_id)s order by changeTime desc limit %s)" % total_changes_limit)
 
     elif not total_changes_limit and per_page_limit:
       pass

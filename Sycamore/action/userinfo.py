@@ -18,15 +18,29 @@ def display_bookmarks(request, userpage):
     wiki_names.remove(request.config.wiki_name)
     wiki_names.insert(0, request.config.wiki_name)
 
+  request.write('<div class="userFavoritesList">')
   for wiki_name in wiki_names:
-    if farm:
-        request.write('<h3>%s</h3>' % farm.link_to_wiki(wiki_name, request.formatter))
-    request.write('<div class="userFavoritesList">')
+    if config.wiki_farm:
+        request.write('<h4>%s</h4>' % farm.link_to_wiki(wiki_name, request.formatter))
+        request.write('<div>')
     for pagename in bookmarks[wiki_name]:
         request.write('<span class="userFavoriteItem">%s</span>' % Page(pagename, request, wiki_name=wiki_name).link_to(guess_case=True))
-    if farm:
-        request.write('</div>')
+    if config.wiki_farm:
+        request.write('</div>')       
+  request.write('</div>')
   
+def display_watched_wikis(request, userpage):
+   theuser = user.User(request, name=userpage)
+   watched_wikis = theuser.getWatchedWikis().keys()
+   if not watched_wikis:
+       request.write('<p><i>Watching no wikis.</i></p>')
+       return
+   wikis_html = ['<div class="userWatchedWikisList">']
+   for wiki_name in watched_wikis:
+       wikis_html.append('<span>%s</span>' % farm.link_to_wiki(wiki_name, request.formatter))
+   wikis_html.append('</div>')
+   request.write(''.join(wikis_html)) 
+
 
 def display_edits(request, userpage, on_pagename):
     def printNextPrev(request, pagename, last_edit, offset_given):
@@ -150,6 +164,10 @@ def execute(pagename, request):
     request.write('<div id="content" class="content">\n\n')
     InfoBar(request, page).render()
     request.write('<div id="tabPage">')
+
+    if config.wiki_farm:
+    	request.write('<h3>Watched Wikis</h3>')
+	display_watched_wikis(request, username)
 
     request.write('<h3>Bookmarks</h3>\n')
     display_bookmarks(request, username)
