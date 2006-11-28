@@ -78,16 +78,16 @@ class AccessControlList:
         defaults_without_special.remove("Admin") 
         defaults_without_special.remove("Banned") 
         for groupname in defaults_without_special:
-          if len(self.acl_dict_defaults[groupname]) >= ACL_RIGHTS_TABLE[dowhat]:
-            allowed = self.acl_dict_defaults[groupname][ACL_RIGHTS_TABLE[dowhat]]
+          if len(request.config.acl_rights_default[groupname]) >= ACL_RIGHTS_TABLE[dowhat]:
+            allowed = request.config.acl_rights_default[groupname][ACL_RIGHTS_TABLE[dowhat]]
             if username in Group(groupname, request) and allowed:
               return True
 
         for groupname in ["Known", "All"]:
           if groupname == 'Known' and has_known_setting: break
           if groupname == 'All' and has_all_setting: break
-          if len(self.acl_dict_defaults[groupname]) >= ACL_RIGHTS_TABLE[dowhat]:
-            allowed = self.acl_dict_defaults[groupname][ACL_RIGHTS_TABLE[dowhat]]
+          if len(request.config.acl_rights_default[groupname]) >= ACL_RIGHTS_TABLE[dowhat]:
+            allowed = request.config.acl_rights_default[groupname][ACL_RIGHTS_TABLE[dowhat]]
             if username in Group(groupname, request) and allowed:
               return True
 
