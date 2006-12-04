@@ -12,7 +12,12 @@ from copy import copy
 
 from Sycamore import config, util, wikidb
 from Sycamore.util import pysupport
-from support import pytz
+
+#import pytz from support
+import sys, os.path
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, 'support'))])
+import pytz
 
 DAY_IN_SECONDS = 86400
 

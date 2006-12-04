@@ -17,8 +17,12 @@ from Sycamore.wikiaction import isValidPageName
 from Sycamore.Page import Page
 from Sycamore.wikiacl import ACL_RIGHTS_TABLE
 from Sycamore.wikiutil import quoteWikiname, unquoteWikiname
-from Sycamore.support import pytz
 from copy import copy
+
+#import pytz from support
+import sys, os.path
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, 'support'))])
 
 _debug = 0
 

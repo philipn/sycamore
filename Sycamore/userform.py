@@ -14,9 +14,13 @@ from Sycamore.Page import Page
 import Sycamore.util.web
 import Sycamore.util.mail
 import Sycamore.util.datetime
-from Sycamore.support import pytz
-from Sycamore.support import pytz
 from Sycamore.widget import html
+
+#import pytz from support
+import sys, os.path
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, 'support'))])
+import pytz
 
 _debug = 0
 

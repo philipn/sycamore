@@ -21,13 +21,7 @@ __all__ = [
     'AmbiguousTimeError', 'country_timezones', '_',
     ]
 
-import sys, os, datetime, os.path, gettext
-# Let submodules 'import pytz'
-__directory__ = os.path.dirname(__file__)
-sys.path.extend([os.path.abspath(os.path.join(__directory__, '..'))])
-
-import datetime, os.path, gettext
-
+import sys, datetime, os.path, gettext
 from tzinfo import AmbiguousTimeError, unpickler
 
 # Enable this when we get some translations?
