@@ -72,11 +72,15 @@ class Theme(ThemeBase):
     def editicon(self,d):
       editable = self.request.user.may.edit(d['page'])
       if editable:
-        if self.isEdit(): status = 'Selected'
-        else: status = ''
-        return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
-           '%s<br/>Edit' % self.make_icon('edit', style=png_behavior)))
-      else:  return ''
+        if self.isEdit():
+    		return """<td class="pageIconSelected">%s</td>""" % (
+					'%s<br/>Edit' % self.make_icon('edit', style=png_behavior)
+				  )
+        else:
+            return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
+              '%s<br/>Edit' % self.make_icon('edit', style=png_behavior)))
+      else:
+	      return ''
 
     def infoicon(self, d):
        if self.isInfo(): status = 'Selected' 
