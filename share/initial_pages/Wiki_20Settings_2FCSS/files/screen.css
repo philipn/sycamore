@@ -199,7 +199,7 @@ a.tab.tab, a.tab:visited {
   background: #7799cc;
   color: #000088;
  /* border-top: 1px solid #555555;
-  border-left: 1px solid #555555;*/
+ *   border-left: 1px solid #555555;*/
   border-top: 1px solid #555555;
   border-left: 1px solid #555555;
   border-right: 1px solid #555555;
@@ -362,6 +362,7 @@ td.pageIconSelected { font-size: 7pt;
 font-weight: bold;
 text-align: center;
 vertical-align: bottom;
+color: #000088;
 }
 
 .wikitable td {
@@ -1258,7 +1259,7 @@ a.tab.tab, a.tab:visited {
   background: #7799cc;
   color: #000088;
  /* border-top: 1px solid #555555;
-  border-left: 1px solid #555555;*/
+ *   border-left: 1px solid #555555;*/
   border-top: 1px solid #555555;
   border-left: 1px solid #555555;
   border-right: 1px solid #555555;
@@ -2105,3 +2106,4 @@ img.interwiki_icon {
   border: 1px solid gray;
   left: 10px
 }
+
