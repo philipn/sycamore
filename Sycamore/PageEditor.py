@@ -346,7 +346,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         if config.wiki_farm:
             from Sycamore import farm
-            help_link = Page("Help with Editing", self.request, wiki_name=farm.getBaseWikiName(self.request)).link_to()
+            help_link = farm.link_to_page(farm.getBaseWikiName(self.request), "Help with Editing", self.request.formatter)
         else:
             help_link = Page("Help with Editing", self.request).link_to()
 
