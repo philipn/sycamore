@@ -1,5 +1,0 @@
-You can put users into different logical "groups" on this page.  With user groups, you can set fine-grained permission controls on the wiki.  You can set the default permissions for a group in the ["../Security" security area], and you can control the security of a particular page by going into the edit area and pressing the "Security" button.
-
-Enter groups of users with one username per line (separated with returns).
-
-[[UserGroups]]
