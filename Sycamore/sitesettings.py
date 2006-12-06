@@ -201,7 +201,7 @@ class UserGroupsSettingsHandler(object):
         _ = self._
         form = self.request.form
     
-        groups_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_user_groups)
+        groups_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_security_defaults)
         if self.request.user.name in wikiacl.Group("Admin", self.request):
             if self.request.form.has_key('delete') and self.request.form['delete']:
               # delete user group
@@ -486,7 +486,7 @@ class SecuritySettings(object):
         html_sendmail = ''
         security_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_security_defaults)
         if self.request.user.name in wikiacl.Group("Admin", self.request):
-            self._inner.append(html.Raw('<div style="font-size: x-large;">By default..</div><div class="securitySettings">'))
+            self._inner.append(html.Raw('<div class="securitySettings">'))
             self.make_row(_("Everybody may:"), [
               html.INPUT(type="checkbox", name="All_may_read", value=1, checked=self.request.config.acl_rights_default['All'][ACL_RIGHTS_TABLE['read']]),
               'read', 
@@ -494,8 +494,6 @@ class SecuritySettings(object):
               'edit',
               html.INPUT(type="checkbox", name="All_may_delete", value=1, checked=self.request.config.acl_rights_default['All'][ACL_RIGHTS_TABLE['delete']]),
               'delete',
-              html.INPUT(type="checkbox", name="All_may_admin", value=1, checked=self.request.config.acl_rights_default['All'][ACL_RIGHTS_TABLE['admin']]),
-              'admin' 
             ])
 
             self.make_row(_("Logged in people may:"), [
@@ -505,8 +503,6 @@ class SecuritySettings(object):
               'edit',
               html.INPUT(type="checkbox", name="Known_may_delete", value=1, checked=self.request.config.acl_rights_default['Known'][ACL_RIGHTS_TABLE['delete']]),
               'delete',
-              html.INPUT(type="checkbox", name="Known_may_admin", value=1, checked=self.request.config.acl_rights_default['Known'][ACL_RIGHTS_TABLE['admin']]),
-              'admin' 
             ])
 
             self.make_row(_("Banned people may:"), [
@@ -516,8 +512,6 @@ class SecuritySettings(object):
               'edit',
               html.INPUT(type="checkbox", name="Banned_may_delete", value=1, checked=self.request.config.acl_rights_default['Banned'][ACL_RIGHTS_TABLE['delete']]),
               'delete',
-              html.INPUT(type="checkbox", name="Banned_may_admin", value=1, checked=self.request.config.acl_rights_default['Banned'][ACL_RIGHTS_TABLE['admin']]),
-              'admin' 
             ])
 
             custom_groups = user.getGroupList(self.request, exclude_special_groups=True)
@@ -531,7 +525,7 @@ class SecuritySettings(object):
                 html.INPUT(type="checkbox", name="%s_may_delete" % quoteWikiname(groupname), value=1, checked=group.default_rights()[ACL_RIGHTS_TABLE['delete']]),
                 'delete',
                 html.INPUT(type="checkbox", name="%s_may_admin" % quoteWikiname(groupname), value=1, checked=group.default_rights()[ACL_RIGHTS_TABLE['admin']]),
-                'admin' 
+                'change security' 
               ])
             
             self._inner.append(html.Raw("</div>")) # close securitySettings div
@@ -599,14 +593,14 @@ class UserGroupSettings(object):
         # different form elements depending on login state
         html_uid = ''
         html_sendmail = ''
-        groups_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_user_groups)
+        groups_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_security_defaults)
         if self.request.user.name in wikiacl.Group("Admin", self.request):
-            self._inner.append(html.H2().append("User groups"))
 
             group_admin = wikiacl.Group("Admin", self.request, fresh=True)
             self.make_row(_("Admins"), [
               html.TEXTAREA(name="group_Admin", rows="6", cols="40", id="group_Admin").append('\n'.join(group_admin.users(proper_names=True)))
             ], option_text=_("(one per line)"))
+
 
             group_banned = wikiacl.Group("Banned", self.request, fresh=True)
             self.make_row(_("Banned Users"), [
@@ -616,7 +610,6 @@ class UserGroupSettings(object):
             self.make_row(_("Banned IP Addresses"), [
               html.TEXTAREA(name="ips_banned", rows="6", cols="40", id="ips_banned").append('\n'.join(group_banned.get_ips().keys()))
             ], option_text=_("(one per line)"))
-
 
             custom_groups = user.getGroupList(self.request, exclude_special_groups=True)
             for groupname in custom_groups:

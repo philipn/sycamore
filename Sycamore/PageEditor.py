@@ -344,6 +344,12 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write("</form>")
 
 
+        if config.wiki_farm:
+            from Sycamore import farm
+            help_link = Page("Help with Editing", self.request, wiki_name=farm.getBaseWikiName(self.request)).link_to()
+        else:
+            help_link = Page("Help with Editing", self.request).link_to()
+
         # QuickHelp originally by Georg Mischler <schorsch@lightingwiki.com>
         self.request.write('<h2>Editing quick-help</h2>\n<dl><div style="float: right; margin: 10px; border: 1px solid; padding: 3pt;">See <b>%s</b> for more information.</div>' % (Page("Help with Editing", self.request).link_to()) + _("""<dt>Emphasis:</dt>
 <dd>''<em>italics</em>''; '''<strong>bold</strong>'''; '''''<strong><em>bold italics</em></strong>''''';

@@ -392,8 +392,8 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 
     if version1 is None and version2 is None:
       # we are pressing 'diff' in the recent changes/etc
-      version2 = at_version
-      version1 = at_version - 1
+      version2 = current_version
+      version1 = current_version - 1
 
     # spacing flag?
     try:

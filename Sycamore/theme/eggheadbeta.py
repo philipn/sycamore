@@ -25,14 +25,14 @@ class Theme(ThemeBase):
     stylesheets_print = (
         # theme charset         media       basename
         (name,  'iso-8859-1',   'all',      'common'),
-        (name,  'iso-8859-1',   'all',      'print'),
+        (name,  'iso-8859-1',   'print',      'screen'),
         )
     
     stylesheets = (
         # theme charset         media       basename
         (name,  'iso-8859-1',   'all',      'common'),
         (name,  'iso-8859-1',   'screen',   'screen'),
-        (name,  'iso-8859-1',   'print',    'print'),
+        (name,  'iso-8859-1',   'print',    'screen'),
         )
     
     def __init__(self, request):

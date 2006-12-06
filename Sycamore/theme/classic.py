@@ -46,9 +46,6 @@ class Theme(object):
         'interwiki':  ("[%(wikitag)s]",          "inter.png",  16, 16),
     }
 
-    # ??? Why do we need stylesheet_print? the standard stylesheets
-    # provide a print version?
-
     stylesheets_print = (
         # theme charset         media       basename
         (name,  'iso-8859-1',   'all',      'common'),
