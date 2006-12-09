@@ -85,7 +85,6 @@ class Parser:
 (?P<alert>\/!\\)
 (?P<smiley>(?<=\s)(%(smiley)s)(?=\s))
 (?P<smileyA>^(%(smiley)s)(?=\s))
-(?P<definition>^(.*)%(def_op)s(.*)$)
 (?P<ent>[<>&])"""  % {
         'url': url_pattern,
         'punct': punct_pattern,
