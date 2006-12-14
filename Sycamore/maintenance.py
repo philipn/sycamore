@@ -54,7 +54,7 @@ def clearCaches(wiki_name, plist, doprint=False):
 
   if doprint:
     print "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
-    print "cleared page caches!"
+    print "Cleared page caches!"
     print "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 def buildCaches(wiki_name, plist, doprint=False):
