@@ -38,8 +38,8 @@ class Parser(SimpleParser):
 (?P<table>(?:\|\|)+(?:<[^>]*?>)?(?=.))
 (?P<macro>\[\[(%(macronames)s)(?:\(.*?\))?\]\])"""
     formatting_b = r"""
-(?P<heading>^\s*(?P<hmarker>=+)(\s)*.*(\s)*(?P=hmarker)( )*$)
-(?P<definition>^(.*)%(def_op)s(.*)$)"""
+(?P<heading>^\s*(?P<hmarker>=+)(\s)*.*(\s)*(?P=hmarker)( )*$)"""
+#(?P<definition>^(.*)%(def_op)s(.*)$)"""
 
     formatting_rules_dict = {
         'macronames': '|'.join(wikimacro.names),

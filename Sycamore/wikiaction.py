@@ -275,29 +275,7 @@ def print_context(the_search, text, request, context=40, max_context=10):
  if location and location + padding + 1 < len(text):
    text_with_context.append(' ... ')
 
- text_context = []
-
- # pad the text with context with more context to the left and right, if needed
-       
  request.write('<div class="textSearchResult">%s</div>' % ''.join(text_with_context))
-
-
-
-#def do_highlight(pagename, request):
-#    if request.form.has_key('value'):
-#        needle = request.form["value"][0]
-#    else:
-#        needle = ''
-#
-#    needle_re = search.build_regexp(search.prepare_search_needle(needle))
-#
-#    #try:
-#    #    needle_re = re.compile(needle, re.IGNORECASE)
-#    #except re.error:
-#    #    needle = re.escape(needle)
-#    #    needle_re = re.compile(needle, re.IGNORECASE)
-#
-#    Page(pagename, request).send_page(hilite_re=needle_re)
 
 
 #############################################################################
@@ -684,7 +662,7 @@ def do_info(pagename, request):
         from Sycamore.formatter.text_html import Formatter
 
         request.write('<form method="GET" action="%s">\n' % (page.url()))
-        request.write('<div id="pageinfo" class="editInfo">')
+        request.write('<div id="pageHistory" class="editInfo">')
         request.write('<input type="hidden" name="action" value="diff">\n')
 
         if has_history:

@@ -12,7 +12,6 @@ if config.wiki_farm:
     png_behavior = "behavior: url('http://%s%s%s/pngbehavior.htc');" % (config.wiki_base_domain, config.web_dir, config.url_prefix)
 else:
     png_behaviour = "behavior: url('%s%s/pngbehavior.htc');" % (config.web_dir, config.url_prefix)
- 
 
 class Theme(ThemeBase):
     """ here are the functions generating the html responsible for
@@ -56,7 +55,7 @@ class Theme(ThemeBase):
 
         images_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_images)
         if has_file(self.request, images_pagename, 'logo.png'):
-          html.append('<img align="middle" src="%s" alt="wiki logo"></a>' % (getAttachUrl(images_pagename, 'logo.png', self.request)))
+          html.append('<img align="middle" src="%s" alt="wiki logo" style="%s"></a>' % (getAttachUrl(images_pagename, 'logo.png', self.request), png_behavior))
         else: html.append('<div id="logo_text">%s</div></a>' % self.request.config.sitename)
 
         return ''.join(html)
@@ -205,30 +204,6 @@ class Theme(ThemeBase):
 </td></tr><tr><td></td><td align="left" nowrap>(<a href="%sUser_Preferences?new_user=1">new user</a>)</td><td align="right"><input type="submit" name="login" value="Login" alt="login"></td></tr></table></div></form>""" % (post_url, farm_params, base_wiki)
             
         return html
-
-    def navibar(self, d):
-        """
-        Assemble the navibar
-        
-        @param d: parameter dictionary
-        @rtype: string
-        @return: navibar html
-        """
-        _ = self.request.getText
-        html = []
-        html.append('<div class="sidetitle">%s</div>\n' % _("Site"))
-        html.append('<ul id="navibar">\n')
-        if d['navibar']:
-            # Print site name in first field of navibar
-            # html.append(('<li>%(site_name)s</li>\n') % d)
-            for (link, navi_link) in d['navibar']:
-                html.append((
-                    '<li><a href="%(link)s">%(navi_link)s</a></li>\n') % {
-                        'link': link,
-                        'navi_link': navi_link,
-                    })
-        html.append('</ul>')
-        return ''.join(html)
 
     def isEdit(self):
         """

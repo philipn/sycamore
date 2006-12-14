@@ -1202,7 +1202,7 @@ def send_title(request, text, **keywords):
 
     # global javascript variable needed by edit.js
     user_head.append("""<script type="text/javascript">var urlPrefix = '%s';</script>""" % (config.url_prefix))
-    
+
     if keywords.has_key('strict_title') and keywords['strict_title']: strict_title = keywords['strict_title']
     else: strict_title = text
 

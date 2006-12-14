@@ -613,6 +613,10 @@ def do_upload(pagename, request):
     else:
         error_msg(pagename, request, _("Filename was not specified!"))
         return
+    if not filename:
+        error_msg(pagename, request, _("File was not specified!"))
+        return
+
 
     if string.find(filename, '<') != -1 or string.find(filename, '>') != -1 or string.find(filename, '?') != -1 or string.find(filename, '"') != -1:
         error_msg(pagename, request, _("The characters '<', '>', '\"', and '?' are not allowed in file names."))

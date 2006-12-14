@@ -313,7 +313,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         
         self.request.write('''
 <table id="editButtonRow"><tr height="30"><td nowrap><font size="3">
-<input type="submit" class="bigbutton" name="button_preview" value="%s">
+<input type="submit" style="font-size: medium;" name="button_preview" value="%s">
 <input type="submit" class="formbutton" name="button_save" value="%s">
 <input type="submit" class="formbutton" name="button_cancel" value="%s">
 </td><td width="12">&nbsp;</td><td bgcolor="#ccddff" style="border: 1px dashed #AAAAAA;">
@@ -346,12 +346,12 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         if config.wiki_farm:
             from Sycamore import farm
-            help_link = farm.link_to_page(farm.getBaseWikiName(self.request), "Help with Editing", self.request.formatter)
+            help_link = farm.link_to_page(farm.getBaseWikiName(self.request), "Help with Editing", self.request.formatter, force_farm=True)
         else:
             help_link = Page("Help with Editing", self.request).link_to()
 
         # QuickHelp originally by Georg Mischler <schorsch@lightingwiki.com>
-        self.request.write('<h2>Editing quick-help</h2>\n<dl><div style="float: right; margin: 10px; border: 1px solid; padding: 3pt;">See <b>%s</b> for more information.</div>' % (Page("Help with Editing", self.request).link_to()) + _("""<dt>Emphasis:</dt>
+        self.request.write('<h2>Editing quick-help</h2>\n<dl><div style="float: right; margin: 10px; border: 1px solid; padding: 3pt;">See <b>%s</b> for more information.</div>' % help_link + _("""<dt>Emphasis:</dt>
 <dd>''<em>italics</em>''; '''<strong>bold</strong>'''; '''''<strong><em>bold italics</em></strong>''''';
     ''<em>mixed '''<strong>bold</strong>''' and italics</em>''; ---- horizontal rule.</dd>
 <dt>Headings:</dt>

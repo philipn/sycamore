@@ -591,24 +591,11 @@ class RequestBase(object):
 
 
         try:
-            # possibly jump to page where user left off
-            #if not pagename and not action and self.user.remember_last_visit:
-            #    pagetrail = self.user.getTrail()
-            #    if pagetrail:
-            #        self.http_redirect(Page(pagetrail[-1]).url(self))
-            #        return self.finish()
-
             # handle request
             from Sycamore import wikiaction
 
             #The following "if" is to deal with various backward compatability situations
             pagename = backward_compatibility(self, pagename, oldlink, oldlink_propercased)
-
-            #if self.form.has_key('filepath') and self.form.has_key('noredirect'):
-            #    # looks like user wants to save a drawing
-            #    from Sycamore.action.Files import execute
-            #    execute(pagename, self)
-            #    raise SycamoreNoFooter
 
             if action:
                 handler = wikiaction.getHandler(action)

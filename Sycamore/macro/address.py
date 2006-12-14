@@ -314,6 +314,7 @@ def mapHTML(macro, place, nearby):
         
 
 def execute(macro, args, formatter):
+    if not args: return "<em>Please provide an address.</em>"
     if not formatter: formatter = macro.formatter
 
     # re for old format Address("address","description")

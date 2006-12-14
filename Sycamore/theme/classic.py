@@ -288,26 +288,6 @@ class Theme(object):
                     '<div><p>%(msg)s</p><p>%(clear_msg_link)s</p></div></div>') % d
         return html
     
-    #def trail(self, d):
-    #    """
-    #    Assemble page trail
-    #    
-    #    @param d: parameter dictionary
-    #    @rtype: string
-    #    @return: trail html
-    #    """
-    #    html = []
-    #    if d['trail']:
-    #        pagetrail = d['trail']
-    #        html.append('<ul id="pagetrail">\n')
-    #        for p in pagetrail[:-1]:
-    #            html.append('<li><span>%s</span></li>\n' % (Page(p, self.request.cursor).link_to(self.request),))
-    #        html.append('<li><span>%s</span></li>\n' % wikiutil.escape(pagetrail[-1]))
-    #        html.append('</ul>\n')
-    #    else:
-    #        html.append('<hr id="pagetrail">\n')
-    #    return ''.join(html)
-
     def html_stylesheet_link(self, charset, media, href):
         return ('<link rel="stylesheet" type="text/css" charset="%s" '
                 'media="%s" href="%s">\n') % (charset, media, href)
@@ -567,7 +547,7 @@ class Theme(object):
 
     def recentchanges_entry(self, d):
         """
-        Assemble a single recentchanges entry (table row)
+        Assemble a single recentchanges entry (row)
         
         @param d: parameter dictionary
         @rtype: string
