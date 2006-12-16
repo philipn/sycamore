@@ -4,7 +4,7 @@
 
     Collect and emit footnotes.
 
-    @copyright: 2005 by philip neustrom <philipn@gmail.com>
+    @copyright: 2005-2006 by philip neustrom <philipn@gmail.com>
     @copyright: 2002 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """

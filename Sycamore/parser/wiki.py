@@ -219,6 +219,11 @@ class Parser(SimpleParser):
         if self.in_table: self.request.write(self.formatter.table(0))
         self.request.write(self._undent())
 
+        # check for pending footnotes
+        if getattr(self.request, 'footnotes', None):
+          from Sycamore.macro.footnote import emit_footnotes
+          emit_footnotes(self.request, self.formatter)
+
 
     def _tableZ_repl(self, word):
         """Handle table row end."""
