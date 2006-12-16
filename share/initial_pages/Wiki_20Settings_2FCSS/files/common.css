@@ -243,7 +243,7 @@ div.pageEditInfo {
    white-space: nowrap;
 }
 #toolbarWithInfo a { margin: 1px; }
-#toolbarWithInfo a:hover { background-color: #555555; {
+#toolbarWithInfo a:hover { background-color: #555555; }
 .toolbarSize { width: 234px; font-size: 4px;}
 /* icon on toolbar */
 .editBarIcon
