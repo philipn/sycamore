@@ -253,8 +253,8 @@ a.tinyNonexistent:hover {
 }
 
 /* actionBoxes are general little boxes to do things like "next edit" in the info area
- * or "hide users" in Wanted Pages
-*/
+ *  * or "hide users" in Wanted Pages
+ *  */
 .actionBoxes { padding-bottom: 15pt; }
 td .actionBoxes {
   margin: 0 !important;
@@ -283,8 +283,8 @@ pre {
 }
 
 /* Horizontal rule.
- * in wiki:  ------ type thing
-*/
+ *  * in wiki:  ------ type thing
+ *  */
 hr {
     background-color: #CBCBCB;
     color: #CBCBCB;
@@ -406,7 +406,7 @@ td.logo_banner {
 #title_text td { vertical-align: middle; }
 
 /* Title used for things like "Changes on (pagename)..".
-*  A sub-title, of sorts */
+ * *  A sub-title, of sorts */
 .minorTitle {
   text-align: center;
   margin-top: .4em;
@@ -498,7 +498,10 @@ div.editInfo { margin-top: 10pt; }
 
 /* List of user's edits */
 #useredits table { width: 100%; }
-#useredits table td { padding: .3em .3em .3em .3em; }
+#useredits table td {
+  width: 15%;
+  padding: .3em .3em .3em .3em;
+}
 
 /* Recent Changes / Bookmarks change display */
 /* A full recent changes 'entry' for a given page */
@@ -612,7 +615,7 @@ div.editInfo { margin-top: 10pt; }
 }
 
 /* Icon used when linking to other wikis using interwiki-style links.
- * also used when displaying certain links to other wikis, such as search results */
+ *  * also used when displaying certain links to other wikis, such as search results */
 img.interwiki_icon {
   border: none;
   margin-right: .25em;
