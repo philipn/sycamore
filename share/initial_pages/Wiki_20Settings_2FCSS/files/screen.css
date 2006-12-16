@@ -78,6 +78,7 @@ a.tab:hover {
   background: #ccddff;
 }
 a.tab.notice { font-weight: bold;}
+/* the tab for the current active page (page you're on) */
 a.tab.activeTab, a.tab.activeTab:hover, a.tab.activeTab:visited {
   background: #ccddff;
   border-left: 1px solid #AAAAAA;

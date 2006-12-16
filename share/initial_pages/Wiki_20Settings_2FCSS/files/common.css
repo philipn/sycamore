@@ -218,6 +218,40 @@ div.pageEditInfo {
   padding: 0;
 }
 
+/* Edit toolbar */
+#toolbar {
+   margin-right: 15pt;
+   text-align: right;
+   vertical-align: bottom;
+   white-space: nowrap;
+}
+#toolbar a img {
+    margin: 1px;
+    border-bottom: 1px solid #ccddff;
+    _border-bottom: 0px; /* ie hack */
+}
+#toolbar a img:hover {
+   border-bottom: 1px solid #555555;
+   _border-bottom: 0px; /*ie hack */
+}
+.toolbarPaddingStart { padding-left: 10px; }
+.toolbarPaddingEnd { padding-right: 2px; }
+#toolbarWithInfo {
+   margin-right: 15pt;
+   text-align: right;
+   vertical-align: bottom;
+   white-space: nowrap;
+}
+#toolbarWithInfo a { margin: 1px; }
+#toolbarWithInfo a:hover { background-color: #555555; {
+.toolbarSize { width: 234px; font-size: 4px;}
+/* icon on toolbar */
+.editBarIcon
+{
+  height: 24px;
+  width: 24px;
+}
+
 /* Global footer area */
 .wikiGlobalFooter { padding-top: .4em; }
 /* Wiki Spot specific footer styling */
