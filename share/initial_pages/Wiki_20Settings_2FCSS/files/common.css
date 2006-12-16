@@ -1,5 +1,5 @@
 /*  common.css - Sycamore Default Styles
-*   These are the styles you probably don't need to change to make your wiki look unique.
+ *   These are the styles you probably don't need to change to make your wiki look unique.
 */
 
 /* Whole HTML block */
@@ -163,6 +163,7 @@ div.userFavoritesList { padding: 2px; }
 div.userFavoritesList h4 { margin-top: 0; }
 div.userFavoritesList div { margin-left: 1em; }
 div.userFavoritesList h4 a { text-decoration: none; }
+div.userFavoritesList div { margin-bottom: 1em; }
 
 /* A bookmark that is listed in the user info area */
 span.userFavoriteItem { padding: 0 10px 0 0; }
