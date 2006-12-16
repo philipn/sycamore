@@ -660,7 +660,7 @@ def do_upload(pagename, request):
        imfe = f2e.get(im.format, '')
    
        if ext.lower() not in imfe:
-         msg += _("File extension %s did not match image format %s, changing extension to %s.<br/>" % (ext, im.format, imfe))
+         msg += _("File extension %s did not match image format %s, changing extension to %s.<br/>" % (ext, im.format, imfe[0]))
          ext = imfe[0]
 
     # save file
