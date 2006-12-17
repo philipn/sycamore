@@ -214,6 +214,29 @@ def article_to_talk_pagename(article_pagename):
     Returns the talk pagename associated with this article pagename.
     """
     return article_pagename + '/Talk'
+
+def init_logo_sizes(request):
+    """
+    Gets the wiki logos' sizes and saves them to the wiki config.
+    """
+    from PIL import Image
+    main_logo_file = wikidb.getFile(request, {'filename':'logo.png', 'page_name': '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)})
+    if main_logo_file:
+        main_logo_file = cStringIO.StringIO(main_logo_file[0])
+        main_logo = Image.open(main_logo_file)
+        main_logo_size = main_logo.size
+        main_logo_file.close()
+        request.config.logo_sizes['logo.png'] = main_logo_size
+
+    floater_file = wikidb.getFile(request, {'filename':'floater.png', 'page_name': '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)})
+    if floater_file:
+        floater_file = cStringIO.StringIO(floater_file[0])
+    	floater = Image.open(floater_file)
+    	floater_size = floater.size
+    	floater_file.close()
+        request.config.logo_sizes['floater.png'] = floater_size
+
+    request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
     
 def getSmiley(text, formatter):
     """

@@ -462,10 +462,19 @@ def send_restore_form(page, request):
     return page.send_page(msg=formhtml)
 
 def checkSpecialFiles(filename, pagename, request, image=None):
+    """
+    Checks if this is a special file.  If it is a special file then we might do something here.
+    """
     if pagename == ('%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)).lower():
       if filename == 'tinylogo.png' and image.size != (16, 16):
         return "tinylogo.png must be 16x16 pixels!"
-
+      elif filename == 'logo.png':
+        set_config = True
+        request.config.logo_sizes['logo.png'] = image.size
+        request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
+      elif filename == 'floater.png':
+        request.config.logo_sizes['floater.png'] = image.size
+        request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
 
 def execute(pagename, request):
     """ Main dispatcher for the 'Files' action.

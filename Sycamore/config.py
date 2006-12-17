@@ -121,7 +121,6 @@ class Config(object):
                 del d[k]
 
         self.set_config(self.wiki_name, d, request)
-        
 
     def set_config(self, wiki_name, d, request):
       from wikidb import Binary
@@ -316,6 +315,7 @@ _cfg_defaults_local = {
     'gmaps_api_key': None,
     'interwikimap': 'Interwiki Map',
     'is_disabled': False,
+    'logo_sizes': {},
     'license_text': '',
     'noindex_everywhere': False,
     'has_old_wiki_map': False,

@@ -52,7 +52,10 @@ class Theme(ThemeBase):
 
         images_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_images)
         if has_file(self.request, images_pagename, 'logo.png'):
-          html.append('<img align="middle" src="%s" alt="wiki logo" style="%s"></a>' % (getAttachUrl(images_pagename, 'logo.png', self.request), png_behavior))
+	  if not self.request.config.logo_sizes.has_key('logo.png'):
+	     wikiutil.init_logo_sizes(self.request)
+	  width, height = self.request.config.logo_sizes['logo.png']
+          html.append('<img align="middle" src="%s" alt="wiki logo" style="%s" height="%s" width="%s"></a>' % (getAttachUrl(images_pagename, 'logo.png', self.request), png_behavior, height, width))
         else: html.append('<div id="logo_text">%s</div></a>' % self.request.config.sitename)
 
         return ''.join(html)
