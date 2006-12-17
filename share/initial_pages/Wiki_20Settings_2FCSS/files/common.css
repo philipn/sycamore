@@ -1,5 +1,5 @@
 /*  common.css - Sycamore Default Styles
- *   These are the styles you probably don't need to change to make your wiki look unique.
+*   These are the styles you probably don't need to change to make your wiki look unique.
 */
 
 /* Whole HTML block */
@@ -264,13 +264,9 @@ div.pageEditInfo {
   padding: 0 1em 1em 1em;
   color: gray;
 }
-.wikiSpotFooter a
-{ 
-  color: #666699;
-  text-decoration: none;
+.wikiSpotFooter a {
+  text-decoration: none; 
+  color: #333399 !important;
 }
-.wikiSpotFooter a:hover
-{
-  color: #669966;
-  text-decoration: none;
-}
+.wikiSpotFooter a:hover { color: #669966 !important; }
+
