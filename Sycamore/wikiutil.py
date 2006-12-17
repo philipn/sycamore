@@ -1193,9 +1193,11 @@ def send_title(request, text, **keywords):
     # do we show an icon for the wiki?
     image_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
     if hasFile(image_pagename, 'tinylogo.png', request):
-        url = getAttachUrl(image_pagename, 'tinylogo.png', request)
-        user_head.append("""<link rel="shortcut icon" href="%s" type="image/png">
-        <link rel="icon" href="%s" type="image/png">""" % (url, url))
+        tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png', request)
+    else:
+        tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png', request)
+    user_head.append("""<link rel="shortcut icon" href="%s" type="image/png">
+<link rel="icon" href="%s" type="image/png">""" % (tiny_logo_url, tiny_logo_url))
         
     if keywords.has_key('pi_refresh') and keywords['pi_refresh']:
         user_head.append('<meta http-equiv="refresh" content="%(delay)d;URL=%(url)s">' % keywords['pi_refresh'])

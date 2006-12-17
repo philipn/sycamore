@@ -301,14 +301,6 @@ class User(object):
 
         self.tz_offset = wikiutil.getTimeOffset(self.tz)
 
-#    def __filename(self):
-#        """
-#        get filename of the user's file on disk
-#        @rtype: string
-#        @return: full path and filename of user account file
-#        """
-#        return os.path.join(config.user_dir, self.id or "...NONE...")
-
 
     def exists(self):
         """
