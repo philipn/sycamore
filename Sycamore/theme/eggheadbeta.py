@@ -8,10 +8,7 @@ from classic import Theme as ThemeBase
 from Sycamore.widget import subpagelinks
 import string, urllib
 
-if config.wiki_farm:
-    png_behavior = "behavior: url('http://%s%s%s/pngbehavior.htc');" % (config.wiki_base_domain, config.web_dir, config.url_prefix)
-else:
-    png_behaviour = "behavior: url('%s%s/pngbehavior.htc');" % (config.web_dir, config.url_prefix)
+png_behavior = "behavior: url('%s%s/pngbehavior.htc');" % (config.web_dir, config.url_prefix)
 
 class Theme(ThemeBase):
     """ here are the functions generating the html responsible for
