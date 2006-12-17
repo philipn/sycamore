@@ -264,3 +264,13 @@ div.pageEditInfo {
   padding: 0 1em 1em 1em;
   color: gray;
 }
+.wikiSpotFooter a
+{ 
+  color: #666699;
+  text-decoration: none;
+}
+.wikiSpotFooter a:hover
+{
+  color: #669966;
+  text-decoration: none;
+}

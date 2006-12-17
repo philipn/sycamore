@@ -605,12 +605,12 @@ div.editInfo { margin-top: 10pt; }
   margin-left: .5em;
   color: gray;
 }
-.minorText a:link {
-   color: #333399;
+.minorText a {
+   color: #666699;
    text-decoration: none;
 }
 .minorText a:hover {
-   color: green;
+   color: #669966;
    text-decoration: none;
 }
 
