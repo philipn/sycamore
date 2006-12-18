@@ -1,5 +1,5 @@
 /*  screen.css - Sycamore Default Styles
-*  These are the styles you'll want to change to make your wiki look unique.
+*   These are the styles you'll want to change to make your wiki look unique.
 */
 
 /* Tabbed Info area */
@@ -253,8 +253,8 @@ a.tinyNonexistent:hover {
 }
 
 /* actionBoxes are general little boxes to do things like "next edit" in the info area
-*  or "hide users" in Wanted Pages
-*/
+ * *  or "hide users" in Wanted Pages
+ * */
 .actionBoxes { padding-bottom: 15pt; }
 td .actionBoxes {
   margin: 0 !important;
@@ -283,8 +283,8 @@ pre {
 }
 
 /* Horizontal rule.
-*  in wiki:  ------ type thing
-*/
+ * *  in wiki:  ------ type thing
+ * */
 hr {
     background-color: #CBCBCB;
     color: #CBCBCB;
@@ -314,14 +314,14 @@ hr {
 
 /* The banner is the (top) area containing the logo & the user_banner */
 #banner {
-  margin: 0px;
-  padding-top: 0px;
-  padding-bottom: 0px;
+  margin: 0;
+  padding: 0;
   background-color: #000000;
   background-image: url(Images?sendfile=true&file=logo_background.png);
+  background-position: 15px -17px;
+  _background-position: 15px -85px; /*ie hack.  ie seems to draw from the bottom here, rather than from the top?! */
   background-repeat: no-repeat;
   font-size: 10pt;
-  background-position: 15px; 
 }
 /* Area containing username and user settings links */
 td.user_banner { height: 70px; }
@@ -406,7 +406,7 @@ td.logo_banner {
 #title_text td { vertical-align: middle; }
 
 /* Title used for things like "Changes on (pagename)..".
- *  * *  A sub-title, of sorts */
+ *  *  * *  A sub-title, of sorts */
 .minorTitle {
   text-align: center;
   margin-top: .4em;
@@ -615,7 +615,7 @@ div.editInfo { margin-top: 10pt; }
 }
 
 /* Icon used when linking to other wikis using interwiki-style links.
- * also used when displaying certain links to other wikis, such as search results
+*  also used when displaying certain links to other wikis, such as search results
 */
 img.interwiki_icon {
   border: none;
@@ -643,3 +643,4 @@ img.interwiki_icon {
   border: 1px solid gray;
   left: 10px
 }
+
