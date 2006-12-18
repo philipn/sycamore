@@ -1,4 +1,3 @@
-
 function createMarker(point, index, text) {
         var letter = String.fromCharCode("A".charCodeAt(0) + index);
         var icon = new GIcon(baseIcon);
@@ -14,7 +13,7 @@ function createMarker(point, index, text) {
 function createArrow(point,text) {
     icon = new GIcon(pointIcon);
     icon.image = "http://www.google.com/mapfiles/arrow.png";
-    marker = new GMarker(point,icon);
+    var marker = new GMarker(point,icon);
     GEvent.addListener(marker,"click", function() {
             marker.openInfoWindowHtml(text);
     });
@@ -23,16 +22,33 @@ function createArrow(point,text) {
 
 function loadMap() {
     loadedMap = false;
-    if (loadedMap) return;
-    initLoad();
+    if (loadedMap) return; 
+    if (map_url && !loadedMapAtLeastOnce) {
+        loadedMapAtLeastOnce = true;
+        /* When we're not in the actual iframe */
+        var ifr = document.createElement("iframe");
+        ifr.src = map_url; 
+        ifr.frameborder = 0; 
+        ifr.scrolling = "no";
+        ifr.marginwidth = 0;
+        ifr.width = 449;
+        ifr.height = 299;
+        ifr.style.border = "none;";
+        document.getElementById("map").appendChild(ifr);
+    }
+    else /* We're in the iframe! */ {
+        initLoad();
+    }
 }
 
 var loadedMap;
+var loadedMapAtLeastOnce = false;
 var mapon;
 var baseIcon;
 var pointIcon;
 var marker;
 var icon;
+var map_url = '';
 
 function initLoad()
 {
