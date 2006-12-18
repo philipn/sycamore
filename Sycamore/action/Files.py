@@ -668,9 +668,13 @@ def do_upload(pagename, request):
 
        imfe = f2e.get(im.format, '')
    
-       if ext.lower() not in imfe:
-         msg += _("File extension %s did not match image format %s, changing extension to %s.<br/>" % (ext, im.format, imfe[0]))
-         ext = imfe[0]
+       try:	
+         if ext.lower() not in imfe:
+           msg += _("File extension %s did not match image format %s, changing extension to %s.<br/>" % (ext, im.format, imfe[0]))
+           ext = imfe[0]
+       except:
+           msg += _("File extension %s did not match image format %s, and I <strong>cannot convert them</strong>. Eep!<br/>" % (ext, im.format))
+    	   return upload_form(pagename, request, msg)
 
     # save file
     request.cursor.execute("SELECT name from files where attached_to_pagename=%(pagename)s and name=%(filename)s and wiki_id=%(wiki_id)s", {'pagename':pagename.lower(), 'filename':target, 'wiki_id':request.config.wiki_id})
