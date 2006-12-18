@@ -472,8 +472,8 @@ def checkSpecialFiles(filename, pagename, request, image=None):
         set_config = True
         request.config.logo_sizes['logo.png'] = image.size
         request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
-      elif filename == 'floater.png':
-        request.config.logo_sizes['floater.png'] = image.size
+      elif filename == 'logo_background.png':
+        request.config.logo_sizes['logo_background.png'] = image.size
         request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
 
 def execute(pagename, request):

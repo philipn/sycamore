@@ -228,13 +228,13 @@ def init_logo_sizes(request):
         main_logo_file.close()
         request.config.logo_sizes['logo.png'] = main_logo_size
 
-    floater_file = wikidb.getFile(request, {'filename':'floater.png', 'page_name': '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)})
+    floater_file = wikidb.getFile(request, {'filename':'logo_backgroun.png', 'page_name': '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)})
     if floater_file:
         floater_file = cStringIO.StringIO(floater_file[0])
     	floater = Image.open(floater_file)
     	floater_size = floater.size
     	floater_file.close()
-        request.config.logo_sizes['floater.png'] = floater_size
+        request.config.logo_sizes['logo_background.png'] = floater_size
 
     request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
     
