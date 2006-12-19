@@ -334,7 +334,7 @@ def execute(macro, args, formatter):
         address = address.strip('"')
 
     # allow links in the address to work properly
-    wikified_address = wikiutil.wikifyString(address, macro.request)
+    wikified_address = wikiutil.wikifyString(address, macro.request, formatter.page)
     address = wikiutil.simpleStrip(macro.request, wikified_address)
 
     if macro.request.config.address_locale and address.find(',') == -1:
@@ -346,9 +346,9 @@ def execute(macro, args, formatter):
         place = location(macro,formatter,address,lat,long)
 
     if place.latitude is None:
-        return address
+        return wikified_address
     else:
-        out = address
+        out = wikified_address
         nearby = place.getNearby()
         out += mapHTML(macro,place,nearby)
         ignore = (formatter.isPreview() or formatter.name != 'text_html') or formatter.page.prev_date
