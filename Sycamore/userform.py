@@ -219,58 +219,68 @@ class UserSettingsHandler(object):
                 theuser = user.User(self.request, uid)
                 if theuser.valid:
                     code = self.createCode(theuser.id)
-                    text = "Go here to automatically log into the %s: %s/?action=userform&uid=%s&code=%s\nOnce you're logged in, you should change your password in Settings (you forgot your password, right?) -- entering your password twice and then clicking save will change your password." % (self.request.config.sitename, self.request.getBaseURL(), theuser.id, code)
+                    if config.wiki_farm:
+                        url = farm.getBaseFarmURL(self.request)
+                    else:
+                        url = '%s/' % self.request.getBaseURL()
+                    text = "Go here to automatically log into %s: %sUser_Preferences?action=userform&uid=%s&code=%s\nOnce you're logged in, you should change your password in Settings (you forgot your password, right?) -- entering your password twice and then clicking save will change your password." % (config.sitename, url, theuser.id, code)
 
             if not text:
                 return _("Found no account matching the given email address '%(email)s'!") % {'email': email}
-        
-            
+
+
             mailok, msg = util.mail.sendmail(self.request, [email], 
                 'Your wiki account data', text, mail_from=config.mail_from)
             return wikiutil.escape(msg)
 
         if form.has_key('login') or form.has_key('uid'):
-            # check for "uid" value that we use in the relogin URL
-            # this is turned OFF for security reasons
-            #try:
-            #     uid = form['uid'][0]
-            #except KeyError:
-            #     uid = None
             uid = None
 
             if form.has_key('code') and form.has_key('uid'):
                given_uid = form['uid'][0].strip()
                given_code = form['code'][0].strip()
         
+               given_code
                if self.isValidCode(given_uid, given_code):
                   uid = given_uid
 
-            # try to get the user name
-            try:
-                name = form['username'][0].replace('\t', ' ').strip()
-            except KeyError:
-                name = ''
-
-            # try to get the password
-            password = form.get('password',[''])[0]
-
-            # load the user data and check for validness
-            theuser = user.User(self.request, id=uid, name=name, password=password, is_login=True)
-
-            if config.wiki_farm:
-                wiki_base_url = farm.getBaseFarmURL(self.request)
+            if uid:
+                # we were given account information so let's create an account -> log them in
+                theuser = user.User(self.request, id=uid)
+                msg = _("You are now logged in!  Please change your password below!")
+                # send the cookie
+                theuser.sendCookie(self.request)
+                self.request.user = theuser
+                return msg
             else:
-                wiki_base_url = '%s/' % self.request.getScriptname()
+                # we weren't given information, so let's see if they gave us a login/password
 
-            if not theuser.valid:
-                return_string = """
-Unknown user name or wrong password.<br /><br />New user?  <a href="%sUser_Preferences?new_user=1">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
+                # try to get the user name
+                try:
+                    name = form['username'][0].replace('\t', ' ').strip()
+                except KeyError:
+                    name = ''
+
+                # try to get the password
+                password = form.get('password',[''])[0]
+
+                # load the user data and check for validness
+                theuser = user.User(self.request, id=uid, name=name, password=password, is_login=True)
+
+                if config.wiki_farm:
+                    wiki_base_url = farm.getBaseFarmURL(self.request)
+                else:
+                    wiki_base_url = '%s/' % self.request.getScriptname()
+
+                if not theuser.valid:
+                    return_string = """
+Unknown username or wrong password.<br /><br />New user?  <a href="%sUser_Preferences?new_user=1">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
 <form action="%s" method="POST"><input type="hidden" name="action" value="userform">
 Email address: <input class="formfields" type="text" name="email">&nbsp;<input type="submit" class="formbutton" name="login_sendmail" value="Mail me my account data">
 </form>
 """ % (wiki_base_url, wiki_base_url)
 
-                return return_string
+                    return return_string
 
             # send the cookie
             theuser.sendCookie(self.request)
