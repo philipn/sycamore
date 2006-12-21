@@ -221,9 +221,10 @@ class UserSettingsHandler(object):
                     code = self.createCode(theuser.id)
                     if config.wiki_farm:
                         url = farm.getBaseFarmURL(self.request)
+                        sitename = farm.getBaseWikiFullName(self.request)
                     else:
                         url = '%s/' % self.request.getBaseURL()
-                    text = "Go here to automatically log into %s: %sUser_Preferences?action=userform&uid=%s&code=%s\nOnce you're logged in, you should change your password in Settings (you forgot your password, right?) -- entering your password twice and then clicking save will change your password." % (config.sitename, url, theuser.id, code)
+                    text = "Go here to automatically log into %s: %sUser_Preferences?action=userform&uid=%s&code=%s\nOnce you're logged in, you should change your password in Settings (you forgot your password, right?) -- entering your password twice and then clicking save will change your password." % (sitename, url, theuser.id, code)
 
             if not text:
                 return _("Found no account matching the given email address '%(email)s'!") % {'email': email}

@@ -147,6 +147,12 @@ def isBaseWiki(request):
 def getBaseWikiName(request):
     return config.wiki_name
 
+def getBaseWikiFullName(request):
+    original_wiki = request.config.wiki_name
+    request.switch_wiki(getBaseWikiName(request))
+    full_name = request.config.sitename
+    request.switch_wiki(original_wiki)
+    return full_name
 
 if __name__ == '__main__':
    request = request.RequestDummy() 
