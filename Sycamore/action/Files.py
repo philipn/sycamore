@@ -664,6 +664,13 @@ def do_upload(pagename, request):
          error_msg(pagename, request, _('Your file ended with "%s" but doesn\'t seem to be an image or I don\'t know know to process it!' % ext))
          return
 
+       # this weeds out interlaced PNGs, which PIL can't currently process
+       try:
+         im.load()
+       except IOError, msg:
+         error_msg(pagename, request, _('There was an error with your image: ') + str(msg))
+         return
+
        is_image = True
 
        imfe = f2e.get(im.format, '')

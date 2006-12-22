@@ -21,7 +21,7 @@ def display_bookmarks(request, userpage):
   request.write('<div class="userFavoritesList">')
   for wiki_name in wiki_names:
     if config.wiki_farm:
-        request.write('<h4>%s</h4>' % farm.link_to_wiki(wiki_name, request.formatter))
+        request.write('<h4>on %s:</h4>' % farm.link_to_wiki(wiki_name, request.formatter))
         request.write('<div>')
     for pagename in bookmarks[wiki_name]:
         request.write('<span class="userFavoriteItem">%s</span>' % Page(pagename, request, wiki_name=wiki_name).link_to(guess_case=True))
