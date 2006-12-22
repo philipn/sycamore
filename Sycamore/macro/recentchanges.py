@@ -39,8 +39,18 @@ def getPageStatus(lines, pagename, request):
 	else: request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = False
 	break
 
+def is_new_page(lines):
+    """
+    Looks at lines and determines if the page is newly created or not.
+    """
+    for line in lines:
+        if line.action == 'SAVENEW':
+            return True
+        elif line.action == 'SAVE':
+            return False
+
 def format_page_edit_icon(request, lines, page, hilite, bookmark, formatter):
-    is_new = lines[-1].action == 'SAVENEW'
+    is_new = is_new_page(lines)
     is_event = lines[-1].action == 'NEWEVENT'
     if not page.exists():
         if lines[0].ed_time:
