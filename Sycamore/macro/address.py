@@ -333,13 +333,13 @@ def execute(macro, args, formatter):
         address = args
         address = address.strip('"')
 
-    # allow links in the address to work properly
-    wikified_address = wikiutil.wikifyString(address, macro.request, formatter.page)
-    address = wikiutil.simpleStrip(macro.request, wikified_address)
-
     if macro.request.config.address_locale and address.find(',') == -1:
         address = '%s, %s' % (address, macro.request.config.address_locale) # add the address locale if it's lacking
 
+    # allow links in the address to work properly
+    wikified_address = wikiutil.wikifyString(address, macro.request, formatter.page)
+    address = wikiutil.simpleStrip(macro.request, wikified_address)
+    
     if lat is None:
         place = location(macro,formatter,address)
     else:
