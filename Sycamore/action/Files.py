@@ -185,10 +185,11 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action, filename)
 
     urlfilename = urllib.quote(filename)
     for revision in revisions:
+      uploaded_time = revision[1] or 0 # to get rid of weird ='' in url
       if revision[1]:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, urlfilename, repr(revision[1]), baseurl, urlpagename, action, urlfilename, repr(revision[1]), request.user.getFormattedDateTime(revision[1]), user.getUserLink(request, user.User(request, revision[2])), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by %s.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, urlfilename, repr(uploaded_time), baseurl, urlpagename, action, urlfilename, repr(uploaded_time), request.user.getFormattedDateTime(uploaded_time), user.getUserLink(request, user.User(request, revision[2])), request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
       else:
-        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, urlfilename, repr(revision[1]), baseurl, urlpagename, action, urlfilename, repr(revision[1]), filename, request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
+        text += '<li>[<a href="%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s">revert</a>] <a href="%s/%s?action=%s&amp;do=view&amp;target=%s&amp;version=%s">%s</a> uploaded by unknown.  %s deleted by %s.</li>' % (baseurl, urlpagename, action, urlfilename, repr(uploaded_time), baseurl, urlpagename, action, urlfilename, repr(uploaded_time), filename, request.user.getFormattedDateTime(revision[3]), user.getUserLink(request, user.User(request, revision[4])))
     text += '</ul>'
     return text
 
@@ -739,6 +740,7 @@ def restore_file(pagename, request, permanent=False):
     timenow = time.time()
     filename = urllib.unquote(request.form['target'][0])
     uploaded_time = request.form['uploaded_time'][0]
+    if uploaded_time == 'None': uploaded_time = 0
 
     # check CSS if it matters
     if config.wiki_farm_clean_uploaded_code and lower_pagename == ('%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_css)).lower():
@@ -885,6 +887,7 @@ def send_viewfile(pagename, request):
 
         file_size = file_size/1024
     
+    uploaded_time = uploaded_time or 0 # to get rid of weird ='' in url
     baseurl = request.getScriptname()
     action = action_name
     urlpagename = wikiutil.quoteWikiname(pagename)
@@ -962,6 +965,7 @@ def show_deleted_files(pagename, request):
     urlpagename = wikiutil.quoteWikiname(pagename)
     for item in result:
       filename, deleted_time, deleted_by, uploaded_time = item
+      uploaded_time = uploaded_time or 0 # to get rid of weird ='' in url
       url_filename = urllib.quote(filename) 
       text_list.append("<li><img src=\"%s\" /><a href=\"%s/%s?action=%s&amp;do=view&amp;target=%s\">%s</a> deleted by %s on %s. [<a href=\"%s/%s?action=%s&amp;do=restore&amp;target=%s&amp;uploaded_time=%s\">restore to page</a>] </li>" % ( get_icon(filename, request), baseurl, urlpagename, action, url_filename, filename, user.getUserLink(request, user.User(request, deleted_by)), request.user.getFormattedDateTime(deleted_time), baseurl, urlpagename, action, url_filename, repr(uploaded_time)))
     text_list.append('</p></div>')
