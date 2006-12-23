@@ -17,7 +17,7 @@ from Sycamore.support.wsgi_server import httpserver
 #from Sycamore.support.wsgi_server import swap 
 from Sycamore.request import RequestWSGI
 from Sycamore import config
-import profile, time, getopt
+import time, getopt
 
 def usage():
    print "usage: index.scgi [-d]"
@@ -43,7 +43,7 @@ def do_run():
 
 def handle_request(env, start_response):
   if handle_static_files:
-    static_files_path = '%s/wiki' % config.web_dir
+    static_files_path = '%s/wiki/' % config.web_dir
 
   # because this is standalone we need to deal with the case of serving static files..  
   if handle_static_files and (env['PATH_INFO'].startswith(static_files_path) or env['PATH_INFO'] == ('%s/favicon.ico' % config.web_dir)):
