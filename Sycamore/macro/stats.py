@@ -75,7 +75,6 @@ def execute(macro, args, formatter=None):
                htmltext.append('<tr bgcolor="#E5E5E5"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>&nbsp;</td></tr>' % (Page(name, request).link_to(know_status=True, know_status_exists=True),edit_count,created_count,file_count,join_date,last_edit_date))
           else:
                 if last_page_edited:
-                        print name, type(name)
                         htmltext.append('<tr bgcolor="#E0FFFF"><td>%s</a></td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>' % (Page(name, request).link_to(know_status=True, know_status_exists=True),edit_count,created_count,file_count,join_date,last_edit_date,Page(last_page_edited, request).link_to()))
                 else:
                         htmltext.append('<tr bgcolor="#E0FFFF"><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>&nbsp;</td></tr>' % (Page(name, request).link_to(know_status=True, know_status_exists=True),edit_count,created_count,file_count,join_date,last_edit_date))
