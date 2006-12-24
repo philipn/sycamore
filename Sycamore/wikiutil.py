@@ -147,12 +147,16 @@ def getSmiley(text, formatter):
 #############################################################################
 ### Quoting
 #############################################################################
-always_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+always_file_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
                'abcdefghijklmnopqrstuvwxyz'
                '0123456789' '.-')
+
+always_cookie_safe = ('ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+               'abcdefghijklmnopqrstuvwxyz'
+               '0123456789' '-')
 _safemaps = {}
 
-def quoteFilename(filename):
+def quoteFilename(filename, always_safe=always_file_safe):
     """
     Return a simple encoding of filename in plain ascii.
     
@@ -162,6 +166,7 @@ def quoteFilename(filename):
 
     (taken from urllib.quote)
     """
+    filename = filename.encode(config.charset)
     safe = ''
     cachekey = (safe, always_safe)
     try:
