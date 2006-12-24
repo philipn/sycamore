@@ -10,6 +10,12 @@ CHUNK_RESULTS_SIZE = 20
 
 req = request.RequestDummy()
 cursor = req.cursor
+
+# remove old views
+cursor.execute("DROP VIEW deletedImageChanges")
+cursor.execute("DROP VIEW oldImageChanges")
+cursor.execute("DROP VIEW currentImageChanges")
+
 if config.db_type == 'mysql':
    cursor.execute("""create table files
    (
@@ -144,10 +150,6 @@ for result in results:
     cursor.execute("INSERT into oldFiles (name, attached_to_pagename, file, uploaded_by, uploaded_time, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased) values (%(name)s, %(attached_to_pagename)s, %(image)s, %(uploaded_by)s, %(uploaded_time)s, %(deleted_time)s, %(deleted_by)s, %(uploaded_by_ip)s, %(deleted_by_ip)s, %(attached_to_pagename_propercased)s)", oldimage_dict, isWrite=True)
     cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time) values (%(name)s, %(attached_to_pagename)s, %(xsize)s, %(ysize)s, %(uploaded_time)s)", oldimage_dict, isWrite=True)
 
-# remove old views
-cursor.execute("DROP VIEW deletedImageChanges")
-cursor.execute("DROP VIEW oldImageChanges")
-cursor.execute("DROP VIEW currentImageChanges")
 
 # remove the old tables
 cursor.execute("DROP TABLE images")
