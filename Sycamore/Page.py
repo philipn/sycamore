@@ -396,6 +396,7 @@ class Page(object):
 		  self.request.cursor.execute("SELECT propercased_name from allPages where name=%(name)s and editTime=%(latest_mtime)s", {'name':self.page_name, 'latest_mtime':self.mtime()})
 	          result = self.request.cursor.fetchone()
 	          if result: url_name = result[0]
+		  else: url_name = self.given_name
 		else:
 		  url_name = self.given_name
 	    
