@@ -345,6 +345,7 @@ def quoteFilename(filename, always_safe=always_file_safe):
 
     (taken from urllib.quote)
     """
+    filename = filename.encode(config.charset)
     safe = ''
     cachekey = (safe, always_safe)
     try:
@@ -532,7 +533,8 @@ def isTemplatePage(pagename):
     @rtype: bool
     @return: true if page is a template page
     """
-    return pagename.startswith(config.page_template_prefix)
+    lpagename = pagename.lower()
+    return lpagename.startswith(config.page_template_prefix.lower()) and not lpagename.endswith('/talk')
 
 def isGroupPage(pagename):
     """
@@ -1173,7 +1175,7 @@ def send_title(request, text, **keywords):
     @keyword body_onload: additional "onload" JavaScript code
     @keyword strict_title: _just_ the html <title> specified
     """
-    from Sycamore import i18n
+    from Sycamore import i18n, farm
     from Sycamore.Page import Page
     from Sycamore.action.Files import getAttachUrl
 
@@ -1214,12 +1216,20 @@ def send_title(request, text, **keywords):
         user_head.append("""<meta name="robots" content="index,follow">\n""")
 
     # do we show an icon for the wiki?
+    tiny_logo_url = None
     image_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
     if hasFile(image_pagename, 'tinylogo.png', request):
         tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png', request)
     else:
-        tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png', request)
-    user_head.append("""<link rel="shortcut icon" href="%s" type="image/png">
+        if config.wiki_farm:
+            on_wiki = request.config.wiki_name
+            request.switch_wiki(farm.getBaseWikiName(request))
+            if hasFile(image_pagename, 'tinylogo.png', request):
+                tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png', request)
+            request.switch_wiki(on_wiki)
+
+    if tiny_logo_url:
+        user_head.append("""<link rel="shortcut icon" href="%s" type="image/png">
 <link rel="icon" href="%s" type="image/png">""" % (tiny_logo_url, tiny_logo_url))
         
     if keywords.has_key('pi_refresh') and keywords['pi_refresh']:

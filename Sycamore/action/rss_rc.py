@@ -41,12 +41,12 @@ def execute(pagename, request):
             rss_init_text = """<?xml version="1.0" ?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Bookmarks - %s @ %s</title><link>%s</link><description>Bookmarks for user %s on %s.</description><language>en-us</language>
 </channel> 
-</rss>""" %  (username, request.config.sitename, user.getUserLink(request, theuser), username, request.config.sitename)
+</rss>""" %  (username, request.config.sitename, user.getUserLinkURL(request, theuser), username, request.config.sitename)
         else:
             rss_init_text = """<?xml version="1.0" ?>
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Interwiki Bookmarks - %s</title><link>%s</link><description>Interwiki bookmarks for user %s</description><language>en-us</language>
 </channel> 
-</rss>""" %  (username, user.getUserLink(request, theuser), username)
+</rss>""" %  (username, user.getUserLinkURL(request, theuser), username)
 
         userid = theuser.id
         changes = wikidb.getRecentChanges(request, per_page_limit=1, userFavoritesFor=userid, wiki_global=wiki_global)
@@ -55,7 +55,7 @@ def execute(pagename, request):
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes - %s</title><link>%s</link><description>Recent Changes on %s.</description><language>en-us</language>
 </channel> 
 </rss>
-      """ % (request.config.sitename, page.link_to(), request.config.sitename)
+      """ % (request.config.sitename, page.url(), request.config.sitename)
       # get normal recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit=100)
     elif pagename.lower() == interwiki_rc_pagename.lower() and theuser:
@@ -64,7 +64,7 @@ def execute(pagename, request):
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Interwiki Recent Changes for %s</title><link>%s</link><description>Interwiki Recent Changes for %s.</description><language>en-us</language>
 </channel> 
 </rss>
-      """ % (theuser.propercased_name, page.link_to(), theuser.propercased_name)
+      """ % (theuser.propercased_name, page.url(), theuser.propercased_name)
       # get interwiki normal recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit=100, wiki_global=True, on_wikis=theuser.getWatchedWikis())
 
@@ -73,7 +73,7 @@ def execute(pagename, request):
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes for "%s" - %s</title><link>%s</link><description>Recent Changes of the page "%s" on %s.</description><language>en-us</language>
 </channel> 
 </rss>
-      """ % (pagename, request.config.sitename, page.link_to(), pagename, request.config.sitename)
+      """ % (pagename, request.config.sitename, page.url(), pagename, request.config.sitename)
       # get page-specific recent changes 
       changes = wikidb.getRecentChanges(request, page=pagename.lower())
 
@@ -105,7 +105,7 @@ def execute(pagename, request):
       item.appendChild(item_title)
       item_link = rss_dom.createElement("link")
       if wiki_global:
-        item_link.appendChild(rss_dom.createTextNode(farm.link_to_page(line.wiki_name, line.pagename, formatter)))
+        item_link.appendChild(rss_dom.createTextNode(farm.page_url(line.wiki_name, line.pagename, formatter)))
       else:
         item_link.appendChild(rss_dom.createTextNode("http://%s%s/%s" % (request.config.domain, request.getScriptname(), wikiutil.quoteWikiname(line.pagename))))
       item.appendChild(item_link)

@@ -412,6 +412,7 @@ class Page(object):
                   self.request.cursor.execute("SELECT propercased_name from allPages where name=%(name)s and editTime=%(latest_mtime)s and wiki_id=%(wiki_id)s", {'name':self.page_name, 'latest_mtime':self.mtime(), 'wiki_id':self.request.config.wiki_id})
                   result = self.request.cursor.fetchone()
                   if result: url_name = result[0]
+                  else: url_name = self.given_name
                 else:
                   url_name = self.given_name
             
@@ -671,18 +672,19 @@ class Page(object):
         if self.hilite_re:
                 request.write('<table width="100%%"><tr><td align="right">[<strong class="highlight">%s</strong>]</td></tr></table>' % self.link_to(text="highlighting off"))
 
-        if self.request.sent_page_content:
+        # new page or a deleted page?
+        if not self.exists() and not content_only and not self.prev_date:
+            request.write('<div class="%s wikipage" %s>\n' % (content_id, lang_attr))
+            self._emptyPageText()
+        elif self.request.sent_page_content:
             self.request.write(self.request.sent_page_content)
         else:
             if not self.preview:
               request.write('<div id="%s" class="%s wikipage" %s>\n' % (content_id, content_id, lang_attr))
             else:
               request.write('<div class="%s wikipage" %s>\n' % (content_id, lang_attr))
-        
-            # new page?
-            if not self.exists() and not content_only and not self.prev_date:
-                self._emptyPageText()
-            elif not request.user.may.read(self):
+            
+            if not request.user.may.read(self):
                 request.write("<strong>%s</strong><br>" % _("You are not allowed to view this page."))
             else:
                 # parse the text and send the page content
@@ -845,7 +847,7 @@ class Page(object):
 
         request.write(self.formatter.paragraph(1) +
             self.formatter.text('To create your own templates, ' 
-                'add a page with a name starting with Templates/, such as Templates/Bussiness.') +
+                'add a page with a name starting with Templates/, such as Templates/Business.') +
             self.formatter.paragraph(0))
 
         # list similar pages that already exist

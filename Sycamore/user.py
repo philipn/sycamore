@@ -70,6 +70,17 @@ def getUserIdByEmail(email, request):
     result = request.cursor.fetchone()
     if result: return result[0]
 
+def getUserLinkURL(request, userObject, wiki_name=None):
+    if userObject.anonymous:
+        return None
+    else:
+        from Sycamore import Page
+        wiki_name = userObject.wiki_for_userpage or wiki_name
+        if wiki_name and wiki_name != request.config.wiki_name:
+            return Page.Page(config.user_page_prefix + userObject.propercased_name, request, wiki_name=wiki_name).url()
+        else:
+            return Page.Page(config.user_page_prefix + userObject.propercased_name, request).url()
+
 def getUserLink(request, userObject, wiki_name=None):
     if userObject.anonymous:
         return userObject.ip

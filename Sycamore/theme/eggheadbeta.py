@@ -8,8 +8,6 @@ from classic import Theme as ThemeBase
 from Sycamore.widget import subpagelinks
 import string, urllib
 
-png_behavior = "behavior: url('%s%s/pngbehavior.htc');" % (config.web_dir, config.url_prefix)
-
 class Theme(ThemeBase):
     """ here are the functions generating the html responsible for
         the look and feel of your wiki site
@@ -55,7 +53,7 @@ class Theme(ThemeBase):
 	  if not self.request.config.logo_sizes.has_key('logo.png'):
 	     wikiutil.init_logo_sizes(self.request)
 	  width, height = self.request.config.logo_sizes['logo.png']
-          html.append('<img align="middle" src="%s" alt="wiki logo" style="%s" height="%s" width="%s"></a>' % (getAttachUrl(images_pagename, 'logo.png', self.request), png_behavior, height, width))
+          html.append('<img align="middle" src="%s" alt="wiki logo" style="%s" height="%s" width="%s"></a>' % (getAttachUrl(images_pagename, 'logo.png', self.request), self.png_behavior, height, width))
         else: html.append('<div id="logo_text">%s</div></a>' % self.request.config.sitename)
 
         return ''.join(html)
@@ -73,11 +71,11 @@ class Theme(ThemeBase):
       if editable:
         if self.isEdit():
     		return """<td class="pageIconSelected">%s</td>""" % (
-					'%s<br/>Edit' % self.make_icon('edit', style=png_behavior)
+					'%s<br/>Edit' % self.make_icon('edit', style=self.png_behavior)
 				  )
         else:
             return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
-              '%s<br/>Edit' % self.make_icon('edit', style=png_behavior)))
+              '%s<br/>Edit' % self.make_icon('edit', style=self.png_behavior)))
       else:
 	      return ''
 
@@ -85,7 +83,7 @@ class Theme(ThemeBase):
        if self.isInfo(): status = 'Selected' 
        else: status = ''
        return """<td class="pageIcon%s">%s</td>""" % (status, wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info',
-           '%s<br/>Info' % self.make_icon('info', style=png_behavior)))
+           '%s<br/>Info' % self.make_icon('info', style=self.png_behavior)))
 
     def talkicon(self, d):
       if not self.request.config.talk_pages: return ''
@@ -93,18 +91,18 @@ class Theme(ThemeBase):
       if d['page'].isTalkPage():
          article_name = wikiutil.talk_to_article_pagename(d['page_name'])
          return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(article_name),
-         '%s<br/>Article' % self.make_icon('article', style=png_behavior)))
+         '%s<br/>Article' % self.make_icon('article', style=self.png_behavior)))
       else:
         talk_page = Page(wikiutil.article_to_talk_pagename(d['page_name']), self.request)
         if talk_page.exists():
           return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-         '%s<br/>Talk' % self.make_icon('talk', style=png_behavior)))
+         '%s<br/>Talk' % self.make_icon('talk', style=self.png_behavior)))
         else:
           # if the viewer can't edit the talk page, let's spare them from looking at a useless link to an empty page:
           if not self.request.user.may.edit(talk_page):
             return ''
           return """<td class="pageIcon">%s</td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-         '%s<br/>Talk' % self.make_icon('talk', style=png_behavior)))
+         '%s<br/>Talk' % self.make_icon('talk', style=self.png_behavior)))
 
 
     def mapicon(self, d):
@@ -245,6 +243,8 @@ class Theme(ThemeBase):
                 tabclass = '%s activeTab' % tabclass
                 in_preset_tab = True
               if lower_tab == 'bookmarks' and  self.request.user.hasUnseenFavorite():
+                tabclass = '%s notice' % tabclass
+              elif lower_tab == 'interwiki bookmarks' and  self.request.user.hasUnseenFavorite(wiki_global=True):
                 tabclass = '%s notice' % tabclass
 
               html.append('<a href="%%(script_name)s/%s" class="%s">%s</a> ' % (wikiutil.quoteWikiname(tab), tabclass, tab))

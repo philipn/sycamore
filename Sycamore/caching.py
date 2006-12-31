@@ -323,7 +323,7 @@ def getPageLinks(pagename, request, update=False):
      links = request.mc.get(mc_key)
   if links is None:
      # get from database 
-     request.cursor.execute("SELECT destination_pagename_propercased, curPages.name from links left join curPages on (destination_pagename=curPages.name and links.wiki_id=%(wiki_id)s and curPages.wiki_id=%(wiki_id)s) where source_pagename=%(pagename)s", {'pagename': lower_pagename, 'wiki_id': request.config.wiki_id})
+     request.cursor.execute("SELECT destination_pagename_propercased, curPages.name from links left join curPages on (destination_pagename=curPages.name and links.wiki_id=%(wiki_id)s and curPages.wiki_id=%(wiki_id)s) where source_pagename=%(pagename)s and links.wiki_id=%(wiki_id)s", {'pagename': lower_pagename, 'wiki_id': request.config.wiki_id})
      result = request.cursor.fetchall()
      links = {}
      for link, exists in result:

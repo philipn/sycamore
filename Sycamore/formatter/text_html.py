@@ -104,14 +104,28 @@ class Formatter(FormatterBase):
 
         return str
 
-
-    def interwikilink(self, url, text, **kw):
+    def interwikiurl(self, url, **kw):
+        """
+        Return the URL and status information for the interwiki page.
+        @rtype: tuple containing: (page url, wikitag, wikiurl, wikitail, wikitag_bad, wikitype)
+        """
         wikitag, wikiurl, wikitail, wikitag_bad, wikitype = wikiutil.resolve_wiki(self.request, url, force_farm=kw.get('force_farm'))
         wikiurl = wikiutil.mapURL(wikiurl)
 
-        # check for image URL, and possibly return IMG tag
-        #if not kw.get('pretty_url', 0) and wikiutil.isPicture(wikitail):
-        #    return self.formatter.image(src=href)
+        if wikitype == wikiutil.INTERWIKI_FARM_TYPE:
+            # we only want to quote if they are giving us something sane..
+            if Page(wikitail, self.request, wikiname=wikitag).exists(): 
+                wikitail = wikiutil.quoteWikiname(wikitail)
+
+        href = wikiutil.join_wiki(wikiurl, wikitail)
+        return (href, wikitag, wikiurl, wikitail, wikitag_bad, wikitype)
+
+
+    def interwikilink(self, url, text, **kw):
+        """
+        Return the HTML linking to the interwiki page.
+        """
+        href, wikitag, wikiurl, wikitail, wikitag_bad, wikitype = self.interwikiurl(url, **kw)
 
         # link to self?
         if wikitag is None:
@@ -132,21 +146,15 @@ class Formatter(FormatterBase):
                 self.request.switch_wiki(wikitag)
                 if wikiutil.hasFile(image_pagename, 'tinylogo.png', self.request):
                     icon_url = getAttachUrl(image_pagename, 'tinylogo.png', self.request, base_url=farm.getWikiURL(wikitag, self.request))
-                    icon = self.image(html_class="interwiki_icon", src=icon_url, alt=wikitag)
+                    icon = self.image(html_class="interwiki_icon", src=icon_url, alt=wikitag, style=self.request.theme.png_behavior)
                 else:
                     icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}, html_class="interwiki_icon")
-                # make page link pretty (front page -> front_page)
-                if Page(wikitail, self.request).exists(): # we only want to quote if they are giving us something sane..
-                    wikitail = wikiutil.quoteWikiname(wikitail)
                 self.request.switch_wiki(current_wiki)
             else:
                 icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}, html_class="interwiki_icon")
         else:
-            if wikitype == wikiutil.INTERWIKI_FARM_TYPE:
-                wikitail = wikiutil.quoteWikiname(wikitail)
             icon = ''
 
-        href = wikiutil.join_wiki(wikiurl, wikitail)
         return self.url(href, icon + text,
             title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class, show_image=False)
   

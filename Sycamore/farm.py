@@ -107,6 +107,9 @@ def link_to_page(wikiname, pagename, formatter, no_icon=True, force_farm=False, 
     if not text: text = pagename
     return formatter.interwikilink('%s:%s' % (wikiname, pagename), text, no_icon=no_icon, force_farm=force_farm)
 
+def page_url(wikiname, pagename, formatter, force_farm=False):
+    return formatter.interwikiurl('%s:%s' % (wikiname, pagename), force_farm=force_farm)[0]
+
 def getWikiURL(wikiname, request):
     """
     Get the url of the wiki in the farm.

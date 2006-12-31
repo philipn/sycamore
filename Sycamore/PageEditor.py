@@ -427,7 +427,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
           pagecount = wikidb.getPageCount(self.request) - 1
           self.request.mc.set('active_page_count', pagecount)
 
-        self.request.req_cache['pagenames'][(self.page_name, self.request.config.wiki_name)] = False
+        self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)] = False
 
         from Sycamore import caching, search
         cache = caching.CacheEntry(self.page_name, self.request)

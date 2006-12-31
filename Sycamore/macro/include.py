@@ -30,6 +30,15 @@ _args_re_pattern = r'^(?P<name>[^,]+)(%s%s(%s)?%s%s%s%s%s%s)?$' % (
 TITLERE = re.compile("^(?P<heading>\s*(?P<hmarker>=+)\s.*\s(?P=hmarker))$",
                      re.M)
 
+p_len = len('<p>\n')
+end_p_len = len('</p>')
+
+def _stripOuterParagraph(quote):
+    """
+    We always put <p>'s around things, so in this case let's remove the first <p>.
+    """
+    return quote[ p_len: ]
+
 def extract_titles(body):
     titles = []
     for title, _ in TITLERE.findall(body):
@@ -153,5 +162,6 @@ def execute(macro, args, formatter=None):
     else:
         del this_page._macroInclude_pagelist[inc_name]
 
+    result = _stripOuterParagraph(''.join(result))
     # return include text
-    return ''.join(result)
+    return result

@@ -59,6 +59,8 @@ class Theme(object):
         (name,  'iso-8859-1',   'print',    'print'),
         )
 
+    png_behavior = "behavior: url('%s%s/pngbehavior.htc');" % (config.web_dir, config.url_prefix)
+
     def __init__(self, request):
         """
         Initialize the theme object.

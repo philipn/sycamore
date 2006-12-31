@@ -374,7 +374,7 @@ If "Save as" is left blank, the original filename will be used (might be ugly) .
     'upload_button': _('Upload'),
 })
     request.write('<h3>' + _("How do I do this?") + '</h3>' +
-_("""<p>Once you've selected a file on your hard disk, use "Save as" to name it whateveryouwant.png/jpg/gif.  Then click "Upload" to upload the file to the page. To make an image appear on the page you need to edit the page and add the line <tt>[[Image(whatyounamedyourimage)]]</tt> where you want the image to appear.  For general files, add the line <tt>[[File(whatyounamedyourfile]]</tt> to make link to the file.  That's it!</p>"""))
+_("""<p>Once you've selected a file on your hard disk, use "Save as" to name it whateveryouwant.png/jpg/gif.  Then click "Upload" to upload the file to the page. To make an image appear on the page you need to edit the page and add the line <tt>[[Image(whatyounamedyourimage)]]</tt> where you want the image to appear.  For general files, add the line <tt>[[File(whatyounamedyourfile)]]</tt> to make link to the file.  That's it!</p>"""))
 
 
 #############################################################################
