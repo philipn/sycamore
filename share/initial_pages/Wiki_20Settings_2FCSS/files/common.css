@@ -255,6 +255,8 @@ div.pageEditInfo {
   width: 24px;
 }
 
+.recentchanges h2 { margin-bottom: .5em; }
+
 /* Global footer area */
 .wikiGlobalFooter { padding-top: .4em; }
 /* Wiki Spot specific footer styling */
