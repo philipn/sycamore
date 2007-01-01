@@ -28,8 +28,8 @@ def execute(macro, args, formatter):
         # store footnote and emit number
         idx = len(formatter.request.footnotes)
         fn_id = "-%s-%s" % (sha.new(args.encode('utf-8')).hexdigest(), idx)
-	#if formatter.isPreview():
-    	#  args = wikiutil.wikifyString(args, formatter.request, formatter.page, formatter=formatter, doCache=False)
+        #if formatter.isPreview():
+        #  args = wikiutil.wikifyString(args, formatter.request, formatter.page, formatter=formatter, doCache=False)
         formatter.request.footnotes.append((args, fn_id))
         return "%s%s%s" % (
             formatter.sup(1),
@@ -49,8 +49,8 @@ def emit_footnotes(request, formatter):
             fn_no = formatter.anchorlink('fnref' + fn_id, str(idx+1), id = 'fndef' + fn_id)
 
             request.write(formatter.rawHTML('<li><span>%s</span>' % fn_no))
-	    request.write(wikiutil.wikifyString(request.footnotes[idx][0], formatter.request, formatter.page, formatter=formatter))
- 	    request.write(formatter.rawHTML('</li>'))
+            request.write(wikiutil.wikifyString(request.footnotes[idx][0], formatter.request, formatter.page, formatter=formatter))
+            request.write(formatter.rawHTML('</li>'))
         request.write(formatter.rawHTML('</ul></div>'))
         request.footnotes = []
     return ''

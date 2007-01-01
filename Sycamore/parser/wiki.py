@@ -88,8 +88,6 @@ class Parser(SimpleParser):
         self.line_is_empty = 0
         self.inhibit_br = 0
 
-        # start paragraph
-        self.request.write(self.formatter.paragraph(1))
 
         for line in self.lines:
             self.lineno = self.lineno + 1
@@ -153,6 +151,9 @@ class Parser(SimpleParser):
                 elif self.print_br():
                     self.request.write('<br/>')
                     self.inhibit_br += 1 # to avoid printing two if they did [[br]]
+                # start p on first line
+                elif not self.inhibit_p and self.lineno == 1 and self.print_first_p:
+                    self.request.write(self.formatter.paragraph(1))
 
                 # check indent level
                 indent = indent_re.match(line)

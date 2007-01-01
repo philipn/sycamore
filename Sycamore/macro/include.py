@@ -30,15 +30,6 @@ _args_re_pattern = r'^(?P<name>[^,]+)(%s%s(%s)?%s%s%s%s%s%s)?$' % (
 TITLERE = re.compile("^(?P<heading>\s*(?P<hmarker>=+)\s.*\s(?P=hmarker))$",
                      re.M)
 
-p_len = len('<p>\n')
-end_p_len = len('</p>')
-
-def _stripOuterParagraph(quote):
-    """
-    We always put <p>'s around things, so in this case let's remove the first <p>.
-    """
-    return quote[ p_len: ]
-
 def extract_titles(body):
     titles = []
     for title, _ in TITLERE.findall(body):
@@ -57,6 +48,9 @@ def execute(macro, args, formatter=None):
       if hasattr(macro.parser, 'formatter'): formatter = macro.parser.formatter
       else: formatter = macro.formatter
     _ = macro.request.getText
+
+    macro.parser.inhibit_p = 1 # included page will already have paragraphs. no need to print another.
+
     args_re=re.compile(_args_re_pattern)
 
     # return immediately if getting links for the current page
@@ -141,6 +135,9 @@ def execute(macro, args, formatter=None):
     raw_text = inc_page.get_raw_body()
     formatter.setPage(inc_page)
     parser = Parser(raw_text, formatter.request)
+
+    parser.print_first_p = 0 # don't print two <p>'s
+
     # note that our page now depends on the content of the included page
     if formatter.name == 'text_python':
       # this means we're in the caching formatter
@@ -162,6 +159,5 @@ def execute(macro, args, formatter=None):
     else:
         del this_page._macroInclude_pagelist[inc_name]
 
-    result = _stripOuterParagraph(''.join(result))
     # return include text
-    return result
+    return ''.join(result)
