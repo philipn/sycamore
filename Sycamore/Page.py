@@ -363,7 +363,7 @@ class Page(object):
               self.request.mc.set('page_text:%s,%s' % (wikiutil.mc_quote(self.page_name.lower()), repr(self.prev_date)), body)
 
 
-    def url(self, querystr=None):
+    def url(self, querystr=None, relative=True):
         """
         Return an URL for this page.
 
@@ -376,6 +376,8 @@ class Page(object):
         if querystr:
             querystr = util.web.makeQueryString(querystr)
             url = "%s?%s" % (url, querystr)
+        if not relative:
+            url = '%s%s' % (self.request.getBaseURL(), url)
         return url
 
     def link_to(self, text=None, querystr=None, anchor=None, know_status=False, know_status_exists=False, guess_case=False, **kw):

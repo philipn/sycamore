@@ -55,7 +55,7 @@ def execute(pagename, request):
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes - %s</title><link>%s</link><description>Recent Changes on %s.</description><language>en-us</language>
 </channel> 
 </rss>
-      """ % (request.config.sitename, page.url(), request.config.sitename)
+      """ % (request.config.sitename, page.url(relative=False), request.config.sitename)
       # get normal recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit=100)
     elif pagename.lower() == interwiki_rc_pagename.lower() and theuser:
@@ -64,7 +64,7 @@ def execute(pagename, request):
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Interwiki Recent Changes for %s</title><link>%s</link><description>Interwiki Recent Changes for %s.</description><language>en-us</language>
 </channel> 
 </rss>
-      """ % (theuser.propercased_name, page.url(), theuser.propercased_name)
+      """ % (theuser.propercased_name, page.url(relative=False), theuser.propercased_name)
       # get interwiki normal recent changes 
       changes = wikidb.getRecentChanges(request, total_changes_limit=100, wiki_global=True, on_wikis=theuser.getWatchedWikis())
 
@@ -73,7 +73,7 @@ def execute(pagename, request):
 <rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>Recent Changes for "%s" - %s</title><link>%s</link><description>Recent Changes of the page "%s" on %s.</description><language>en-us</language>
 </channel> 
 </rss>
-      """ % (pagename, request.config.sitename, page.url(), pagename, request.config.sitename)
+      """ % (pagename, request.config.sitename, page.url(relative=False), pagename, request.config.sitename)
       # get page-specific recent changes 
       changes = wikidb.getRecentChanges(request, page=pagename.lower())
 
@@ -107,7 +107,7 @@ def execute(pagename, request):
       if wiki_global:
         item_link.appendChild(rss_dom.createTextNode(farm.page_url(line.wiki_name, line.pagename, formatter)))
       else:
-        item_link.appendChild(rss_dom.createTextNode("http://%s%s/%s" % (request.config.domain, request.getScriptname(), wikiutil.quoteWikiname(line.pagename))))
+        item_link.appendChild(rss_dom.createTextNode(page.url(relative=False)))
       item.appendChild(item_link)
       item_date = rss_dom.createElement("dc:date")
       item_date.appendChild(rss_dom.createTextNode(request.user.getFormattedDateTime(line.ed_time, global_time=True)))
