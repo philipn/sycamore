@@ -87,7 +87,7 @@ def create_wiki(wikiname, adminname, request):
         create_config(wikiname, request) 
 
         request.switch_wiki(wikiname)
-        buildDB.insert_pages(request)
+        buildDB.insert_pages(request, global_pages=False)
         setup_admin(adminname, request)
         clear_page_caches(request)
         build_search_index(request)

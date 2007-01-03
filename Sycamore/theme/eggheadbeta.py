@@ -175,7 +175,7 @@ class Theme(ThemeBase):
                 wiki_base_url = '%s/' % self.request.getScriptname()
             html = """
 <div class="user_area">
-<div class="welcome">Welcome, %s</div><div class="user_items">(<a href="%sUser_Preferences">settings</a> %s| <a href="%s/%s?action=userform&amp;logout=Logout">logout</a>)</div></div>""" % (user.getUserLink(self.request, self.request.user), wiki_base_url, watch_wiki, self.request.getScriptname(), d['q_page_name'])
+<div class="welcome">Welcome, %s</div><div class="user_items">(<a href="%s%s">settings</a> %s| <a href="%s/%s?action=userform&amp;logout=Logout">logout</a>)</div></div>""" % (user.getUserLink(self.request, self.request.user), wiki_base_url, wikiutil.quoteWikiname(config.page_user_preferences), watch_wiki, self.request.getScriptname(), d['q_page_name'])
         else:
             if config.wiki_farm:
                 post_url = farm.getBaseFarmURL(self.request)
@@ -199,7 +199,7 @@ class Theme(ThemeBase):
 <td align="right">Password:</td>
 <td colspan="2" align="left" nowrap> <input class="formfields" size="22" type="password" name="password"> 
 <input type="hidden" name="login" value="Login">%s
-</td></tr><tr><td></td><td align="left" nowrap>(<a href="%sUser_Preferences?new_user=1">new user</a>)</td><td align="right"><input type="submit" name="login" value="Login" alt="login"></td></tr></table></div></form>""" % (post_url, farm_params, base_wiki)
+</td></tr><tr><td></td><td align="left" nowrap>(<a href="%s%s?new_user=1">new user</a>)</td><td align="right"><input type="submit" name="login" value="Login" alt="login"></td></tr></table></div></form>""" % (post_url, farm_params, base_wiki, wikiutil.quoteWikiname(config.page_user_preferences))
             
         return html
 

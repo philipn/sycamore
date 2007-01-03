@@ -172,6 +172,16 @@ class UserSettingsHandler(object):
             return 
 
         if form.has_key('logout') or isdisabled:
+            msg = ''
+            if isdisabled:
+                if not self.request.isPOST():
+                    return """Use the interactive interface to change settings!"""
+                # disable the account
+                self.request.user.disabled = 1
+                # save user's profile
+                self.request.user.save()
+                msg = '<p>%s</p>' % _("Your account has been disabled.")
+
             # clear the cookie in the browser and locally
             try:
                 cookie = Cookie.SimpleCookie(self.request.saved_cookie)
@@ -200,7 +210,7 @@ class UserSettingsHandler(object):
             self.request.saved_cookie = ''
             self.request.auth_username = ''
             self.request.user = user.User(self.request)
-            return _("Cookie deleted. You are now logged out.")
+            return msg + _("Cookie deleted. You are now logged out.")
     
         if form.has_key('login_sendmail'):
             if not self.request.isPOST():
@@ -224,7 +234,7 @@ class UserSettingsHandler(object):
                         sitename = farm.getBaseWikiFullName(self.request)
                     else:
                         url = '%s/' % self.request.getBaseURL()
-                    text = "Go here to automatically log into %s: %sUser_Preferences?action=userform&uid=%s&code=%s\nOnce you're logged in, you should change your password in your settings (you forgot your password, right?).\n\n(The link in this email is good for one use only.)" % (sitename, url, theuser.id, code)
+                    text = "Go here to automatically log into %s: %s%s?action=userform&uid=%s&code=%s\nOnce you're logged in, you should change your password in your settings (you forgot your password, right?).\n\n(The link in this email is good for one use only.)" % (sitename, url, wikiutil.quoteWikiname(config.page_user_preferences), theuser.id, code)
 
             if not text:
                 return _("Found no account matching the given email address '%(email)s'!") % {'email': email}
@@ -275,11 +285,11 @@ class UserSettingsHandler(object):
 
                 if not theuser.valid:
                     return_string = """
-Unknown username or wrong password.<br /><br />New user?  <a href="%sUser_Preferences?new_user=1">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
+Unknown username or wrong password.<br /><br />New user?  <a href="%s%s?new_user=1">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
 <form action="%s" method="POST"><input type="hidden" name="action" value="userform">
 Email address: <input class="formfields" type="text" name="email">&nbsp;<input type="submit" class="formbutton" name="login_sendmail" value="Mail me my account data">
 </form>
-""" % (wiki_base_url, wiki_base_url)
+""" % (wiki_base_url, wikiutil.quoteWikiname(config.page_user_preferences), wiki_base_url)
 
                     return return_string
 
@@ -367,7 +377,6 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 # checkbox options
                 keys = []
                 for key in user_checkbox_fields:
-                    if key == 'disabled': continue # don't process disabled thing in general settings.  it's seperate
                     value = form.get(key, [0])[0]
                     try:
                         value = int(value)
@@ -723,7 +732,7 @@ class UserSettings:
                 else:
                     form_html.append('<ul>')
                     for wiki_name in watched_wiki_list:
-                        remove_link = '<span style="font-size:x-small; margin-left: 1.5em;">[%s]</span>' %  Page('User Preferences', self.request).link_to(
+                        remove_link = '<span style="font-size:x-small; margin-left: 1.5em;">[%s]</span>' %  Page(config.page_user_preferences, self.request).link_to(
                             know_status=True, know_status_exists=True, querystr='action=watch_wiki&wikiname=%s&del=1' % wiki_name, text='remove')
                         form_html.append('<li>%s %s</li>' % (farm.link_to_wiki(wiki_name, self.request.formatter), remove_link))
 
@@ -745,7 +754,7 @@ class UserSettings:
                 ' ',
             ])
     
-            # Add buttons for general settings
+            # Add buttons 
             button_cell = []
             for name, label in buttons:
                 button_cell.extend([
@@ -753,6 +762,26 @@ class UserSettings:
                     ' ',
                 ])
             self.make_row('', button_cell)
+
+            self._inner.append(html.Raw('<h2>Disable account</h2>'))
+            buttons = [("save", _("Disable account"))]
+
+            self.make_row('', [
+                html.INPUT(type="checkbox", name='disabled', value=1,
+                            checked=getattr(self.request.user, 'disabled', 0)),
+                'Disable this account forever',
+                ])
+
+    
+            # Add buttons 
+            button_cell = []
+            for name, label in buttons:
+                button_cell.extend([
+                    html.INPUT(type="submit", name=name, value=label),
+                    ' ',
+                ])
+            self.make_row('', button_cell)
+
 
             form_html.append(str(self._form))
 

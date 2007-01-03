@@ -14,7 +14,7 @@ def execute(macro, args, formatter=None):
 <input type="submit" value="Create wiki">
 </form>""" % d
         else:
-            new_user_link = '%sUser_Preferences?new_user=1' % farm.getBaseFarmURL(request)
+            new_user_link = '%s%s?new_user=1' % (wikiutil.quoteWikiname(config.page_user_preferences), farm.getBaseFarmURL(request))
             wiki_create_form = """You must be logged in to create a wiki!  To create an account, go <a href="%s">here</a>.""" % new_user_link
         return formatter.rawHTML(wiki_create_form) 
     else:

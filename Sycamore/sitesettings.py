@@ -66,6 +66,7 @@ class SiteSettingsHandler(object):
     def handleData(self):
         _ = self._
         form = self.request.form
+        msg = ''
     
         settings_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_general)
         if self.request.user.may.admin(Page(settings_pagename, self.request)):
@@ -139,11 +140,14 @@ class SiteSettingsHandler(object):
             for key, description in checkbox_fields:
               if form.has_key(key):
                 self.request.config.__dict__[key] = True
+                if key == 'is_disabled':
+                    msg = '<p>%s</p>' % _("You have <strong>marked this wiki as deleted</strong>.  The wiki will be deleted permanently in 30 days.  If you made a mistake, uncheck the \"delete this wiki\" checkbox.")
               else:
                 self.request.config.__dict__[key] = False
 
             # sets the config -- becomes active as soon as this line is executed!
             self.request.config.set_config(self.request.config.wiki_name, self.request.config.get_dict(), self.request)
+            return _("General settings updated!") + msg
 
 class SiteSettingsSecurityHandler(object):
 

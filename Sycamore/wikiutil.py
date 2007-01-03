@@ -1294,6 +1294,11 @@ def send_title(request, text, **keywords):
         bodyattr.append(''' onload="%s"''' % body_onload)
     request.write('\n<body %s>\n' % ''.join(bodyattr))
 
+    # if the wiki is disabled then we print out a message telling them so
+    if request.config.is_disabled:
+        request.write('<div style="border: 1px solid gray; margin: 1em; padding: 1em; background-color: #ffff99;">This wiki is <strong>marked as deleted</strong> and will be erased permanently in no more than 30 days.  If you made a mistake deleting this wiki, immediately un-check the "delete this wiki" check box at %s.</div>' % 
+            Page('%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_general), request).link_to())
+
     # if in Print mode, emit the title and return immediately
     if keywords.get('print_mode', 0):
         ## print '<h1>%s</h1><hr>\n' % (escape(text),)
@@ -1324,7 +1329,7 @@ def send_title(request, text, **keywords):
         'page': page,             # necessary???
         'page_name': page.proper_name(),
         'lower_page_name': page.page_name.lower(),
-        'page_user_prefs': request.config.page_user_preferences,
+        'page_user_prefs': config.page_user_preferences,
         'polite_msg': keywords.get('polite_msg', ''),
         'user_name': request.user.name,
         'user_valid': request.user.valid,

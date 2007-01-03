@@ -225,6 +225,7 @@ _cfg_defaults_global = {
     
     'page_template_prefix': 'Templates/',
 
+    'page_user_preferences': 'User Settings',
 
     # These icons will show in this order in the iconbar, unless they
     # are not relevant, e.g email icon when the wiki is not configured
@@ -319,7 +320,6 @@ _cfg_defaults_local = {
     'license_text': '',
     'noindex_everywhere': False,
     'has_old_wiki_map': False,
-    'page_user_preferences': 'User Preferences',
     'page_front_page': 'Front Page',
     'page_local_spelling_words': 'Local Spelling Words',
     'sitename': 'Sycamore default install',
@@ -337,7 +337,7 @@ _cfg_defaults_local = {
 local_config_checkbox_fields = [
          ('noindex_everywhere', lambda _: _('Don\'t let search engines index this wiki')),
          ('talk_pages', lambda _: _('Use "Talk" pages on this wiki')),
-         ('is_disabled', lambda _: _('Disable this wiki forever')),
+         ('is_disabled', lambda _: _('Delete this wiki')),
 ]
 
 # Iterate through defaults, setting any absent variables

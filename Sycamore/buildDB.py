@@ -1,5 +1,6 @@
 # Build a wiki database from scratch.  You should run this the FIRST TIME you install your wiki.
 import sys, os, shutil, time
+from copy import copy
 import __init__ # woo hackmagic
 __directory__ = os.path.dirname(__file__)
 share_directory = os.path.abspath(os.path.join(__directory__, '..', 'share'))
@@ -39,20 +40,20 @@ def parseACL(text):
 
     return groupdict
   
-def init_basic_pages():
+def init_basic_pages(prefix='common'):
     """
     Initializes basic pages from share/initial_pages directory.
     """
-    basic_pages = {}
+    pages = {}
     # We do the basic database population here
-    page_list = map(unquoteFilename, filter(lambda x: not x.startswith('.'), os.listdir(os.path.join(share_directory, 'initial_pages'))))
+    page_list = map(unquoteFilename, filter(lambda x: not x.startswith('.'), os.listdir(os.path.join(share_directory, 'initial_pages', prefix))))
     for pagename in page_list:
-       page_loc = os.path.join(share_directory, 'initial_pages', quoteFilename(pagename))
+       page_loc = os.path.join(share_directory, 'initial_pages', prefix, quoteFilename(pagename))
        page_text_file = open(os.path.join(page_loc, "text"))
        page_text = ''.join(page_text_file.readlines())
        page_text_file.close()
 
-       basic_pages[pagename] = FlatPage(text=page_text)
+       pages[pagename] = FlatPage(text=page_text)
 
        if os.path.exists(os.path.join(page_loc, "files")):
          file_list = map(unquoteFilename, filter(lambda x: not x.startswith('.'), os.listdir(os.path.join(page_loc, "files"))))
@@ -60,15 +61,15 @@ def init_basic_pages():
            file = open(os.path.join(page_loc, "files", quoteFilename(filename)))
            file_content = ''.join(file.readlines())
            file.close()
-           basic_pages[pagename].files.append((filename, file_content))
+           pages[pagename].files.append((filename, file_content))
 
        if os.path.exists(os.path.join(page_loc, "acl")):
          file = open(os.path.join(page_loc, "acl"), "r")
          text = ''.join(file.readlines())
          file.close()
-         basic_pages[pagename].acl = parseACL(text)
+         pages[pagename].acl = parseACL(text)
 
-    return basic_pages
+    return pages
     
     
 def init_db(cursor):
@@ -902,10 +903,14 @@ def insert_acl(plist, flat_page_dict, request):
    if flat_page_dict[pagename].acl:
      wikiacl.setACL(pagename, flat_page_dict[pagename].acl, request) 
 
-def insert_pages(request, flat_page_dict=None, plist=None, without_files=False):
+def insert_pages(request, flat_page_dict=None, plist=None, without_files=False, global_pages=True):
  timenow = time.time()
  cursor = request.cursor
- if not flat_page_dict: flat_page_dict = basic_pages
+ if not flat_page_dict:
+   if global_pages:
+     flat_page_dict = all_pages
+   else:
+     flat_page_dict = basic_pages
  if not plist: plist = flat_page_dict.keys()
  file_dict = { 'uploaded_time': 0, 'uploaded_by': None, 'uploaded_by_ip': None }
  for pagename in plist:
@@ -962,6 +967,7 @@ def setup_admin(request):
    group.save()
 
 basic_pages = init_basic_pages()
+all_pages = copy(basic_pages).update(basic_pages)
 
 if __name__ == '__main__':
   from Sycamore import request

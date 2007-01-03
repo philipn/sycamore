@@ -500,6 +500,7 @@ class RequestBase(object):
         self.processPostCommitActions()
 
     def run(self):
+        from Sycamore import wikiacl
         had_error = False
         _ = self.getText
         #self.open_logs()
@@ -521,6 +522,13 @@ class RequestBase(object):
              self.write(no_exist_msg)
              self.write('</body></html>')
              return self.finish()
+        elif self.config.is_disabled and not self.user.name in wikiacl.Group("Admin", self):
+             self.write('<html><head><meta name="robots" content="noindex,follow"></head><body>')
+             self.write('<p>The wiki %s has been disabled and will be permanently deleted in 30 days.</p>' % 
+                self.config.wiki_name)
+             self.write('</body></html>')
+             return self.finish()
+
 
         # parse request data
         try:
