@@ -46,8 +46,7 @@ def is_new_page(lines):
     for line in lines:
         if line.action == 'SAVENEW':
             return True
-        elif line.action == 'SAVE':
-            return False
+    return False
 
 def format_page_edit_icon(request, lines, page, hilite, bookmark, formatter):
     is_new = is_new_page(lines)
@@ -243,6 +242,8 @@ def execute(macro, args, formatter=None, **kw):
     day_count = 0
     
     if not lines:
+        if wiki_global:
+            request.write('<p>This page shows you changes on <strong>all</strong> of the wikis you are watching!</p>')
         request.write("<p>No recent changes.  Quick &mdash; change something while nobody's looking!</p>")
 
     for line in lines:

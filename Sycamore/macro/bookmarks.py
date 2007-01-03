@@ -99,6 +99,8 @@ def execute(macro, args, formatter=None, **kw):
     request.write(rss_html)
     request.write('<div class="bookmarks">')
     if not local_favoriteList:
+      if wiki_global:
+        request.write('<p>This page will show you all of your bookmarks, no matter what wiki they point to.</p>')
       request.write('<p>Bookmarks let you easily keep track of pages you think are interesting.</p><p><i>You have no Bookmarks.  To add a page click "Bookmark this page" at the bottom of the page.</i></p>')
 
     showed_update = False

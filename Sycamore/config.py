@@ -58,6 +58,12 @@ class Config(object):
         self.wiki_id = None
         self.__dict__.update(self._get_config(wiki_name, request, process_config))
         self.tz_offset = getTimeOffset(self.tz)
+        if stop_hotlinking:
+            # Referer regular expression is used to filter out http referers from image viewing.
+            # It's for stopping image hotlinking, basically.
+            self.referer_regexp = '^%s((\/.*)|())$' % re.escape(request.getQualifiedURL())
+        else:
+            self.referer_regexp = ''
 
     def get_dict(self):
         essentials = {}
@@ -247,7 +253,6 @@ _cfg_defaults_global = {
     # this is for prevention of hotlinking.  leave blank if you don't care about people leeching images.
     # to match against any url from any subdomain of daviswiki we would write:
     # 'http\:\/\/(([^\/]*\.)|())daviswiki\.org\/.*'
-    'referer_regexp': '',
     'refresh': None, # (minimum_delay, type), e.g.: (2, 'internal')
     'relative_dir': 'index.cgi',
     'remote_search': False,
@@ -258,6 +263,7 @@ _cfg_defaults_global = {
     'show_timings': 0,
     'show_version': 0,
     'sox_location': 'sox',
+    'stop_hotlinking': True,
     'tmp_dir': 'tmp',
     'theme_force': True,
     'trail_size': 5,
