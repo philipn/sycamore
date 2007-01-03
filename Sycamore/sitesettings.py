@@ -141,7 +141,7 @@ class SiteSettingsHandler(object):
               if form.has_key(key):
                 self.request.config.__dict__[key] = True
                 if key == 'is_disabled':
-                    msg = '<p>%s</p>' % _("You have <strong>marked this wiki as deleted</strong>.  The wiki will be deleted permanently in 30 days.  If you made a mistake, uncheck the \"delete this wiki\" checkbox.")
+                    msg = ("<p>You have <strong>marked this wiki as deleted</strong>.  The wiki will be deleted permanently in 30 days.  If you made a mistake, uncheck the \"delete this wiki\" checkbox.</p><p>Until this wiki is permanently purged, it will be be visible only to the admins of this wiki.</p>")
               else:
                 self.request.config.__dict__[key] = False
 
