@@ -327,7 +327,7 @@ class Formatter(FormatterBase):
     # do not remove current code before making working compliant code
 
     allowed_table_attrs = {
-        'table': ['class', 'width', 'bgcolor', 'border', 'cellpadding'],
+        'table': ['class', 'width', 'height', 'bgcolor', 'border', 'cellpadding'],
         'row': ['class', 'width', 'align', 'valign', 'bgcolor'],
         '': ['colspan', 'rowspan', 'class', 'width', 'align', 'valign', 'bgcolor'],
     }
