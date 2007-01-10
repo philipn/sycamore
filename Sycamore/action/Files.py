@@ -110,7 +110,7 @@ def openImage(filecontent):
     return im
     
 
-def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=None, thumb=False, size=0, ticket=None):
+def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=None, thumb=False, size=0, do_download=False, ticket=None):
     """ Get URL that points to file `filename` of page `pagename`.
 
         If 'addts' is true, a timestamp with the file's modification time
@@ -144,6 +144,8 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, ver
             wikiutil.quoteWikiname(pagename),
             urllib.quote(filename), repr(version))
 
+    if do_download:
+        url = '%s&amp;download=true' % url
 
     return url
 
@@ -701,14 +703,14 @@ def send_viewfile(pagename, request):
         request.write('<p class="imageDisplay"><img src="%s%s" alt="%s"></p>' % (
           getAttachUrl(pagename, filename, request, escaped=1, deleted=1, version=version), timestamp, wikiutil.escape(filename, 1)))
       else:
-        request.write('<p class="downloadLink"><img src="%s" /><a href="%s">Download %s</a></p>' % (get_icon(filename, request), getAttachUrl(pagename, filename, request, escaped=1, deleted=1, version=version),  filename))
+        request.write('<p class="downloadLink"><img src="%s" /><a href="%s">Download %s</a></p>' % (get_icon(filename, request), getAttachUrl(pagename, filename, request, escaped=1, deleted=1, version=version, do_download=True),  filename))
     else:
       if is_image:
         request.write('<p class="imageDisplay"><img src="%s%s" alt="%s"></p>' % (
           getAttachUrl(pagename, filename, request, escaped=1), timestamp, wikiutil.escape(filename, 1)))
         request.write(getCaptionsHTML(pagename, filename, request))
       else:
-        request.write('<p class="downloadLink"><img src="%s" /><a href="%s">Download %s</a></p>' % (get_icon(filename, request), getAttachUrl(pagename, filename, request, escaped=1),  filename))
+        request.write('<p class="downloadLink"><img src="%s" /><a href="%s">Download %s</a></p>' % (get_icon(filename, request), getAttachUrl(pagename, filename, request, escaped=1, do_download=True),  filename))
     if uploaded_by:
       request.write('<p>Uploaded by %s on %s.  File size: %sKB</p>' % (user.getUserLink(request, uploaded_by), request.user.getFormattedDateTime(uploaded_time), file_size))
     else:

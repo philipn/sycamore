@@ -39,6 +39,7 @@ def fileSend(request):
   version = 0
   thumbnail = False
   thumbnail_size = 0
+  do_download = False
   ticket = None
   size = None
 
@@ -55,6 +56,8 @@ def fileSend(request):
     thumbnail_size = int(request.form['size'][0])
   if request.form.has_key('version'):
     version = float(request.form['version'][0])
+  if request.form.has_key('download') and request.form['download'][0]:
+    do_download = True
   if request.form.has_key('ticket'):
     ticket = request.form['ticket'][0]
     if not checkTicket(ticket) or not request.form.has_key('size'):
@@ -90,8 +93,14 @@ def fileSend(request):
     return
   datestring = time.strftime('%a, %d %b %Y %H:%M:%S', time.gmtime(modified_time_unix)) + ' GMT' 
   contentstring = 'filename="%s"' % filename
+
   # images are usually compressed anyway, so let's not bother gziping
   request.do_gzip = False
+
+  if do_download:
+    contentstring = 'attachment; %s' % contentstring
+    mimetime = 'application/x-download' # bogus mimetype to get browsers to download
+
   request.http_headers([("Content-Type", mimetype), ("Last-Modified", datestring), ("Content-Disposition", contentstring)])
   #output image
   request.write(file, raw=True)
