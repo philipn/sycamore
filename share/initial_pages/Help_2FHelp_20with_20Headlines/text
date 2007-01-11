@@ -1,0 +1,54 @@
+= Section Headings =
+You can create headings by equal signs. The wiki supports up to five heading levels. In HTML, this is <h1> through <h5>. The heading text is between those markers, separated by a single space.
+
+Headings are useful because they help divide a page's content.  Headings also show up in the {{{[[TableOfContents]]}}} ["Help/Help with Macros" macro].  When headings are used next to a ["Help/Help with Images" thumbnail images], "clear" the text and create a functional break in the text flow.
+
+For more information on the possible markup, see ["Help/Help on Editing" Help on Editing].
+
+=== Examples ===
+{{{
+ = Heading Level 1 =
+ == Heading Level 2 ==
+ === Heading Level  3 ===
+ ==== Heading Level  4 ====
+ ===== Heading Level  5 =====
+}}}
+
+=== Example Output ===
+ = Heading Level 1 =
+ == Heading Level 2 ==
+ === Heading Level  3 ===
+ ==== Heading Level  4 ====
+ ===== Heading Level  5 =====
+
+
+Use the biggest header, {{{= Heading Level 1 =}}}, for creating your initial sections then smaller headers for sub-sections.
+
+To indent a headline just but a space (or multiple spaces) in front of it:
+
+{{{
+== Not indented ==
+
+  == indented ==
+}}}
+
+Displays as:
+
+== Not indented ==
+
+  == indented ==
+
+This is useful for organizing headers.  The more spaces put in front of a headline the more it is indented.
+
+= Horizontal Rules =
+You can insert a horizontal rule by placing a series of dashes into the page:
+
+{{{
+----
+}}}
+
+displays as:
+
+----
+
+Four of more dashes can be used.
