@@ -27,6 +27,9 @@ dbapi.Binary = Binary
 
 MAX_CONNECTION_ATTEMPTS = pool_size + 10
 
+# MySQL error numbers for 'lost connection' errors
+CONNECTION_ERRORS = [2006, 2013]
+
 def fixUpStrings(item):
     def doFixUp(i):
         if type(i) == array.array:
@@ -231,7 +234,7 @@ def real_connect():
     try:
         db.ping()
     except dbapi_module.OperationalError, (errno, strerror):
-        if errno == 2006:
+        if errno in CONNECTION_ERRORS:
             had_error = True
             while had_error:
                 db.alive = False
@@ -241,7 +244,7 @@ def real_connect():
                 try:
                     db.ping()
                 except dbapi_module.OperationalError, (errno, strerror):
-                    if errno == 2006:
+                    if errno in CONNECTION_ERRORS:
                         had_error = True
                     else:
                         had_error = False
