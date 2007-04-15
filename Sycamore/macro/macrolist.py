@@ -6,6 +6,7 @@
 
 
 import re
+import os 
 
 Dependencies = []
 
@@ -46,6 +47,7 @@ def execute(macro, args, formatter=None):
 
 	return formatter.rawHTML('No Macro List Found')
 	
+
 # returns a list of list(2). Each list(2) contains 3 items,
 # "MacroName", "MacroFormat", "macro description"
 # a single macro can have multiple entries, based on the values that can be passed to it
@@ -54,9 +56,31 @@ def execute(macro, args, formatter=None):
 # @return A list of lists(2) as described above  
 def buildMacroList():
 
+	# static temp list for testing
 	macroList = [] # a list of lists of text [ Title, MacroFormat, infoText]
 	macroList.append(["Anchor","Anchor(anchorName)","Creates an anchor on the page."])
      	macroList.append(["Comments","Comments(Leave your comments here)","Creates a comment box with heading 'Leave your...'"])
- 	macroList.
-	
+ 	#macroList.
+
+	macroList = getMacrosFromDir("/home/farmckon/sycamore_base/Sycamore/macro")
+
+	return macroList
+
+
+# Generates a dynamic list of macros from a listing of files in a directory
+# this is an earily version, no capitalization, etc built in  
+def getMacrosFromDir(dir):
+	macroList = [["a","b","c"]]
+	# generate dynamic list
+	for file in [f for f in os.listdir(dir)
+		if f.lower().endswith('.py') and not f.startswith('__')]:
+			try:
+				macroName = file.lower().replace('.py','')
+				macroExamp = "no example use"
+				macroInfo =  "no example info"
+				#module = imp.load_source(file[:-3], os.path.join(dir, file))
+				macroList.append([macroName,macroExamp,macroInfo])
+			except Exception:
+  				pass
+
 	return macroList
