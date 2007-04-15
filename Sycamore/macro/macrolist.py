@@ -100,7 +100,7 @@ def getMacrosFromDir(dir):
 ##
 # This function opens the passed file, and scans for a comment block starting ## 
 # that appears about a function 'execute'. When it finds that, it scans the comment 
-# for "@macro" and reads the text off lines that match as 'macroExamp', and it 
+# for "@ macro" and reads the text off lines that match as 'macroExamp', and it 
 # reads text off following indented lines as 'macroInfo'. It then makes a list of all macroExamp/macroInfo pairs
 # and returns them.
 def getMacroInfoFromFile(inFile):
@@ -127,13 +127,13 @@ def getMacroInfoFromFile(inFile):
 
 	# if these are met, we have a comment to search
 	if((bookmark != -1) and (execute != -1) and (execute > bookmark)):
-		macroInfoList.append(['example found','... but can't read'])
+		macroInfoList.append(['example found',"... but can't read"])
 		started = 0
 		tmpExamp = None
 		tmpInfo = None
-		commentBlock = fileLines[bookmark:execute+1]
 		for line in commentBlock:
 			if(line.find("@macro") != -1):
+				commentBlock = fileLines[bookmark:execute+1]
 				tmpExamp = line.replace("@macro",'').lstrip('#').rstrip().lstrip()
 				started = 1
 			elif (line.find("#") and (started == 1)):
