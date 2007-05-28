@@ -13,6 +13,13 @@ from Sycamore.Page import Page
 
 MAX_DEPENDENCY_DEPTH = 5
 
+def update_image_info(pagename, request):
+    """
+    If a page contains images then let's ensure that we have the size of these images stored.
+    """
+    pass
+
+
 class CacheEntry:
     def __init__(self, key, request):
         self.key = key.lower()
@@ -32,6 +39,7 @@ class CacheEntry:
     def _consider_talk_link(self, links):
         if not self.request.config.talk_pages:
             return links
+        lower_links = [ link.lower() for link in links ]
         from Sycamore.Page import Page
         pagename = self.key
         page = Page(pagename, self.request)
@@ -39,7 +47,7 @@ class CacheEntry:
         if page.isTalkPage():
             article_page = Page(wikiutil.talk_to_article_pagename(pagename), self.request)
             article_pagename = article_page.proper_name()
-            if article_pagename not in links:
+            if article_pagename.lower() not in lower_links:
                 links.append(article_pagename)
         else:
             talk_pagename = wikiutil.article_to_talk_pagename(pagename)
@@ -50,7 +58,7 @@ class CacheEntry:
 
             if talk_page.exists():
                 talk_pagename = talk_page.proper_name()
-                if talk_pagename not in links:
+                if talk_pagename.lower() not in lower_links:
                     links.append(talk_pagename)
 
         return links
@@ -63,6 +71,9 @@ class CacheEntry:
         for link in links:
           self.request.cursor.execute("INSERT into links (source_pagename, destination_pagename, destination_pagename_propercased, wiki_id) values (%(key)s, %(link)s, %(link_propercased)s, %(wiki_id)s)", {'key':self.key, 'link':link.lower(), 'link_propercased':link, 'wiki_id':self.request.config.wiki_id}, isWrite=True)
         page_info = pageInfo(Page(self.key, self.request), get_from_cache=False, cached_content=content, cached_time=cached_time)
+        # if the page contains images, let's ensure that we have their size information
+        update_image_info(self.key, self.request)
+
         text = wikidb.binaryToString(content)
         page_info.cached_text = (text, cached_time)
         if config.memcache:

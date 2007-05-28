@@ -4,13 +4,14 @@
 
     Parameter "ddiffs" by Ralf Zosel <ralf@zosel.com>, 04.12.2003.
 
-    @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>, 2005-2006 Philip Neustrom
+    @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>, 2005-2007 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
 import re, time, cStringIO, urllib
 from Sycamore import config, user, util, wikiutil, wikidb, farm
+from Sycamore.wikidb import getEditor
 from Sycamore.Page import Page
 from Sycamore.formatter.text_html import Formatter
 from Sycamore.widget.comments import Comment
@@ -65,20 +66,20 @@ def format_page_edit_icon(request, lines, page, hilite, bookmark, formatter):
         else:
            tag = 'changes'
            diff = 'action=diff&at_date=%s' % (repr(lines[0].ed_time))
-           html_link = '<div class="rcTag"><div class="rcTagNew">%s</div></div>' % page.link_to(querystr=diff, text=tag)
+           html_link = '<div class="rcTag"><div class="rcTagNew">%s</div></div>' % page.link_to(querystr=diff, text=tag, absolute=True)
     elif hilite:
         # show bolder status if page was edited after the user's rc bookmark
         tag = 'changes'
         html_link = '<div class="rcTag"><div class="rcTagChanges">%s</div></div>' % page.link_to(
                                       querystr="action=diff&date=%s" % str(bookmark),
-                                      text=tag)
+                                      text=tag, absolute=True)
     else:
         # show normal changes link else
         tag = 'changes'
         diff = 'action=diff&at_date=%s' % (repr(lines[0].ed_time))
         html_link = '<div class="rcTag"><div class="rcTagChanges">%s</div></div>' % page.link_to(
                                       querystr=diff,
-                                      text=tag)
+                                      text=tag, absolute=True)
 
     return html_link
       
@@ -106,7 +107,7 @@ def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_gl
     d['rc_tag_html'] = html_link
 
     if wiki_global:
-        d['pagelink_html'] = '%s <span class="minorText">(on %s)</span>' % (page.link_to(text=pagename), farm.link_to_wiki(line.wiki_name, formatter))
+        d['pagelink_html'] = '%s <span class="minorText">(on %s)</span>' % (page.link_to(text=pagename, absolute=True), farm.link_to_wiki(line.wiki_name, formatter))
     else:
         d['pagelink_html'] = page.link_to(text=pagename) 
     
@@ -141,7 +142,7 @@ def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_gl
     d['editors'] = []
     if config.show_hosts:
         for idx in range(len(lines)):
-            name = lines[idx].getEditor(request)
+            name = getEditor(lines[idx], request)
             ip = lines[idx].host
             d['editors'].append((name,ip))
 
@@ -188,13 +189,14 @@ def execute(macro, args, formatter=None, **kw):
     # get bookmark from valid user
     bookmark = request.user.getBookmark(wiki_global=wiki_global)
 
-    # default to _MAX_DAYS for useres without bookmark
+    # default to _MAX_DAYS for users without rc bookmark
     if not max_days:
         max_days = _MAX_DAYS
     d['rc_max_days'] = max_days
 
     if wiki_global:
-        lines = wikidb.getRecentChanges(request, max_days=max_days, changes_since=bookmark, wiki_global=wiki_global, on_wikis=request.user.getWatchedWikis())
+        watched_wikis = request.user.getWatchedWikis()
+        lines = wikidb.getRecentChanges(request, max_days=max_days, changes_since=bookmark, wiki_global=wiki_global, on_wikis=watched_wikis)
     else:
         lines = wikidb.getRecentChanges(request, max_days=max_days, changes_since=bookmark, wiki_global=wiki_global)
 
@@ -244,11 +246,15 @@ def execute(macro, args, formatter=None, **kw):
     if not lines:
         if wiki_global:
             request.write('<p>This page shows you changes on <strong>all</strong> of the wikis you are watching!</p>')
-        request.write("<p>No recent changes.  Quick &mdash; change something while nobody's looking!</p>")
+            if not watched_wikis:
+                request.write("""<p>You are not watching any wikis, though.  To watch a wiki, simply go to the wiki you're interested in and click the "watch this wiki" link next to your user settings in the upper right.</p>""")
+        if not wiki_global or watched_wikis:
+            request.write("<p>No recent changes.  Quick &mdash; change something while nobody's looking!</p>")
 
     for line in lines:
-        line.page = Page(line.pagename, macro.request)
-	    # 2006-05 calling acl 'may' here is too expensive.  just show them the page.  on the off change they can't read it, then, well, clicking on it won't be too productive for them.
+        line.page = Page(line.pagename, macro.request, wiki_name=line.wiki_name)
+	    # 2006-05 calling acl 'may' here is too expensive.  just show them the page.  on the off chance they can't read it, then, well, clicking on it won't be too productive for them.
+        # 2006-12 maybe we should filter by may() in wikidb?
         #if not request.user.may.read(line.page):
         #    continue
         if not line.ed_time: continue
@@ -264,9 +270,6 @@ def execute(macro, args, formatter=None, **kw):
             pages.sort(cmp_lines)
             pages.reverse()
             d['show_comments'] = showComments        
-            d['bookmark_link_html'] = None
-            if request.user.valid:
-                d['bookmark_link_html'] = rc_page.link_to(querystr="action=bookmark&time=%d" % pages[0][0].ed_time, text=_("set bookmark"))
             d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)
             request.write(request.theme.recentchanges_daybreak(d))
             
@@ -299,9 +302,6 @@ def execute(macro, args, formatter=None, **kw):
             pages.sort(cmp_lines)
             pages.reverse()
             
-            d['bookmark_link_html'] = None
-            if request.user.valid:
-                d['bookmark_link_html'] = rc_page.link_to(querystr="action=bookmark&time=%d" % pages[0][0].ed_time,text=_("set bookmark"))
             d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)
             request.write(request.theme.recentchanges_daybreak(d))
             

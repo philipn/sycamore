@@ -9,12 +9,15 @@
 
 # Imports
 import string, time, re, Cookie, random, urllib, locale
+from copy import copy
 from Sycamore import config, user, util, wikiutil, wikidb, farm
 from Sycamore.Page import Page
 import Sycamore.util.web
 import Sycamore.util.mail
 import Sycamore.util.datetime
 from Sycamore.widget import html
+from Sycamore.wikiaction import NOT_ALLOWED_CHARS
+USER_NOT_ALLOWED_CHARS = NOT_ALLOWED_CHARS + '/:'
 
 #import pytz from support
 import sys, os.path
@@ -98,7 +101,6 @@ class UserSettingsHandler(object):
 
 
     def handleData(self, new_user=None):
-        from Sycamore.wikiaction import NOT_ALLOWED_CHARS_ESCAPED, NOT_ALLOWED_CHARS
         from Sycamore.Page import MAX_PAGENAME_LENGTH as MAX_USERNAME_LENGTH
         _ = self._
         form = self.request.form
@@ -108,6 +110,12 @@ class UserSettingsHandler(object):
         if form.get('disabled', [0])[0] == '1':
                 isdisabled = True
 
+        self.from_wiki = None
+        if self.request.form.has_key('from_wiki'):
+	  self.from_wiki = self.request.form['from_wiki'][0].lower().strip()
+	  if not wikiutil.isInFarm(self.from_wiki, self.request):
+	    self.from_wiki = None
+
         new_user = int(form.get('new_user', [0])[0])
         # wiki farm authentication
 
@@ -115,9 +123,25 @@ class UserSettingsHandler(object):
         is_form_logout = (form.has_key('qs') and 
                           urllib.unquote(form['qs'][0]) == 'action=userform&logout=Logout')
 
-        if form.has_key('login_check') and form['login_check'] and form.has_key('backto_wiki') and form.has_key('backto_page'):
+        if self.request.form.has_key('badlogin') and self.request.form['badlogin'][0]:
+            _create_nologin_cookie(self.request)
+            if config.wiki_farm:
+                wiki_base_url = farm.getBaseFarmURL(self.request)
+            else:
+                wiki_base_url = '%s/' % self.request.getScriptname()
+    
+            return_string = """
+Unknown username or wrong password.<br /><br />New user?  <a href="%s%s?new_user=1">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
+<form action="%s" method="POST"><input type="hidden" name="action" value="userform">
+Email address: <input class="formfields" type="text" name="email">&nbsp;<input type="submit" class="formbutton" name="login_sendmail" value="Mail me my account data">
+</form>
+""" % (wiki_base_url, wikiutil.quoteWikiname(config.page_user_preferences), wiki_base_url)
+            return return_string
+
+
+        if form.has_key('login_check') and form['login_check'][0] and form.has_key('backto_wiki') and form.has_key('backto_page'):
             backto_wiki = form['backto_wiki'][0]
-            q_backto_page = form['backto_page'][0]
+            backto_page = form['backto_page'][0].encode(config.charset)
             if form.has_key('qs') and not is_form_logout:
                 q_query_string = form['qs'][0]
             else:
@@ -126,30 +150,30 @@ class UserSettingsHandler(object):
             if self.request.user.valid:
                 secret, stored_expire_time, session = self.request.user.cookie_dough
                 if q_query_string:
-                    url = '%s?action=userform&backto_page=%s&qs=%s&secret=%s&expire_time=%s&uid=%s&session=%s' % (urllib.unquote(q_backto_page),
-                        q_backto_page, q_query_string, urllib.quote(secret), stored_expire_time, self.request.user.id, urllib.quote(session))
+                    url = '%s?action=userform&backto_page=%s&qs=%s&secret=%s&expire_time=%s&uid=%s&session=%s' % (backto_page,
+                        urllib.quote(backto_page), urllib.quote(q_query_string), urllib.quote(secret), stored_expire_time, self.request.user.id, urllib.quote(session))
                 else:
-                     url = '%s?action=userform&backto_page=%s&&secret=%s&expire_time=%s&uid=%s&session=%s' % (urllib.unquote(q_backto_page),
-                        q_backto_page, urllib.quote(secret), stored_expire_time, self.request.user.id, urllib.quote(session))
+                     url = '%s?action=userform&backto_page=%s&secret=%s&expire_time=%s&uid=%s&session=%s' % (backto_page,
+                        urllib.quote(backto_page), urllib.quote(secret), stored_expire_time, self.request.user.id, urllib.quote(session))
             else:
                 if q_query_string:
-                    url = '%s?action=userform&backto_page=%s&not_logged_in=1&qs=%s' % (urllib.unquote(q_backto_page), q_backto_page, q_query_string)
+                    url = '%s?action=userform&backto_page=%s&not_logged_in=1&qs=%s' % (backto_page, urllib.quote(backto_page), urllib.quote(q_query_string))
                 else:
-                     url = '%s?action=userform&backto_page=%s&not_logged_in=1' % (urllib.unquote(q_backto_page), q_backto_page)
+                     url = '%s?action=userform&backto_page=%s&not_logged_in=1' % (backto_page, urllib.quote(backto_page))
 
             self.request.http_redirect(url) 
             return 
 
         # bounce-back wiki farm authentication
         if form.has_key('not_logged_in') and form.has_key('backto_page'):
-            backto = urllib.unquote(form['backto_page'][0])
+            backto = urllib.unquote(form['backto_page'][0].encode(config.charset))
             if form.has_key('qs') and not is_form_logout:
                 query_string = '?%s' % urllib.unquote(form['qs'][0])
             else:
                 query_string = ''
             url = '%s%s' % (backto, query_string)
-            self.request.http_redirect(url)
             _create_nologin_cookie(self.request)
+            self.request.http_redirect(url)
             return
         # bounce-back wiki farm authentication
         elif form.has_key('uid') and form.has_key('secret') and form.has_key('session') and form.has_key('expire_time'):
@@ -169,6 +193,7 @@ class UserSettingsHandler(object):
     
             self.request.http_redirect(url)
             self.request.user.sendCookie(self.request, expire=expire_time, sessionid=session, secret=secret, id=uid) 
+            self.request.user.clearNologinCookie(self.request)
             return 
 
         if form.has_key('logout') or isdisabled:
@@ -284,14 +309,18 @@ class UserSettingsHandler(object):
                     wiki_base_url = '%s/' % self.request.getScriptname()
 
                 if not theuser.valid:
-                    return_string = """
+		    if not self.request.form['backto_wiki'][0]:
+                        return_string = """
 Unknown username or wrong password.<br /><br />New user?  <a href="%s%s?new_user=1">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
 <form action="%s" method="POST"><input type="hidden" name="action" value="userform">
 Email address: <input class="formfields" type="text" name="email">&nbsp;<input type="submit" class="formbutton" name="login_sendmail" value="Mail me my account data">
 </form>
 """ % (wiki_base_url, wikiutil.quoteWikiname(config.page_user_preferences), wiki_base_url)
 
-                    return return_string
+                        return return_string
+                    else:
+                        self.request.http_redirect(urllib.unquote(self.request.form['backto_page'][0].encode(config.charset)) + '?action=userform&badlogin=1')
+			return
 
             # send the cookie
             theuser.sendCookie(self.request)
@@ -343,9 +372,15 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 # try to get the email
                 theuser.email = form.get('email', [''])[0]
 
+                if theuser.email:
+                    email_user_id = user.getUserIdByEmail(theuser.email, self.request)
+                else:
+                    email_user_id = None
                 if not theuser.email or not re.match(".+@.+\..{2,}", theuser.email):
                     raise BadData, (_("Please provide your email address - without that you could not "
                              "get your login data via email just in case you lose it."), new_user)
+                elif email_user_id and email_user_id != theuser.id:
+                    raise BadData, (_("""Somebody else has already registered with the email address "%s", please pick something else.""" % theuser.email), new_user)
         
                 # editor size
                 theuser.edit_rows = util.web.getIntegerInput(self.request, 'edit_rows', theuser.edit_rows, 10, 60)
@@ -367,7 +402,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                     # they have changed the wiki! time to do something differently
                     msg = _("<p>User preferences saved!</p><p><strong>Note:</strong> It may take a bit for all links to your name to point to the new wiki.</p>")
                     theuser.wiki_for_userpage = wiki_for_userpage
-    
+
                 # User CSS URL
                 theuser.css_url = form.get('css_url', [''])[0]
         
@@ -385,12 +420,14 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                     setattr(theuser, key, value)
         
             if new_user:
-                theuser.propercased_name = theuser.propercased_name.replace(' ','') # strip spaces, we don't allow them anyway
+                theuser.propercased_name = theuser.propercased_name.strip() # strip spaces, we don't allow them anyway
                 theuser.name = theuser.propercased_name.lower()
                 if theuser.propercased_name.find(' ') != -1:
                     raise BadData, (_("Invalid username: spaces are not allowed in user names"), new_user)
-                elif re.search('[%s]' % NOT_ALLOWED_CHARS_ESCAPED, theuser.propercased_name):
-                    raise BadData, (_("Invalid username: the characters %s are not allowed in usernames." % NOT_ALLOWED_CHARS), new_user)
+                elif re.search('[%s]' % re.escape(USER_NOT_ALLOWED_CHARS), theuser.propercased_name):
+                    raise BadData, (_("Invalid username: the characters %s are not allowed in usernames." % wikiutil.escape(USER_NOT_ALLOWED_CHARS)), new_user)
+                elif theuser.name == '..' or theuser.name == '.': # messes up subpages.  '/' isn't allowed, so we just disallow this and we're cool.
+                    raise BadData, (_("Invalid username: okay, seriously, that's a pretty lame name.  Pick something better!"), new_user)
                 elif len(theuser.propercased_name) > MAX_USERNAME_LENGTH:
                     raise BadData, (_("Invalid username: a username can be at most %s characters long." % MAX_USERNAME_LEGNTH), new_user)
                 elif not theuser.email or not re.match(".+@.+\..{2,}", theuser.email):
@@ -423,12 +460,22 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             theuser.sendCookie(self.request)
             self.request.user = theuser
     
+
+	    from Sycamore.formatter.text_html import Formatter
+            formatter = Formatter(self.request)
+
             if not new_user:
               if not msg:
                 msg = _("User preferences saved!")
+              if self.from_wiki:
+	        go_back_to_wiki = farm.link_to_wiki(self.from_wiki, formatter)
+                msg = '%s<br/><br/>Wanna go back to %s?' % (msg, go_back_to_wiki)
             else:
               msg = _("Account created!  You are now logged in.")
               self.request.user.valid = 1
+              if self.from_wiki and self.from_wiki.lower() != farm.getBaseWikiName(self.request):
+	        go_back_to_wiki = farm.link_to_wiki(self.from_wiki, formatter)
+                msg = '%s<br/><br/>Head back over to %s and your new account should work there!' % (msg, go_back_to_wiki)
             if _debug:
                 msg = msg + util.dumpFormData(form)
             return msg
@@ -446,7 +493,7 @@ def send_back_home(request, msg=''):
             url = '%s?action=userform&backto_page=%s&qs=%s&secret=%s&expire_time=%s&uid=%s&session=%s' % (urllib.unquote(q_backto_page),
                 q_backto_page, q_query_string, urllib.quote(secret), stored_expire_time, request.user.id, urllib.quote(session))
         else:
-             url = '%s?action=userform&backto_page=%s&&secret=%s&expire_time=%s&uid=%s&session=%s' % (urllib.unquote(q_backto_page),
+             url = '%s?action=userform&backto_page=%s&secret=%s&expire_time=%s&uid=%s&session=%s' % (urllib.unquote(q_backto_page),
                 q_backto_page, urllib.quote(secret), stored_expire_time, request.user.id, urllib.quote(session))
         request.http_redirect(url) 
 
@@ -455,7 +502,6 @@ def send_back_home(request, msg=''):
 #############################################################################
 
 user_checkbox_fields = {
-    'edit_on_doubleclick': 'Open editor on double click',
     'remember_me': 'Remember login information (so you don\'t have to keep logging in',
     'disabled': 'Disable this account forever &mdash; WARNING!! &mdash; permanent'
 }
@@ -530,6 +576,19 @@ class UserSettings:
                 
         return util.web.makeSelection('theme_name', options, cur_theme)
 
+    def _from_wiki_msg(self):
+        """
+	Print a message that says what wiki we're from and what our base wiki is.
+	"""
+	wiki_name = self.from_wiki
+	base_wiki_sitename = farm.getBaseWikiFullName(self.request)
+	d = { 'wiki_name': farm.link_to_wiki(wiki_name, self.request.formatter), 'base_wiki_name': farm.link_to_wiki(farm.getBaseWikiName(self.request), self.request.formatter),
+	      'base_wiki_sitename_link': farm.link_to_wiki(farm.getBaseWikiName(self.request), self.request.formatter, text=base_wiki_sitename, no_icon=True),
+	      'base_wiki_sitename': base_wiki_sitename,
+	    }
+	msg = config.wiki_farm_from_wiki_msg % d
+	return msg
+
     def make_form(self, html_class="settings_form"):
         """ Create the FORM, and the DIVs with the input fields
         """
@@ -541,6 +600,8 @@ class UserSettings:
         self._form.append(html.Raw("<div %s>" % lang_attr))
 
         self._form.append(html.INPUT(type="hidden", name="action", value="userform"))
+	if self.from_wiki:
+          self._form.append(html.INPUT(type="hidden", name="from_wiki", value=self.from_wiki))
         self._form.append(self._inner)
         self._form.append(html.Raw("</div>"))
 
@@ -566,10 +627,20 @@ class UserSettings:
         """ Create the complete HTML form code. """
         _ = self._
         form_html = []
+	self.from_wiki = None
+
         if self.request.form.has_key('new_user'):
-          if self.request.form['new_user'][0]:
+          if self.request.form['new_user'][0] and not self.request.user.valid:
             new_user = True
 
+        # if they are clicking into the user settings area
+	# from a non-hub wiki then we want to get this wiki's name
+	# and display some message accoridngly
+        if self.request.form.has_key('from_wiki'):
+	  self.from_wiki = self.request.form['from_wiki'][0].lower().strip()
+	  if not wikiutil.isInFarm(self.from_wiki, self.request):
+	    self.from_wiki = None
+        
         # different form elements depending on login state
         html_uid = ''
         html_sendmail = ''
@@ -591,7 +662,11 @@ class UserSettings:
 
         #self._table.append(html.Raw(html_uid))
         self.make_form()
-        
+
+        if new_user and self.from_wiki:
+	   if self.from_wiki != farm.getBaseWikiName(self.request):
+	     self._inner.append(html.Raw(self._from_wiki_msg()))
+
         if not self.request.user.valid:
           if not new_user: user_name_help_text = ''
           else: user_name_help_text = _('(Please do not use nickname or business name.)')
@@ -602,6 +677,7 @@ class UserSettings:
           ], option_text = user_name_help_text)
 
         if new_user:
+            
             self.make_row(_('Password'), [
                 html.INPUT(
                     type="password", size=32, name="password",
@@ -646,6 +722,11 @@ class UserSettings:
             self.make_form()
 
             self._inner.append(html.Raw('<h2>General Settings</h2>'))
+
+            if self.from_wiki:
+	        if self.from_wiki != farm.getBaseWikiName(self.request):
+	            self._inner.append(html.Raw(self._from_wiki_msg()))
+
             
             self.make_row(_('Email'), [
                 html.INPUT(
@@ -663,11 +744,6 @@ class UserSettings:
                 html.INPUT(type="checkbox", name='remember_me', value=1,
                             checked=getattr(self.request.user, 'remember_me', 0)),
                 'Remember me so I don\'t have to keep logging in',
-                html.BR(),
-                html.INPUT(type="checkbox", name='edit_on_doubleclick', value=1,
-                            checked=getattr(self.request.user, 'edit_on_doubleclick', 0)),
-                'Open editor on double click'
-
                 ])
 
 
@@ -675,7 +751,7 @@ class UserSettings:
                 # FIXME: make the link link somewhere sane based on current context.
 
                 # prepare list of possible userpage locations
-                wikis_for_userpage_options = self.request.user.getWatchedWikis()
+                wikis_for_userpage_options = copy(self.request.user.getWatchedWikis())
                 if self.request.user.wiki_for_userpage:
                     wikis_for_userpage_options[self.request.user.wiki_for_userpage] = None
                 wikis_for_userpage_options[farm.getBaseWikiName(self.request)] = None
@@ -872,6 +948,14 @@ def do_user_browser(request):
 forever = 10*365*24*3600 # 10 years, after this time the polar icecaps will have melted anyway
 
 def _create_nologin_cookie(request):
+    try:
+        cookie = Cookie.SimpleCookie(request.saved_cookie)
+    except Cookie.CookieError:
+        # ignore invalid cookies, else user can't relogin
+        cookie = None
+    if cookie and cookie.has_key(user.COOKIE_NOT_LOGGED_IN):
+        return
+
     cookie_dir = config.web_dir
     if not cookie_dir: cookie_dir = '/'
     cookie_value = '%s="1"' % user.COOKIE_NOT_LOGGED_IN

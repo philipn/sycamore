@@ -4,15 +4,20 @@
 
     @copyright: 2001-2003 by Jürgen Hermann <jh@web.de>
     @copyright: 2003-2004 by Thomas Waldmann
+    @copyright: 2005-2007 by Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
 
-import os, time, sys
+import os, time, sys, gc, traceback, inspect
 from Sycamore import config, wikiutil, wikidb, user, i18n
 from Sycamore.util import SycamoreNoFooter, web
 import cPickle, cStringIO, gzip
+from copy import copy
 if config.memcache:
   from Sycamore.support import MemcachePool
+  from Sycamore.support import memcache
+
+DO_PROFILE = False
 
 #############################################################################
 ### Misc
@@ -84,13 +89,14 @@ def getRelativeDir(request):
     """
     Sets self.relative_dir to properly reflect config.relative_dir, which can be in parameter form.
     """
-    wiki_name = request.config.wiki_name
     if type(config.relative_dir) == tuple:
         format_string, items_string  = config.relative_dir
         items = eval(items_string)
-        request.relative_dir = format_string % items
+        relative_dir = format_string % items
     else:
-        request.relative_dir = config.relative_dir
+        relative_dir = config.relative_dir
+
+    return relative_dir
 
 def backward_compatibility(request, pagename, oldlink, oldlink_propercased): 
     """
@@ -104,6 +110,51 @@ def backward_compatibility(request, pagename, oldlink, oldlink_propercased):
             pagename = oldlink
 
     return pagename
+
+class postCommitMC(object):
+    """
+    An interface to the memcache object that intercepts set()
+    appending these actions to the postCommit list.  This is safer because it is
+    going to give us consistent data -- that which has been committed.
+    """
+    def __init__(self, request):
+        self.request = request
+        self.mc = request._mc
+        self.postCommitActions = request.postCommitActions
+
+    def _getPrefix(self):
+        if hasattr(self.request, 'config'):
+            return self.request.config.wiki_id
+        return ''
+
+    def set(self, name, value, **kws):
+        if not kws.has_key('prefix'): kws['prefix'] = self._getPrefix()
+        value = copy(value) 
+        value = MemcachePool.fixEncoding(value)
+        self.postCommitActions.append((self.mc.set, (name, value), kws))
+
+    def add(self, name, value, **kws):
+        if not kws.has_key('prefix'): kws['prefix'] = self._getPrefix()
+        value = copy(value) 
+        value = MemcachePool.fixEncoding(value)
+        self.postCommitActions.append((self.mc.add, (name, value), kws))
+
+    def delete(self, name, **kws):
+        if not kws.has_key('prefix'): kws['prefix'] = self._getPrefix()
+        self.postCommitActions.append((self.mc.delete, (name, ), kws))
+
+    def get(self, name, **kws):
+        if not kws.has_key('prefix'): kws['prefix'] = self._getPrefix()
+        return self.mc.get(name, **kws)
+
+    def __getattr__(self, name):
+        """ For every thing we have no method/attribute use the mc"""
+        if self.__dict__.has_key(name):
+            return self.__dict__[name]
+        else:
+            if self.__dict__.has_key('mc'):
+                return getattr(self.__dict__['mc'], name)
+
 
 #############################################################################
 ### Request Data
@@ -141,11 +192,13 @@ class RequestBase(object):
 
         self.html_head = []
         self.generating_cache = False
+        self.did_redirect = False
         self.wiki_exists = True
         self.set_cache = False
         self.postCommitActions = []  # list of things to do after committing data to the database
         if config.memcache:
-          self.mc = MemcachePool.getMC()
+          self._mc = MemcachePool.getMC() # the 'real' memcache, which will send things as soon as its called
+          self.mc = postCommitMC(self) # wrap real memcache so set() and delete() only occur after commits happen
         #if not properties: properties = wikiutil.prepareAllProperties()
         #self.__dict__.update(properties)
         self.req_cache = {'pagenames': {},'users': {}, 'users_id': {}, 'userFavs': {}, 'page_info': {}, 'random': {}, 'acls': {}, 'interwiki': {}, 'file_dict': {}, 'group_dict':{}, 'group_ips':{}, 'pageDateVersion':{}, 'pageVersionDate':{}, 'watchedWikis': {}, 'wiki_config':{}, 'wiki_domains':{}} # per-request cache
@@ -157,7 +210,7 @@ class RequestBase(object):
         self.pagename = None
         self.pagename_propercased = None
 
-        self.addresses = [] # for [[address]] macro.
+        self.addresses = {} # for [[address]] macro.
         self.save_time = None # the time our current request's save is marked for (if applicable)
         self.sent_page_content = None
 
@@ -185,7 +238,7 @@ class RequestBase(object):
                 self.theme = wikiutil.importPlugin('theme', theme_name)(self)
             return
         else:
-            getRelativeDir(self)
+            self.relative_dir = getRelativeDir(self)
             self.user = user.User(self)
 
             self.lang = i18n.requestLanguage(self) 
@@ -208,9 +261,10 @@ class RequestBase(object):
         """
         "be" wiki wikiname.
         """
-        self.config = config.Config(wikiname, self)
-        if config.memcache:
-            self.mc.setPrefix(self.config.wiki_id)
+        if self.config.wiki_name != wikiname:
+            self.config = config.Config(wikiname, self)
+            if config.memcache:
+                self.mc.setPrefix(self.config.wiki_id)
 
     def _setup_vars_from_std_env(self, env):
         """ Sets the common Request members by parsing a standard
@@ -230,7 +284,7 @@ class RequestBase(object):
         self.path_info = env.get('PATH_INFO', '')
         self.query_string = env.get('QUERY_STRING', '')
         self.request_method = env.get('REQUEST_METHOD', None)
-        
+
         self.remote_addr = env.get('REMOTE_ADDR')
         self.proxy_addr = None
 
@@ -479,12 +533,13 @@ class RequestBase(object):
         else:
           f()
 
-      self.db_disconnect()
+      self.db_disconnect(process_post=False)
 
-    def db_disconnect(self, had_error=False):
+    def db_disconnect(self, had_error=False, process_post=True):
       commited = False
+      do_commit = self.db.do_commit
       if not had_error:
-        if self.db.do_commit:
+        if do_commit:
           self.db.commit()
           commited = True
         else:
@@ -493,10 +548,10 @@ class RequestBase(object):
         self.db.rollback()
 
       self.cursor.close()
-      del self.cursor
-      del self.db
+      if not config.db_pool:
+          self.db.close()
 
-      if commited:
+      if not had_error and process_post and do_commit:
         self.processPostCommitActions()
 
     def run(self):
@@ -552,6 +607,11 @@ class RequestBase(object):
             oldlink = self.recodePageName(oldlink)
             self.pagename = pagename
 
+            # if oldlink has control characters when we do an mc_quote -- eep!
+            # we want to, then, throw it out because it wasn't going to work
+            if not wikiutil.suitable_mc_key(oldlink.encode(config.charset)):
+               oldlink = ''
+
             pagename_propercased = ''
             oldlink_propercased = ''
             if pagename: 
@@ -565,6 +625,12 @@ class RequestBase(object):
                 self.pagename_propercased = pagename_propercased
               else:
                 self.pagename = pagename
+
+            if self.pagename.endswith('/'):
+               pagename = self.pagename[:-1]
+               while pagename.endswith('/'): pagename = pagename[:-1]
+               url = Page(pagename, self).url(relative=False)
+               self.http_redirect(url, status="301 MOVED PERMANENTLY")
  
         except Page.ExcessiveLength, msg:
             Page(self.config.page_front_page, self).send_page(msg=msg)
@@ -597,7 +663,6 @@ class RequestBase(object):
             xmlrpc2(self)
             return self.finish()
 
-
         try:
             # handle request
             from Sycamore import wikiaction
@@ -623,7 +688,12 @@ class RequestBase(object):
                         wikiutil.getSysPage(self, self.config.page_front_page).proper_name()
 
                 #self.http_headers()
-                Page(query, self).send_page(count_hit=1)
+                try:
+                    Page(query, self).send_page(count_hit=1)
+                except Page.ExcessiveLength, msg:
+                    Page(self.config.page_front_page, self).send_page(msg=msg)
+                    return self.finish()
+
 
             # generate page footer
             # (actions that do not want this footer use raise util.SycamoreNoFooter to break out
@@ -667,12 +737,14 @@ class RequestBase(object):
         return self.finish(had_error=had_error)
 
 
-    def http_redirect(self, url, type="text/html"):
+    def http_redirect(self, url, mimetype="text/html", status="302 FOUND"):
         """ Redirect to a fully qualified, or server-rooted URL """
+        if type(url) == unicode:
+            url = url.encode(config.charset)
         if url.find("://") == -1:
             url = self.getQualifiedURL(url)
 
-        self.status = "302 FOUND"
+        self.status = status
         self.user_headers.append(("Location", url))
 
     def print_exception(self, type=None, value=None, tb=None, limit=None):
@@ -794,8 +866,8 @@ class RequestDummy(RequestBase):
     self.setup_args()
     RequestBase.__init__(self, process_config=process_config, wiki_name=wiki_name)
 
-  def setup_args(self):
-    return self._setup_vars_from_std_env({})
+  def setup_args(self, env={}):
+    return self._setup_vars_from_std_env(env)
 
   def write(self, data_string, raw=False):
     if not raw:
@@ -967,6 +1039,12 @@ class RequestWSGI(RequestBase):
 
     def setHttpHeader(self, header):
         """ Save header for later send. """
+        h0, h1 = header
+        if type(h0) == unicode:
+          h0 = h0.encode(config.charset)
+        if type(h1) == unicode:
+          h1 = h1.encode(config.charset)
+        header = (h0, h1)
         self.user_headers.append(header)
 
 
@@ -996,9 +1074,18 @@ class RequestWSGI(RequestBase):
 ### Misc methods
 #################################
 def basic_handle_request(env, start_response):
-    #if env.get('QUERY_STRING', '') == 'profile':
-    #  import profile
-    #  prof = profile.Profile()
-    #  prof.runctx('RequestWSGI(env,start_response).run()', globals(), locals())
-    #  prof.dump_stats('prof.%s' % time.time())
-    return RequestWSGI(env, start_response).run()
+    if DO_PROFILE:
+        import profile
+        prof = profile.Profile()
+        req = RequestWSGI(env, start_response)
+        prof.runctx('req.run()', globals(), locals())
+        prof.dump_stats('prof.%s.%s' % (os.getpid(), time.time()))
+        # we return a list as per the WSGI spec
+        if req.do_gzip:
+          text = ''.join(req.output_buffer)
+          compressed_content = req.compress(text)
+          return [compressed_content] # WSGI spec wants a list returned
+        else:
+          return req.output_buffer
+    else:
+        return RequestWSGI(env, start_response).run()

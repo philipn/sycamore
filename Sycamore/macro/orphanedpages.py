@@ -35,10 +35,7 @@ def execute(macro, args, formatter=None):
     # delete all linked pages from a dict of all pages
     _guard = 1
     cursor = macro.request.cursor
-    if showUsers(macro.request):
-      cursor.execute("SELECT curPages.propercased_name from curPages left join links on (links.destination_pagename=curPages.name and links.wiki_id=%(wiki_id)s and curPages.wiki_id=%(wiki_id)s) where curPages.wiki_id=%(wiki_id)s and links.destination_pagename is NULL", {'wiki_id': macro.request.config.wiki_id})
-    else:
-      cursor.execute("SELECT curPages.propercased_name from curPages left join links on (links.destination_pagename=curPages.name and links.wiki_id=%(wiki_id)s and curPages.wiki_id=%(wiki_id)s) left join userWikiInfo on (userWikiInfo.user_name=curPages.name and curPages.wiki_id=%(wiki_id)s and userWikiInfo.wiki_id=%(wiki_id)s) where curPages.wiki_id=%(wiki_id)s and links.destination_pagename is NULL and userWikiInfo.user_name is NULL", {'wiki_id': macro.request.config.wiki_id})
+    cursor.execute("SELECT curPages.propercased_name from curPages left join links on (links.destination_pagename=curPages.name and links.wiki_id=%(wiki_id)s and curPages.wiki_id=%(wiki_id)s) where curPages.wiki_id=%(wiki_id)s and links.destination_pagename is NULL", {'wiki_id': macro.request.config.wiki_id})
      
     orphanednames_result = cursor.fetchall()
     _guard = 0
@@ -51,8 +48,11 @@ def execute(macro, args, formatter=None):
     from Sycamore.Page import Page
     redirects = []
     pages = []
+    show_users = showUsers(macro.request)
     for entry in orphanednames_result:
     	name = entry[0]
+	if name.startswith(config.user_page_prefix) and not show_users:
+             continue
         page = Page(name, macro.request)
         is_redirect = False
         #if not macro.request.user.may.read(name): continue
@@ -62,7 +62,7 @@ def execute(macro, args, formatter=None):
 	  pages.append(page)
 
     pagename = macro.request.getPathinfo()[1:] # usually 'Orphaned Pages' or something such
-    if not showUsers(macro.request):
+    if not show_users:
       macro.request.write('<div style="float: right;"><div class="actionBoxes"><span>%s</span></div></div>' % wikiutil.link_tag(macro.request, pagename + "?show_users=true", "show users"))
     else:
       macro.request.write('<div style="float: right;"><div class="actionBoxes"><span>%s</span></div></div>' % wikiutil.link_tag(macro.request, pagename, "hide users"))

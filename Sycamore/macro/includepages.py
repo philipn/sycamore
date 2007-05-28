@@ -96,7 +96,7 @@ def execute(macro, args,  formatter=None):
         hits = hits[:int(max_items)]
 
     for inc_name in hits:
-        params = '%s,"%s",%s' % (inc_name,inc_name, level)
+        params = '%s,"%s"' % (inc_name,inc_name)
         ret = ret +"<p>"+ Sycamore.macro.include.execute(macro, params, formatter=formatter) +"\n"
 
     # return include text

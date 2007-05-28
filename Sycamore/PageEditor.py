@@ -48,6 +48,8 @@ class PageEditor(Page):
         pass
     class EditConflict(SaveError):
         pass
+    class TooBig(SaveError):
+        pass
 
     def __init__(self, page_name, request, **keywords):
         """
@@ -125,7 +127,8 @@ class PageEditor(Page):
             self.proper_name(),
             pagename=self.proper_name(),
             has_link=True,
-           strict_title='Editing "%s"' % self.proper_name()
+            strict_title='Editing "%s"' % self.proper_name(),
+            body_onload = "sizeForIE('savetext', 100, 'editorComment', 99);"
         )
 
         
@@ -224,7 +227,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.theme.name, 'img', 'buttons')))
         if self.request.user.name:
           if config.user_page_prefix:
-            self.request.write("""<script type=\"text/javascript\">var userPageLink = '["%s%s" %s]';</script>""" % (config.user_page_prefix, self.request.user.propercased_name, self.request.user.propercased_name))
+            self.request.write("""<script type=\"text/javascript\">var userPageLink = '["%s%s"]';</script>""" % (config.user_page_prefix, self.request.user.propercased_name))
           else: 
             self.request.write("""<script type=\"text/javascript\">var userPageLink = '["%s"]';</script>""" % (config.user_page_prefix, self.request.user.propercased_name))
         else:
@@ -277,7 +280,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         self.request.write('</p>') # close textarea
 
-        self.request.write("""<div id="editComment" id="editorResizeButtons"> %s<br><input type="text" class="formfields" name="comment" value="%s" size="%d" maxlength="80" style="width:100%%"></div>""" %
+        self.request.write("""<div id="editComment" id="editorResizeButtons"> %s<br><input type="text" class="formfields" name="comment" id="editorComment" value="%s" size="%d" maxlength="80" style="width:99%%;"></div>""" %
                 (_("<font size=\"+1\">Please comment about this change:</font>"), wikiutil.escape(kw.get('comment', ''), 1), text_cols))
 
         # button bar
@@ -291,8 +294,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.write("</div>")
             
 
-        #show_applet = config.has_wiki_map
-        show_applet = True
+        show_applet = config.has_old_wiki_map
         mapButton = ""
         mapHtml = ""
         if show_applet:
@@ -312,25 +314,22 @@ Your changes were sucessfully merged!""" % conflict_msg)
             rename_button = ''
         
         self.request.write('''
-<table id="editButtonRow"><tr height="30"><td nowrap><font size="3">
-<input type="submit" style="font-size: medium;" name="button_preview" value="%s">
+<div id="editButtonRow">
+<span>
+<input type="submit" class="formbutton" name="button_preview" value="%s">
 <input type="submit" class="formbutton" name="button_save" value="%s">
 <input type="submit" class="formbutton" name="button_cancel" value="%s">
-</td><td width="12">&nbsp;</td><td bgcolor="#ccddff" style="border: 1px dashed #AAAAAA;">
-&nbsp;&nbsp;%s
-<input type="button" class="formbutton" onClick="window.open('%s/%s?action=Files', 'files', 'width=800,height=600,scrollbars=1')" value="Files">
+</span>
+<span class="editActions">
+%s
+<input type="button" class="formbutton" onClick="window.open('%s/%s?action=Files', 'files', 'width=800,height=600,scrollbars=1')" value="Upload Files">
 %s
 %s
 %s
-%s&nbsp;&nbsp;</td></tr></table>
+%s</span>
+</div>
 %s
 ''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, self.request.getScriptname(), wikiutil.quoteWikiname(proper_name), button_spellcheck, delete_button, rename_button, security_button, mapHtml))
-
-        #if config.mail_smarthost:
-        #    self.request.write('''<input type="checkbox" name="notify" value="1"%s><label>%s</label>''' % (
-        #        ('', ' checked="checked"')[preview is None or (form.get('notify',['0'])[0] == '1')],
-        #        _('Send mail notification'),
-        #    ))
 
         if self.request.config.edit_agreement_text: self.request.write(self.request.config.edit_agreement_text)
 
@@ -399,12 +398,13 @@ Your changes were sucessfully merged!""" % conflict_msg)
         page.send_page(msg=_('Edit was cancelled.'))
 
 
-    def deletePage(self, comment=None, permanent=False):
+    def deletePage(self, comment=None, permanent=False, showrc=True):
         """
         Delete the page (but keep the backups)
         
         @param comment: Comment given by user
         @param permanent: Do we permanently delete all past versions of the page?
+        @param showrc: Do we log this revert to recent changes?  This option assumes permanent is True.
         """
         from Sycamore import caching
         if permanent:
@@ -412,24 +412,31 @@ Your changes were sucessfully merged!""" % conflict_msg)
             caching.deleteAllPageInfo(self.page_name, self.request)
             # nuke all old versions!  wwheewwwahawwww
             self.request.cursor.execute("DELETE from allPages where name=%(page_name)s and wiki_id=%(wiki_id)s", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id}, isWrite=True)
+            # nuke all map points!  wwheewwwahawwww
+            self.request.cursor.execute("DELETE from oldMapPoints where pagename=%(page_name)s and wiki_id=%(wiki_id)s", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id}, isWrite=True)
+            self.request.cursor.execute("DELETE from mapPoints where pagename=%(page_name)s and wiki_id=%(wiki_id)s", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id}, isWrite=True)
             
         # First save a final backup copy of the current page
         # (recreating the page allows access to the backups again)
-        try:
-            self.saveText("deleted", '0', comment=comment or '', action='DELETE')
-        except self.SaveError, msg:
-            return msg
+        if not (permanent and not showrc):
+            try:
+                self.saveText("deleted", '0', comment=comment or '', action='DELETE')
+            except self.SaveError, msg:
+                return msg
 
         # Then really delete it
         self.request.cursor.execute("DELETE from curPages where name=%(page_name)s and wiki_id=%(wiki_id)s", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id}, isWrite=True)
 
+        from Sycamore import caching, search
+
         if config.memcache:
           pagecount = wikidb.getPageCount(self.request) - 1
           self.request.mc.set('active_page_count', pagecount)
+          if permanent and not showrc:
+                caching.updateRecentChanges(self)
 
         self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)] = False
 
-        from Sycamore import caching, search
         cache = caching.CacheEntry(self.page_name, self.request)
         cache.clear(type='page save delete')
 
@@ -632,6 +639,10 @@ Your changes were sucessfully merged!""" % conflict_msg)
         for pagename in caching.depend_on_me(self.page_name, self.request, exists, action=action):
           self.request.postCommitActions.append( (caching.CacheEntry(pagename, self.request).clear, ) )
         
+        if exists:
+            type = 'page save'
+        else:
+            type = 'page save new'
         self.buildCache(type=type)
 
 
@@ -657,6 +668,11 @@ Your changes were sucessfully merged!""" % conflict_msg)
         # expand variables, unless it's a template or form page
         if not wikiutil.isTemplatePage(self.page_name):
             newtext = self._expand_variables(newtext)
+
+        # for inline editing we want things to be as smooth as we can
+        no_save_msg = False
+        if self.request.form.has_key('no_save_msg') and self.request.form['no_save_msg'][0]:
+            no_save_msg = True
 
         msg = ""
         merged_changes = False
@@ -689,15 +705,18 @@ Your changes were sucessfully merged!""" % conflict_msg)
                merged_changes = True
                msg = _("""%s Your changes were successfully merged! """ % msg)
                newtext = verynewtext
-        elif newtext == self.get_raw_body() and not self._rename_lowercase_condition():
-            # check to see if they're renaming the page to the same thing (thus, no content change)
+        elif newtext == self.get_raw_body() and not self._rename_lowercase_condition() and kw.get('action') != 'SAVE/REVERT':
+            # check to see if they're saving the page with the same content it had before
             msg = _('You did not change the page content, not saved!')
             raise self.Unchanged, msg
+        elif config.max_page_size and len(newtext.encode(config.charset)) > (config.max_page_size*1024):
+            msg = _('This page is too big!  Pages can be, at most, %sK.  Consider splitting the page up into multiple pages instead!' % (config.max_page_size))
+            raise self.TooBig, msg
             
         # save only if no error occured (msg is empty)
         if not msg or merged_changes:
             # set success msg
-            if not merged_changes:
+            if not merged_changes and not no_save_msg:
               msg = _("Thank you for your changes. Your attention to detail is appreciated. ")
 
             # determine action for edit logging
@@ -707,16 +726,16 @@ Your changes were sucessfully merged!""" % conflict_msg)
                            
             # write the page file
             mtime = self._write_to_db(newtext, action, kw.get('comment',''), self.request.remote_addr, kw.get('proper_name',None))
-
             # deal with the case of macros / other items that change state by /not/ being in the page
             wikiutil.macro_delete_checks(self)
             
             # we'll try to change the stats early-on
             if self.request.user.name:
-                self.userStatAdd(self.request.user.name, action, self.page_name)
+                self.userStatAdd(self.request.user, action, self.page_name)
 
             # add the page to the search index or update its index
-            search.add_to_index(self)
+            if action != 'DELETE':
+                search.add_to_index(self)
 
             # note the change in recent changes.  this explicit call is needed because of the way we cache our change information
             caching.updateRecentChanges(self)
@@ -739,14 +758,13 @@ Your changes were sucessfully merged!""" % conflict_msg)
         msg = msg + self._notifySubscribers(kw.get('comment', ''))
         return msg
 
-    def userStatAdd(self, username, action, pagename):
-        self.request.cursor.execute("SELECT created_count, edit_count from users where name=%(username)s", {'username':username})
+    def userStatAdd(self, theuser, action, pagename):
+        self.request.cursor.execute("SELECT created_count, edit_count from users where name=%(username)s", {'username':theuser.name})
         result = self.request.cursor.fetchone()
        
         total_created_count = result[0]
         total_edit_count = result[1]
 
-        theuser = user.User(self.request, name=username)
         wiki_info = theuser.getWikiInfo() 
 
         local_created_count = wiki_info.created_count
@@ -761,7 +779,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         last_edit_date = time.time()
 
         last_wiki_edited = self.request.config.wiki_id
-        d = {'total_created_count':total_created_count, 'total_edit_count':total_edit_count, 'last_wiki_edited':last_wiki_edited, 'last_page_edited':last_page_edited, 'last_edit_date':last_edit_date, 'username':username, 'wiki_id':self.request.config.wiki_id, 'local_created_count':local_created_count, 'local_edit_count':local_edit_count, 'file_count': wiki_info.file_count}
+        d = {'total_created_count':total_created_count, 'total_edit_count':total_edit_count, 'last_wiki_edited':last_wiki_edited, 'last_page_edited':last_page_edited, 'last_edit_date':last_edit_date, 'username':theuser.name, 'wiki_id':self.request.config.wiki_id, 'local_created_count':local_created_count, 'local_edit_count':local_edit_count, 'file_count': wiki_info.file_count}
         self.request.cursor.execute("UPDATE users set created_count=%(total_created_count)s, edit_count=%(total_edit_count)s, file_count=%(file_count)s, last_page_edited=%(last_page_edited)s, last_edit_date=%(last_edit_date)s, last_wiki_edited=%(wiki_id)s where name=%(username)s", d, isWrite=True)
 
         wiki_info.created_count = local_created_count

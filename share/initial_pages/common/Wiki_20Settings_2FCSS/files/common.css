@@ -1,6 +1,6 @@
 /*  common.css - Sycamore Default Styles
-*   These are the styles you probably don't need to change to make your wiki look unique.
-*/
+ *  *   These are the styles you probably don't need to change to make your wiki look unique.
+ *  */
 
 /* Whole HTML block */
 html {
@@ -21,7 +21,7 @@ img { border: 1px solid #000000; }
 a img { border: 0; }
 a img.border { border: 1px solid #000000; }
 img.photo { border: 2px solid #ff0000; }
-img.borderless { border: 0px; }
+img.borderless { border: 0px!important; }
 
 a.noBorder { text-decoration: none; }
 a.nostyle { text-decoration: none !important; }
@@ -55,7 +55,6 @@ td { padding: 1pt; }
 /* The previewed page area */
 div.preview {
   border: 2px solid #CBCBCB;
-  padding: .5em;
   background: url(/wiki/eggheadbeta/img/draft.png);
 }
 
@@ -68,14 +67,15 @@ strong.highlight
 
 /* Used for images in content that are aligned */
 span.floatLeft {
-  margin: .6em 10px 10px 0px;
+  margin: 1.4em 10px 10px 0px;
   float: left;
   clear: left;
 }
 span.floatRight {
-  margin: .6em 0px 10px 10px;
+  margin: 1.4em 0px 10px 10px;
   float: right;
   clear: right;
+
 }
 span.noFloat {
   margin: .6em 10px 10px 0px;
@@ -101,6 +101,7 @@ span.thumb.noborder {
 span.thumb img:hover {
   cursor: pointer;
 }
+span.thumb span img { border: none; }
 span.thumb p { margin: .1em 0 .1em 0; }
 
 /* Caption for images on wiki pages */
@@ -257,6 +258,10 @@ div.pageEditInfo {
 
 .recentchanges h2 { margin-bottom: .5em; }
 
+.includedPage {
+   padding-bottom: .5em;
+}
+
 /* Global footer area */
 .wikiGlobalFooter { padding-top: .4em; }
 /* Wiki Spot specific footer styling */
@@ -273,4 +278,3 @@ div.pageEditInfo {
   color: #333399 !important;
 }
 .wikiSpotFooter a:hover { color: #669966 !important; }
-

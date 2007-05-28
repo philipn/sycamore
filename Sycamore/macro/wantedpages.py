@@ -50,10 +50,12 @@ def execute(macro, args, formatter=None):
     wanted = []
     cursor = macro.request.cursor
     if showUsers(macro.request):
-      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name from (SELECT destination_pagename_propercased, source_pagename from (SELECT destination_pagename_propercased, destination_pagename, source_pagename from links where wiki_id=%(wiki_id)s) as ourLinks left join curPages on (destination_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s) where curPages.name is NULL) as wanted, curPages as c where c.name=source_pagename and c.wiki_id=%(wiki_id)s order by destination_pagename_propercased;", {'wiki_id':macro.request.config.wiki_id})
+      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name, destination_pagename from (SELECT destination_pagename_propercased, source_pagename, destination_pagename from (SELECT destination_pagename_propercased, destination_pagename, source_pagename from links where wiki_id=%(wiki_id)s) as ourLinks left join curPages on (destination_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s) where curPages.name is NULL) as wanted, curPages as c where c.name=source_pagename and c.wiki_id=%(wiki_id)s order by destination_pagename;", {'wiki_id':macro.request.config.wiki_id})
     else:
-      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name from (SELECT destination_pagename_propercased, source_pagename from (SELECT destination_pagename_propercased, destination_pagename, source_pagename from links where wiki_id=%(wiki_id)s) as ourLinks left join curPages on (destination_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s) left join userWikiInfo on (destination_pagename=userWikiInfo.user_name and userWikiInfo.wiki_id=%(wiki_id)s) where curPages.name is NULL and userWikiInfo.user_name is NULL) as wanted, curPages as c where c.name=source_pagename and c.wiki_id=%(wiki_id)s order by destination_pagename_propercased;", {'wiki_id':macro.request.config.wiki_id})
+      cursor.execute("SELECT destination_pagename_propercased, c.propercased_name, destination_pagename from (SELECT destination_pagename_propercased, source_pagename, destination_pagename from (SELECT destination_pagename_propercased, destination_pagename, source_pagename from links where wiki_id=%(wiki_id)s) as ourLinks left join curPages on (destination_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s) left join userWikiInfo on (destination_pagename=userWikiInfo.user_name and userWikiInfo.wiki_id=%(wiki_id)s) where curPages.name is NULL and userWikiInfo.user_name is NULL) as wanted, curPages as c where c.name=source_pagename and c.wiki_id=%(wiki_id)s order by destination_pagename;", {'wiki_id':macro.request.config.wiki_id})
       
+    show_users = showUsers(macro.request)
+    dont_append = False
     wanted_results = cursor.fetchall()
     if wanted_results:
       # we have wanted pages
@@ -62,21 +64,33 @@ def execute(macro, args, formatter=None):
       num_links = 0
       links = []
       for w_result in wanted_results:
-        new_pagename_propercased = w_result[0]
-	new_pagename = new_pagename_propercased.lower()
-	if old_pagename == new_pagename:
-	  num_links += 1
-	  links.append(w_result[1])
-	else:
-	   wanted.append((old_pagename_propercased, num_links, links))
-	   num_links = 1
-	   links = [w_result[1]]
-	   old_pagename_propercased = new_pagename_propercased
-	   old_pagename = old_pagename_propercased.lower()
-      wanted.append((old_pagename_propercased, num_links, links))
+          if old_pagename.startswith(config.user_page_prefix.lower()):
+              if not show_users:
+                  dont_append = True
+                  continue
+              if user.unify_userpage(macro.request, old_pagename, old_pagename):
+                  theusername = old_pagename[len(config.user_page_prefix):]
+                  theuser = user.User(macro.request, name=theusername)
+                  if theuser.wiki_for_userpage != macro.request.config.wiki_name:
+                      dont_append = True
+                      continue
+
+          new_pagename_propercased = w_result[0]
+          new_pagename = new_pagename_propercased.lower()
+          if old_pagename == new_pagename:
+              num_links += 1
+              links.append(w_result[1])
+          else:
+              # done counting -- we now append to the wanted list
+              wanted.append((old_pagename_propercased, num_links, links))
+              num_links = 1
+              links = [w_result[1]]
+              old_pagename_propercased = new_pagename_propercased
+              old_pagename = old_pagename_propercased.lower()
+      if not dont_append: wanted.append((old_pagename_propercased, num_links, links))
     else:
         macro.request.write("<p>%s</p>" % _("No wanted pages in this wiki."))
-	return ''
+        return ''
 
     # find the 'most wanted' pages
     wanted.sort(comparey)
@@ -112,13 +126,13 @@ def execute(macro, args, formatter=None):
 
     for name, links, source_pagenames in wanted:
         macro.request.write('<li value="%s">' % links)
-	macro.request.write(Page(name, macro.request).link_to(know_status=True, know_status_exists=False) + ": ")
-	macro.request.write(Page(source_pagenames[0], macro.request).link_to(know_status=True, know_status_exists=True))
-	if len(source_pagenames) > 1:
-	  for p in source_pagenames[1:-1]:
+        macro.request.write(Page(name, macro.request).link_to(know_status=True, know_status_exists=False) + ": ")
+        macro.request.write(Page(source_pagenames[0], macro.request).link_to(know_status=True, know_status_exists=True))
+        if len(source_pagenames) > 1:
+          for p in source_pagenames[1:-1]:
             macro.request.write(", " + Page(p, macro.request).link_to(know_status=True, know_status_exists=True))
-	  macro.request.write(", " + Page(source_pagenames[-1], macro.request).link_to(know_status=True, know_status_exists=True))
-	macro.request.write("</li>")
+          macro.request.write(", " + Page(source_pagenames[-1], macro.request).link_to(know_status=True, know_status_exists=True))
+        macro.request.write("</li>")
     macro.request.write("</ol>")
 
     return ''

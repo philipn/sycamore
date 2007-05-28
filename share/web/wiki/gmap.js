@@ -33,7 +33,7 @@ function loadMap() {
         ifr.marginwidth = 0;
         ifr.width = 449;
         ifr.height = 299;
-        ifr.style.border = "none;";
+        ifr.style.border = "none";
         document.getElementById("map").appendChild(ifr);
     }
     else /* We're in the iframe! */ {
@@ -52,6 +52,7 @@ var map_url = '';
 
 function initLoad()
 {
+    
     mapon = false;
     baseIcon = new GIcon();
     baseIcon.shadow = "http://www.google.com/mapfiles/shadow50.png";

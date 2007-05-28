@@ -121,7 +121,7 @@ class FormatterBase:
     def linebreak(self, preformatted=1):
         raise NotImplementedError
 
-    def paragraph(self, on):
+    def paragraph(self, on, id=None):
         self.in_p = on != 0
 
     def rule(self, size=0):

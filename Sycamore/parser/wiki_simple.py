@@ -9,7 +9,7 @@
 # Imports
 import os, re
 import string
-from Sycamore import config, wikimacro, wikiutil
+from Sycamore import config, wikimacro, wikiutil, user
 from Sycamore.Page import Page
 from Sycamore.util import web
 
@@ -34,11 +34,9 @@ class Parser:
 
     # some common strings
     PARENT_PREFIX = wikiutil.PARENT_PREFIX
-    attachment_schemas = ["attachment", "inline", "drawing", "borderless"]
     punct_pattern = re.escape('''"\'}]|:,.)?!''')
-    url_pattern = ('http|https|ftp|nntp|news|mailto|telnet|wiki|file|' +
-            '|'.join(attachment_schemas) + 
-            (config.url_schemas and '|' + '|'.join(config.url_schemas) or ''))
+    url_pattern = ('http|https|ftp|nntp|news|mailto|telnet|wiki|file' +
+            ('|'.join(config.url_schemas) or ''))
 
     EOL_RE = re.compile(r'\r?\n')
 
@@ -68,9 +66,8 @@ class Parser:
 (?P<sup>\^.*?\^)
 (?P<sub>,,[^,]{1,40},,)
 (?P<tt>\{\{\{.*?\}\}\})
-(?P<processor>(\{\{\{(#!.*|\s*$)))
 (?P<pre>(\{\{\{ ?|\}\}\}))
-(?P<rule>-{4,})
+(?P<rule>^\s*-{4,}\s*$)
 (?P<strike>(--X)|(X--))
 (?P<mdash>--(-){0,1})
 (?P<li>^\s+\*)
@@ -124,6 +121,8 @@ class Parser:
 
     def _close_item(self, result):
         #result.append("<!-- close item begin -->\n")
+        if self.formatter.in_p:
+            result.append(self.formatter.paragraph(0))
         if self.in_li:
             self.in_li = 0
             result.append(self.formatter.listitem(0))
@@ -153,11 +152,11 @@ class Parser:
         tag, tail = wikiutil.split_wiki(url)
         
         if tag == tail == None:
-            if Page(url, self.request).exists():
-                # fancy link to local page [wiki:LocalPage text]
-                return self._word_repl(url, text)
-            else:
-                return self._word_repl(url, text)
+            # is of the form [wiki:nameofwiki text here]
+            # rather than [wiki:nameofwiki:"page name" text here]
+            tag = url
+            tail = ''
+            url = '%s:' % url
 
         return self.formatter.interwikilink(url, text) #, kw)
 
@@ -231,27 +230,20 @@ class Parser:
 
     def _rule_repl(self, word):
         """Handle sequences of dashes."""
-        self.inhibit_p = 1
+        word = word.strip()
         self.inhibit_br += 2
         result = self._undent()
         if len(word) <= 4:
             result = result + self.formatter.rule()
         else:
             result = result + self.formatter.rule(min(len(word), 10) - 2)
+        # if we didn't increment edit_id then we'd edit the rule when we do an inline edit
+        # we want to start edits on the next line
+        self.force_print_p = True
         return result
 
 
-    def _unify_userpage(self, word):
-        """If this is a userpage, let's link to the one they set as their home."""
-        from Sycamore import user
-        if word.lower().startswith(config.user_page_prefix.lower()):
-            username = word[len(config.user_page_prefix):]
-            theuser = user.User(self.request, name=username)
-            if theuser.exists() and theuser.wiki_for_userpage and theuser.wiki_for_userpage != self.request.config.wiki_name:
-                return user.getUserLink(self.request, theuser)
-                
-        return False
-
+    
     def _alert_repl(self, word):
         """show alert icon."""
         return self.request.theme.make_icon('attention.png')
@@ -259,7 +251,6 @@ class Parser:
 
     def _word_repl(self, word, text=None):
         """Handle linked wiki page names."""
-
         # check for parent links
         # !!! should use wikiutil.AbsPageName here, but setting `text`
         # correctly prevents us from doing this for now
@@ -287,18 +278,24 @@ class Parser:
                 for entry in split_base_pagename[1:]:
                   word += '/' + entry
 
+        # is this a link to a user page?
+        userpage_link = user.unify_userpage(self.request, word, text)
+
         if not text:
             text = word
         # if a simple, self-referencing link, emit it as plain text
         if self.is_a_page:
           if word.lower() == self.formatter.page.page_name:
+            # Don't want to display ["Users/Myname"] as "Users/Myname" on their Myname's user page.  We display "Myname."
+            if word.lower().startswith(config.user_page_prefix.lower()):
+                text = word[len(config.user_page_prefix):]
             return text 
         if self.request.config.allow_subpages and word.startswith(wikiutil.CHILD_PREFIX):
             word = self.formatter.page.proper_name() + word
+
         text = self.highlight_text(text)
-        # is this a link to a user page?
-        userpage_link = self._unify_userpage(word)
-        return userpage_link or self.formatter.pagelink(word, text)
+        pagelink = self.formatter.pagelink(word, text) # need to do this for the side-effect of adding to pagelinks
+        return userpage_link or pagelink
 
     def _notword_repl(self, word):
         """Handle !NotWikiNames."""
@@ -322,8 +319,6 @@ class Parser:
         scheme = word.split(":", 1)[0]
         if not (scheme == "http"):
                 if scheme == "wiki": return self.interwiki([word])
-                if scheme in self.attachment_schemas:
-                        return self.attachment([word])
                 return self.formatter.url(word, text=self.highlight_text(word))
 
         elif scheme == "http":
@@ -465,7 +460,7 @@ class Parser:
         if self._indent_level() != new_level:
             self._close_item(close)
         else:
-            if not self.line_was_empty:                                                                                                       
+            if not self.line_was_empty and self.lineno > 1:
                 self.inhibit_p = 1                                                                                                            
     
         # Close lists while char-wise indent is greater than the current one
@@ -486,29 +481,11 @@ class Parser:
                 self.inhibit_p = 1
             else:
                 self.inhibit_p = 0
-                
-            # XXX This would give valid, but silly looking html.
-            # the right way is that inner list has to be CONTAINED in outer li -
-            # but in the one before, not a new one, like this code does:
-            #if self.list_types: # we are still in a list, bracket with li /li
-            #    if self.list_types[-1] in ['ol', 'ul']:
-            #        open.append(" "*4*new_level)
-            #        open.append(self.formatter.listitem(0))
-            #    elif self.list_types[-1] == 'dl':
-            #        open.append(" "*4*new_level)
-            #        open.append(self.formatter.definition_desc(0))
 
+            self.force_print_p = False
+                
         # Open new list, if necessary
         if self._indent_level() < new_level:
-            # XXX see comment 10 lines above
-            #if self.list_types: # we already are in a list, bracket with li /li
-            #    if self.list_types[-1] in ['ol', 'ul']:
-            #        open.append(" "*4*new_level)
-            #        open.append(self.formatter.listitem(1))
-            #    elif self.list_types[-1] == 'dl':
-            #        open.append(" "*4*new_level)
-            #        open.append(self.formatter.definition_desc(1))
-                    
             self.list_indents.append(new_level)
             self.list_types.append(list_type)
             
@@ -519,15 +496,18 @@ class Parser:
                 tag = self.formatter.definition_list(1)
             else:
                 tag = self.formatter.bullet_list(1)
+                self.force_print_p = False
             open.append("\n%s%s\n" % (indentstr, tag))
             
             self.first_list_item = 1
-            self.inhibit_p = 1
+            #self.inhibit_p = 1
+            #self.force_print_p = False
             
         # If list level changes, close an open table
         if self.in_table and (open or close):
             close[0:0] = [self.formatter.table(0)]
             self.in_table = 0
+
 
         return ''.join(close) + ''.join(open)
 
@@ -554,14 +534,6 @@ class Parser:
         """Handle inline code."""
         return self.formatter.code(1) + \
             self.highlight_text(word[3:-3]) + \
-            self.formatter.code(0)
-
-
-    def _tt_bt_repl(self, word):
-        """Handle backticked inline code."""
-        if len(word) == 2: return ""
-        return self.formatter.code(1) + \
-            self.highlight_text(word[1:-1]) + \
             self.formatter.code(0)
 
 
@@ -640,39 +612,6 @@ class Parser:
         #print attr
         return attr, msg
 
-    def _processor_repl(self, word):
-        """Handle processed code displays."""
-        if word[:3] == '{{{': word = word[3:]
-
-        self.processor = None
-        self.processor_name = None
-        s_word = word.strip()
-        if s_word == '#!':
-            # empty bang paths lead to a normal code display
-            # can be used to escape real, non-empty bang paths
-            word = ''
-            self.in_pre = 3
-            return  self.formatter.preformatted(1)
-        elif s_word[:2] == '#!':
-            processor_name = s_word[2:].split()[0]
-            self.processor = wikiutil.importPlugin("processor", processor_name, "process")
-            if not self.processor and s_word.find('python') > 0:
-                from Sycamore.processor.Colorize import process
-                self.processor = process
-                self.processor_name = "Colorize"
-
-        if self.processor:
-            self.processor_name = processor_name
-            self.in_pre = 2
-            self.colorize_lines = [word]
-            return ''
-        elif  s_word:
-            self.in_pre = 3
-            return self.formatter.preformatted(1) + \
-                   self.formatter.text(s_word + ' (-)')
-        else:
-            self.in_pre = 1
-            return ''
 
     def _pre_repl(self, word):
         """Handle code displays."""
@@ -710,7 +649,7 @@ class Parser:
 
         # create macro instance
         if self.macro is None:
-            self.macro = wikimacro.Macro(self)
+            self.macro = wikimacro.Macro(self, formatter=self.formatter)
 
         # call the macro
         return self.formatter.macro(self.macro, macro_name, args)
@@ -794,11 +733,11 @@ class Parser:
         return not (self.inhibit_br > 0 or self.in_table or self.lineno <= 1 or self.line_was_empty)
 
 
-    def format(self, formatter):
+    def format(self, formatter, inline_edit_default_state=False):
         """ For each line, scan through looking for magic
             strings, outputting verbatim any intervening text.
         """
-        if formatter.__dict__.has_key('page'):
+        if hasattr(formatter, 'page'):
           self.is_a_page = True
         else: self.is_a_page = False
 
@@ -814,8 +753,6 @@ class Parser:
                 'word_rule': self.word_rule,
                 'rules': rules,
             }
-        if config.backtick_meta:
-            rules = rules + r'|(?P<tt_bt>`.*?`)'
         if config.allow_numeric_entities:
             rules = r'(?P<ent_numeric>&#\d{1,5};)|' + rules
 
@@ -833,6 +770,7 @@ class Parser:
         self.lines = eol_re.split(rawtext)
         self.line_is_empty = 0
         self.inhibit_br = 0
+        self.force_print_p = False
 
         for line in self.lines:
             self.lineno = self.lineno + 1
@@ -844,59 +782,35 @@ class Parser:
             if self.inhibit_br > 0: self.inhibit_br -= 1
             else: self.inhibit_br = 0
 
-            if self.in_pre:
-                # still looking for processing instructions
-                if self.in_pre == 1:
-                    self.processor = None
-                    processor_name = ''
-                    if (line.strip()[:2] == "#!"):
-                        from Sycamore.processor import processors
-                        processor_name = line.strip()[2:].split()[0]
-                        self.processor = wikiutil.importPlugin("processor", processor_name, "process")
-                        if not self.processor and (line.find('python') > 0):
-                            from Sycamore.processor.Colorize import process
-                            self.processor = process
-                            processor_name = "Colorize"
-                    if self.processor:
-                        self.in_pre = 2
-                        self.colorize_lines = [line]
-                        self.processor_name = processor_name
-                        continue
-                    else:
-                        self.request.write(self.formatter.preformatted(1))
-                        self.in_pre = 3
-                if self.in_pre == 2:
-                    # processing mode
-                    endpos = line.find("}}}")
-                    if endpos == -1:
-                        self.colorize_lines.append(line)
-                        continue
-                    if line[:endpos]:
-                        self.colorize_lines.append(line[:endpos])
-                    self.request.write(
-                        self.formatter.processor(self.processor_name, self.colorize_lines))
-                    del self.colorize_lines
-                    self.in_pre = 0
-                    self.processor = None
+            self.formatter.inline_edit_force_state = inline_edit_default_state
 
-                    # send rest of line through regex machinery
-                    line = line[endpos+3:]                    
+            self.formatter.inline_edit_force_state = inline_edit_default_state
+
+            if inline_edit_default_state is not None:
+                self.formatter.inline_edit = inline_edit_default_state
             else:
+                self.formatter.inline_edit = True
+
+            if not self.in_pre:
                 # paragraph break on empty lines
                 if not line.strip():
                     #self.request.write("<!-- empty line start -->\n")
+                    if self.formatter.in_p:
+                        self.request.write(self.formatter.paragraph(0))
                     if self.in_table:
                         self.request.write(self.formatter.table(0))
                         self.in_table = 0
                     self.line_is_empty = 1
+                    self.force_print_p = False
                     #self.request.write("<!-- empty line end -->\n")
                     continue
                 elif self.print_br():
                     self.request.write('<br/>')
                     self.inhibit_br += 1 # to avoid printing two if they did [[br]]
                 # start p on first line
-                elif not self.inhibit_p and self.lineno == 1 and self.print_first_p:
-                    self.request.write(self.formatter.paragraph(1))
+
+                #elif not self.inhibit_p and self.lineno == 1 and self.print_first_p:
+                #    self.request.write(self.formatter.paragraph(1))
 
                 # check indent level
                 indent = indent_re.match(line)
@@ -942,12 +856,25 @@ class Parser:
             if not self.in_pre:   # we don't want to have trailing blanks in pre
                 line = line + " " # we don't have \n as whitespace any more
 
+            if self.formatter.in_list > 0:
+                self.force_print_p = False
+            elif self.formatter.inline_edit and self.force_print_p and not self.formatter.in_p:
+                self.force_print_p = False
+                self.request.write(self.formatter.paragraph(1))
+            elif self.formatter.in_p:
+                self.force_print_p = False
+
             formatted_line = self.scan(scan_re, line) # this also sets self.inhibit_p as side effect!
             
             #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
-            if not (self.inhibit_p or self.in_pre or self.in_table):
-                self.request.write(self.formatter.paragraph(1))
+            # we check against force_print_p here to avoid printing out <p> (above) and then immediately </p>
+            if not (self.inhibit_p or self.in_pre or self.in_table or self.force_print_p):
+                 self.request.write(self.formatter.paragraph(1))
+            elif self.formatter.in_list > 0 and not self.formatter.printed_inline_edit_id:
+                 self.request.write(self.formatter.paragraph(1))
 
+
+            
             #self.request.write("<!-- %s\n     start -->\n" % line)
             self.request.write(formatted_line)
             #self.request.write("<!-- end -->\n")

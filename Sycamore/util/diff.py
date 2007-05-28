@@ -11,15 +11,15 @@ import difflib
 from Sycamore.wikiutil import escape
 
 def indent(line):
-    eol = ''
+    eol = []
     while line and line[0] == '\n':
-        eol += '\n'
+        eol.append('\n')
         line = line[1:]
     stripped = line.lstrip()
     if len(line) - len(stripped):
         line = "&nbsp;" * (len(line) - len(stripped)) + stripped
     #return "%d / %d / %s" % (len(line), len(stripped), line)
-    return eol + line
+    return ''.join(eol) + line
 
 
 # This code originally by Scott Moonen, used with permission.
@@ -43,7 +43,7 @@ def diff(request, old, new, text_mode=False):
     lastmatch = (0, 0)
 
     if not text_mode:
-      result = """
+      result = ["""
 <table class="diff">
 <tr>
 <td class="diff-removed">
@@ -57,9 +57,9 @@ def diff(request, old, new, text_mode=False):
 </span>
 </td>
 </tr>
-""" % (_('Deletions are marked like this.'), _('Additions are marked like this.'),)
+""" % (_('Deletions are marked like this.'), _('Additions are marked like this.'),)]
     else:
-      result = """
+      result = ["""
 <table>
 <tr>
 <td>
@@ -73,7 +73,7 @@ def diff(request, old, new, text_mode=False):
 </span>
 </td>
 </tr>
-""" % (_('Deletions are marked with - .'), _('Additions are marked with +.'),)
+""" % (_('Deletions are marked with - .'), _('Additions are marked with +.'),)]
 
 
     # Print all differences
@@ -84,7 +84,7 @@ def diff(request, old, new, text_mode=False):
             continue
 
         if not text_mode:
-	  result += """
+	  result.append("""
 <tr class="diff-title">
 <td>
 %s %s:
@@ -94,9 +94,9 @@ def diff(request, old, new, text_mode=False):
 </td>
 </tr>
 """ % ( t_line, str(lastmatch[0] + 1),
-        t_line, str(lastmatch[1] + 1),)
+        t_line, str(lastmatch[1] + 1),))
         else:	
-          result += """
+          result.append("""
 <tr>
 <td>
 %s %s:
@@ -106,36 +106,36 @@ def diff(request, old, new, text_mode=False):
 </td>
 </tr>
 """ % ( t_line, str(lastmatch[0] + 1),
-        t_line, str(lastmatch[1] + 1),)
+        t_line, str(lastmatch[1] + 1),))
 
         
-        leftpane  = ''
-        rightpane = ''
+        leftpane  = [] 
+        rightpane = [] 
         linecount = max(match[0] - lastmatch[0], match[1] - lastmatch[1])
         for line in range(linecount):
             if line < match[0] - lastmatch[0]:
                 if line > 0:
-                    leftpane += '\n'
-                if not text_mode: leftpane += seq1[lastmatch[0] + line]
-		else: leftpane += "- %s" % seq1[lastmatch[0] + line]
+                    leftpane.append('\n')
+                if not text_mode: leftpane.append(seq1[lastmatch[0] + line])
+		else: leftpane.append("- %s" % seq1[lastmatch[0] + line])
             if line < match[1] - lastmatch[1]:
                 if line > 0:
-                    rightpane += '\n'
-                if not text_mode: rightpane += seq2[lastmatch[1] + line]
-		else: rightpane += "+ %s" % seq2[lastmatch[1] + line]
+                    rightpane.append('\n')
+                if not text_mode: rightpane.append(seq2[lastmatch[1] + line])
+		else: rightpane.append("+ %s" % seq2[lastmatch[1] + line])
 
-        charobj   = difflib.SequenceMatcher(None, leftpane, rightpane)
+        charobj   = difflib.SequenceMatcher(None, ''.join(leftpane), ''.join(rightpane))
         charmatch = charobj.get_matching_blocks()
         
         if charobj.ratio() < 0.5:
             # Insufficient similarity.
             if leftpane:
-                leftresult = """<span>%s</span>""" % indent(escape(leftpane))
+                leftresult = """<span>%s</span>""" % indent(escape(''.join(leftpane)))
             else:
                 leftresult = ''
 
             if rightpane:
-                rightresult = """<span>%s</span>""" % indent(escape(rightpane))
+                rightresult = """<span>%s</span>""" % indent(escape(''.join(rightpane)))
             else:
                 rightresult = ''
         else:
@@ -147,12 +147,12 @@ def diff(request, old, new, text_mode=False):
             for thismatch in charmatch:
                 if thismatch[0] - charlast[0] != 0:
                     leftresult += """<span>%s</span>""" % indent(
-                        escape(leftpane[charlast[0]:thismatch[0]]))
+                        escape(''.join(leftpane)[charlast[0]:thismatch[0]]))
                 if thismatch[1] - charlast[1] != 0:
                     rightresult += """<span>%s</span>""" % indent(
-                        escape(rightpane[charlast[1]:thismatch[1]]))
-                leftresult += escape(leftpane[thismatch[0]:thismatch[0] + thismatch[2]])
-                rightresult += escape(rightpane[thismatch[1]:thismatch[1] + thismatch[2]])
+                        escape(''.join(rightpane)[charlast[1]:thismatch[1]]))
+                leftresult += escape(''.join(leftpane)[thismatch[0]:thismatch[0] + thismatch[2]])
+                rightresult += escape(''.join(rightpane)[thismatch[1]:thismatch[1] + thismatch[2]])
                 charlast = (thismatch[0] + thismatch[2], thismatch[1] + thismatch[2])
 
         leftpane  = '<br>\n'.join(map(indent, leftresult.splitlines()))
@@ -160,7 +160,7 @@ def diff(request, old, new, text_mode=False):
 
         # removed width="50%%"
         if not text_mode:
-	  result += """
+	  result.append("""
 <tr>
 <td class="diff-removed">
 %s
@@ -169,9 +169,9 @@ def diff(request, old, new, text_mode=False):
 %s
 </td>
 </tr>
-""" % (leftpane, rightpane)
+""" % (leftpane, rightpane))
         else:
-	  result += """
+	  result.append("""
 <tr>
 <td>
 %s
@@ -180,10 +180,10 @@ def diff(request, old, new, text_mode=False):
 %s
 </td>
 </tr>
-""" % (leftpane, rightpane)
+""" % (leftpane, rightpane))
 
         lastmatch = (match[0] + match[2], match[1] + match[2])
 
-    result += '</table>\n'
-    return result
+    result.append('</table>\n')
+    return ''.join(result)
 

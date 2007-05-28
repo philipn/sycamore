@@ -47,18 +47,23 @@ class AccessControlList:
         allowed = None
         has_all_setting = ('All' in self.acl_dict)
         has_known_setting = ('Known' in self.acl_dict)
-        # page-specific acl
-        for groupname in self.acl_dict:
-          if len(self.acl_dict[groupname]) >= ACL_RIGHTS_TABLE[dowhat]:
-            allowed = self.acl_dict[groupname][ACL_RIGHTS_TABLE[dowhat]]
-            if username in Group(groupname, request):
-              if allowed:
-                return True
-              if groupname != 'All' and groupname != 'Known':
-                return allowed
 
-        if has_known_setting and request.user.valid: return allowed
-     
+        # page-specific acl
+        in_page_group = False
+        for groupname in self.acl_dict:
+          if groupname in ['All', 'Known', 'Banned', 'Admin']: continue
+          allowed = self.acl_dict[groupname][ACL_RIGHTS_TABLE[dowhat]]
+          if username in Group(groupname, request):
+              if allowed:
+                  return True
+              in_page_group = True
+
+        # fall-back:
+        # user is in a group with defined security settings on this page
+        # but isn't granted any rights, so we exclude them.
+        if in_page_group:
+            return False
+
         # if they're banned, kick 'em out
         banned_group = Group("Banned", request)
         if (username in banned_group) or (request.remote_addr in banned_group.get_ips()):
@@ -67,9 +72,15 @@ class AccessControlList:
 
         if request.user.valid:
           # we fall back to Known behavior if there is something specific to Known on this page
-          if self.acl_dict.has_key('Known') and (list(self.acl_dict["Known"]) != list(self.acl_dict_defaults["Known"])):
+          if self.acl_dict.has_key('Known'):
              allowed = self.acl_dict["Known"][ACL_RIGHTS_TABLE[dowhat]]
              return allowed
+        else:
+          # we fall back to ALl behavior if there is something specific to All on this page
+          if self.acl_dict.has_key('All'):
+             allowed = self.acl_dict["All"][ACL_RIGHTS_TABLE[dowhat]]
+             return allowed
+
 
         # no specific settings for Known on this page, so let's do what the default for the group is
         defaults_without_special = copy(request.config.acl_rights_default.keys())
@@ -78,18 +89,16 @@ class AccessControlList:
         defaults_without_special.remove("Admin") 
         defaults_without_special.remove("Banned") 
         for groupname in defaults_without_special:
-          if len(request.config.acl_rights_default[groupname]) >= ACL_RIGHTS_TABLE[dowhat]:
-            allowed = request.config.acl_rights_default[groupname][ACL_RIGHTS_TABLE[dowhat]]
-            if username in Group(groupname, request) and allowed:
-              return True
+          allowed = request.config.acl_rights_default[groupname][ACL_RIGHTS_TABLE[dowhat]]
+          if username in Group(groupname, request) and allowed:
+            return True
 
         for groupname in ["Known", "All"]:
           if groupname == 'Known' and has_known_setting: break
           if groupname == 'All' and has_all_setting: break
-          if len(request.config.acl_rights_default[groupname]) >= ACL_RIGHTS_TABLE[dowhat]:
-            allowed = request.config.acl_rights_default[groupname][ACL_RIGHTS_TABLE[dowhat]]
-            if username in Group(groupname, request) and allowed:
-              return True
+          allowed = request.config.acl_rights_default[groupname][ACL_RIGHTS_TABLE[dowhat]]
+          if username in Group(groupname, request) and allowed:
+            return True
 
         return False
 
@@ -405,6 +414,10 @@ def setACL(pagename, groupdict, request):
        request.cursor.execute("UPDATE pageAcls set may_read=%(may_read)s, may_edit=%(may_edit)s, may_delete=%(may_delete)s, may_admin=%(may_admin)s where groupname=%(groupname)s and pagename=%(pagename)s and wiki_id=%(wiki_id)s", d, isWrite=True)
      else:
        request.cursor.execute("INSERT into pageAcls (groupname, pagename, may_read, may_edit, may_delete, may_admin, wiki_id) values (%(groupname)s, %(pagename)s, %(may_read)s, %(may_edit)s, %(may_delete)s, %(may_admin)s, %(wiki_id)s)", d, isWrite=True)
+
+   # if the settings are the same then we clear them out so master changes can propagate through
+   if _sameAsDefaults(groupdict, request):
+      request.cursor.execute("DELETE from pageAcls where pagename=%(pagename)s and wiki_id=%(wiki_id)s", d, isWrite=True) 
 
    if config.memcache:
      if _sameAsDefaults(groupdict, request): # want to clear out when it's the same as the global defaults.  this way changes to global settings will affect the page if it's not special in any way, priv-wise.

@@ -24,9 +24,9 @@ from Sycamore.util import pysupport
 #############################################################################
 
 names = [ "titleindex",
-         "systeminfo", "pagecount", "userpreferences", "generalsettings", "securitysettings", "usergroups",
+         "pagecount", "userpreferences", "generalsettings", "securitysettings", "usergroups",
          # Macros with arguments
-         "icon", "date", "datetime", "anchor", "mailto", "getval", "search",
+         "icon", "anchor", "mailto", "getval", "search", "listtemplates",
 ]
 
 # external macros
@@ -67,7 +67,6 @@ class Macro:
         "goto"        : [],
         "wordindex"   : ["namespace"],
         "titleindex"  : ["namespace"],
-        "systeminfo"  : ["pages"],
         "pagecount"   : ["namespace"],
         "icon"        : ["user"], # users have different themes and user prefs
         "icon"        : [], # users have different themes and user prefs
@@ -86,11 +85,11 @@ class Macro:
         Dependencies[lang] = []
     
 
-    def __init__(self, parser):
+    def __init__(self, parser, formatter=None):
         self.parser = parser
         self.form = self.parser.form
         self.request = self.parser.request
-        self.formatter = self.request.formatter
+        self.formatter = formatter or self.request.formatter
         self.name = ''
         self._ = self.request.getText
 
@@ -184,92 +183,6 @@ class Macro:
         qpagename = wikiutil.quoteWikiname(self.formatter.page.page_name)
         index = index + _make_index_key(index_letters)
         return '%s%s' % (index, ''.join(html)) 
-#return 'Temporarily disabled.'
-
-
-    #def _macro_interwiki(self, args, formatter=None):
-    #    if not formatter: formatter = self.formatter
-    #    from cStringIO import StringIO
-
-    #    # load interwiki list
-    #    dummy = wikiutil.resolve_wiki(self.request, '')
-
-    #    buf = StringIO()
-    #    buf.write('<dl>')
-    #    list = wikiutil._interwiki_list.items()
-    #    list.sort()
-    #    for tag, url in list:
-    #        buf.write('<dt><tt><a href="%s">%s</a></tt></dt>' % (
-    #            wikiutil.join_wiki(url, 'RecentChanges'), tag))
-    #        if url.find('$PAGE') == -1:
-    #            buf.write('<dd><tt><a href="%s">%s</a></tt></dd>' % (url, url))
-    #        else:
-    #            buf.write('<dd><tt>%s</tt></dd>' % url)
-    #    buf.write('</dl>')
-
-    #    return self.formatter.rawHTML(buf.getvalue())
-
-
-    def _macro_systeminfo(self, args, formatter):
-        """
-        import operator, sys
-        from cStringIO import StringIO
-        from Sycamore import processor
-        _ = self._
-        # check for 4XSLT
-        try:
-            import Ft
-            ftversion = Ft.__version__
-        except ImportError:
-            ftversion = None
-        except AttributeError:
-            ftversion = 'N/A'
-
-        pagelist = wikiutil.getPageList(config.text_dir)
-        totalsize = reduce(operator.add, [Page(name).size() for name in pagelist])
-
-        buf = StringIO()
-        row = lambda label, value, buf=buf: buf.write(
-            '<dt>%s</dt><dd>%s</dd>' %
-            (label, value))
-
-        buf.write('<dl>')
-        row(_('Python Version'), sys.version)
-        row(_('Sycamore Version'), _('Release %s [Revision %s]') % (version.release, version.revision))
-        if ftversion:
-            row(_('4Suite Version'), ftversion)
-        row(_('Number of pages'), len(pagelist))
-        row(_('Number of system pages'), len(filter(lambda p,r=self.request: wikiutil.isSystemPage(r,p), pagelist)))
-        row(_('Number of backup versions'), len(wikiutil.getBackupList(config.backup_dir, None)))
-        row(_('Accumulated page sizes'), totalsize)
-
-        edlog = editlog.EditLog()
-        row(_('Entries in edit log'),
-            _("%(logcount)s (%(logsize)s bytes)") %
-            {'logcount': edlog.lines(), 'logsize': edlog.size()})
-
-        # !!! This puts a heavy load on the server when the log is large,
-        # and it can appear on normal pages ==> so disable it for now.
-        eventlogger = eventlog.EventLog()
-        nonestr = _("NONE")
-        row('Event log',
-            "%s bytes" % eventlogger.size())
-        row(_('Global extension macros'), 
-            ', '.join(macro.extension_macros) or nonestr)
-        row(_('Local extension macros'), 
-            ', '.join(wikiutil.extensionPlugins('macro')) or nonestr)
-        row(_('Global extension actions'), 
-            ', '.join(action.extension_actions) or nonestr)
-        row(_('Local extension actions'), 
-            ', '.join(wikiaction.getPlugins()[1]) or nonestr)
-        row(_('Installed processors'), 
-            ', '.join(processor.processors) or nonestr)
-        buf.write('</dl')
-
-        return self.formatter.rawHTML(buf.getvalue())
-        """
-        
-        return self.formatter.rawHTML('<i>System Info macro is turned off.  It uses too much CPU to be actively used, so if you\'re an admin and want to use it for a minute, then edit wikimacro.py and turn it on.  Otherwise, leave it off! :)</i>')
 
 
     def _macro_pagecount(self, args, formatter=None):
@@ -284,6 +197,19 @@ class Macro:
         icon = args.lower()
         return self.request.theme.make_icon(icon, actionButton=True)
 
+    def _macro_listtemplates(self, args, formatter=None):
+        if not formatter: formatter = self.formatter
+        self.request.formatter = formatter
+        templates = wikiutil.getTemplatePages(self.request)
+        if not templates: ''
+        text = []
+        text.append(formatter.bullet_list(1))
+        for template in templates:
+            template_name = template[len('Templates/'):]
+            text.append('%s%s%s' % (formatter.listitem(1), formatter.pagelink(template, template_name), formatter.listitem(0)))
+        text.append(formatter.bullet_list(0))
+        return ''.join(text)
+            
 
     def __get_Date(self, args, format_date, formatter=None):
         if not formatter: formatter = self.formatter
@@ -318,15 +244,6 @@ class Macro:
                 return "<strong>%s: %s</strong>" % (
                     _("Bad timestamp '%s'") % (args,), e)
         return format_date(tm)
-
-    def _macro_date(self, args, formatter=None):
-        if not formatter: formatter = self.formatter
-        return self.__get_Date(args, self.request.user.getFormattedDate)
-
-    def _macro_datetime(self, args, formatter=None):
-        if not formatter: formatter = self.formatter
-        return self.__get_Date(args, self.request.user.getFormattedDateTime)
-
 
     def _macro_userpreferences(self, args, formatter=None):
         if not formatter: formatter = self.formatter

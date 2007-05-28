@@ -38,7 +38,7 @@ class Permissions:
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(page).may(self.request, self.name, "read")
+        return self.getACL(page, **kw).may(self.request, self.name, "read")
 
     def edit(self, page, **kw):
         """ Check whether user may edit this page.
@@ -46,7 +46,7 @@ class Permissions:
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(page).may(self.request, self.name, "edit")
+        return self.getACL(page, **kw).may(self.request, self.name, "edit")
 
     def delete(self, page, **kw):
         """ Check whether user may delete this page.
@@ -54,7 +54,7 @@ class Permissions:
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(page).may(self.request, self.name, "delete")
+        return self.getACL(page, **kw).may(self.request, self.name, "delete")
 
     def admin(self, page, **kw):
         """ Check whether user may administrate this page.
@@ -62,10 +62,10 @@ class Permissions:
             `kw` allows passing more information without breaking user
             policies and is not used currently.
         """
-        return self.getACL(page).may(self.request, self.name, "admin")
+        return self.getACL(page, **kw).may(self.request, self.name, "admin")
 
     def getACL(self, page, **kw):
-        return page.getACL()
+        return page.getACL(**kw)
 
 # make an alias for the default policy
 Default = Permissions

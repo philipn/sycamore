@@ -147,7 +147,7 @@ def execute(pagename, request):
 %s
 </p>
 <p>
-The wiki was added to your list of watched wikis (change in <a href="%sUser_Preferences">your account preferences</a>).
+The wiki was added to your list of watched wikis (change in <a href="%sUser_Settings">your account settings</a>).
 </p>""" % (wikiname, wiki_location, farm.getBaseFarmURL(request))
 
     return page.send_page(msg=msg)

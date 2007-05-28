@@ -20,6 +20,7 @@ def execute(pagename, request):
     actname = __name__.split('.')[-1]
     page = PageEditor(pagename, request)
     permanent = False
+    showrc = True
 
     msg = ''
 
@@ -52,7 +53,10 @@ def execute(pagename, request):
 
         if request.form.has_key('permanent') and request.form['permanent'][0] and request.user.may.admin(page):
           permanent = True
-        msg = page.deletePage(comment, permanent=permanent)
+          if request.form.has_key('noshowrc') and request.form['noshowrc'][0]:
+            showrc = False 
+
+        msg = page.deletePage(comment, permanent=permanent, showrc=showrc)
 
         return page.send_page(
                 msg = _('Page "%s" was successfully deleted!') % (pagename,))
@@ -64,7 +68,16 @@ def execute(pagename, request):
     comment_label = _("Reason for deletion:")
 
     if request.user.may.admin(page):
-      admin_label = """<p>Permanently remove old versions: <input type="checkbox" name="permanent" value="1"></p>"""
+      admin_label = """
+<p>Permanently remove old versions: <input type="checkbox" id="noshowrctoggle" name="permanent" value="1"><span id="noshowrc">Don't log on Recent Changes: <input type="checkbox" name="noshowrc" value="1"></span></p>
+<script type="text/javascript">
+document.getElementById('noshowrc').style.visibility = 'hidden';
+document.getElementById('noshowrc').style.paddingLeft = '1em';
+document.getElementById('noshowrctoggle').onclick = function () {
+document.getElementById('noshowrc').style.visibility = document.getElementById('noshowrctoggle').checked ? 'visible' : 'hidden'; 
+}
+</script>
+      """
     else:
       admin_label = ''
     formhtml = """

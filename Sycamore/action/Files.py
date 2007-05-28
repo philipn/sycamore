@@ -14,7 +14,8 @@
     @license: GNU GPL, see COPYING for details.
 """
 
-import os, mimetypes, time, urllib, string
+import os, mimetypes, time, urllib, string, cStringIO
+from PIL import Image
 from Sycamore import config, user, util, wikiutil, wikidb, caching
 from Sycamore.Page import Page
 from Sycamore.util import SycamoreNoFooter 
@@ -24,6 +25,13 @@ import xml.dom.minidom
 action_name = __name__.split('.')[-1]
 
 f2e = {'PNG': ['.png'], 'JPEG': ['.jpg', '.jpeg'], 'GIF': ['.gif']}
+
+EDITABLE_ICONS = [('tinylogo.png', (16,16)), 'logo.png', 'logo_background.png',
+    'editicon.png', 'infoicon.png', 'talkicon.png', 'articleicon.png', 'viewmapicon.png', 'hidemapicon.png']
+
+EDITABLE_CSS = ['style.css', 'layout.css', 'common.css']
+
+MAX_FILENAME_LENGTH = 100
 
 icon_dict = {
 '.pdf': 'file-pdf.png',
@@ -116,16 +124,17 @@ def _checkTicket(ticket):
     ourticket = _createTicket(timestamp)
     return ticket == ourticket
 
-def delete_all_newer(pagename, filename, is_image, timefrom, request):
+def delete_all_newer(pagename, filename, is_image, timefrom, request, keep_deleted_state, showrc=True):
     """
     Delete all files that are newer than timefrom.
     """
     d = { 'pagename': pagename, 'filename': filename, 'timefrom': timefrom, 'wiki_id': request.config.wiki_id }
     caching.deleteNewerFileInfo(filename, pagename, timefrom, request)
-    request.cursor.execute("DELETE from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time>%(timefrom)s and wiki_id=%(wiki_id)s", d, isWrite=True)
+    eq = ''
+    if not keep_deleted_state: eq = '='
     if is_image:
-        request.cursor.execute("DELETE from oldImageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time>%(timefrom)s and wiki_id=%(wiki_id)s", d, isWrite=True)
-
+        request.cursor.execute("DELETE from oldImageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time>" + eq + "%(timefrom)s and wiki_id=%(wiki_id)s", d, isWrite=True)
+    request.cursor.execute("DELETE from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time>" + eq + "%(timefrom)s and wiki_id=%(wiki_id)s", d, isWrite=True)
 
 #############################################################################
 ### External interface - these are called from the core code
@@ -141,7 +150,7 @@ def openImage(filecontent):
     return im
     
 
-def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=None, thumb=False, size=0, ticket=None, base_url=None):
+def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, version=None, thumb=False, size=0, do_download=False, ticket=None, base_url=None, ts=0):
     """ Get URL that points to file `filename` of page `pagename`.
 
         If 'addts' is true, a timestamp with the file's modification time
@@ -176,7 +185,11 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0, ver
             wikiutil.quoteWikiname(pagename),
             urllib.quote(filename), repr(version))
 
+    if do_download:
+        url = '%s&amp;download=true' % url
 
+    if ts:
+        url = '%s&amp;ts=%s' % (url, repr(ts))
     return url
 
 
@@ -206,10 +219,6 @@ def _action_footer(request, pagename, baseurl, urlpagename, action, filename):
 ### Internal helpers
 #############################################################################
 
-def _isValidExtension(extension):
-    if extension in config.valid_image_extensions:
-      return True
-    return False
 
 def _has_deleted_files(pagename, request):
     request.cursor.execute("""
@@ -434,7 +443,15 @@ def send_restore_form(page, request):
     uploaded_time = request.form['uploaded_time'][0]
 
     if request.user.may.admin(page):
-      admin_label = """<p>Permanently remove newer versions: <input type="checkbox" name="permanent" value="1"></p>"""
+      admin_label = """<p>Permanently remove newer versions: <input id="noshowrctoggle" type="checkbox" name="permanent" value="1"><span id="noshowrc">Don't log on Recent Changes: <input type="checkbox" name="noshowrc" value="1"></span></p>
+<script type="text/javascript">
+document.getElementById('noshowrc').style.visibility = 'hidden';
+document.getElementById('noshowrc').style.paddingLeft = '1em';
+document.getElementById('noshowrctoggle').onclick = function () {
+document.getElementById('noshowrc').style.visibility = document.getElementById('noshowrctoggle').checked ? 'visible' : 'hidden'; 
+}
+</script>
+      """
     else:
       admin_label = ''
     formhtml = """
@@ -462,20 +479,33 @@ def send_restore_form(page, request):
 
     return page.send_page(msg=formhtml)
 
-def checkSpecialFiles(filename, pagename, request, image=None):
+def checkSpecialFiles(filename, pagename, uploaded_time, request, image=None):
     """
     Checks if this is a special file.  If it is a special file then we might do something here.
     """
     if pagename == ('%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)).lower():
-      if filename == 'tinylogo.png' and image.size != (16, 16):
-        return "tinylogo.png must be 16x16 pixels!"
-      elif filename == 'logo.png':
-        set_config = True
-        request.config.logo_sizes['logo.png'] = image.size
-        request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
-      elif filename == 'logo_background.png':
-        request.config.logo_sizes['logo_background.png'] = image.size
-        request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
+      for filename_info in EDITABLE_ICONS:
+        if type(filename_info) == tuple:
+            editable_filename, editable_size = filename_info
+        else:
+            editable_filename = filename_info
+            editable_size = None
+
+        if filename == editable_filename:
+            if editable_size and image.size != editable_size:
+                return "%s must be %sx%s pixels!" % (filename, editable_size[0], editable_size[1])
+            request.config.logo_sizes[filename] = image.size
+            request.config.theme_files_last_modified[filename] = uploaded_time
+            request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
+            return
+
+    elif pagename == ('%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_css)).lower():
+        for editable_filename in EDITABLE_CSS:
+            if filename == editable_filename:
+                request.config.theme_files_last_modified[filename] = uploaded_time
+                request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
+                return
+
 
 def execute(pagename, request):
     """ Main dispatcher for the 'Files' action.
@@ -485,6 +515,7 @@ def execute(pagename, request):
     msg = None
     page = Page(pagename, request)
     permanent = False
+    showrc = True
     if action_name in config.excluded_actions:
         msg = _('File attachments are not allowed in this wiki!')
     elif not request.form.has_key('do'):
@@ -502,20 +533,27 @@ def execute(pagename, request):
                         msg = _("Please use the interactive user interface to delete images!"))
                 if request.form.has_key('permanent') and request.form['permanent'][0] and request.user.may.admin(page):
                     permanent = True
-                del_file(pagename, request, permanent=permanent)
+                filename = urllib.unquote(request.form['target'][0])
+                del_file(filename, pagename, request, permanent=permanent)
             else:
                 send_del_form(page, request)
         else:
             msg = _('You are not allowed to delete files on this page.')
     elif request.form['do'][0] == 'restore':
-        if request.user.may.edit(page):
+        if request.user.may.delete(page):
             if request.form.has_key('button') and request.form.has_key('ticket'):
                 if not _checkTicket(request.form['ticket'][0]):
                     return page.send_page(
                         msg = _("Please use the interactive user interface to restore images!"))
                 if request.form.has_key('permanent') and request.form['permanent'][0] and request.user.may.admin(page):
                     permanent = True
-                restore_file(pagename, request, permanent=permanent)
+                    if request.form.has_key('noshowrc') and request.form['noshowrc'][0] and request.user.may.admin(page):
+                        showrc = False
+                filename = urllib.unquote(request.form['target'][0])
+                uploaded_time = request.form['uploaded_time'][0]
+                had_error = restore_file(filename, uploaded_time, pagename, request, permanent=permanent, showrc=showrc)
+                if not had_error:
+                    upload_form(pagename, request, msg=_("File '%s' version %s reactivated on page \"%s\".") % (filename, time.asctime(time.gmtime(float(uploaded_time))), pagename))
             else:
                 send_restore_form(page, request)
         else:
@@ -533,7 +571,7 @@ def execute(pagename, request):
         else:
             msg = _('You are not allowed to view files on this page.')
     else:
-        msg = _('Unsupported upload action: %s') % (request.form['do'][0],)
+        msg = _('Unsupported upload action: %s') % (wikiutil.escape(request.form['do'][0],))
 
     if msg:
         error_msg(pagename, request, msg)
@@ -566,12 +604,18 @@ def allowedMime(ext, request):
       return True
 
 def _fixFilename(filename, request):
-  # MSIE sends the entire path to us.  Mozilla doesn't.
-  if request.http_user_agent.find("MSIE") != -1:
+  # Windows sends the entire path to us.
+  if request.http_user_agent.find("Windows") != -1:
     # it's IE
     filename_split = filename.split("\\")
     filename = filename_split[-1]
   return urllib.unquote(filename)
+
+def changeExtension(filename, ext):
+    filename_parts = filename.split('.')[:-1]
+    filename_without_ext = '.'.join(filename_parts)
+    filename = '%s%s' % (filename_without_ext, ext)
+    return filename
 
 def getExtension(request, target, filename):
     def _extFromFileext(req, t, f):
@@ -596,6 +640,11 @@ def getExtension(request, target, filename):
 
     return ext
 
+def how_to_use(filename, is_image):
+    if is_image:
+       return """To place this image on the page, paste this into the page: <div style="margin-left: 1em;">[[Image(%s)]]</div>""" % filename
+    else:
+       return """To refer to this file on the page, paste this into the page: <div style="margin-left: 1em;">[[File(%s)]]</div>""" % filename
 
 
 def do_upload(pagename, request):
@@ -631,12 +680,15 @@ def do_upload(pagename, request):
     if string.find(filename, '<') != -1 or string.find(filename, '>') != -1 or string.find(filename, '?') != -1 or string.find(filename, '"') != -1:
         error_msg(pagename, request, _("The characters '<', '>', '\"', and '?' are not allowed in file names."))
         return
+    elif len(filename) > MAX_FILENAME_LENGTH:
+        error_msg(pagename, request, _("Filenames must be less than 100 characters long.  Sorry!"))
+        return
 
     # get file content
     filecontent = request.form['file'][0]
     
     if config.max_file_size and len(filecontent) > config.max_file_size * 1024:
-        error_msg(pagename, request, _("Files must be %sKb or smaller." % config.max_file_size)) 
+        error_msg(pagename, request, _("Files must be %sKB or smaller." % config.max_file_size)) 
         return
     # check CSS if it matters
     elif config.wiki_farm_clean_uploaded_code and pagename.lower() == ('%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_css)).lower():
@@ -680,6 +732,7 @@ def do_upload(pagename, request):
          if ext.lower() not in imfe:
            msg += _("File extension %s did not match image format %s, changing extension to %s.<br/>" % (ext, im.format, imfe[0]))
            ext = imfe[0]
+           target = changeExtension(target, ext)
        except:
            msg += _("File extension %s did not match image format %s, and I <strong>cannot convert them</strong>. Eep!<br/>" % (ext, im.format))
     	   return upload_form(pagename, request, msg)
@@ -696,10 +749,14 @@ def do_upload(pagename, request):
       xsize, ysize = im.size
       d['xsize'] = xsize
       d['ysize'] = ysize
-      special_error = checkSpecialFiles(target, pagename.lower(), request, image=im)
-      if special_error:
-        error_msg(pagename, request, special_error)
-        return
+      special_error = checkSpecialFiles(target, pagename.lower(), uploaded_time, request, image=im)
+    else:
+      special_error = checkSpecialFiles(target, pagename.lower(), uploaded_time, request)
+
+    if special_error:
+      error_msg(pagename, request, special_error)
+      return
+
 
     wikidb.putFile(request, d)
     if request.user.valid:
@@ -714,32 +771,56 @@ def do_upload(pagename, request):
       wiki_info = request.user.getWikiInfo()
       wiki_info.file_count += 1
       request.user.setWikiInfo(wiki_info)
+
+    # delete the thumbnail -- this also has the effect of clearing the cache for the page/image
+    wikidb.putFile(request, {'pagename': pagename.lower(), 'filename': target}, thumbnail=True, do_delete=True)
     
     bytes = len(filecontent)
-    msg += _("File '%(target)s'"
-             " with %(bytes)d bytes saved.") % {
-             'target': target, 'bytes': bytes}
+    msg += _("<p>File '%(target)s'"
+             " with %(kilobytes)d KB saved.</p><p>%(use_message)s</p>") % {
+             'target': target, 'kilobytes': (bytes*1.0)/1024, 'use_message': how_to_use(target, is_image)}
 
     # return attachment list
     upload_form(pagename, request, msg)
 
 
-def del_file(pagename, request, permanent=False):
+def del_file(filename, pagename, request, permanent=False):
     _ = request.getText
 
-    filename = urllib.unquote(request.form['target'][0])
     d = {'filename': filename, 'pagename': pagename.lower(), 'deleted_time': time.time(), 'deleted_by':request.user.id, 'deleted_by_ip': request.remote_addr}
     wikidb.putFile(request, d, do_delete=True, permanent=permanent)
     upload_form(pagename, request, msg=_("File '%(filename)s' deleted.") % {'filename': filename})
 
-def restore_file(pagename, request, permanent=False):
+
+def _deleted_at_time(filename, uploaded_time, pagename, request):
+    """
+    General idea: (ul_by0, del_by0, ul_time0, del_time0), (ul_by1, del_by1, ul_time1, del_time1)
+
+    deleted_at_time = (ul_time0 != del_time1)
+    """
+    d = { 'filename': filename, 'uploaded_time': uploaded_time, 'pagename': pagename, 'wiki_id': request.config.wiki_id }
+    request.cursor.execute("SELECT deleted_time from oldFiles where uploaded_time=%(uploaded_time)s and name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", d)
+    this_deleted_time = request.cursor.fetchone()[0]
+    request.cursor.execute("SELECT uploaded_time from oldFiles where uploaded_time > %(uploaded_time)s and name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s order by uploaded_time asc limit 1", d)
+    has_subsequent_old_version = request.cursor.fetchone()
+    if has_subsequent_old_version:
+         uploaded_time_next = has_subsequent_old_version[0]
+         return (this_deleted_time != uploaded_time_next)
+    else:
+       request.cursor.execute("SELECT uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", d)
+       is_around_now = request.cursor.fetchone()
+       if is_around_now:
+           uploaded_time_next = is_around_now[0]
+           return (this_deleted_time != uploaded_time_next)
+       else:
+           return True
+
+def restore_file(filename, uploaded_time, pagename, request, permanent=False, showrc=True, keep_deleted_state=False):
     _ = request.getText
     
     lower_pagename = pagename.lower()
     pagename_propercased = Page(pagename, request).proper_name()
     timenow = time.time()
-    filename = urllib.unquote(request.form['target'][0])
-    uploaded_time = request.form['uploaded_time'][0]
     if uploaded_time == 'None': uploaded_time = 0
 
     # check CSS if it matters
@@ -751,27 +832,60 @@ def restore_file(pagename, request, permanent=False):
                 suspect_css = wikiutil.is_suspect_css(filecontent)
                 if suspect_css:
                     upload_form(pagename, request, msg=_("The CSS file you uploaded has suspect markup in it: %s" % suspect_css))
-                    return
+                    return True
+
+    is_image = wikiutil.isImage(filename)
+    if is_image:
+      # open the image
+      request.cursor.execute("SELECT file from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s", {'filename':filename, 'pagename':lower_pagename, 'uploaded_time':uploaded_time, 'wiki_id':request.config.wiki_id})
+      filecontent = request.cursor.fetchone()[0]
+      try:
+        im = openImage(filecontent)
+      except IOError:
+        error_msg(pagename, request, _('Your file ended with "%s" but doesn\'t seem to be an image or I don\'t know know to process it!' % ext))
+        return True
+      xsize, ysize = im.size
+      special_error = checkSpecialFiles(filename, pagename.lower(), uploaded_time, request, image=im)
+    else:
+      special_error = checkSpecialFiles(filename, pagename.lower(), uploaded_time, request)
+
+    if special_error:
+      error_msg(pagename, request, special_error)
+      return True
+
+    file_deleted_at_time = _deleted_at_time(filename, uploaded_time, pagename.lower(), request)
       
     request.cursor.execute("SELECT name, uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", {'filename':filename, 'pagename':pagename.lower(), 'wiki_id':request.config.wiki_id})
     is_in_files = request.cursor.fetchone()
-    is_image = wikiutil.isImage(filename)
-    if permanent:
-        delete_all_newer(lower_pagename, filename, is_image, uploaded_time, request)
+    
+
     if is_in_files:
         # this means the file wasn't most recently deleted but the user still would like to revert to this version of the file
         #backup the current version of the file
         dict = { 'filename':filename, 'pagename':lower_pagename, 'timenow':timenow, 'userid':request.user.id, 'pagename_propercased':pagename_propercased, 'userip': request.remote_addr, 'uploaded_time': uploaded_time, 'wiki_id':request.config.wiki_id }
         if not permanent:
             request.cursor.execute("INSERT into oldFiles (name, attached_to_pagename, file, uploaded_by, uploaded_time, uploaded_by_ip, deleted_time, deleted_by, deleted_by_ip, attached_to_pagename_propercased, wiki_id) values (%(filename)s, %(pagename)s, (select file from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_by from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_by_ip from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(timenow)s, %(userid)s, %(userip)s, %(pagename_propercased)s, %(wiki_id)s)", dict, isWrite=True)
-        request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time, wiki_id) values (%(filename)s, %(pagename)s, (select xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(wiki_id)s)", dict, isWrite=True)
+            request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time, wiki_id) values (%(filename)s, %(pagename)s, (select xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(wiki_id)s)", dict, isWrite=True)
         # grab a copy of the file
         request.cursor.execute("SELECT file from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s", dict)
         filestring = request.cursor.fetchone()[0]
         file_obj = (filestring, uploaded_time)
-        #revert by putting their version as the current version
-        request.cursor.execute("UPDATE files set file=(select file from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), uploaded_by=%(userid)s, uploaded_by_ip=%(userip)s, uploaded_time=%(timenow)s where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
-        request.cursor.execute("UPDATE imageInfo set xsize=(select xsize from oldImageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), ysize=(select ysize from oldImageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s)", dict, isWrite=True)
+        if permanent and not showrc:
+            if not (file_deleted_at_time and keep_deleted_state):
+                #revert by putting their version as the current version, but move over old information /exactly/
+                request.cursor.execute("UPDATE files set file=(select file from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), uploaded_by=(select uploaded_by from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), uploaded_by_ip=(select uploaded_by_ip from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), uploaded_time=(select uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s) where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
+            else:
+                # this means the file is 'active' but we're reverting to a state where it should be inactive.
+                request.cursor.execute("DELETE from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
+        else:
+           #revert by putting their version as the current version
+           request.cursor.execute("UPDATE files set file=(select file from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), uploaded_by=%(userid)s, uploaded_by_ip=%(userip)s, uploaded_time=%(timenow)s where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
+
+        if not (file_deleted_at_time and keep_deleted_state):
+            request.cursor.execute("UPDATE imageInfo set xsize=(select xsize from oldImageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), ysize=(select ysize from oldImageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s) where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
+        else:
+                # this means the image is 'active' but we're reverting to a state where it should be inactive.
+                request.cursor.execute("DELETE from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
 
     else:
       dict = { 'filename':filename, 'pagename':lower_pagename, 'uploaded_time':uploaded_time, 'userid':request.user.id, 'userip':request.remote_addr, 'timenow':time.time(), 'pagename_propercased':pagename_propercased, 'wiki_id': request.config.wiki_id}
@@ -780,9 +894,18 @@ def restore_file(pagename, request, permanent=False):
       filestring = request.cursor.fetchone()[0]
       file_obj = (filestring, uploaded_time)
       # insert into current files 
-      request.cursor.execute("INSERT into files (name, attached_to_pagename, file, uploaded_by, uploaded_by_ip, uploaded_time, attached_to_pagename_propercased, wiki_id) values (%(filename)s, %(pagename)s, (select file from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), %(userid)s, %(userip)s, %(timenow)s, %(pagename_propercased)s, %(wiki_id)s)", dict, isWrite=True)
+      if permanent and not showrc:
+        if not (file_deleted_at_time and keep_deleted_state):
+            request.cursor.execute("INSERT into files (name, attached_to_pagename, file, uploaded_by, uploaded_by_ip, uploaded_time, attached_to_pagename_propercased, wiki_id) values (%(filename)s, %(pagename)s, (select file from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=(select uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s) and wiki_id=%(wiki_id)s), (select uploaded_by from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), (select uploaded_by_ip from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), (select uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), %(pagename_propercased)s, %(wiki_id)s)", dict, isWrite=True)
+      else:
+        request.cursor.execute("INSERT into files (name, attached_to_pagename, file, uploaded_by, uploaded_by_ip, uploaded_time, attached_to_pagename_propercased, wiki_id) values (%(filename)s, %(pagename)s, (select file from oldFiles where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), %(userid)s, %(userip)s, %(timenow)s, %(pagename_propercased)s, %(wiki_id)s)", dict, isWrite=True)
       if is_image:
         request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize, wiki_id) values (%(filename)s, %(pagename)s, (select xsize from oldImageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), (select ysize from oldImageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and uploaded_time=%(uploaded_time)s and wiki_id=%(wiki_id)s), %(wiki_id)s)", dict, isWrite=True)
+
+    if permanent:
+        delete_all_newer(lower_pagename, filename, is_image, uploaded_time, request, keep_deleted_state, showrc=showrc)
+
+    caching.updateRecentChanges(Page(pagename, request))
 
     if config.memcache:
       request.mc.set("files:%s,%s" % (wikiutil.mc_quote(filename), wikiutil.mc_quote(lower_pagename)), file_obj)
@@ -790,8 +913,7 @@ def restore_file(pagename, request, permanent=False):
     # delete the thumbnail -- this also has the effect of clearing the cache for the page/image
     wikidb.putFile(request, {'pagename': lower_pagename, 'filename': filename}, thumbnail=True, do_delete=True) 
 
-    upload_form(pagename, request, msg=_("File '%s' version %s reactivated on page \"%s\".") % (filename, time.asctime(time.gmtime(float(uploaded_time))), pagename))
-
+    return
 
 def getCaptionsHTML(attached_to_pagename, image_name, request):
    # outputs HTML of the caption for the image
@@ -802,7 +924,22 @@ def getCaptionsHTML(attached_to_pagename, image_name, request):
    if results:
      request.cursor.execute("SELECT xsize from imageInfo where name=%(imagename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", {'imagename':image_name, 'pagename':attached_to_pagename.lower(), 'wiki_id':request.config.wiki_id})
      size_result = request.cursor.fetchone()
-     if size_result: xsize = size_result[0]
+     if size_result and size_result[0]:
+        xsize = size_result[0]
+     else:
+        # we don't have a size, so let's get the size and
+	# init the db
+	image_file = wikidb.getFile(request, {'filename':image_name, 'page_name': attached_to_pagename.lower()})
+        image_file = cStringIO.StringIO(image_file[0])
+        image = Image.open(image_file)
+        image_size = image.size
+        image_file.close()
+	if size_result: # we have something to update
+	    request.cursor.execute("UPDATE imageInfo SET xsize=%(xsize)s, ysize=%(ysize)s where name=%(imagename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", {'xsize': image_size[0], 'ysize': image_size[1], 'imagename': image_name, 'pagename': attached_to_pagename.lower(), 'wiki_id': request.config.wiki_id}, isWrite=True)
+        else:
+	    request.cursor.execute("INSERT into imageInfo (xsize, ysize, name, attached_to_pagename, wiki_id) values (%(xsize)s, %(ysize)s, %(imagename)s, %(pagename)s, %(wiki_id)s)", {'xsize': image_size[0], 'ysize': image_size[1], 'imagename': image_name, 'pagename': attached_to_pagename.lower(), 'wiki_id': request.config.wiki_id}, isWrite=True)
+	xsize = image_size[0]
+
    html = ''
    from Sycamore.formatter.text_html import Formatter
    html_formatter = Formatter(request)
@@ -900,14 +1037,14 @@ def send_viewfile(pagename, request):
         request.write('<p class="imageDisplay"><img src="%s%s" alt="%s"></p>' % (
           getAttachUrl(pagename, filename, request, escaped=1, deleted=1, version=version), timestamp, wikiutil.escape(filename, 1)))
       else:
-        request.write('<p class="downloadLink"><img src="%s" /><a href="%s">Download %s</a></p>' % (get_icon(filename, request), getAttachUrl(pagename, filename, request, escaped=1, deleted=1, version=version),  filename))
+        request.write('<p class="downloadLink"><img src="%s" /><a href="%s">Download %s</a></p>' % (get_icon(filename, request), getAttachUrl(pagename, filename, request, escaped=1, deleted=1, version=version, do_download=True),  filename))
     else:
       if is_image:
         request.write('<p class="imageDisplay"><img src="%s%s" alt="%s"></p>' % (
           getAttachUrl(pagename, filename, request, escaped=1), timestamp, wikiutil.escape(filename, 1)))
         request.write(getCaptionsHTML(pagename, filename, request))
       else:
-        request.write('<p class="downloadLink"><img src="%s" /><a href="%s">Download %s</a></p>' % (get_icon(filename, request), getAttachUrl(pagename, filename, request, escaped=1),  filename))
+        request.write('<p class="downloadLink"><img src="%s" /><a href="%s">Download %s</a></p>' % (get_icon(filename, request), getAttachUrl(pagename, filename, request, escaped=1, do_download=True),  filename))
     if uploaded_by:
       request.write('<p>Uploaded by %s on %s.  File size: %sKB</p>' % (user.getUserLink(request, uploaded_by), request.user.getFormattedDateTime(uploaded_time), file_size))
     else:

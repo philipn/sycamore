@@ -80,13 +80,48 @@ def simpleStrip(request, text):
     text = re.sub(r'\<[^\>]+\>', r'', text)
     return text
 
+p_len = len('<p>\n')
+end_p_len = len('</p>')
+
+def stripOuterParagraph(quote):
+    """
+    We always put <p>'s around things, so in this case let's remove the outer-most <p>'s.
+    """
+    quote = quote.strip()
+    return quote[ quote.find('>')+1: len(quote)-end_p_len].strip()
+
+def getTemplatePages(request):
+    """
+    Returns a list of Template pages.  Filters out /Talk pages.
+    """
+    if config.memcache:
+        template_pages = request.mc.get('templates')
+        if template_pages is not None:
+            return template_pages
+
+    template_pages = filter(lambda page : isTemplatePage(page), request.getPageList())
+    if config.memcache:
+        request.mc.add('templates', template_pages)
+    return template_pages
+
+
 def getTimeOffset(tz_string):
+    import datetime
     def _utcoffset(timezone):
-        utc_offset_delta = timezone.utcoffset(timezone)
+        utc_offset_delta = timezone.localize(datetime.datetime.utcnow()).utcoffset()
         return utc_offset_delta.days*DAY_IN_SECONDS + utc_offset_delta.seconds
 
+    if type(tz_string) == unicode:
+       tz_string = tz_string.encode('utf-8')
+    t = pytz.timezone(tz_string)
     tz = pytz.timezone(tz_string)
     return _utcoffset(tz)
+
+
+def getDomainFromURL(url):
+    without_schema = url[url.find('://')+3:]
+    return without_schema[:without_schema.find('/')]
+
 
 def mc_quote(s):
   """ Quoting for memcached use."""
@@ -102,10 +137,29 @@ def mc_unquote(s):
   s = s.replace(NOT_ALLOWED_CHARS[0], "_")
   return s 
 
+def suitable_mc_key(unquoted_key):
+    """
+    Is the unquoted_key suitable to be a mc key after being quoted?
+    """
+    from Sycamore.support import memcache 
+    if not unquoted_key: 
+      return False
+    key = mc_quote(unquoted_key)
+    try:
+      memcache.check_key(key)
+    except:
+      return False
+    return True
+
 def wikifyString(text, request, page, doCache=True, formatter=None, delays=None, strong=False):
   import cStringIO
   # easy to turng wiki markup string into html
   # only use this in macros, etc.
+
+  # back up attributes we might want before doing simple parsing
+  if formatter:
+      orig_inline_edit = formatter.inline_edit
+      orig_inline_edit_force_state = formatter.inline_edit_force_state
   
   # find out what type of formatter we're using
   if hasattr(formatter, 'assemble_code'):
@@ -144,14 +198,21 @@ def wikifyString(text, request, page, doCache=True, formatter=None, delays=None,
     request.redirect()
     text = buffer.getvalue().decode('utf-8')
     buffer.close()
-
-    return text
   else:
     text = buffer.getvalue()
     buffer.close()
-    return text.decode('utf-8')
+    text = text.decode('utf-8')
 
-def macro_delete_checks(page):
+  # restore attributes
+  if formatter:
+      formatter.inline_edit = orig_inline_edit
+      formatter.inline_edit_force_state = orig_inline_edit_force_state
+
+  return text
+
+
+
+def macro_delete_checks(page, theuser_id=None, theuser_ip=None):
     """
     Certain macros, such as [[address]], do things when they are taken out of the page.
     
@@ -167,32 +228,37 @@ def macro_delete_checks(page):
        request.sent_page_content = buffer.getvalue()
        request.redirect()
 
-       if page.request.addresses or page.hasMapPoints():
-           timenow = time.time()
-           # get current locations
-           current_locations = []
-           page.request.cursor.execute("""SELECT x, y, created_time, created_by, created_by_ip, pagename_propercased, address from mapPoints
-                where pagename=%(pagename)s and wiki_id=%(wiki_id)s""", {'pagename':page.page_name, 'wiki_id':page.request.config.wiki_id})
-           result = page.request.cursor.fetchall()
-           if result:
-                for x, y, created_time, created_by, created_by_ip, pagename_propercased, address in result:
-                    current_locations.append((pagename_propercased.lower(), x, y, address))
+       if not theuser_id or not theuser_ip:
+          theuser_id = page.request.user.id
+	  theuser_ip = page.request.remote_addr
 
-           locations_to_remove = copy(current_locations)
-           locations_to_add = []
-           # filter out locations we have listed as an address but are already in the DB
-           for place in page.request.addresses:
-               if (place.name.lower(), place.latitude, place.longitude, place.address) in current_locations:
-                  locations_to_remove.remove((place.name.lower(), place.latitude, place.longitude, place.address))
-               else:
-                  locations_to_add.append(place)
+       timenow = time.time()
+       # get current locations
+       current_locations = []
+       page.request.cursor.execute("""SELECT x, y, created_time, created_by, created_by_ip, pagename_propercased, address from mapPoints
+            where pagename=%(pagename)s and wiki_id=%(wiki_id)s""", {'pagename':page.page_name, 'wiki_id':page.request.config.wiki_id})
+       result = page.request.cursor.fetchall()
+       if result:
+            for x, y, created_time, created_by, created_by_ip, pagename_propercased, address in result:
+                current_locations.append((pagename_propercased.lower(), x, y, address))
 
-           for pagename, x, y, address in locations_to_remove:
-               page.request.cursor.execute("INSERT into oldMapPoints (pagename, x, y, created_time, created_by, created_by_ip, deleted_time, deleted_by, deleted_by_ip, pagename_propercased, address, wiki_id) values (%(pagename)s, %(x)s, %(y)s, (select created_time from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s and address=%(address)s and wiki_id=%(wiki_id)s), (select created_by from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s and address=%(address)s and wiki_id=%(wiki_id)s), (select created_by_ip from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s and address=%(address)s and wiki_id=%(wiki_id)s), %(time_now)s, %(deleted_by)s, %(deleted_by_ip)s, (select pagename_propercased from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s and address=%(address)s and wiki_id=%(wiki_id)s), %(address)s, %(wiki_id)s)", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'deleted_by':page.request.user.id, 'deleted_by_ip':page.request.remote_addr, 'address':address, 'wiki_id':page.request.config.wiki_id}, isWrite=True)
-               page.request.cursor.execute("DELETE from mapPoints where pagename=%(pagename)s and wiki_id=%(wiki_id)s and x=%(x)s and y=%(y)s and address=%(address)s", {'pagename':pagename, 'x':x, 'y':y, 'address':address, 'wiki_id':page.request.config.wiki_id}, isWrite=True)
+       locations_to_remove = copy(current_locations)
+       locations_to_add = []
+       # filter out locations we have listed as an address but are already in the DB
+       if page.request.addresses.has_key(page.page_name):
+         for place in page.request.addresses[page.page_name]:
+             if (place.name.lower(), place.latitude, place.longitude, place.address) in current_locations:
+                if (place.name.lower(), place.latitude, place.longitude, place.address) in locations_to_remove:
+                    locations_to_remove.remove((place.name.lower(), place.latitude, place.longitude, place.address))
+             else:
+                locations_to_add.append(place)
 
-           for place in locations_to_add:
-               place.addPlace()
+       for pagename, x, y, address in locations_to_remove:
+           page.request.cursor.execute("INSERT into oldMapPoints (pagename, x, y, created_time, created_by, created_by_ip, deleted_time, deleted_by, deleted_by_ip, pagename_propercased, address, wiki_id) values (%(pagename)s, %(x)s, %(y)s, (select created_time from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s and address=%(address)s and wiki_id=%(wiki_id)s), (select created_by from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s and address=%(address)s and wiki_id=%(wiki_id)s), (select created_by_ip from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s and address=%(address)s and wiki_id=%(wiki_id)s), %(time_now)s, %(deleted_by)s, %(deleted_by_ip)s, (select pagename_propercased from mapPoints where pagename=%(pagename)s and x=%(x)s and y=%(y)s and address=%(address)s and wiki_id=%(wiki_id)s), %(address)s, %(wiki_id)s)", {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow, 'deleted_by':theuser_id, 'deleted_by_ip':theuser_ip, 'address':address, 'wiki_id':page.request.config.wiki_id}, isWrite=True)
+           page.request.cursor.execute("DELETE from mapPoints where pagename=%(pagename)s and wiki_id=%(wiki_id)s and x=%(x)s and y=%(y)s and address=%(address)s", {'pagename':pagename, 'x':x, 'y':y, 'address':address, 'wiki_id':page.request.config.wiki_id}, isWrite=True)
+
+       for place in locations_to_add:
+           place.addPlace(theuser_id, theuser_ip)
 
 def isInFarm(wikiname, request):
     """
@@ -220,23 +286,48 @@ def init_logo_sizes(request):
     Gets the wiki logos' sizes and saves them to the wiki config.
     """
     from PIL import Image
-    main_logo_file = wikidb.getFile(request, {'filename':'logo.png', 'page_name': '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)})
-    if main_logo_file:
-        main_logo_file = cStringIO.StringIO(main_logo_file[0])
-        main_logo = Image.open(main_logo_file)
-        main_logo_size = main_logo.size
-        main_logo_file.close()
-        request.config.logo_sizes['logo.png'] = main_logo_size
+    from action.Files import EDITABLE_ICONS
+    images_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
+    for filename_size_info in EDITABLE_ICONS:
+        if type(filename_size_info) == tuple:
+            filename = filename_size_info[0]
+        else:
+            filename = filename_size_info
 
-    floater_file = wikidb.getFile(request, {'filename':'logo_backgroun.png', 'page_name': '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)})
-    if floater_file:
-        floater_file = cStringIO.StringIO(floater_file[0])
-    	floater = Image.open(floater_file)
-    	floater_size = floater.size
-    	floater_file.close()
-        request.config.logo_sizes['logo_background.png'] = floater_size
+        logo_file = wikidb.getFile(request, {'filename':filename, 'page_name': images_pagename})
+        if logo_file:
+            logo_file = cStringIO.StringIO(logo_file[0])
+            logo = Image.open(logo_file)
+            logo_size = logo.size
+            logo_file.close()
+            request.config.logo_sizes[filename] = logo_size
 
     request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
+
+def init_theme_files_last_modified(request):
+    """
+    Gets the wiki theme file's (css, logos) last modification time and saves them to the wiki config.
+    """
+    from action.Files import EDITABLE_ICONS, EDITABLE_CSS
+    images_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
+    css_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_css)
+    for filename in EDITABLE_CSS:
+        css_file_result = wikidb.getFile(request, {'filename':filename, 'page_name': css_pagename})
+        if css_file_result:
+            css_file, last_modified = css_file_result
+            request.config.theme_files_last_modified[filename] = last_modified
+    for file_info in EDITABLE_ICONS:
+        if type(file_info) == tuple:
+            filename = file_info[0]
+        else:
+            filename = file_info
+        logo_file_result = wikidb.getFile(request, {'filename':filename, 'page_name': images_pagename})
+        if logo_file_result:
+            logo_file, last_modified = logo_file_result
+            request.config.theme_files_last_modified[filename] = last_modified
+
+    request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
+
     
 def getSmiley(text, formatter):
     """
@@ -305,6 +396,7 @@ def is_suspect_css(css):
     malicious javascript or sneaky ways of inserting malicious javascript.
     """
     from popen2 import popen2
+    css = str(css) # fixes weird buffer errors..
     css_cleaner_location = os.path.join(config.sycamore_dir, "support", "css_cleaner", "css_clean.pl")
     css_cleaner_dependencies = os.path.join(config.sycamore_dir, "support", "css_cleaner")
     r, w = popen2('perl -I%s %s' % (css_cleaner_dependencies, css_cleaner_location))
@@ -345,7 +437,8 @@ def quoteFilename(filename, always_safe=always_file_safe):
 
     (taken from urllib.quote)
     """
-    filename = filename.encode(config.charset)
+    if type(filename) == unicode:
+       filename = filename.encode(config.charset)
     safe = ''
     cachekey = (safe, always_safe)
     try:
@@ -492,6 +585,7 @@ def resolve_wiki(request, wikiurl, force_farm=False):
 
     if request.req_cache['interwiki'].has_key(request.config.wiki_id) and not force_farm:
       _interwiki_list = request.req_cache['interwiki'][request.config.wiki_id]
+      got_memcache = True
     else:
       if config.memcache:
         interwiki_dict = request.mc.get('interwiki')
@@ -499,7 +593,7 @@ def resolve_wiki(request, wikiurl, force_farm=False):
         if interwiki_dict is not None: got_memcache = True
 
     if _interwiki_list is None:
-      _interwiki_list = wikidicts.Dict(request.config.interwikimap,request,case_insensitive=True)
+      _interwiki_list = wikidicts.Dict(request.config.interwikimap,request,case_insensitive=True,fresh=True)
 
     # split wiki url
     wikitag, tail = split_wiki(wikiurl)
@@ -521,9 +615,6 @@ def resolve_wiki(request, wikiurl, force_farm=False):
 #############################################################################
 ### Page types (based on page names)
 #############################################################################
-
-#def isEditorBackup(pagename):
-#    return pagename.endswith('/MoinEditorBackup')
 
 def isTemplatePage(pagename):
     """
@@ -1168,8 +1259,8 @@ def send_title(request, text, **keywords):
     @keyword link: URL for the title
     @keyword msg: additional message (after saving)
     @keyword pagename: 'PageName'
+    @keyword page: page object.  Optional.  If given, we use this as the page object.
     @keyword print_mode: 1 (or 0)
-    @keyword allow_doubleclick: 1 (or 0)
     @keyword html_head: additional <head> code
     @keyword body_attr: additional <body> attributes
     @keyword body_onload: additional "onload" JavaScript code
@@ -1181,7 +1272,7 @@ def send_title(request, text, **keywords):
 
     _ = request.getText
     pagename = keywords.get('pagename', '')
-    page = Page(pagename, request)
+    page = keywords.get('page', Page(pagename, request))
 
     # Print the HTML <head> element
     user_head = [config.html_head] + request.html_head
@@ -1225,7 +1316,7 @@ def send_title(request, text, **keywords):
             on_wiki = request.config.wiki_name
             request.switch_wiki(farm.getBaseWikiName(request))
             if hasFile(image_pagename, 'tinylogo.png', request):
-                tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png', request)
+                tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png', request, base_url=farm.getBaseFarmURL(request))
             request.switch_wiki(on_wiki)
 
     if tiny_logo_url:
@@ -1236,7 +1327,18 @@ def send_title(request, text, **keywords):
         user_head.append('<meta http-equiv="refresh" content="%(delay)d;URL=%(url)s">' % keywords['pi_refresh'])
 
     # global javascript variable needed by edit.js
-    user_head.append("""<script type="text/javascript">var urlPrefix = '%s';</script>""" % (config.url_prefix))
+    if not page.prev_date and page.exists() and request.user.may.edit(page):
+        may_inline_edit = 'true'
+        wikitext = page.get_raw_body()
+        wikiLines = []
+        for line in wikitext.split('\n'):
+           wikiLines.append("'%s'" % line.replace('\\', '\\\\').replace('\'', '\\\'').replace('\n', '\\n')) # quote strings, yay
+        wikiLines = ','.join(wikiLines)
+        user_head.append("""<script name="text/javascript">var wikiLines = [%s]; var wikiLinesHTML = document.createElement("div");</script>""" % wikiLines)
+    else:
+        may_inline_edit = 'false'
+    user_head.append("""<script type="text/javascript">var urlPrefix = '%s';var curTimestamp = '%s'; var action = '%s'; var may_inline_edit = %s;</script>""" % (config.url_prefix, time.time(), page.url(), may_inline_edit))
+    user_head.append("""<script src="%s%s/utils.js?tm=%s" type="text/javascript"></script>""" % (config.web_dir, config.url_prefix, request.theme.last_modified))
 
     if keywords.has_key('strict_title') and keywords['strict_title']: strict_title = keywords['strict_title']
     else: strict_title = text
@@ -1280,11 +1382,6 @@ def send_title(request, text, **keywords):
 
     if keywords.has_key('body_attr'):
         bodyattr.append(' %s' % keywords['body_attr'])
-    if keywords.get('allow_doubleclick', 0) and not keywords.get('print_mode', 0) \
-            and pagename and request.user.may.edit(page) \
-            and request.user.edit_on_doubleclick:
-        bodyattr.append(''' ondblclick="location.href='%s'"''' % (
-            page.url("action=edit")))
 
     # Set body to the user interface language and direction
     bodyattr.append(' %s' % request.theme.ui_lang_attr())

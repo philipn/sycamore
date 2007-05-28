@@ -37,7 +37,7 @@ def execute(pagename, request):
                   userId = request.user.ip
               else:
                   if config.user_page_prefix:
-                    userId = '["%s%s" %s]' % (config.user_page_prefix, request.user.propercased_name, request.user.propercased_name)
+                    userId = '["%s%s"]' % (config.user_page_prefix, request.user.propercased_name)
                   else:
                     userId = '["%s"]' % request.user.propercased_name
 

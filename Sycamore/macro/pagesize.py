@@ -14,6 +14,7 @@ Dependencies = ["pages"]
 
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
+    return "<em>This macro is currently disabled until we make it faster.  Sorry!</em>"
 
     # get list of pages and their objects
     pages = wikiutil.getPageDict(macro.request)

@@ -6,6 +6,8 @@ from Sycamore import wikiutil, config, request, caching, wikidb, maintenance, bu
 from Sycamore.Page import Page
 from Sycamore.buildDB import FlatPage
 
+CHUNK_RESULTS_SIZE = 20
+
 req = request.RequestDummy()
 cursor = req.cursor
 if config.db_type == 'mysql':
@@ -114,12 +116,17 @@ cursor.execute("CREATE VIEW deletedFileChanges as SELECT oldFiles.attached_to_pa
 cursor.execute("CREATE VIEW oldFileChanges as SELECT oldFiles.attached_to_pagename as name, oldFiles.uploaded_time as changeTime, oldFiles.uploaded_by as id, 'ATTNEW' as editType, name as comment, oldFiles.uploaded_by_ip as userIP, oldFiles.attached_to_pagename_propercased as propercased_name from oldFiles;")
 cursor.execute("CREATE VIEW currentFileChanges as SELECT files.attached_to_pagename as name, files.uploaded_time as changeTime, files.uploaded_by as id, 'ATTNEW' as editType, name as comment, files.uploaded_by_ip as userIP, files.attached_to_pagename_propercased as propercased_name from files;")
 
-cursor.execute("SELECT name, image, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased, xsize, ysize from images")
-results = cursor.fetchall()
-for result in results:
-    image_dict = { 'name': result[0], 'image': result[1], 'uploaded_time': result[2], 'uploaded_by': result[3], 'attached_to_pagename': result[4], 'uploaded_by_ip': result[5], 'attached_to_pagename_propercased': result[6], 'xsize': result[7], 'ysize': result[8] }
-    cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased) values (%(name)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(attached_to_pagename)s, %(uploaded_by_ip)s, %(attached_to_pagename_propercased)s)", image_dict, isWrite=True)
-    cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize) values (%(name)s, %(attached_to_pagename)s, %(xsize)s, %(ysize)s)", image_dict, isWrite=True)
+have_results = True
+offset = 0
+while have_results:
+    cursor.execute("SELECT name, image, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased, xsize, ysize from images LIMIT %s OFFSET %s" % (CHUNK_RESULTS_SIZE, offset))
+    results = cursor.fetchall()
+    offset += CHUNK_RESULTS_SIZE
+    have_results = results
+    for result in results:
+        image_dict = { 'name': result[0], 'image': result[1], 'uploaded_time': result[2], 'uploaded_by': result[3], 'attached_to_pagename': result[4], 'uploaded_by_ip': result[5], 'attached_to_pagename_propercased': result[6], 'xsize': result[7], 'ysize': result[8] }
+        cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased) values (%(name)s, %(image)s, %(uploaded_time)s, %(uploaded_by)s, %(attached_to_pagename)s, %(uploaded_by_ip)s, %(attached_to_pagename_propercased)s)", image_dict, isWrite=True)
+        cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize) values (%(name)s, %(attached_to_pagename)s, %(xsize)s, %(ysize)s)", image_dict, isWrite=True)
 
 cursor.execute("SELECT name, attached_to_pagename, image, uploaded_by, uploaded_time, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased, xsize, ysize from oldImages")
 results = cursor.fetchall()

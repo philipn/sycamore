@@ -4,12 +4,14 @@
 
     Optional integer argument: maximal depth of listing.
 
+    @copyright: 2007 Philip Neustrom <philipn@gmail.com>
     @copyright: 2000, 2001, 2002 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
 import re, sha
+from Sycamore import wikiutil
 
 Dependencies = []
 
@@ -46,7 +48,10 @@ def execute(macro, args, formatter=None):
         match = heading.match(line)
         if not match: continue
         title_text = match.group(2).strip() # A slightly questionable strip
-	if not title_text: continue
+        if not title_text: continue
+        wikified_title = wikiutil.wikifyString(title_text, macro.request, formatter.page)
+        title_text = wikiutil.simpleStrip(macro.request, 
+            wikiutil.stripOuterParagraph(wikified_title))
         titles.setdefault(title_text, 0)
         titles[title_text] += 1
 
@@ -54,10 +59,6 @@ def execute(macro, args, formatter=None):
         newindent = len(match.group(1))
         if newindent > maxdepth: continue
         if newindent < mindepth: continue
-        # Why was this here vvv
-        #if not indent:
-        #    baseindent = newindent - 1
-        #    indent = baseindent
 
         # Close lists
         for i in range(0,indent-newindent):
@@ -74,7 +75,8 @@ def execute(macro, args, formatter=None):
 
         result.append(macro.formatter.listitem(1))
         result.append(macro.formatter.anchorlink(
-            "head-" + sha.new(title_text.encode('utf-8')).hexdigest() + unique_id, title_text))
+            "head-" + sha.new(title_text.encode('utf-8')).hexdigest() + unique_id, title_text,
+            escape=False))
         result.append(macro.formatter.listitem(0))
         
         # Set new indent level
@@ -84,10 +86,8 @@ def execute(macro, args, formatter=None):
     for i in range(baseindent, indent):
         result.append(macro.formatter.number_list(0))
 
-    style = ''
+    html_class = 'tableOfContents'
     if not result: return ''
-    if right: style = ' class="floatRightTOC"'
-    elif left: style = ' class="floatLeftTOC"'
-    return '<table cellpadding="0"%s><tr><td bgcolor="#eeeeee" nowrap style="border: 1px solid #aaaaaa; padding: 5px">' % style + ''.join(result) + '</td></tr></table>'
-
-    #return ''.join(result)
+    if right: html_class += ' floatRightTOC'
+    elif left: html_class += ' floatLeftTOC'
+    return '<table class="%s"><tr><td>' % html_class + ''.join(result) + '</td></tr></table>'

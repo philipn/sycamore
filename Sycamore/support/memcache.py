@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+# -*- coding: utf-8 -*-
 """
 client module for memcached (memory cache daemon)
 
@@ -47,17 +47,42 @@ import sys
 import socket
 import time
 import types
+from binascii import crc32 # don't use zlib version -- isn't cross platform
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
 __author__    = "Evan Martin <martine@danga.com>"
-__version__ = "1.33"
+__version__ = "1.34"
 __copyright__ = "Copyright (C) 2003 Danga Interactive"
 __license__   = "Python"
 
 SERVER_MAX_KEY_LENGTH = 250
+SERVER_MAX_VALUE = 1024*1024 # unless you recompiled memcached, you can store at most 1MB values.
+
+def get_flags_val(val):
+    flags = 0
+    if isinstance(val, str):
+        pass
+    elif isinstance(val, int):
+        flags |= Client._FLAG_INTEGER
+        val = "%d" % val
+    elif isinstance(val, long):
+        flags |= Client._FLAG_LONG
+        val = "%d" % val
+    else:
+        flags |= Client._FLAG_PICKLE
+        val = pickle.dumps(val, 2)
+
+    return (flags, val)
+
+def _is_value_too_big(val):
+    """
+    is a given value larger than the maximum allowable value?
+    """
+    return (len(val) >= SERVER_MAX_VALUE)
+
 
 class _Error(Exception):
     pass
@@ -95,6 +120,8 @@ class Client:
     class MemcachedKeyLengthError(MemcachedKeyError):
       pass
     class MemcachedKeyCharacterError(MemcachedKeyError):
+      pass
+    class MemcachedStringEncodingError(Exception):
       pass
 
     def __init__(self, servers, debug=0):
@@ -180,14 +207,14 @@ class Client:
         if type(key) == types.TupleType:
             serverhash, key = key
         else:
-            serverhash = hash(key)
+            serverhash = crc32(key)
 
         for i in range(Client._SERVER_RETRIES):
             server = self.buckets[serverhash % len(self.buckets)]
             if server.connect():
                 #print "(using server %s)" % server,
                 return server, key
-            serverhash = hash(str(serverhash) + str(i))
+            serverhash = crc32(str(serverhash) + str(i))
         return None, None
 
     def disconnect_all(self):
@@ -312,19 +339,10 @@ class Client:
 
         self._statlog(cmd)
 
-        flags = 0
-        if isinstance(val, types.StringTypes):
-            pass
-        elif isinstance(val, int):
-            flags |= Client._FLAG_INTEGER
-            val = "%d" % val
-        elif isinstance(val, long):
-            flags |= Client._FLAG_LONG
-            val = "%d" % val
-        else:
-            flags |= Client._FLAG_PICKLE
-            val = pickle.dumps(val, 2)
-        
+        flags, val = get_flags_val(val)
+
+        if _is_value_too_big(val):
+            return 0
         fullcmd = "%s %s %d %d %d\r\n%s" % (cmd, key, flags, time, len(val), val)
         try:
             server.send_cmd(fullcmd)
@@ -551,10 +569,14 @@ class _Host:
         return line
     
     def recv(self, rlen):
-        recv = self.socket.recv
+        self_socket_recv = self.socket.recv
         buf = self.buffer
         while len(buf) < rlen:
-            buf += recv(4096)
+            foo = self_socket_recv(4096)
+            buf += foo
+            if len(foo) == 0:
+                raise _Error, ( 'Read %d bytes, expecting %d, '
+                        'read returned 0 length bytes' % ( len(buf), foo ))
         self.buffer = buf[rlen:]
         return buf[:rlen]
 
@@ -566,9 +588,11 @@ class _Host:
 
 def check_key(key):
     """
-    Checks to make sure the key is less than SERVER_MAX_KEY_LENGTH or contains control characters.
+    Checks whether the key is greater than SERVER_MAX_KEY_LENGTH, contains control characters or is a unicode string.
     If test fails throws MemcachedKeyLength error.
     """
+    if not isinstance(key, str):
+      raise Client.MemcachedStringEncodingError, "Keys must be str()'s, not unicode.  Convert your unicode strings using mystring.encode(charset)!"
     if len(key) > SERVER_MAX_KEY_LENGTH:
       raise Client.MemcachedKeyLengthError, "Key length is > %s" % SERVER_MAX_KEY_LENGTH
     for char in key:
@@ -647,6 +671,64 @@ if __name__ == "__main__":
     else:
         print "FAIL"
 
+    # sanity tests
+    print "Testing sending spaces...",
+    try:
+        x = mc.set("this has spaces", 1)
+    except Client.MemcachedKeyCharacterError, msg:
+        print "OK"
+    else:
+        print "FAIL"
+
+    print "Testing sending control characters...",
+    try:
+        x = mc.set("this\x10has\x11control characters\x02", 1)
+    except Client.MemcachedKeyCharacterError, msg:
+        print "OK"
+    else:
+        print "FAIL"
+
+    print "Testing using insanely long key...",
+    try:
+        x = mc.set('a'*SERVER_MAX_KEY_LENGTH + 'aaaa', 1)
+    except Client.MemcachedKeyLengthError, msg:
+        print "OK"
+    else:
+        print "FAIL"
+
+    print "Testing sending a unicode-string key...",
+    try:
+        x = mc.set(u'keyhere', 1)
+    except Client.MemcachedStringEncodingError, msg:
+        print "OK",
+    else:
+        print "FAIL",
+    try:
+        x = mc.set((u'a'*SERVER_MAX_KEY_LENGTH).encode('utf-8'), 1)
+    except:
+        print "FAIL",
+    else:
+        print "OK",
+    try:
+        x = mc.set((u'会'*SERVER_MAX_KEY_LENGTH).encode('utf-8'), 1)
+    except Client.MemcachedKeyLengthError:
+        print "OK"
+    else:
+        print "FAIL"
+
+
+
+    print "Testing using a value larger than the memcached value limit...",
+    x = mc.set('keyhere', 'a'*SERVER_MAX_VALUE)
+    if mc.get('keyhere') == None:
+        print "OK",
+    else:
+        print "FAIL",
+    x = mc.set('keyhere', 'a'*SERVER_MAX_VALUE + 'aaa')
+    if mc.get('keyhere') == None:
+        print "OK"
+    else:
+        print "FAIL"
 
 
 # vim: ts=4 sw=4 et :

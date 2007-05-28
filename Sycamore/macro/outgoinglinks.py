@@ -3,6 +3,18 @@
 from Sycamore import wikiutil, wikiform, config, wikidb
 from Sycamore.Page import Page
 
+system_pages_startswith = ('wiki settings/', 'templates/')
+system_pages = ('wiki settings', 'templates', 'wanted pages', 'bookmarks', 'recent changes', 'user statistics', 'events board', 'all pages', 'random pages', 'orphaned pages', 'interwiki map')
+
+def skip_page(name):
+    lower_name = name.lower()
+    if lower_name in system_pages:
+        return True
+    for startname in system_pages_startswith:
+        if lower_name.startswith(startname):
+            return True
+    return False
+
 def execute(macro, args, formatter=None):
     if not formatter: formatter = macro.formatter
 
@@ -13,6 +25,10 @@ def execute(macro, args, formatter=None):
     old_count = -1
     for entry in results:
       name = entry[0] 
+      lower_name = name.lower()
+      if skip_page(name):
+        continue
+      
       new_count = entry[1]
       page = Page(name, macro.request)
       if new_count == 0:

@@ -9,7 +9,7 @@ on how to use these modules.
 '''
 
 # The Olson database has historically been updated about 4 times a year
-OLSON_VERSION = '2006g'
+OLSON_VERSION = '2007d'
 VERSION = OLSON_VERSION
 #VERSION = OLSON_VERSION + '.2'
 __version__ = OLSON_VERSION
@@ -17,12 +17,45 @@ __version__ = OLSON_VERSION
 OLSEN_VERSION = OLSON_VERSION # Old releases had this misspelling
 
 __all__ = [
-    'timezone', 'all_timezones', 'common_timezones', 'utc',
-    'AmbiguousTimeError', 'country_timezones', '_',
+    'timezone', 'utc', 'country_timezones',
+    'AmbiguousTimeError', 'UnknownTimeZoneError',
+    'all_timezones', 'all_timezones_set',
+    'common_timezones', 'common_timezones_set',
     ]
 
 import sys, datetime, os.path, gettext
+
+try:
+    from pkg_resources import resource_stream
+except ImportError:
+    resource_stream = None
+
 from tzinfo import AmbiguousTimeError, unpickler
+from tzfile import build_tzinfo
+
+# Use 2.3 sets module implementation if set builtin is not available
+try:
+    set
+except NameError:
+    from sets import Set as set
+
+
+def open_resource(name):
+    """Open a resource from the zoneinfo subdir for reading.
+
+    Uses the pkg_resources module if available.
+    """
+    if resource_stream is not None:
+        return resource_stream(__name__, 'zoneinfo/' + name)
+    else:
+        name_parts = name.lstrip('/').split('/')
+        for part in name_parts:
+            if part == os.path.pardir or os.path.sep in part:
+                raise ValueError('Bad path segment: %r' % part)
+        filename = os.path.join(os.path.dirname(__file__),
+                                'zoneinfo', *name_parts)
+        return open(filename, 'rb')
+        
 
 # Enable this when we get some translations?
 # We want an i18n API that is useful to programs using Python's gettext
@@ -37,6 +70,25 @@ from tzinfo import AmbiguousTimeError, unpickler
 # def _(timezone_name):
 #     """Translate a timezone name using the current locale, returning Unicode"""
 #     return t.ugettext(timezone_name)
+
+
+class UnknownTimeZoneError(KeyError):
+    '''Exception raised when pytz is passed an unknown timezone.
+
+    >>> isinstance(UnknownTimeZoneError(), LookupError)
+    True
+
+    This class is actually a subclass of KeyError to provide backwards
+    compatibility with code relying on the undocumented behavior of earlier
+    pytz releases.
+
+    >>> isinstance(UnknownTimeZoneError(), KeyError)
+    True
+    '''
+    pass
+
+
+_tzinfo_cache = {}
 
 def timezone(zone):
     ''' Return a datetime.tzinfo implementation for the given timezone 
@@ -57,32 +109,30 @@ def timezone(zone):
     '2002-10-27 01:50:00 EDT (-0400)'
     >>> (loc_dt + timedelta(minutes=10)).strftime(fmt)
     '2002-10-27 01:10:00 EST (-0500)'
+
+    Raises UnknownTimeZoneError if passed an unknown zone.
+
+    >>> timezone('Asia/Shangri-La')
+    Traceback (most recent call last):
+    ...
+    UnknownTimeZoneError: 'Asia/Shangri-La'
     '''
-    zone = _munge_zone(zone)
     if zone.upper() == 'UTC':
         return utc
-    zone_bits = ['zoneinfo'] + zone.split('/')
 
-    # Load zone's module
-    module_name = '.'.join(zone_bits)
-    try:
-        module = __import__(module_name, globals(), locals())
-    except ImportError:
-        raise KeyError, zone
-    rv = module
-    for bit in zone_bits[1:]:
-        rv = getattr(rv, bit)
-
-    # Return instance from that module
-    rv = getattr(rv, zone_bits[-1])
-    assert type(rv) != type(sys)
-    return rv
+    zone = _unmunge_zone(zone)
+    if zone not in _tzinfo_cache:
+        if zone in all_timezones_set:
+            _tzinfo_cache[zone] = build_tzinfo(zone, open_resource(zone))
+        else:
+            raise UnknownTimeZoneError(zone)
+    
+    return _tzinfo_cache[zone]
 
 
-def _munge_zone(zone):
-    ''' Convert a zone into a string suitable for use as a Python identifier 
-    '''
-    return zone.replace('+', '_plus_').replace('-', '_minus_')
+def _unmunge_zone(zone):
+    """Undo the time zone name munging done by older versions of pytz."""
+    return zone.replace('_plus_', '+').replace('_minus_', '-')
 
 
 ZERO = datetime.timedelta(0)
@@ -195,8 +245,8 @@ def country_timezones(iso3166_code):
     """
     iso3166_code = iso3166_code.upper()
     if not _country_timezones_cache:
-        zone_tab_name = os.path.join(os.path.dirname(__file__), 'zone.tab')
-        for line in open(zone_tab_name):
+        zone_tab = open_resource('zone.tab')
+        for line in zone_tab:
             if line.startswith('#'):
                 continue
             code, coordinates, zone = line.split(None, 4)[:3]
@@ -205,6 +255,7 @@ def country_timezones(iso3166_code):
             except KeyError:
                 _country_timezones_cache[code] = [zone]
     return _country_timezones_cache[iso3166_code]
+
 
 # Time-zone info based solely on fixed offsets
 
@@ -244,6 +295,7 @@ class _FixedOffset(datetime.tzinfo):
         if dt.tzinfo is None:
             raise ValueError, 'Naive time - no tzinfo set'
         return dt.replace(tzinfo=self)
+
 
 def FixedOffset(offset, _tzinfos = {}):
     """return a fixed-offset timezone based off a number of minutes.
@@ -293,9 +345,7 @@ def FixedOffset(offset, _tzinfos = {}):
         True
         >>> pickle.loads(pickle.dumps(two)) is two
         True
-
     """
-
     if offset == 0:
         return UTC
 
@@ -311,6 +361,7 @@ def FixedOffset(offset, _tzinfos = {}):
 
 FixedOffset.__safe_for_unpickling__ = True
 
+
 def _test():
     import doctest, os, sys
     sys.path.insert(0, os.pardir)
@@ -325,6 +376,7 @@ common_timezones = \
  'Africa/Accra',
  'Africa/Addis_Ababa',
  'Africa/Algiers',
+ 'Africa/Asmara',
  'Africa/Asmera',
  'Africa/Bamako',
  'Africa/Bangui',
@@ -380,11 +432,13 @@ common_timezones = \
  'America/Araguaina',
  'America/Aruba',
  'America/Asuncion',
+ 'America/Atikokan',
  'America/Atka',
  'America/Bahia',
  'America/Barbados',
  'America/Belem',
  'America/Belize',
+ 'America/Blanc-Sablon',
  'America/Boa_Vista',
  'America/Bogota',
  'America/Boise',
@@ -471,6 +525,7 @@ common_timezones = \
  'America/Rankin_Inlet',
  'America/Recife',
  'America/Regina',
+ 'America/Resolute',
  'America/Rio_Branco',
  'America/Rosario',
  'America/Santiago',
@@ -596,6 +651,7 @@ common_timezones = \
  'Atlantic/Canary',
  'Atlantic/Cape_Verde',
  'Atlantic/Faeroe',
+ 'Atlantic/Faroe',
  'Atlantic/Jan_Mayen',
  'Atlantic/Madeira',
  'Atlantic/Reykjavik',
@@ -609,6 +665,7 @@ common_timezones = \
  'Australia/Canberra',
  'Australia/Currie',
  'Australia/Darwin',
+ 'Australia/Eucla',
  'Australia/Hobart',
  'Australia/LHI',
  'Australia/Lindeman',
@@ -653,8 +710,11 @@ common_timezones = \
  'Europe/Copenhagen',
  'Europe/Dublin',
  'Europe/Gibraltar',
+ 'Europe/Guernsey',
  'Europe/Helsinki',
+ 'Europe/Isle_of_Man',
  'Europe/Istanbul',
+ 'Europe/Jersey',
  'Europe/Kaliningrad',
  'Europe/Kiev',
  'Europe/Lisbon',
@@ -670,6 +730,7 @@ common_timezones = \
  'Europe/Nicosia',
  'Europe/Oslo',
  'Europe/Paris',
+ 'Europe/Podgorica',
  'Europe/Prague',
  'Europe/Riga',
  'Europe/Rome',
@@ -688,6 +749,7 @@ common_timezones = \
  'Europe/Vatican',
  'Europe/Vienna',
  'Europe/Vilnius',
+ 'Europe/Volgograd',
  'Europe/Warsaw',
  'Europe/Zagreb',
  'Europe/Zaporozhye',
@@ -761,12 +823,14 @@ common_timezones = \
  'US/Pacific-New',
  'US/Samoa',
  'UTC']
+common_timezones_set = set(common_timezones)
 
 all_timezones = \
 ['Africa/Abidjan',
  'Africa/Accra',
  'Africa/Addis_Ababa',
  'Africa/Algiers',
+ 'Africa/Asmara',
  'Africa/Asmera',
  'Africa/Bamako',
  'Africa/Bangui',
@@ -833,11 +897,13 @@ all_timezones = \
  'America/Argentina/Ushuaia',
  'America/Aruba',
  'America/Asuncion',
+ 'America/Atikokan',
  'America/Atka',
  'America/Bahia',
  'America/Barbados',
  'America/Belem',
  'America/Belize',
+ 'America/Blanc-Sablon',
  'America/Boa_Vista',
  'America/Bogota',
  'America/Boise',
@@ -886,6 +952,7 @@ all_timezones = \
  'America/Indiana/Petersburg',
  'America/Indiana/Vevay',
  'America/Indiana/Vincennes',
+ 'America/Indiana/Winamac',
  'America/Indianapolis',
  'America/Inuvik',
  'America/Iqaluit',
@@ -934,6 +1001,7 @@ all_timezones = \
  'America/Rankin_Inlet',
  'America/Recife',
  'America/Regina',
+ 'America/Resolute',
  'America/Rio_Branco',
  'America/Rosario',
  'America/Santiago',
@@ -1059,6 +1127,7 @@ all_timezones = \
  'Atlantic/Canary',
  'Atlantic/Cape_Verde',
  'Atlantic/Faeroe',
+ 'Atlantic/Faroe',
  'Atlantic/Jan_Mayen',
  'Atlantic/Madeira',
  'Atlantic/Reykjavik',
@@ -1072,6 +1141,7 @@ all_timezones = \
  'Australia/Canberra',
  'Australia/Currie',
  'Australia/Darwin',
+ 'Australia/Eucla',
  'Australia/Hobart',
  'Australia/LHI',
  'Australia/Lindeman',
@@ -1159,8 +1229,11 @@ all_timezones = \
  'Europe/Copenhagen',
  'Europe/Dublin',
  'Europe/Gibraltar',
+ 'Europe/Guernsey',
  'Europe/Helsinki',
+ 'Europe/Isle_of_Man',
  'Europe/Istanbul',
+ 'Europe/Jersey',
  'Europe/Kaliningrad',
  'Europe/Kiev',
  'Europe/Lisbon',
@@ -1176,6 +1249,7 @@ all_timezones = \
  'Europe/Nicosia',
  'Europe/Oslo',
  'Europe/Paris',
+ 'Europe/Podgorica',
  'Europe/Prague',
  'Europe/Riga',
  'Europe/Rome',
@@ -1194,6 +1268,7 @@ all_timezones = \
  'Europe/Vatican',
  'Europe/Vienna',
  'Europe/Vilnius',
+ 'Europe/Volgograd',
  'Europe/Warsaw',
  'Europe/Zagreb',
  'Europe/Zaporozhye',
@@ -1302,3 +1377,4 @@ all_timezones = \
  'WET',
  'Zulu',
  'posixrules']
+all_timezones_set = set(all_timezones)

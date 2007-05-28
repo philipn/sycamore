@@ -1,6 +1,12 @@
 """
    `Wrapper for memcached interface..does a little bit of other sycamore-specific stuff.
 
+    Some specifics:
+
+       * does prefixes for different 'namespaces'
+       * errors on control characters rather than fucking memcached up
+       * does hash-magic (TM) on long keys (>250 characters).
+
    originally Developed by :
       Jehiah Czebotar
       Aryeh Katz
@@ -21,10 +27,40 @@
    mc.get(...)
 
 """
-import os, time, threading
+import os, time, threading, inspect
+from copy import copy
 from Sycamore.support import Bogus
 from Sycamore import config
+# It would be cool to use cmemcache instead, when they have it, but:
+#   * it's based on libmemcache and has bugs where if a connection drops it'll go into infinite stderr loops
+#   * simply taking a server offline while Sycamore is running will crash Sycamore, at the fault of cmemcache's error handling (via libmemcache)
+# It'd be cool to fix that stuff and make it work with cmemcache, but right now we'll just use the pure python implementation.
 from Sycamore.support import memcache
+
+from Sycamore.support.memcache import SERVER_MAX_KEY_LENGTH
+
+class MemcachedKeyError(Exception):
+    pass
+class MemcachedKeyCharacterError(MemcachedKeyError):
+    pass
+
+def hash(cleartext):
+    """
+    hash of cleartext returned
+    """
+    import base64, sha, md5
+    return '%s_%s' % (base64.encodestring(sha.new(cleartext.encode('utf-8')).digest()).rstrip()[:-1], base64.encodestring(md5.new(cleartext.encode('utf-8')).hexdigest())[:-2])
+
+
+def check_key(key):
+    """
+    Checks to make sure the key doesn't contain control characters (this will FUCK UP memcached HARD).
+    If test fails throws MemcachedKeyCharacter error.
+    """
+    for char in key:
+      if ord(char) < 33:
+        raise MemcachedKeyCharacterError, "Control characters not allowed"
+
 
 def fixEncoding(item):
         """
@@ -45,7 +81,9 @@ def fixKey(key, prefix):
         """        
         if prefix != '':
           return fixEncoding('%s%s' % (prefix, key))
-        return fixEncoding(key)
+        key = fixEncoding(key)
+        check_key(key) # check for control characters
+        return key
 
 
 class MemcachePool:
@@ -101,26 +139,41 @@ class MemcachePool:
             self.lock.release()
         
     def get(self,key,wiki_global=False,prefix=None):
-        if not prefix: prefix = self.prefix
+        if prefix is None: prefix = self.prefix
         mc = self.getConnection()
         if not wiki_global:
           key = fixKey(key, prefix)
         else:
           key = fixKey(key, '')
-        v = mc.get(key)
+        if len(key) > SERVER_MAX_KEY_LENGTH:
+            v = mc.get(hash(key))
+            if v is not None:
+                value, orig_key = v
+                if key == orig_key:
+                    v = value
+                else:
+                    # crazy collision omg
+                    v = None
+        else:
+            v = mc.get(key)
         if type(v) == str:
           v = v.decode('utf-8')
         self.returnConnection(mc)
         return v
 
     def set(self,key,value,time=0,wiki_global=False,prefix=None):
-        if not prefix: prefix = self.prefix
+        if prefix is None: prefix = self.prefix
         mc = self.getConnection()
         if not wiki_global:
           key = fixKey(key, prefix)
         else:
           key = fixKey(key, '')
-        value = fixEncoding(value)
+        if len(key) > SERVER_MAX_KEY_LENGTH:
+            value = (fixEncoding(value), key)
+            key = hash(key)
+        else:
+            value = fixEncoding(value)
+
         r = mc.set(key,value,time)
         self.returnConnection(mc)
         return r
@@ -134,57 +187,78 @@ class MemcachePool:
         return r
 
     def add(self,key,value,time=0,wiki_global=False,prefix=None):
-        if not prefix: prefix = self.prefix
+        if prefix is None: prefix = self.prefix
         mc = self.getConnection()
         if not wiki_global:
           key = fixKey(key, prefix)
         else:
           key = fixKey(key, '')
-        value = fixEncoding(value)
+        if len(key) > SERVER_MAX_KEY_LENGTH:
+            value = (fixEncoding(value), key)
+            key = hash(key)
+        else:
+            value = fixEncoding(value)
         r = mc.add(key,value,time)
         self.returnConnection(mc)
         return r
 
     def replace(self,key,value,time=0,wiki_global=False,prefix=None):
-        if not prefix: prefix = self.prefix
+        if prefix is None: prefix = self.prefix
         mc = self.getConnection()
         if not wiki_global:
           key = fixKey(key, prefix)
         else:
           key = fixKey(key, '')
+        if len(key) > SERVER_MAX_KEY_LENGTH:
+            value = (fixEncoding(value), key)
+            key = hash(key)
+        else:
+            value = fixEncoding(value)
         r = mc.replace(key,value,time)
         self.returnConnection(mc)
         return r
 
     def delete(self,key,time=0,wiki_global=False,prefix=None):
-        if not prefix: prefix = self.prefix
+        if prefix is None: prefix = self.prefix
         mc = self.getConnection()
         if not wiki_global:
           key = fixKey(key, self.prefix)
         else:
           key = fixKey(key, '')
+        if len(key) > SERVER_MAX_KEY_LENGTH:
+            key = hash(key)
         r = mc.delete(key,time)
         self.returnConnection(mc)
         return r
 
     def incr(self,name,value=1, wiki_global=False,prefix=None):
-        if not prefix: prefix = self.prefix
+        if prefix is None: prefix = self.prefix
         mc = self.getConnection()
         if not wiki_global:
           name = fixKey(name, prefix)
         else:
           name = fixKey(name, '')
+        if len(name) > SERVER_MAX_KEY_LENGTH:
+            value = (fixEncoding(value), name)
+            name = hash(name)
+        else:
+            value = fixEncoding(value)
         r = mc.incr(name,value)
         self.returnConnection(mc)
         return r
 
     def decr(self,name,value=1, wiki_global=False,prefix=None):
-        if not prefix: prefix = self.prefix
+        if prefix is None: prefix = self.prefix
         mc = self.getConnection()
         if not wiki_global:
           name = fixKey(name, prefix)
         else:
           name = fixKey(name, '')
+        if len(name) > SERVER_MAX_KEY_LENGTH:
+            value = (fixEncoding(value), name)
+            name = hash(name)
+        else:
+            value = fixEncoding(value)
         r = mc.decr(name,value)
         self.returnConnection(mc)
         return r
@@ -199,17 +273,36 @@ class MemcachePool:
     def get_multi(self,keys,wiki_global=False,prefix=None):
         if not prefix: prefix = self.prefix
         mc = self.getConnection()
-        if not wiki_global:
-          keys = [ fixKey(key, self.prefix) for key in keys ]
-        else:
-          keys = [ fixKey(key, '') for key in keys ]
-        v = mc.get_multi(keys)
-        v_new = []
-        for value in v:
-          if type(value) == str:
-            v_new.append(value.decode("utf-8"))
+        orig_keys = []
+        get_keys = []
+        for key in keys:
+          if not wiki_global:
+              key = fixKey(key, self.prefix)
           else:
-            v_new.append(value)
+              key = fixKey(key, '')
+          if len(key) > SERVER_MAX_KEY_LENGTH:
+              orig_keys.append(key)
+              key = hash(key)
+          else:
+              orig_keys.append(None) # just padding
+          get_keys.append(key)
+
+        v = mc.get_multi(get_keys)
+        v_new = {}
+        i = 0
+        for key in v:
+          got_value = v[key]
+          value = got_value
+          if orig_keys[i]: # we hashed
+            value, orig_key = got_value
+            if orig_key != orig_keys[i]: # collision of some sort
+                value = None
+
+          if type(value) == str:
+            value = value.decode("utf-8")
+          v_new[key] = value
+          i += 1
+
         v = v_new
         self.returnConnection(mc)
         return v

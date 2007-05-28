@@ -38,7 +38,7 @@ def execute(pagename, request):
               dowhat = 'delete'
               groupname = unquoteWikiname(key[:-11])
             elif key.endswith('_may_admin'):
-              dowhat = 'read'
+              dowhat = 'admin'
               groupname = unquoteWikiname(key[:-10])
             else:
               continue
@@ -65,7 +65,8 @@ def execute(pagename, request):
 <input type="hidden" name="action" value="%(actname)s">
 """ % d)
 
-    grouplist = ['All', 'Known'] + user.getGroupList(request, exclude_special_groups=True)
+    custom_groups = user.getGroupList(request, exclude_special_groups=True)
+    grouplist = ['All', 'Known'] + custom_groups
     for groupname in grouplist:
       # "All" and "Known" are a bit condense
       if groupname == 'All':
@@ -76,6 +77,11 @@ def execute(pagename, request):
         written_groupname = groupname
 
       group = wikiacl.Group(groupname, request, fresh=True)
+
+      # we want to show the 'change security' option only if
+      # it makes some sense
+      show_admin = groupname in custom_groups
+
       formhtml.append('<h6>%s</h6>' % written_groupname)
       formhtml.append("""<input type="hidden" name="%s_groupname" value="1">""" % quoteWikiname(groupname))
       if group.may(page, 'read'):
@@ -96,11 +102,12 @@ def execute(pagename, request):
         formhtml.append('<input type="checkbox" name="%s_may_delete" value="1">' % quoteWikiname(groupname))
       formhtml.append(' delete ')
 
-      if group.may(page, 'admin'):
-        formhtml.append('<input type="checkbox" checked name="%s_may_admin" value="1">' % quoteWikiname(groupname))
-      else:
-        formhtml.append('<input type="checkbox" name="%s_may_admin" value="1">' % quoteWikiname(groupname))
-      formhtml.append(' admin ')
+      if show_admin:
+        if group.may(page, 'admin'):
+          formhtml.append('<input type="checkbox" checked name="%s_may_admin" value="1">' % quoteWikiname(groupname))
+        else:
+          formhtml.append('<input type="checkbox" name="%s_may_admin" value="1">' % quoteWikiname(groupname))
+        formhtml.append(' change security ')
 
 
 

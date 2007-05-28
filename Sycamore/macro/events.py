@@ -25,9 +25,9 @@ def execute(macro, args, formatter=None):
     events = []
 
     if not do_mini:
-	full_events(events, are_events_today, htmltext, macro)
+        full_events(events, are_events_today, htmltext, macro)
     else:
-	do_mini_events(events, are_events_today, htmltext, macro)
+        do_mini_events(events, are_events_today, htmltext, macro)
 
 
     return macro.formatter.rawHTML(''.join(htmltext))
@@ -63,12 +63,19 @@ def datetoday(day, month, year):
    return days[dayofweek-1]
 
 
-def doParse(text, macro):
-   if not text: return ''
-   return wikiutil.wikifyString(text, macro.request, macro.formatter.page)
+def doParse(text, macro, keep_outer_paragraph=False):
+   if not text.strip(): return ''
+   parsed = wikiutil.wikifyString(text, macro.request, macro.formatter.page)
+   if keep_outer_paragraph:
+       return parsed.strip()
+   else:
+       return wikiutil.stripOuterParagraph(parsed).strip()
 
 def full_events(events, are_events_today, htmltext, macro):
     old_date = ''
+
+    event_timezone = macro.request.config.tz
+
     # clear events that have passed
     yesterday_struct = time.gmtime(time.time()-60*60*24)
     yesterday = list(yesterday_struct[0:3]) + [0,0,0,0,0,0]
@@ -114,15 +121,15 @@ def full_events(events, are_events_today, htmltext, macro):
                else:
                     ptime = str(read_hour) + ":00" + " PM"
             elif int(hour) == 0:
-                if not int(minute) == 0:	
+                if not int(minute) == 0:        
                     ptime = "12:" + str(minute) + " AM"
                 else:
                     ptime = "12:00 AM"
             elif int(hour) == 12:
                 if not int(minute) == 0:
                     ptime = "12:" + str(minute) + " PM"
-        	else:
-        	    ptime = "12:00 PM"
+                else:
+                    ptime = "12:00 PM"
             else:
                 if not int(minute) == 0:
                    ptime = str(hour) + ":" + str(minute) + " AM"  
@@ -132,9 +139,9 @@ def full_events(events, are_events_today, htmltext, macro):
             # This is where we want to run through the wiki processor        
             text = event[3]
 
-       	    event_location = event[4]
-       	    processed_text = doParse(text,macro)
-       	    processed_location = doParse(event_location,macro)
+            event_location = event[4]
+            processed_text = doParse(text,macro,keep_outer_paragraph=True)
+            processed_location = doParse(event_location,macro)
             processed_name = doParse(event_name,macro)
             month_dict = { 1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
             string_month = month_dict[month]
@@ -144,7 +151,7 @@ def full_events(events, are_events_today, htmltext, macro):
                         htmltext.append('<ul>\n<h4 id="head-%s">%s</h4>\n'
                               '<a href="%s/Events_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s<br>\n'
                               '<b>Location:</b> %s<br>\n'
-                              '%s&nbsp;&nbsp;(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (id, processed_name,macro.request.getScriptname(), id,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))
+                              '%s(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (id, processed_name,macro.request.getScriptname(), id,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))
                     else:
                         string_day = datetoday(int(day),int(month),int(year))
                         old_date = date
@@ -152,7 +159,7 @@ def full_events(events, are_events_today, htmltext, macro):
                                 '<ul><h4 id="head-%s">%s</h4>\n'
                                 '<a href="%s/Events_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n'
                                 '<b>Location:</b> %s<br>\n'
-                                '%s&nbsp;&nbsp;(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,year,id, processed_name,macro.request.getScriptname(), id,ptime,processed_location,processed_text,macro.request.getScriptname(),posted_by,posted_by))
+                                '%s(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,year,id, processed_name,macro.request.getScriptname(), id,ptime,processed_location,processed_text,macro.request.getScriptname(),posted_by,posted_by))
 
 
             else:
@@ -160,7 +167,7 @@ def full_events(events, are_events_today, htmltext, macro):
                         htmltext.append('<ul>\n<h4 id="head-%s">%s</h4>\n'
                                 '<b>Time:</b> %s<br>\n'
                                 '<b>Location:</b> %s<br>\n'
-                                '%s&nbsp;&nbsp;(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (id,processed_name,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))                                   
+                                '%s(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (id,processed_name,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))                                   
 
                 else:                                        
                         string_day = datetoday(int(day),int(month),int(year))                                        
@@ -169,7 +176,7 @@ def full_events(events, are_events_today, htmltext, macro):
                                 '<ul>\n<h4 id="head-%s">%s</h4>\n'                                        
                                 '<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n' 
                                 '<b>Location:</b> %s<br>\n'                                        
-                                '%s&nbsp;&nbsp;(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,id,processed_name,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))
+                                '%s(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,id,processed_name,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))
 
     title = "Post a new event:"
     htmltext.append('<h3>%s</h3>\n'
@@ -179,7 +186,7 @@ def full_events(events, are_events_today, htmltext, macro):
                 '<input type="hidden" name="ticket" value="%s">\n'
                 'Event name: <input class="formfields" type="text" name="event_name" size="30" maxlength="100">&nbsp;\n'
                 'Location: <input class="formfields" type="text" name="event_location" size="25" maxlength="100"><br><br>\n'
-     	% (title, macro.request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), createTicket()))
+        % (title, macro.request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), createTicket()))
 
     monthstring ='<p>Date: <select name="month">\n<option value="1">January</option>\n<option value="2">February</option>\n<option value="3">March</option>\n<option value="4">April</option>\n<option value="5">May</option>\n<option value="6">June</option>\n<option value="7">July</option>\n <option value="8">August</option>\n<option value="9">September</option>\n<option value="10">October</option>\n<option value="11">November</option>\n<option value="12">December</option>\n</select>\n'
     newmonthstring = monthstring.replace('value="%s"' % str(int(current_month)), 'value="%s" selected' % str(int(current_month)))
@@ -204,7 +211,7 @@ def full_events(events, are_events_today, htmltext, macro):
        rounded_min = str(int(int(current_minute)/10)) + "0"
     else:
        rounded_min = "0"
-    minutestring = ' : <select name="minute">\n <option value="0">00</option>\n <option value="10">10</option>\n <option value="20">20</option>\n <option value="30">30</option>\n <option value="40">40</option>\n <option value="50">50</option>\n </select></p>\n'
+    minutestring = ' : <select name="minute">\n <option value="0">00</option>\n <option value="10">10</option>\n <option value="20">20</option>\n <option value="30">30</option>\n <option value="40">40</option>\n <option value="50">50</option>\n </select> (in %s)</p>\n' % event_timezone
     newminutestring = minutestring.replace('value="%s"' % rounded_min, 'value="%s" selected' % rounded_min)
     htmltext.append(newminutestring)
 
@@ -222,7 +229,7 @@ class TodaysEvents(object):
 
 
 def do_mini_events(events, are_events_today, htmltext, macro):
-    	
+        
     todays_events = []
     cursor = macro.request.cursor
      
@@ -237,12 +244,12 @@ def do_mini_events(events, are_events_today, htmltext, macro):
     if config.memcache:
       if macro.request.config.tz_offset == macro.request.user.tz_offset:
         #relative time makes 'today' different
-	events = macro.request.mc.get("today_events")
+        events = macro.request.mc.get("today_events")
       else:
         events = macro.request.mc.get("today_events:%s" % today)
       if events is not None and events.day == today:
-	  htmltext += events.text
-	  return
+          htmltext += events.text
+          return
 
     cursor.execute("SELECT event_name, uid from events where event_time >= %(today)s and event_time < %(tomorrow)s and wiki_id=%(wiki_id)s", {'today':today, 'tomorrow':tomorrow, 'wiki_id':macro.request.config.wiki_id})
     events_result = cursor.fetchall()
@@ -263,4 +270,4 @@ def do_mini_events(events, are_events_today, htmltext, macro):
         macro.request.mc.set("today_events", event)
       else:
         event = TodaysEvents(today, todays_events)
-        macro.request.mc.add("today_events:%s" % today, event, 60*5) # keep for 5 minutes, let it expire lazy
+        macro.request.mc.add("today_events:%s" % today, event, time=60*5) # keep for 5 minutes, let it expire lazy

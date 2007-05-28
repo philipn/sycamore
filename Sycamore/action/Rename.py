@@ -12,7 +12,7 @@
 """
 
 # Imports
-from Sycamore import config, user, wikiutil, wikiaction, caching
+from Sycamore import config, user, wikiutil, wikiaction, caching, wikidb
 from Sycamore.PageEditor import PageEditor
 from Sycamore.Page import Page, MAX_PAGENAME_LENGTH
 import time, os, urllib
@@ -32,7 +32,7 @@ def copy_files(oldpagename, newpagename, request):
     result = request.cursor.fetchone()
 
     if result: 
-       old_page_file_dict = {'filename': filename, 'file': result[0], 'uploaded_time': result[1], 'uploaded_by': result[2], 'attached_to_pagename_propercased': result[4], 'uploaded_by_ip': result[3], 'newpagename': newpagename.lower(), 'newpagename_propercased': Page(newpagename, request).proper_name(), 'timenow': time.time(), 'userid': request.user.id, 'userip': request.remote_addr, 'wiki_id': request.config.wiki_id}
+       old_page_file_dict = {'filename': filename, 'uploaded_time': result[1], 'uploaded_by': result[2], 'attached_to_pagename_propercased': result[4], 'oldpagename': oldpagename.lower(), 'uploaded_by_ip': result[3], 'newpagename': newpagename.lower(), 'newpagename_propercased': Page(newpagename, request).proper_name(), 'timenow': time.time(), 'userid': request.user.id, 'userip': request.remote_addr, 'wiki_id': request.config.wiki_id}
        if is_image:
            request.cursor.execute("SELECT xsize, ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(oldpagename)s and wiki_id=%(wiki_id)s", {'filename': filename, 'oldpagename': oldpagename.lower(), 'wiki_id': request.config.wiki_id})
            result = request.cursor.fetchone()
@@ -41,24 +41,31 @@ def copy_files(oldpagename, newpagename, request):
                old_page_file_dict['ysize'] = result[1]
           
        if filename not in new_page_files:
-               request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, uploaded_by_ip, attached_to_pagename, attached_to_pagename_propercased, wiki_id) values (%(filename)s, %(file)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(newpagename)s, %(newpagename_propercased)s, %(wiki_id)s)", old_page_file_dict, isWrite=True)
+               request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, uploaded_by_ip, attached_to_pagename, attached_to_pagename_propercased, wiki_id) values (%(filename)s, (select file from files where name=%(filename)s and attached_to_pagename=%(oldpagename)s and wiki_id=%(wiki_id)s), %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(newpagename)s, %(newpagename_propercased)s, %(wiki_id)s)", old_page_file_dict, isWrite=True)
                if is_image:
-                   request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize, wiki_id) values (%(filename)s, %(newpagename)s, %(xsize)s, %(ysize)s, %(wiki_id)s) ", old_page_file_dict, isWrite=True)
+                   if old_page_file_dict.has_key('xsize'):
+                        request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize, wiki_id) values (%(filename)s, %(newpagename)s, %(xsize)s, %(ysize)s, %(wiki_id)s) ", old_page_file_dict, isWrite=True)
 
        else:
            request.cursor.execute("INSERT into oldFiles (name, file, uploaded_time, uploaded_by, uploaded_by_ip, attached_to_pagename, attached_to_pagename_propercased, deleted_by, deleted_by_ip, deleted_time, wiki_id) values (%(filename)s, (SELECT file from files where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s), (SELECT uploaded_time from files where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s), (SELECT uploaded_by from files where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s), (SELECT uploaded_by_ip from files where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s), %(newpagename)s, %(newpagename_propercased)s, %(userid)s, %(userip)s, %(timenow)s, %(wiki_id)s)", old_page_file_dict, isWrite=True)
+
+           # clear out cached version of image
+           if config.memcache:
+               request.mc.delete("files:%s,%s" % (wikiutil.mc_quote(filename), wikiutil.mc_quote(newpagename.lower())))
+
            if is_image:
                request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time, wiki_id) values (%(filename)s, %(newpagename)s, (SELECT xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s), (SELECT ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s), (SELECT uploaded_time from files where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s), %(wiki_id)s)", old_page_file_dict, isWrite=True)
+               request.cursor.execute("DELETE from thumbnails where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s", old_page_file_dict, isWrite=True)
 
            request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s", old_page_file_dict)
            result = request.cursor.fetchone()
            if result:
-             request.cursor.execute("UPDATE files set file=%(file)s, uploaded_time=%(uploaded_time)s, uploaded_by=%(uploaded_by)s, uploaded_by_ip=%(uploaded_by_ip)s where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s", old_page_file_dict, isWrite=True)
-             if is_image:
+             request.cursor.execute("UPDATE files set file=(select file from files where name=%(filename)s and attached_to_pagename=%(oldpagename)s and wiki_id=%(wiki_id)s), uploaded_time=%(timenow)s, uploaded_by=%(userid)s, uploaded_by_ip=%(userip)s where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s", old_page_file_dict, isWrite=True)
+             if is_image and old_page_file_dict.has_key('xsize'):
                  request.cursor.execute("UPDATE imageInfo set xsize=%(xsize)s, ysize=%(ysize)s where name=%(filename)s and attached_to_pagename=%(newpagename)s and wiki_id=%(wiki_id)s", old_page_file_dict, isWrite=True)
            else:
-             request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased, wiki_id) values (%(filename)s, %(file)s, %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s, %(newpagename_propercased)s, %(wiki_id)s)", old_page_file_dict, isWrite=True)
-             if is_image:
+             request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, uploaded_by_ip, xsize, ysize, attached_to_pagename, attached_to_pagename_propercased, wiki_id) values (%(filename)s, (select file from files where name=%(filename)s and attached_to_pagename=%(oldpagename)s and wiki_id=%(wiki_id)s), %(uploaded_time)s, %(uploaded_by)s, %(uploaded_by_ip)s, %(xsize)s, %(ysize)s, %(newpagename)s, %(newpagename_propercased)s, %(wiki_id)s)", old_page_file_dict, isWrite=True)
+             if is_image and old_page_file_dict.has_key('xsize'):
                  request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize, wiki_id) values (%(filename)s, %(newpagename)s, %(xsize)s, %(ysize)s, %(wiki_id)s)", old_page_file_dict, isWrite=True)
 
 
@@ -79,6 +86,7 @@ def execute(pagename, request):
     elif not page.exists():
         msg = _('This page is already deleted or was never created!')
 
+
     # check whether the user clicked the delete button
     elif request.form.has_key('button') and \
         request.form.has_key('newpagename') and request.form.has_key('ticket'):
@@ -89,6 +97,8 @@ def execute(pagename, request):
         else:
             renamecomment = request.form.get('comment', [''])[0]
             newpagename = request.form.get('newpagename')[0].strip() # strip to ensure naming consistency
+            if newpagename == pagename:
+                return Page(pagename, request).send_page(msg="You can't rename a page to the name it already has!")
             try:
               newpage = PageEditor(newpagename, request)
             except Page.ExcessiveLength, msg:
@@ -105,36 +115,35 @@ def execute(pagename, request):
 
             elif not wikiaction.isValidPageName(newpagename):        # pi Fri Dec 24 05:57:42 EST 2004
                 msg = _('Invalid pagename: Only the characters A-Z, a-z, 0-9, "$", "&", ",", ".", "!", "\'", ":", ";", " ", "/", "-", "(", ")" are allowed in page names.')
-		
+                
             # we actually do a rename!
             else:
                 if renamecomment: renamecomment = " (" + renamecomment + ")"
                 #replace_in_xml(pagename, newpagename)
                 if newpagename.lower() != pagename.lower(): 
                     page.saveText("#redirect %s" % newpagename, '0', comment='Renamed to "%s"' % newpagename, action='RENAME')
-		    # copy images over
-		    copy_files(pagename, newpagename, request)
+                    # copy images over
+                    copy_files(pagename, newpagename, request)
 
                 newpage.saveText(pagetext, '0', comment='Renamed from "%s"%s' % (pagename, renamecomment), action="RENAME", proper_name=newpagename)
 
-		# clear cache so images show up
-		key = newpagename
-		cache = caching.CacheEntry(key, request)
-		cache.clear()
-
                 msg = _('Page "%s" was successfully renamed to "%s"!') % (pagename,newpagename)
-		if newpagename.lower() != pagename.lower():
-		  # check favorites because the redirect will process before the bookmarks get updated
+                if newpagename.lower() != pagename.lower():
+                  # check favorites because the redirect will process before the bookmarks get updated
                   if request.user.valid: request.user.checkFavorites(page)
 
-		  request.http_redirect('%s/%s?action=show&redirect=%s' % (
+                  request.http_redirect('%s/%s?action=show&redirect=%s' % (
                     request.getScriptname(),
                     wikiutil.quoteWikiname(newpagename),
-                    urllib.quote_plus(pagename, ''),))
-		
-		  return
+                    urllib.quote_plus(pagename.encode(config.charset), ''),))
+
+                  request.req_cache['pagenames'][(newpagename.lower(), request.config.wiki_name)] = newpagename
+                  caching.CacheEntry(newpagename.lower(), request).clear() # we clear so the new page name appears
+                  return
                 else:
-		  return newpage.send_page(msg)
+                  request.req_cache['pagenames'][(newpagename.lower(), request.config.wiki_name)] = newpagename
+                  caching.CacheEntry(newpagename.lower(), request).clear() # we clear so the new page name appears
+                  return newpage.send_page(msg)
 
 
     else:

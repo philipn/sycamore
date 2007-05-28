@@ -9,6 +9,7 @@
 # Imports
 import re, time, cStringIO, os, urllib
 from Sycamore import config, user, util, wikiutil, wikidb, farm
+from Sycamore.wikidb import getEditor
 from Sycamore.macro.recentchanges import format_page_edit_icon
 from Sycamore.Page import Page
 from Sycamore.widget.comments import Comment
@@ -40,10 +41,11 @@ def groupFavorites(changed_favorites, all_favorites):
 
     for page_line in changed_favorites:
       lower_page_name = page_line.pagename.lower()
-      if fav_dict[(lower_page_name, page_line.wiki_name)][0].ed_time:
-        fav_dict[(lower_page_name, page_line.wiki_name)].append(page_line)
-      else:
-        fav_dict[(lower_page_name, page_line.wiki_name)] = [page_line]
+      if fav_dict.has_key((lower_page_name, page_line.wiki_name)):
+         if fav_dict[(lower_page_name, page_line.wiki_name)][0].ed_time:
+           fav_dict[(lower_page_name, page_line.wiki_name)].append(page_line)
+         else:
+           fav_dict[(lower_page_name, page_line.wiki_name)] = [page_line]
 
     for lower_page_name, wiki_name in fav_dict:
       if len(fav_dict[(lower_page_name, wiki_name)]) > 1: # more than one change
@@ -93,15 +95,16 @@ def execute(macro, args, formatter=None, **kw):
       find_month = { 1:"Jan.", 2:"Feb.", 3:"Mar.", 4:"Apr.", 5:"May", 6:"Jun.", 7:"Jul.", 8:"Aug.", 9:"Sept.", 10:"Oct.", 11:"Nov.", 12:"Dec." }   
 
     if not wiki_global:
-        rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Bookmarks RSS Feed" href="%s/%s?action=rss_rc&amp;user=%s" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name), request.user.propercased_name, request.user.propercased_name, request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name))
+        rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc&amp;bookmarks=1&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Bookmarks RSS Feed" href="%s/%s?action=rss_rc&amp;bookmarks=1&amp;user=%s" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name), request.user.propercased_name, request.user.propercased_name, request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name))
     else:
-        rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Interwiki Bookmarks RSS Feed" href="%s/%s?action=rss_rc&amp;user=%s&amp;global=1" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name), request.user.propercased_name, request.user.propercased_name, request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name))
+        rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc&amp;bookmarks=1&amp;user=%s" title="Recent Changes on %s\'s bookmarks"><div style="float:right;"><a title="%s\'s Interwiki Bookmarks RSS Feed" href="%s/%s?action=rss_rc&amp;bookmarks=1&amp;user=%s&amp;global=1" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name), request.user.propercased_name, request.user.propercased_name, request.getScriptname(), wikiutil.quoteWikiname(pagename_propercased), urllib.quote_plus(request.user.propercased_name))
     request.write(rss_html)
     request.write('<div class="bookmarks">')
     if not local_favoriteList:
+      request.write('<p>Bookmarks let you easily keep track of pages you think are interesting.</p>')
       if wiki_global:
-        request.write('<p>This page will show you all of your bookmarks, no matter what wiki they point to.</p>')
-      request.write('<p>Bookmarks let you easily keep track of pages you think are interesting.</p><p><i>You have no Bookmarks.  To add a page click "Bookmark this page" at the bottom of the page.</i></p>')
+        request.write('<p>This page will show you all of your bookmarks, even if your bookmarks are on different wikis!</p>')
+      request.write('<p><i>You have no Bookmarks.  To add a page click "Bookmark this page" at the bottom of the page.</i></p>')
 
     showed_update = False
     seen_list = []
@@ -122,32 +125,32 @@ def execute(macro, args, formatter=None, **kw):
           if page_line.ed_time > bookmark:
             # We do bold
             edit_icon = format_page_edit_icon(request, [page_line], page, True, bookmark, formatter)
-            line_of_text = '<div class="rcpagelink"><span><b>%s</b> &nbsp; %s%s<b>' % (edit_icon, page.link_to(), wiki_link)
+            line_of_text = '<div class="rcpagelink"><span><b>%s</b> &nbsp; %s%s<b>' % (edit_icon, page.link_to(absolute=True), wiki_link)
             line_of_text = line_of_text + " &nbsp;" + '<span align="right" style="font-size: 12px;">' + 'last modified '
             line_of_text = line_of_text + '%s %s' % (find_month[day[1]], day[2])
             line_of_text = line_of_text + time.strftime(" at %I:%M %p</b> by</span>", page_line.time_tuple) + '<span class="faveditor">'
             if page_line.comment:
-              line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (page_line.getEditor(request), page_line.comment)
+              line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (getEditor(page_line, request), page_line.comment)
             else:
-              line_of_text = line_of_text + ' %s</span>' % (page_line.getEditor(request))
+              line_of_text = line_of_text + ' %s</span>' % (getEditor(page_line, request))
             line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="%s/%s?action=favorite&delete=%s&wiki_name=%s">Remove</a>]</span>' % (request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), wikiutil.quoteWikiname(page_line.pagename), page.wiki_name) + '</span></div>'
 
           else:
             edit_icon = format_page_edit_icon(request, [page_line], page, False, bookmark, formatter)
             # We don't do bold
             if page_line.ed_time: # page has been created
-                line_of_text = '<div class="rcpagelink"><span>%s &nbsp; %s%s &nbsp;<span class="favtime">last modified ' % (edit_icon, page.link_to(), wiki_link)
+                line_of_text = '<div class="rcpagelink"><span>%s &nbsp; %s%s &nbsp;<span class="favtime">last modified ' % (edit_icon, page.link_to(absolute=True), wiki_link)
                 line_of_text = line_of_text + '%s %s' % (find_month[day[1]], day[2]) 
                 line_of_text = line_of_text + time.strftime(" at %I:%M %p by</span>", page_line.time_tuple) + '<span class="faveditor">'
                 if page_line.comment:
-                  line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (page_line.getEditor(request), page_line.comment)
+                  line_of_text = line_of_text + ' %s</span><span class="favcomment"> (%s)</span>' % (getEditor(page_line, request), page_line.comment)
                 else:
-                   line_of_text = line_of_text + ' %s</span>' % (page_line.getEditor(request))
+                   line_of_text = line_of_text + ' %s</span>' % (getEditor(page_line, request))
 
                 line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="%s/%s?action=favorite&delete=%s&wiki_name=%s">Remove</a>]</span>' % (request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), wikiutil.quoteWikiname(page_line.pagename), page.wiki_name)
                 line_of_text = line_of_text + '</span></div>'
             else: # page has NOT been created
-                line_of_text = '<div class="rcpagelink"><span>%s &nbsp; %s%s &nbsp;<span align="right" class="favtime">page has not been created yet</span>' % (edit_icon, page.link_to(), wiki_link)
+                line_of_text = '<div class="rcpagelink"><span>%s &nbsp; %s%s &nbsp;<span align="right" class="favtime">page has not been created yet</span>' % (edit_icon, page.link_to(absolute=True), wiki_link)
                 line_of_text = line_of_text + '<span style="font-size:12px;">&nbsp;&nbsp;[<a href="%s/%s?action=favorite&delete=%s&wiki_name=%s">Remove</a>]</span>' % (request.getScriptname(), wikiutil.quoteWikiname(macro.formatter.page.proper_name()), wikiutil.quoteWikiname(page_line.pagename), page.wiki_name)
                 line_of_text = line_of_text + '</span></div>'
 

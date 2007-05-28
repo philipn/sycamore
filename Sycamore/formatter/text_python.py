@@ -72,9 +72,21 @@ class Formatter:
         return source
 
     def __getattr__(self, name):
-        """ For every thing we have no method/attribute use the formatter
-        """
-        return getattr(self.formatter, name)
+        """ For every thing we have no method/attribute use the formatter"""
+        if self.__dict__.has_key(name):
+            return self.__dict__[name]
+        else:
+            if self.__dict__.has_key('formatter'):
+                return getattr(self.__dict__['formatter'], name)
+
+    def __setattr__(self, name, value):
+        """ For every thing we have no method/attribute use the formatter"""
+        if self.__dict__.has_key(name):       # any normal attributes are handled normally
+            self.__dict__[name] = value
+        elif self.__dict__.has_key('formatter'):
+            self.formatter.__dict__[name] = value
+        else:
+            self.__dict__[name] = value
 
     def __insert_code(self, call):
         """ returns the python code

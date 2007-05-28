@@ -68,7 +68,7 @@ def getUserId(searchName, request):
 def getUserIdByEmail(email, request):
     request.cursor.execute("SELECT id from users where email=%(email)s", {'email':email})
     result = request.cursor.fetchone()
-    if result: return result[0]
+    if result: return result[0].strip()
 
 def getUserLinkURL(request, userObject, wiki_name=None):
     if userObject.anonymous:
@@ -81,16 +81,17 @@ def getUserLinkURL(request, userObject, wiki_name=None):
         else:
             return Page.Page(config.user_page_prefix + userObject.propercased_name, request).url()
 
-def getUserLink(request, userObject, wiki_name=None):
+def getUserLink(request, userObject, wiki_name=None, text=None, show_title=True, absolute=False):
     if userObject.anonymous:
         return userObject.ip
     else:
         from Sycamore import Page
         wiki_name = userObject.wiki_for_userpage or wiki_name
+        text = text or userObject.propercased_name
         if wiki_name and wiki_name != request.config.wiki_name:
-            return Page.Page(config.user_page_prefix + userObject.propercased_name, request, wiki_name=wiki_name).link_to(text=userObject.propercased_name)
+            return Page.Page(config.user_page_prefix + userObject.propercased_name, request, wiki_name=wiki_name).link_to(text=text, show_title=show_title, absolute=absolute)
         else:
-            return Page.Page(config.user_page_prefix + userObject.propercased_name, request).link_to(text=userObject.propercased_name)
+            return Page.Page(config.user_page_prefix + userObject.propercased_name, request).link_to(text=text, show_title=show_title, absolute=absolute)
 
 def getUserIdentification(request, username=None):
     """ 
@@ -107,6 +108,24 @@ def getUserIdentification(request, username=None):
         username = request.user.name
 
     return username or request.remote_addr or _("<unknown>")
+
+def unify_userpage(request, word, text, prefix=False):
+    """If this is a userpage, let's link to the one they set as their home."""
+    if word.lower().startswith(config.user_page_prefix.lower()):
+        username = word[len(config.user_page_prefix):]
+        theuser = User(request, name=username)
+        if theuser.exists():
+            if prefix:
+                return getUserLink(request, theuser, text=(config.user_page_prefix + username))
+            elif not text:
+                return getUserLink(request, theuser, text=username)
+            else:
+                return getUserLink(request, theuser, text=text)
+            
+    return False
+
+
+
 
 def getGroupList(request, exclude_special_groups=False):
     """
@@ -150,7 +169,7 @@ DEFAULT_WIKI_INFO_VALUES = [ None, 0, 0, 0, None, None, None ]
 class User(object):
     """A Sycamore User"""
 
-    _checkbox_fields = ['edit_on_doubleclick', 'remember_me', 'disabled']
+    _checkbox_fields = ['remember_me', 'disabled']
     _transient_fields =  ['id', 'valid', 'may', 'auth_username', 'trusted']
     _MAX_TRAIL = config.trail_size
 
@@ -261,26 +280,16 @@ class User(object):
                         request.setHttpHeader(('Set-Cookie','%s=%s; expires=Tuesday, 01-Jan-1999 12:00:00 GMT;domain=%s;Path=%s' % 
                             (cookie_id, cookie[cookie_id].value, domain, cookie_dir)))
 
-                elif cookie.has_key(COOKIE_NOT_LOGGED_IN):
+                        if cookie.has_key(COOKIE_NOT_LOGGED_IN) or request.form.has_key('not_logged_in'):
+                            # COOKIE_NOT_LOGGED_IN is a shortcut so we don't redirect the poor user all the time
+                            not_logged_in = True 
+
+
+                elif cookie.has_key(COOKIE_NOT_LOGGED_IN) or request.form.has_key('not_logged_in'):
                     # COOKIE_NOT_LOGGED_IN is a shortcut so we don't redirect the poor user all the time
                     not_logged_in = True 
 
-        # we want them to be able to sign back in right after they click the 'logout' GET link, hence this test
-        is_form_logout = (request.form.has_key('qs') and 
-                          urllib.unquote(request.form['qs'][0]) == 'action=userform&logout=Logout')
-        if request.config.domain and request.config.domain != config.wiki_base_domain and \
-          config.wiki_farm and not self.id and (not_logged_in is None) and not is_form_logout:
-              # we try the base farm for authentication
-              page_url = '%s%s' % (request.getBaseURL(), request.getPathinfo())
-              if request.query_string:
-                page_url = '%s?%s' % (page_url, request.query_string)
-              url = 'http://%s%s/%s?action=userform&login_check=1&backto_wiki=%s&backto_page=%s' % (config.wiki_base_domain, config.web_dir, config.relative_dir, request.config.wiki_name, urllib.quote(page_url))
-              #else:
-              #  url = 'http://%s%s/%s?action=userform&login_check=1&backto_wiki=%s&backto_page=%s' % (config.wiki_base_domain, config.web_dir, config.relative_dir, request.config.wiki_name, urllib.quote(page_url))
-              request.html_head.append("""<script type="text/javascript">var authentication_url = '%s';</script>""" % url)
-        else:
-              request.html_head.append("""<script type="text/javascript">var authentication_url = '';</script>""")
-                        
+                                
         # we got an already authenticated username:
         if not self.id and self.auth_username:
             self.id = getUserId(self.auth_username, self.request)
@@ -294,7 +303,24 @@ class User(object):
                 self.trusted = 1
         elif self.name:
             self.load(check_pass=is_login)
+
+        # we want them to be able to sign back in right after they click the 'logout' GET link, hence this test
+        is_form_logout = (request.form.has_key('qs') and 
+                          urllib.unquote(request.form['qs'][0]) == 'action=userform&logout=Logout')
+        if (is_login or not_logged_in is None) and request.config.domain and request.config.domain != config.wiki_base_domain and \
+          config.wiki_farm and not self.id and not is_form_logout:
+              # we try the base farm for authentication
+              page_url = '%s%s' % (request.getBaseURL(), request.getPathinfo())
+              if request.query_string:
+                qs = '&qs=%s' % urllib.quote(request.query_string)
+              else:
+                qs = ''
+              url = 'http://%s%s/%s?action=userform&login_check=1&backto_wiki=%s&backto_page=%s%s' % (config.wiki_base_domain, config.web_dir, config.relative_dir, request.config.wiki_name, urllib.quote(page_url), qs)
+              request.html_head.append("""<script type="text/javascript">var authentication_url = '%s';</script>""" % url)
         else:
+              request.html_head.append("""<script type="text/javascript">var authentication_url = '';</script>""")
+
+        if not self.name and not self.id:
           # anonymous user
           self.anonymous = True
           self.id = 'anon:%s' % self.request.remote_addr
@@ -320,6 +346,7 @@ class User(object):
         @rtype: bool
         @return: true, if we have a user account
         """
+        if not self.id: return False
         result = False
         if self.id[0:4] == 'anon': return False
         if self.request.req_cache['users'].has_key(self.id):
@@ -328,7 +355,7 @@ class User(object):
           if config.memcache:
             result = self.request.mc.get('users:%s' % self.id, wiki_global=True)
           if not result:
-            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz, rc_bookmark, propercased_name, wiki_for_userpage from users where id=%(userid)s", {'userid':self.id})
+            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, theme_name, last_saved, tz, rc_bookmark, propercased_name, wiki_for_userpage from users where id=%(userid)s", {'userid':self.id})
             data = self.request.cursor.fetchone()
             if data:
               user_data = {'enc_password': ''}
@@ -337,17 +364,16 @@ class User(object):
               user_data['enc_password'] = data[2]
               user_data['language'] = data[3]
               user_data['remember_me'] = data[4]
-              user_data['css_url'] = data[5]
+              user_data['css_url'] = data[5] or ''
               user_data['disabled'] = data[6]
               user_data['edit_cols'] = data[7]
               user_data['edit_rows'] = data[8]
-              user_data['edit_on_doubleclick'] = data[9]
-              user_data['theme_name'] = data[10]
-              user_data['last_saved'] = data[11]
-              user_data['tz'] = data[12] or self.request.config.tz
-              user_data['rc_bookmark'] = data[13]
-              user_data['propercased_name'] = data[14]
-              user_data['wiki_for_userpage'] = data[15] or ''
+              user_data['theme_name'] = data[9]
+              user_data['last_saved'] = data[10]
+              user_data['tz'] = data[11] or self.request.config.tz
+              user_data['rc_bookmark'] = data[12]
+              user_data['propercased_name'] = data[13]
+              user_data['wiki_for_userpage'] = data[14] or ''
               result = user_data
               if config.memcache: self.request.mc.add('users:%s' % self.id, result, wiki_global=True)
 
@@ -389,7 +415,7 @@ class User(object):
           if config.memcache:
             user_data = self.request.mc.get('users:%s' % self.id, wiki_global=True)
           if not user_data:
-            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, tz, rc_bookmark, rc_showcomments, propercased_name, wiki_for_userpage from users where id=%(userid)s", {'userid':self.id})
+            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, theme_name, last_saved, tz, rc_bookmark, rc_showcomments, propercased_name, wiki_for_userpage from users where id=%(userid)s", {'userid':self.id})
             data = self.request.cursor.fetchone()
 
             user_data = {'enc_password': ''}
@@ -398,18 +424,17 @@ class User(object):
             user_data['enc_password'] = data[2]
             user_data['language'] = data[3]
             user_data['remember_me'] = data[4]
-            user_data['css_url'] = data[5]
+            user_data['css_url'] = data[5] or ''
             user_data['disabled'] = data[6]
             user_data['edit_cols'] = data[7]
             user_data['edit_rows'] = data[8]
-            user_data['edit_on_doubleclick'] = data[9]
-            user_data['theme_name'] = data[10]
-            user_data['last_saved'] = data[11]
-            user_data['tz'] = data[12] or self.request.config.tz
-            user_data['rc_bookmark'] = data[13]
-            user_data['rc_showcomments'] = data[14]
-            user_data['propercased_name'] = data[15]
-            user_data['wiki_for_userpage'] = data[16] or ''
+            user_data['theme_name'] = data[9]
+            user_data['last_saved'] = data[10]
+            user_data['tz'] = data[11] or self.request.config.tz
+            user_data['rc_bookmark'] = data[12]
+            user_data['rc_showcomments'] = data[13]
+            user_data['propercased_name'] = data[14]
+            user_data['wiki_for_userpage'] = data[15] or ''
 
             if config.memcache: self.request.mc.add('users:%s' % self.id, user_data, wiki_global=True)
 
@@ -468,7 +493,7 @@ class User(object):
 
     def getUserdict(self):
         #Returns dictionary of all relevant user values -- essentially an entire user's relevant information
-        return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'edit_on_doubleclick':str(self.edit_on_doubleclick), 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz':self.tz, 'wiki_for_userpage': self.wiki_for_userpage, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments, 'propercased_name': self.propercased_name, 'wiki_info':self.wiki_info}
+        return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz':self.tz, 'wiki_for_userpage': self.wiki_for_userpage, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments, 'propercased_name': self.propercased_name, 'wiki_info':self.wiki_info}
 
 
     def save(self, new_user=False):
@@ -487,11 +512,11 @@ class User(object):
           # account doesn't exist yet
           userdict['join_date'] = time.time()
           userdict['id'] = self.id
-          self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, edit_on_doubleclick, theme_name, last_saved, join_date, tz, propercased_name, rc_bookmark, rc_showcomments, wiki_for_userpage) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(edit_on_doubleclick)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz)s, %(propercased_name)s, %(rc_bookmark)s, %(rc_showcomments)s, %(wiki_for_userpage)s)", userdict, isWrite=True)
+          self.request.cursor.execute("INSERT into users (id, name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, theme_name, last_saved, join_date, tz, propercased_name, rc_bookmark, rc_showcomments, wiki_for_userpage) values (%(id)s, %(name)s, %(email)s, %(enc_password)s, %(language)s, %(remember_me)s, %(css_url)s, %(disabled)s, %(edit_cols)s, %(edit_rows)s, %(theme_name)s, %(last_saved)s, %(join_date)s, %(tz)s, %(propercased_name)s, %(rc_bookmark)s, %(rc_showcomments)s, %(wiki_for_userpage)s)", userdict, isWrite=True)
           if config.memcache:
             self.request.mc.set("users:%s" % self.id, userdict, wiki_global=True)
         else:
-          self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, edit_on_doubleclick=%(edit_on_doubleclick)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz=%(tz)s, propercased_name=%(propercased_name)s, rc_bookmark=%(rc_bookmark)s, rc_showcomments=%(rc_showcomments)s, wiki_for_userpage=%(wiki_for_userpage)s where id=%(id)s", userdict, isWrite=True)
+          self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz=%(tz)s, propercased_name=%(propercased_name)s, rc_bookmark=%(rc_bookmark)s, rc_showcomments=%(rc_showcomments)s, wiki_for_userpage=%(wiki_for_userpage)s where id=%(id)s", userdict, isWrite=True)
           if config.memcache:
             self.request.mc.set("users:%s" % self.id, userdict, wiki_global=True)
                 
@@ -615,6 +640,27 @@ class User(object):
           return True
 
         return False
+
+    def clearNologinCookie(self, request):
+        try:
+            cookie = Cookie.SimpleCookie(request.saved_cookie)
+        except Cookie.CookieError:
+            # ignore invalid cookies, else user can't relogin
+            cookie = None
+        if cookie:
+            if config.wiki_farm:
+                cookie_id = wikiutil.quoteCookiename(config.wiki_base_domain + ',ID')
+            else:
+                cookie_id = wikiutil.quoteCookiename(config.sitename + ',ID')
+
+            # kill possible old 'COOKIE_NOT_LOGGED_IN' cookies
+            if cookie.has_key(COOKIE_NOT_LOGGED_IN):
+                # clear out this cookie
+                cookie_dir = config.web_dir
+                if not cookie_dir: cookie_dir = '/'
+                request.setHttpHeader(('Set-Cookie','%s=%s; expires=Tuesday, 01-Jan-1999 12:00:00 GMT;domain=%s;Path=%s' % 
+                    (COOKIE_NOT_LOGGED_IN, cookie[COOKIE_NOT_LOGGED_IN].value, wikiutil.getCookieDomain(request), cookie_dir)))
+
         
     def sendCookie(self, request, expire=None, sessionid=None, secret=None, id=None):
         """
@@ -805,7 +851,10 @@ class User(object):
         Gets the list of wikis the user is watching.
         """
         watched = None
-        if self.watched_wikis is not None: return self.watched_wikis
+        if not self.valid:
+           return []
+        if self.watched_wikis is not None:
+            return self.watched_wikis
         if self.request.req_cache['watchedWikis'].has_key(self.id):
             return self.request.req_cache['watchedWikis'][self.id]
         if config.memcache:
@@ -912,6 +961,9 @@ class User(object):
                  'rc_bookmark': values[6]
                 }
             wiki_info = WikiInfo(self, **d)
+            if config.memcache:
+               self.request.mc.add('userWikiInfo:%s' % self.id, wiki_info)
+
         return wiki_info
 
 

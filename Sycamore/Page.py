@@ -15,6 +15,7 @@ from copy import copy
 #import Sycamore.util.web
 
 MAX_PAGENAME_LENGTH = 100
+DISPLAYED_MAX_PAGENAME_LENGTH = MAX_PAGENAME_LENGTH - len("Talk")
 
 class Page(object):
     """Page - Manage an (immutable) page associated with a WikiName.
@@ -39,7 +40,7 @@ class Page(object):
         @keyword wiki_name: name of a wiki to switch to for this page (wiki farms only)
         """
         if len(page_name) > MAX_PAGENAME_LENGTH:
-          msg = "Page names must be less than %s characters!" % MAX_PAGENAME_LENGTH
+          msg = "Page names must be less than %s characters!" % DISPLAYED_MAX_PAGENAME_LENGTH
           raise self.ExcessiveLength, msg
 
         self.on_wiki_name = request.config.wiki_name # the wiki we are _actually_ on
@@ -49,6 +50,7 @@ class Page(object):
         if not wiki_name:
             wiki_name = request.config.wiki_name
         self.wiki_name = wiki_name
+        self.wiki_id = request.config.wiki_id
 
         self.page_name = page_name.lower()
         self.given_name = page_name
@@ -81,7 +83,7 @@ class Page(object):
             self.default_formatter = 1
 
     def get_date(self):
-      # returns date this page/verison was created
+      # returns date this page/version was created
       if self.version and not self.date:
         self.date = self.version_number_to_date(self.version)
         return self.date
@@ -90,7 +92,7 @@ class Page(object):
       return self.date
 
     def get_version(self):
-      # returns date this page/verison was created
+      # returns date this page/version was created
       if self.date and not self.version:
         self.version = self.date_to_version_number(self.date)
         return self.version
@@ -189,7 +191,7 @@ class Page(object):
         return self.prev_date
 
 
-    def exists(self):
+    def exists(self, fresh=False):
         """
         Does this page exist?
         
@@ -198,13 +200,14 @@ class Page(object):
         """
         proper_pagename = False
         memcache_hit = False
-        if self.request.req_cache['pagenames'].has_key((self.page_name, self.wiki_name)):
-          return self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)]
-        if config.memcache:
-          proper_pagename = self.request.mc.get("pagename:%s" % wikiutil.mc_quote(self.page_name))
-          if proper_pagename is not None:
-            memcache_hit = True
-          else: proper_pagename = False
+        if not fresh:
+            if self.request.req_cache['pagenames'].has_key((self.page_name, self.wiki_name)):
+              return self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)]
+            if config.memcache:
+              proper_pagename = self.request.mc.get("pagename:%s" % wikiutil.mc_quote(self.page_name))
+              if proper_pagename is not None:
+                memcache_hit = True
+              else: proper_pagename = False
         if not proper_pagename and not memcache_hit:
           self.cursor.execute("SELECT propercased_name from curPages where name=%(pagename)s and wiki_id=%(wiki_id)s", {'pagename': self.page_name, 'wiki_id': self.request.config.wiki_id})
           result = self.cursor.fetchone()
@@ -372,12 +375,17 @@ class Page(object):
         @rtype: string
         @return: complete url of this page (including query string if specified)
         """
+        from Sycamore import farm
         url = "%s/%s" % (self.request.getScriptname(), wikiutil.quoteWikiname(self.proper_name()))
+
+        if not relative:
+            base_url = farm.getWikiURL(self.request.config.wiki_name, self.request)
+            url = '%s%s' % (base_url, url[1:])
+
         if querystr:
             querystr = util.web.makeQueryString(querystr)
             url = "%s?%s" % (url, querystr)
-        if not relative:
-            url = '%s%s' % (self.request.getBaseURL(), url)
+
         return url
 
     def link_to(self, text=None, querystr=None, anchor=None, know_status=False, know_status_exists=False, guess_case=False, **kw):
@@ -393,7 +401,9 @@ class Page(object):
         @keyword css_class: css class to use
         @keyword know_status: for slight optimization.  if True that means we know whether the page exists or not
            (saves a query)
-          @ keyword know_status exists: if True that means the page exists, if False that means it doesn't
+          @ keyword know_status_exists: if True that means the page exists, if False that means it doesn't
+        @keyword show_title: if False, don't show title attribute (below).
+        @keyword title: html title to use.  If not given then we default to the page name.
         @rtype: string
         @return: formatted link
         """
@@ -440,6 +450,11 @@ class Page(object):
         if self.wiki_name != self.on_wiki_name:
             kw['absolute'] = True
 
+        if kw.get('show_title', True):
+            title = kw.get('title')
+            if not title:
+                title = url_name
+            kw['attrs'] = 'title="%s"' % title
         if know_exists:
             return '%s%s' % (wikiutil.link_tag(request, url, text, formatter=fmt, **kw),  attach_link)
         else:
@@ -456,6 +471,7 @@ class Page(object):
         @keyword content_only: if 1, omit page header and footer
         @keyword count_hit: if 1, add an event to the log
         @keyword hilite_re: a regular expression for highlighting e.g. search results
+	    @keyword force_regenerate_content: if true, re-parse the page content
         """
         from Sycamore import farm
         request = self.request
@@ -557,7 +573,7 @@ class Page(object):
                     request.http_redirect('%s/%s?action=show&redirect=%s' % (
                         request.getScriptname(),
                         wikiutil.quoteWikiname(pi_redirect),
-                        urllib.quote_plus(self.proper_name(), ''),))
+                        urllib.quote_plus(self.proper_name().encode(config.charset), ''),))
                 else:
                     pi_redirect = args
                     # we are redirecting to a different wiki.
@@ -571,7 +587,7 @@ class Page(object):
                         if request.form.has_key('action') or request.form.has_key('redirect') or content_only: continue
                         request.http_redirect('%s?action=show&redirect=%s&wiki=%s' % (
                             redirect_url,
-                            urllib.quote_plus(self.proper_name(), ''), self.request.config.wiki_name))
+                            urllib.quote_plus(self.proper_name().encode(config.charset), ''), self.request.config.wiki_name))
                         return
             elif verb == "acl":
                 # We could build it here, but there's no request.
@@ -635,15 +651,23 @@ class Page(object):
                         # redirect to wiki in farm
                         page_link = farm.link_to_page(wikitag, wikiutil.unquoteWikiname(wikitail), self.formatter, no_icon=False)
                         msg = '<strong>%s</strong><br>' % (_('This page redirects to page %(page)s') % {'page': page_link})
-                
-                # Page trail
-                trail = None
-                #if not print_mode and request.user.valid and request.user.show_page_trail:
-                #    request.user.addTrail(self.page_name)
-                #    trail = request.user.getTrail()
+
+                position_screen = ''
+                if self.request.form.has_key('screenposy') and self.request.form['screenposy'][0]:
+                    try:
+                        screen_pos_y = int(self.request.form['screenposy'][0])
+                        position_screen = 'window.scrollTo(0, %s);' % screen_pos_y
+                    except:
+                        pass # we just won't set screen position
+
+                if self.request.user.may.edit(self):
+                    onload = "setTimeout('createClickProperties(1)', 100);createEditSubmit();%s" % position_screen
+                else:
+                    onload = ''
                 wikiutil.send_title(request, title, has_link=has_link, msg=msg,
+                    body_onload=onload, page=self,
                     pagename=proper_name, print_mode=print_mode, pi_refresh=pi_refresh,
-                    allow_doubleclick=1, trail=trail, polite_msg=polite_msg)
+                    allow_doubleclick=1, polite_msg=polite_msg)
 
                 # user-defined form preview?
                 # Todo: check if this is also an RTL form - then add ui_lang_attr
@@ -678,7 +702,7 @@ class Page(object):
         if not self.exists() and not content_only and not self.prev_date:
             request.write('<div class="%s wikipage" %s>\n' % (content_id, lang_attr))
             self._emptyPageText()
-        elif self.request.sent_page_content:
+        elif self.request.sent_page_content and not keywords.get('force_regenerate_content'):
             self.request.write(self.request.sent_page_content)
         else:
             if not self.preview:
@@ -690,7 +714,7 @@ class Page(object):
                 request.write("<strong>%s</strong><br>" % _("You are not allowed to view this page."))
             else:
                 # parse the text and send the page content
-                self.send_page_content(Parser)
+                self.send_page_content(Parser, needsupdate=keywords.get('force_regenerate_content'))
 
         # end wiki content div
         request.write('<div style="clear: both;"></div></div>\n')
@@ -721,6 +745,7 @@ class Page(object):
                          replace('Sycamore.formatter.', '').\
                          replace('.Formatter', '')
 
+        self.formatter.setPage(self)
         # if no caching
         if  (self.prev_date or self.hilite_re or self._raw_body_modified or
             (not getattr(Parser, 'caching', None)) or
@@ -753,20 +778,23 @@ class Page(object):
             except ValueError: #bad marshal data
                 #print 'bad marshal'
                 needsupdate = 1
+	    except EOFError: #bad marshal data
+	        needsupdate = 1
 
         # render page
         if needsupdate:
             body = self.get_raw_body(fresh=True)
 
             from Sycamore.formatter.text_python import Formatter
-            formatter = Formatter(request, ["page"], self.formatter, preview=True)
+            formatter = Formatter(request, ["page"], self.formatter, preview=True, store_pagelinks=1)
+            formatter.setPage(self)
 
             # clear the page's dependencies
             caching.clear_dependencies(self.page_name, request)
 
             # need to do HTML parsing to get the pagelinks
-            from Sycamore.formatter.text_html import Formatter
-            html_formatter = Formatter(request, store_pagelinks=1)
+            from Sycamore.formatter.text_html import Formatter as HTMLFormatter
+            html_formatter = HTMLFormatter(request, store_pagelinks=1)
             html_formatter.setPage(self)
             buffer = cStringIO.StringIO()
             request.redirect(buffer)
@@ -786,7 +814,7 @@ class Page(object):
             links = html_formatter.pagelinks_propercased
             src = formatter.assemble_code(text)
             #print src # debug 
-            code = compile(src, self.page_name, 'exec')
+            code = compile(src, self.page_name.encode(config.charset), 'exec')
             code_string = marshal.dumps(code)
             cache.update(code_string, links)
             update_links = True
@@ -825,9 +853,8 @@ class Page(object):
             _("Create this page")))
         request.write(self.formatter.paragraph(0))
   
-        # look for template pages
-        templates = filter(lambda page, u = wikiutil: u.isTemplatePage(page),
-            wikiutil.getPageList(request))
+        templates = wikiutil.getTemplatePages(request)
+
         if templates:
             templates.sort()
 
@@ -847,17 +874,15 @@ class Page(object):
                     self.formatter.listitem(0))
             request.write(self.formatter.bullet_list(0))
 
-        request.write(self.formatter.paragraph(1) +
-            self.formatter.text('To create your own templates, ' 
-                'add a page with a name starting with Templates/, such as Templates/Business.') +
+
+        template_msg = 'To create your own %s, add a page with a name starting with Templates/, such as Templates/Business.' % Page('Templates', self.request).link_to(text="templates")
+        request.write(self.formatter.paragraph(1) + template_msg + 
             self.formatter.paragraph(0))
 
-        # list similar pages that already exist
-        start, end, matches = LikePages.findMatches(self.proper_name(), request)
-        if matches and not isinstance(matches, type('')):
-            request.write(self.formatter.rule() + '<p>' +
-                _('The following pages with similar names already exist...') + '</p>')
-            LikePages.showMatches(self.proper_name(), request, start, end, matches)
+        search_string = """<a href="%s?action=search&string=%s">do a search for %s</a>""" % (
+            request.getScriptname(), urllib.quote_plus(self.proper_name().encode(config.charset)), self.proper_name())
+        request.write(self.formatter.rule() + "<p>It's a good idea to %s on the wiki to see what else is out there.</p>" %
+            search_string)
 
     def buildCache(self, type=None):
         """
@@ -868,7 +893,7 @@ class Page(object):
         # is not efficient, but reduces code duplication
         # !!! it is also an evil hack, and needs to be removed
         # !!! by refactoring Page to separate body parsing & send_page
-        from Sycamore import caching
+        from Sycamore import caching, wikidicts
         request = self.request
         buffer = cStringIO.StringIO()
         request.redirect(buffer)
@@ -879,11 +904,15 @@ class Page(object):
         self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)] = self.proper_name()  # set the page name / page exists
 
         try:
+            # set trigger for clearing possible dependencies (e.g. [[Include]])
+            # we want this to be a post-commit trigger so that we don't have stale data
+            for pagename in caching.depend_on_me(self.page_name, request, self.exists()):
+              request.postCommitActions.append( (caching.CacheEntry(pagename, request).clear, ) )
             try:
                 request.mode_getpagelinks = 1
                 page = Page(self.page_name, request)
-                page.set_raw_body(self.get_raw_body())
-                page.send_page(content_only=1)
+                page.set_raw_body(self.get_raw_body(fresh=True))
+                page.send_page(content_only=1, force_regenerate_content=True)
             except:
                 #print "ERROR"
                 import traceback
@@ -903,14 +932,21 @@ class Page(object):
           self.request.mc.delete("links:%s" % key)
           if type == 'page save new':
              self.request.mc.set("pagename:%s" % key, self.proper_name())
+             if wikiutil.isTemplatePage(self.proper_name()):
+                # dirty the cache
+                self.request.mc.set("templates", None)
           elif type == 'page save delete':
              self.request.mc.set("pagename:%s" % key, False)
+             if wikiutil.isTemplatePage(self.proper_name()):
+                # dirty the cache
+                self.request.mc.set("templates", None)
           else:
              if self.exists():
                self.request.mc.set("pagename:%s" % key, self.proper_name())
 
           if self.page_name.lower() == self.request.config.interwikimap.lower():
-             self.request.mc.delete('interwiki')
+             self.request.req_cache['interwiki'][self.request.config.wiki_id] = wikidicts.Dict(self.page_name, self.request, case_insensitive=True, fresh=True)
+	     self.request.mc.set('interwiki', self.request.req_cache['interwiki'][self.request.config.wiki_id])
 
         request.mode_getpagelinks = 0
         request.generating_cache = False
@@ -966,7 +1002,7 @@ class Page(object):
         Returns a list of page names of pages that link to this page.
         """
         links = []
-        self.cursor.execute("SELECT curPages.propercased_name from links, curPages where destination_pagename=%(page_name)s and source_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id})
+        self.cursor.execute("SELECT curPages.propercased_name from links, curPages where destination_pagename=%(page_name)s and source_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s group by propercased_name", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id})
         result = self.cursor.fetchone()
         while result:
           links.append(result[0])
@@ -974,7 +1010,7 @@ class Page(object):
 
         return links
 
-    def getACL(self):
+    def getACL(self, **kw):
         """
         Get ACLs of this page.
 
@@ -983,7 +1019,7 @@ class Page(object):
         @return: ACLs of this page
         """
         import wikiacl
-        acl = wikiacl.getACL(self.page_name, self.request)
+        acl = wikiacl.getACL(self.page_name, self.request, **kw)
 
         return acl
 
@@ -992,8 +1028,11 @@ def _copy_wiki_request(wiki_name, request):
         Returns a copy of request, except with request.config = Config(wiki_name, request)
         Hackish because we don't want to copy certain things.
         """
+        from Sycamore.request import postCommitMC
         req_copy = copy(request)
-        req_copy.mc = copy(request.mc)
+        if config.memcache:
+            req_copy._mc = copy(request._mc)
+            req_copy.mc = postCommitMC(req_copy)
         req_copy.switch_wiki(wiki_name)
         req_copy.req_cache = request.req_cache
         return req_copy

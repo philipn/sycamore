@@ -80,7 +80,7 @@ class SiteSettingsHandler(object):
 
             if form.has_key('catchphrase') and form['catchphrase'][0].replace('\t', '').strip():   
                 catchphrase = form['catchphrase'][0]
-                if len(catchphrase) > 32: return _("Please enter a catchphrase for your wiki!")
+                if len(catchphrase) > 100: return _("Please enter a catchphrase for your wiki!")
                 self.request.config.catchphrase = catchphrase
             if form.has_key('edit_agreement_text') and form['edit_agreement_text'][0].replace('\t', '').strip():
                 edit_agreement_text = form['edit_agreement_text'][0] 
@@ -93,17 +93,17 @@ class SiteSettingsHandler(object):
             if form.has_key('tabs_nonuser') and form['tabs_nonuser'][0].replace('\t', '').strip():
                 tabs_nonuser_text = form['tabs_nonuser'][0]
                 if len(tabs_nonuser_text) > SANE_TEXT_UPPER_LIMIT:  return _("Too much text in the tabs area...enter less!")
-                tabs_nonuser = tabs_nonuser_text.split('\n')
+                tabs_nonuser = tabs_nonuser_text.strip().split('\n')
                 fixed_tabs_nonuser = []
                 for pagename in tabs_nonuser:
                   if not isValidPageName(pagename):
-                    return _('"%s" is not a valid page name.  You may only set tabs to page names..sorry!' % pagename)
+                    return _('"%s" is not a valid page name.  You may only set tabs to page names..sorry!' % wikituil.escape(pagename))
                   fixed_tabs_nonuser.append(pagename.strip())
                 self.request.config.tabs_nonuser = fixed_tabs_nonuser
             if form.has_key('tabs_user') and form['tabs_user'][0].replace('\t', '').strip():
                 tabs_user_text = form['tabs_user'][0]
                 if len(tabs_user_text) > SANE_TEXT_UPPER_LIMIT:  return _("Too much text in the tabs area...enter less!")
-                tabs_user = tabs_user_text.split('\n')
+                tabs_user = tabs_user_text.strip().split('\n')
                 fixed_tabs_user = []
                 for pagename in tabs_user:
                   if not isValidPageName(pagename):
@@ -133,7 +133,7 @@ class SiteSettingsHandler(object):
                 address_locale = form['address_locale'][0]
                 if len(address_locale) > 40:
                     return _("Too much text in your address locale..enter less!")
-                address_locale = wikiutil.escape(address_locale) 
+                address_locale = address_locale
                 self.request.config.address_locale = address_locale
 
             checkbox_fields = config.local_config_checkbox_fields
@@ -193,6 +193,8 @@ class SiteSettingsSecurityHandler(object):
             self.request.config.acl_rights_default = default_rights
             # sets the config -- becomes active as soon as this line is executed!
             self.request.config.set_config(self.request.config.wiki_name, self.request.config.get_dict(), self.request)
+
+            return _("Security settings updated!")
 
 class UserGroupsSettingsHandler(object):
 
@@ -377,16 +379,16 @@ class GeneralSettings:
             ])
 
             self.make_row(_("Tabs, not logged in"), [
-              html.TEXTAREA(name="tabs_nonuser", id="tabs_nonuser_textarea", rows="6", cols="40").append('\n'.join(self.request.config.tabs_nonuser))
+              html.TEXTAREA(name="tabs_nonuser", id="tabs_nonuser_textarea", rows="6", cols="40").append('\n'.join(map(wikiutil.escape, self.request.config.tabs_nonuser)))
             ], option_text=_("(one per line)"))
 
             self.make_row(_("Tabs, logged in"), [
-              html.TEXTAREA(name="tabs_user", id="tabs_user_textarea", rows="6", cols="40").append('\n'.join(self.request.config.tabs_user))
+              html.TEXTAREA(name="tabs_user", id="tabs_user_textarea", rows="6", cols="40").append('\n'.join(map(wikiutil.escape, self.request.config.tabs_user)))
             ], option_text=_("(one per line)"))
 
 
             self.make_row(_("Catchphrase"), [
-              html.INPUT(type="text", size="32", maxlength="32", name="catchphrase", value=self.request.config.catchphrase)
+              html.INPUT(type="text", size="32", maxlength="100", name="catchphrase", value=self.request.config.catchphrase)
             ])
 
             self.make_row(_("License text"), [
@@ -490,7 +492,9 @@ class SecuritySettings(object):
         html_uid = ''
         html_sendmail = ''
         security_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_security_defaults)
-        if self.request.user.name in wikiacl.Group("Admin", self.request):
+        if not self.request.user.name in wikiacl.Group("Admin", self.request):
+            return ''
+        else:
             self._inner.append(html.Raw('<div class="securitySettings">'))
             self.make_row(_("Everybody may:"), [
               html.INPUT(type="checkbox", name="All_may_read", value=1, checked=self.request.config.acl_rights_default['All'][ACL_RIGHTS_TABLE['read']]),
@@ -522,7 +526,7 @@ class SecuritySettings(object):
             custom_groups = user.getGroupList(self.request, exclude_special_groups=True)
             for groupname in custom_groups:
               group = wikiacl.Group(groupname, self.request, fresh=True)
-              self.make_row(_("People in the %s group may:" % groupname), [
+              self.make_row(_("People in the %s group may:" % wikiutil.escape(groupname)), [
                 html.INPUT(type="checkbox", name="%s_may_read" % quoteWikiname(groupname), value=1, checked=group.default_rights()[ACL_RIGHTS_TABLE['read']]),
                 'read', 
                 html.INPUT(type="checkbox", name="%s_may_edit" % quoteWikiname(groupname), value=1, checked=group.default_rights()[ACL_RIGHTS_TABLE['edit']]),
@@ -583,7 +587,7 @@ class UserGroupSettings(object):
           ]))
         else:
           option_label = html.SPAN(html_class="optional", **kw).extend([option_text])
-          settings_label = html.DIV(html_class="settings_form_label", **kw).extend([label, option_label])
+          settings_label = html.DIV(html_class="settings_form_label", **kw).extend([html.Raw(label), option_label])
           self._inner.append(html.DIV(html_class="settings_form_item").extend([
               settings_label,
               html.DIV().extend(cell),
@@ -603,25 +607,25 @@ class UserGroupSettings(object):
 
             group_admin = wikiacl.Group("Admin", self.request, fresh=True)
             self.make_row(_("Admins"), [
-              html.TEXTAREA(name="group_Admin", rows="6", cols="40", id="group_Admin").append('\n'.join(group_admin.users(proper_names=True)))
+              html.TEXTAREA(name="group_Admin", rows="6", cols="40", id="group_Admin").append('\n'.join(map(wikiutil.escape, group_admin.users(proper_names=True))))
             ], option_text=_("(one per line)"))
 
 
             group_banned = wikiacl.Group("Banned", self.request, fresh=True)
             self.make_row(_("Banned Users"), [
-              html.TEXTAREA(name="group_Banned", rows="6", cols="40", id="group_Banned").append('\n'.join(group_banned.users(proper_names=True)))
+              html.TEXTAREA(name="group_Banned", rows="6", cols="40", id="group_Banned").append('\n'.join(map(wikiutil.escape, group_banned.users(proper_names=True))))
             ], option_text=_("(one per line)"))
 
             self.make_row(_("Banned IP Addresses"), [
-              html.TEXTAREA(name="ips_banned", rows="6", cols="40", id="ips_banned").append('\n'.join(group_banned.get_ips().keys()))
+              html.TEXTAREA(name="ips_banned", rows="6", cols="40", id="ips_banned").append('\n'.join(map(wikiutil.escape, group_banned.get_ips().keys())))
             ], option_text=_("(one per line)"))
 
             custom_groups = user.getGroupList(self.request, exclude_special_groups=True)
             for groupname in custom_groups:
               group = wikiacl.Group(groupname, self.request, fresh=True)
               delete_label = '<span class="minorActionBox">[<a href="%s/%s?action=usergroupsettings&delete=%s">delete group</a>]</span>' % (self.request.getScriptname(), quoteWikiname(groups_pagename), quoteWikiname(groupname))
-              self.make_row('%s %s' % (groupname, delete_label) , [
-                html.TEXTAREA(name="group_%s" % quoteWikiname(groupname), rows="6", cols="40", id="group_%s" % quoteWikiname(groupname)).append('\n'.join(group.users(proper_names=True)))
+              self.make_row('%s %s' % (wikiutil.escape(groupname), delete_label) , [
+                html.TEXTAREA(name="group_%s" % quoteWikiname(groupname), rows="6", cols="40", id="group_%s" % quoteWikiname(groupname)).append('\n'.join(map(wikiutil.escape, group.users(proper_names=True))))
               ], option_text=_("(one per line)"))
 
             buttons = [

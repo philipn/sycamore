@@ -166,39 +166,43 @@ def create_tables(cursor):
      rc_bookmark double,
      rc_showcomments tinyint default 1,
      tz varchar(50),
-     last_wiki_edited int,
      propercased_name varchar(100) not null,
+     last_wiki_edited int,
      wiki_for_userpage varchar(100)
      ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
   elif config.db_type == 'postgres':
-   cursor.execute("""create table users
-     (
-     id char(20) primary key not null,
-     name varchar(100) unique not null,
-     email varchar(255),
-     enc_password varchar(255),
-     language varchar(80),
-     remember_me smallint,
-     css_url varchar(255),
-     disabled smallint,
-     edit_cols smallint,
-     edit_rows smallint,
-     edit_on_doubleclick smallint,
-     theme_name varchar(40),
-     last_saved double precision,
-     join_date double precision,
-     created_count int default 0,
-     edit_count int default 0,
-     file_count int default 0,
-     last_page_edited varchar(255),
-     last_edit_date double precision,
-     rc_bookmark double precision,
-     rc_showcomments smallint default 1,
-     tz varchar(50),
-     last_wiki_edited int,
-     propercased_name varchar(100) not null,
-     wiki_for_userpage varchar(100)
-     );""", isWrite=True)
+    cursor.execute("""create table users
+      (
+      id char(20) primary key not null,
+      name varchar(100) unique not null,
+      email varchar(255),
+      enc_password varchar(255),
+      language varchar(80),
+      remember_me smallint,
+      css_url varchar(255),
+      disabled smallint,
+      edit_cols smallint,
+      edit_rows smallint,
+      edit_on_doubleclick smallint,
+      theme_name varchar(40),
+      last_saved double precision,
+      join_date double precision,
+      created_count int default 0,
+      edit_count int default 0,
+      file_count int default 0,
+      last_page_edited varchar(255),
+      last_edit_date double precision,
+      rc_bookmark double precision,
+      rc_showcomments smallint default 1,
+      tz varchar(50),
+      propercased_name varchar(100) not null,
+      last_wiki_edited int,
+      wiki_for_userpage varchar(100),
+
+      CHECK (disabled IN ('0', '1')),
+      CHECK (remember_me IN ('0', '1')),
+      CHECK (rc_showcomments IN ('0', '1'))
+      );""", isWrite=True)
  
   cursor.execute("CREATE INDEX users_name on users (name);", isWrite=True)
  
@@ -220,6 +224,8 @@ def create_tables(cursor):
     wiki_name varchar(100) not null,
     primary key (username, page, wiki_name)
     );""", isWrite=True)
+
+  cursor.execute("CREATE INDEX userfavorites_username on userFavorites (username);", isWrite=True)
 
   if config.db_type == 'mysql':
     cursor.execute("""create table userWatchedWikis
@@ -280,6 +286,9 @@ def create_tables(cursor):
     wiki_id int,
     primary key (source_pagename, destination_pagename, wiki_id)
     );""", isWrite=True)
+
+  cursor.execute("CREATE INDEX links_source_pagename_wiki_id on links (source_pagename, wiki_id);", isWrite=True)
+  cursor.execute("CREATE INDEX links_destination_pagename_wiki_id on links (destination_pagename, wiki_id);", isWrite=True)
  
   if config.db_type == 'mysql':
     cursor.execute("""create table events
@@ -292,7 +301,7 @@ def create_tables(cursor):
     event_name mediumtext not null,
     posted_by_ip char(16),
     posted_time double,
-    wiki_id int, 
+    wiki_id int
     ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
     cursor.execute("ALTER TABLE events AUTO_INCREMENT = 1;", isWrite=True)
   elif config.db_type == 'postgres':
@@ -504,13 +513,11 @@ def create_tables(cursor):
       created_time double,
       created_by char(20),
       created_by_ip char(16),
-      id int not null AUTO_INCREMENT,
       pagename_propercased varchar(100) not null,
       address varchar(255),
       wiki_id int,
-      primary key (id)  # to support NDB tables...argh
+      primary key (pagename, x, y, wiki_id)
     ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
-    cursor.execute("ALTER TABLE mapPoints AUTO_INCREMENT = 1;", isWrite=True)
   elif config.db_type == 'postgres':
     cursor.execute("""create table mapPoints
     (
@@ -520,22 +527,18 @@ def create_tables(cursor):
       created_time double precision,
       created_by char(20),
       created_by_ip inet,
-      id int not null,
       pagename_propercased varchar(100) not null,
       address varchar(255),
       wiki_id int,
       primary key (pagename, x, y, wiki_id)
     );""", isWrite=True)
 
-    cursor.execute("CREATE sequence mapPoints_seq start 1 increment 1;", isWrite=True)
-  
   cursor.execute("""CREATE INDEX mapPoints_pagename_wiki_id on mapPoints (pagename, wiki_id);""", isWrite=True)
   cursor.execute("""CREATE INDEX mapPoints_x on mapPoints (x);""", isWrite=True)
   cursor.execute("""CREATE INDEX mapPoints_y on mapPoints (y);""", isWrite=True)
   cursor.execute("""CREATE INDEX mapPoints_wiki on mapPoints (wiki_id);""", isWrite=True)
   cursor.execute("""CREATE INDEX mapPoints_created_time on mapPoints (created_time);""", isWrite=True)  # global rc
   cursor.execute("""CREATE INDEX mapPoints_created_time_wiki_id on mapPoints (created_time, wiki_id);""", isWrite=True)  # local rc
-  cursor.execute("""CREATE INDEX mapPoints_id on mapPoints (id);""", isWrite=True)
   cursor.execute("""CREATE INDEX mapPoints_address on mapPoints (address);""", isWrite=True)
   
   if config.db_type == 'mysql':
@@ -586,7 +589,7 @@ def create_tables(cursor):
       y varchar(100) not null,
       id int not null,
       wiki_id int,
-      primary key (pagename, x, y, wiki_id)
+      primary key (pagename, x, y, id, wiki_id)
     ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
   elif config.db_type == 'postgres':
     cursor.execute("""create table mapPointCategories
@@ -596,7 +599,7 @@ def create_tables(cursor):
         y varchar(100) not null,
         id int not null,
         wiki_id int,
-        primary key (pagename, x, y, wiki_id)
+        primary key (pagename, x, y, id, wiki_id)
       );""", isWrite=True)
 
   if config.db_type == 'mysql':
@@ -608,7 +611,7 @@ def create_tables(cursor):
       id int not null,
       deleted_time double,
       wiki_id int,
-      primary key (pagename, x, y, deleted_time, wiki_id)
+      primary key (pagename, x, y, id, deleted_time, wiki_id)
     ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
   elif config.db_type == 'postgres':
     cursor.execute("""create table oldMapPointCategories
@@ -619,7 +622,7 @@ def create_tables(cursor):
       id int not null,
       deleted_time double precision,
       wiki_id int, 
-      primary key (pagename, x, y, deleted_time, wiki_id)
+      primary key (pagename, x, y, id, deleted_time, wiki_id)
     );""", isWrite=True)
  
   if config.db_type == 'mysql':
@@ -788,7 +791,6 @@ def create_tables(cursor):
       uid char(20) not null,
       code varchar(255),
       written_time double,
-      wiki_id int,
       primary key (uid, code, written_time)
     ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
   elif config.db_type == 'postgres':
@@ -867,14 +869,16 @@ def create_views(cursor):
 
  print "views created"
 
-def create_config(request):
-   from Sycamore import farm
-   farm.create_config(config.wiki_name, request)
+def create_config(request, wiki_id=None):
    config_dict = config.reduce_to_local_config(config.CONFIG_VARS)
+   del config_dict['wiki_id'] # want to make sure we increment the wiki_id properly
+   if wiki_id is not None:
+       config_dict['wiki_id'] = wiki_id
+   config_dict['active'] = True
    site_conf = config.Config(config.wiki_name, request, process_config=False)
    request.config = site_conf
    request.config.active = True
-   request.config.set_config(request.config.wiki_name, request.config.get_dict(), request)
+   request.config.set_config(request.config.wiki_name, config_dict, request)
    request.setup_basics()
 
 def create_other_stuff(request):
@@ -967,7 +971,8 @@ def setup_admin(request):
    group.save()
 
 basic_pages = init_basic_pages()
-all_pages = copy(basic_pages).update(basic_pages)
+all_pages = copy(basic_pages)
+all_pages.update(init_basic_pages('global'))
 
 if __name__ == '__main__':
   from Sycamore import request

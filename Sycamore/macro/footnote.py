@@ -49,7 +49,7 @@ def emit_footnotes(request, formatter):
             fn_no = formatter.anchorlink('fnref' + fn_id, str(idx+1), id = 'fndef' + fn_id)
 
             request.write(formatter.rawHTML('<li><span>%s</span>' % fn_no))
-            request.write(wikiutil.wikifyString(request.footnotes[idx][0], formatter.request, formatter.page, formatter=formatter))
+            request.write(wikiutil.stripOuterParagraph(wikiutil.wikifyString(request.footnotes[idx][0], formatter.request, formatter.page, formatter=formatter)))
             request.write(formatter.rawHTML('</li>'))
         request.write(formatter.rawHTML('</ul></div>'))
         request.footnotes = []

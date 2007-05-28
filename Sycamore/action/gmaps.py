@@ -59,7 +59,7 @@ def mapJS(wiki_name, page_locs, nearby_locs, request):
     center = page_locs[0]
 
     pagename = center.pagename
-    page = Page(pagename, request)
+    page = Page(pagename, request, wiki_name=wiki_name)
     out = """
 <script type="text/javascript">
 //<![CDATA[
@@ -67,20 +67,20 @@ function doLoad() {
 var map = new GMap2(document.getElementById("map"));
 map.addControl(new GSmallMapControl());
 map.addControl(new GMapTypeControl()); 
-map.setCenter(new GLatLng(%s,%s),14);
+map.setCenter(new GLatLng(%s,%s),15);
         """ % (center.latitude, center.longitude)
         
     nearbys_processed = {}
     i = 0 # for 'a' 'b' labels on markers
     if nearby_locs:
         for x in nearby_locs:
-            nearby_page = Page(x.pagename, request)
+            nearby_page = Page(x.pagename, request, wiki_name=wiki_name)
             if (x.pagename, x.latitude, x.longitude) in nearbys_processed:
                 # only plot a given nearby point once 
                 # (it is sometimes easier to just have repeated nearbys in the query
                 # hence we filter them out here)
                 continue
-            namestr = """'<b><a href="%s" target=_parent>%s</a></b><br>%s'""" % (nearby_page.url(),
+            namestr = """'<b><a href="%s" target=_parent>%s</a></b><br>%s'""" % (nearby_page.url(relative=False),
               x.pagename.replace("'","\\"+"'"), x.address)
             out += """
             var point = new GLatLng(%s,%s);
@@ -90,7 +90,7 @@ map.setCenter(new GLatLng(%s,%s),14);
             i += 1
 
     for x in page_locs:
-        namestr = """'<b><a href="%s" target=_parent>%s</a></b><br>%s'""" % (page.url(),
+        namestr = """'<b><a href="%s" target=_parent>%s</a></b><br>%s'""" % (page.url(relative=False),
               x.pagename.replace("'","\\"+"'"), x.address)
         out += """var p_point = new GLatLng(%s,%s);
         map.addOverlay(createArrow(p_point,%s));""" % (x.latitude, x.longitude, namestr)

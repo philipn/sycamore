@@ -44,7 +44,7 @@ class Dict:
        is stripped from the member 
     """
 
-    def __init__(self, name, request, dict=1, case_insensitive=True):
+    def __init__(self, name, request, dict=1, case_insensitive=True, fresh=False):
         """Initialize a Dict, starting from <nothing>.
         """
 	import re
@@ -58,7 +58,7 @@ class Dict:
             regex = r'^\s\*\s(\[\")?(?P<member>.*?)(\"\])?(\s*)$' # 1st level item list,
                                # strip trailing blanks and free link markup
         regex = re.compile(regex)
-        text = p.get_raw_body()
+        text = p.get_raw_body(fresh=fresh)
         for line in text.split("\n"):
             match = regex.match(line)
             if match:

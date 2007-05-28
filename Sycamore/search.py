@@ -9,11 +9,18 @@ MAX_PROB_TERM_LENGTH = 64
 DIVIDERS = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 DIVIDERS_RE = r"""!"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~"""
 
+NUM_ENQUIRE_TRIES = 10 # number of times to try and grab a result set from xapian -- only used if we get an error
+
 def make_id(pagename, wikiname):
   if config.wiki_farm:
-    return "%s,%s" % (wikiutil.quoteFilename(wikiname), wikiutil.quoteFilename(pagename.lower()))
+    # TODO: let's fix this so we really only send this function one type
+    if type(wikiname) == unicode:
+        wikiname = wikiname.encode('utf-8')
+    if type(pagename) == unicode:
+        pagename = pagename.encode('utf-8')
+    return "%s,%s" % (wikiutil.quoteFilename(wikiname), wikiutil.quoteFilename(pagename))
   else:
-    return wikiutil.quoteFilename(pagename)
+    return wikiutil.quoteFilename(pagename.encode('utf-8'))
 
 def get_id(id):
   if config.wiki_farm:
@@ -106,6 +113,7 @@ class SearchBase(object):
     self.t_start_loc = t_start_loc
     self.num_results = 10
     self.wiki_global = wiki_global
+    self.exact_match = False
 
     self.text_results = [] # list of searchResult objects
     self.title_results = [] # list of searchResult objects
@@ -170,13 +178,14 @@ if config.has_xapian:
   
     def _stem_terms(self, terms):
       new_terms = []
+      if not terms: return []
       for term in terms:
         if type(term) == list:
           new_terms.append(self._stem_terms(term))
         else:
-          term = term.lower().encode('utf-8')
-          for term, pos in get_stemmed_text(term, self.stemmer):
-            new_terms.append(term)
+          term = term.lower()
+          for stemmed_term, pos in get_stemmed_text(term, self.stemmer):
+            new_terms.append(stemmed_term)
       return new_terms
       
   
@@ -185,18 +194,53 @@ if config.has_xapian:
       query = None
 
       if type(terms[0]) == list:
-        # an exactly-quoted sublist
         query = xapian.Query(xapian.Query.OP_PHRASE, terms[0])
+        self.exact_match = True
       else:
         for term in terms:
-          if query: query = xapian.Query(op, query, xapian.Query(op, [term]))
-          else: query = xapian.Query(op, [term])
+          # an exactly-quoted sublist
+          if type(term) == list:
+              subquery = xapian.Query(xapian.Query.OP_PHRASE, term)
+              if query: query = xapian.Query(op, query, subquery)
+              else: query = subquery
+          else:
+              if query: query = xapian.Query(op, query, xapian.Query(op, [term]))
+              else: query = xapian.Query(op, [term])
+
+        terms_without_exact = filter(lambda x: type(x) != list, terms) 
+        query = xapian.Query(xapian.Query.OP_OR, query, xapian.Query(xapian.Query.OP_NEAR, terms_without_exact))
         
       if config.wiki_farm and not self.wiki_global:
         specific_wiki = xapian.Query(xapian.Query.OP_OR, [('F:%s' % self.request.config.wiki_name).encode('utf-8')])
         query = xapian.Query(xapian.Query.OP_AND, query, specific_wiki)
 
       return query
+
+    def _get_matchset(self, enquire, database, start_loc, num_results):
+      for i in range(0, NUM_ENQUIRE_TRIES):
+          try:
+              matches = enquire.get_mset(start_loc, num_results)
+          except IOError, e:
+              if "DatabaseModifiedError" in str(e):
+                   had_error = True
+                   _search_sleep_time()
+                   database.reopen()
+                   continue
+              else:
+                   raise
+          except RuntimeError, e:
+              if "iunknown error in Xapian" in str(e):
+                   had_error = True
+                   _search_sleep_time()
+                   database.reopen()
+                   continue
+              else:
+                   raise
+
+          break
+          if i == (NUM_ENQUIRE_TRIES-1):
+              raise (Exception, "DatabaseModifiedError")
+      return matches
   
     def process(self):
       if not self.query: return
@@ -204,15 +248,20 @@ if config.has_xapian:
       enquire = xapian.Enquire(self.text_database)
       enquire.set_query(self.query)
       t0 = time.time()
-      matches = enquire.get_mset(self.p_start_loc, self.num_results+1)
+
+      matches = self._get_matchset(enquire, self.text_database, self.p_start_loc, self.num_results+1)
+      
       t1 = time.time()
       for match in matches:
         id = match[xapian.MSET_DOCUMENT].get_value(0)
         wiki_name = self.request.config.wiki_name
         if config.wiki_farm:
           title, wiki_name = get_id(id)
+          # xapian uses utf-8
+          title = title.decode('utf-8')
+          wiki_name = wiki_name.decode('utf-8')
         else:
-          title = get_id(id)
+          title = get_id(id).decode('utf-8')
         page = Page(title, self.request, wiki_name=wiki_name)
         if not page.exists(): continue
         percentage = match[xapian.MSET_PERCENT]
@@ -222,14 +271,17 @@ if config.has_xapian:
   
       enquire = xapian.Enquire(self.title_database)
       enquire.set_query(self.query)
-      matches = enquire.get_mset(self.t_start_loc, self.num_results+1)
+      matches = self._get_matchset(enquire, self.text_database, self.t_start_loc, self.num_results+1)
       for match in matches:
         id = match[xapian.MSET_DOCUMENT].get_value(0)
         wiki_name = self.request.config.wiki_name
         if config.wiki_farm:
           title, wiki_name = get_id(id)
+          # xapian uses utf-8
+          title = title.decode('utf-8')
+          wiki_name = wiki_name.decode('utf-8')
         else:
-          title = get_id(id)
+          title = get_id(id).decode('utf-8')
         page = Page(title, self.request, wiki_name=wiki_name)
         if not page.exists(): continue
         percentage = match[xapian.MSET_PERCENT]
@@ -248,7 +300,7 @@ if config.has_xapian:
 
     def process(self):
       import socket, cPickle
-      encoded_terms = [ wikiutil.quoteFilename(term) for term in self.terms ]
+      encoded_terms = wikiutil.quoteFilename(cPickle.dumps(self.terms, True))
       server_address, server_port = config.remote_search
       s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
       s.connect((server_address, server_port))
@@ -260,8 +312,7 @@ if config.has_xapian:
       else:
         output.write('%s\n\n' % self.request.config.wiki_name)
       output.write('S\n%s\n%s\n' % (self.p_start_loc, self.t_start_loc))
-      for term in encoded_terms:
-        output.write('%s\n' % term)
+      output.write('%s\n' % encoded_terms)
       output.write('\n')
       output.write('E\n\n') # end
       output.close()
@@ -347,6 +398,8 @@ def get_stemmed_text(text, stemmer):
   # the first non-plusminus character after that (k), and if
   # k is non-alnum (or is off the end of the para), set j=k.
   # The term generation string is [i,j), so len = j-i
+  if type(text) == unicode:
+      text = text.encode(config.charset)
 
   i = 0
   while i < len(text):
@@ -371,8 +424,6 @@ def _do_postings(doc, text, id, stemmer, request):
   # unique id     
   # NOTE on unique id:  we assume this is unique and not creatable via the user.  We consider 'q:this' to split as q, this -- so this shouldn't be exploitable.
   # The reason we use such a unique id is that it's the easiest way to do this using xapian.
-  id = id.encode('utf-8')
-  text = text.encode('utf-8')
   doc.add_term(("Q:%s" % id).encode('utf-8'))
   if config.wiki_farm:
     doc.add_term(("F:%s" % request.config.wiki_name).encode('utf-8'))
@@ -390,6 +441,31 @@ def _search_sleep_time():
     sleeptime = 0.1 + random.uniform(0, .05)
     time.sleep(sleeptime)    
 
+def re_init_remote_index():
+  server_address, server_port = config.remote_search
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+  s.connect((server_address, server_port))
+
+  output = s.makefile('w', 0)
+  output.write('Is\n')
+  output.write('E\n\n') # end
+  output.close()
+
+  s.close() 
+  del s
+
+def re_init_remote_index_end():
+  server_address, server_port = config.remote_search
+  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+  s.connect((server_address, server_port))
+
+  output = s.makefile('w', 0)
+  output.write('Ie\n')
+  output.write('E\n\n') # end
+  output.close()
+
+  s.close() 
+  del s
 
 def add_to_remote_index(page):
   server_address, server_port = config.remote_search
@@ -406,14 +482,18 @@ def add_to_remote_index(page):
   output.close()
 
   s.close() 
+  del s
 
-
-def add_to_index(page, db_location=None, text_db=None, title_db=None, try_remote=True):
+def add_to_index(page, db_location=None, text_db=None, title_db=None, try_remote=True, do_now=False):
   """Add page to the search index"""
   if not config.has_xapian: return
   if not db_location: db_location = config.search_db_location
   if try_remote and config.remote_search:
-    threading.Thread(target=add_to_remote_index, args=(page,)).start()
+    # the search server is in a different transaction than we are, so we want to wait until we commit before telling it to index
+    if not do_now:
+        page.request.postCommitActions.append((threading.Thread(target=add_to_remote_index, args=(page,)).start, [])) 
+    else:
+        add_to_remote_index(page)
   else:
     index(page, db_location=db_location, text_db=text_db, title_db=title_db)
 
@@ -440,9 +520,9 @@ def index(page, db_location=None, text_db=None, title_db=None):
         else:
             break
   else: database = title_db
-    
-  text = page.page_name.encode('utf-8')
-  pagename = page.page_name.encode('utf-8')
+  
+  text = page.page_name
+  pagename = page.page_name
   id = make_id(pagename, page.request.config.wiki_name)
   doc = xapian.Document()
   _do_postings(doc, text, id, stemmer, page.request)
@@ -468,7 +548,7 @@ def index(page, db_location=None, text_db=None, title_db=None):
 
   else: database = text_db
 
-  text = page.get_raw_body()
+  text = page.get_raw_body().encode('utf-8')
   doc = xapian.Document()
   _do_postings(doc, text, id, stemmer, page.request)
   database.replace_document("Q:%s" % id, doc)
@@ -489,57 +569,63 @@ def remove_from_remote_index(page):
 
   s.close() 
 
-def remove_from_index(page, db_location=None, text_db=None, title_db=None):
+def remove_from_index(page, db_location=None, text_db=None, title_db=None, do_now=False):
   """removes the page from the index.  call this on page deletion.  all other page changes can just call index(). """
   if not config.has_xapian: return
   if not db_location: db_location = config.search_db_location
   if config.remote_search:
-    threading.Thread(target=remove_from_remote_index, args=(page,)).start()
+    # the search server is in a different transaction than we are, so we want to wait until we commit before telling it to index
+    if not do_now:
+        page.request.postCommitActions.append((threading.Thread(target=remove_from_remote_index, args=(page,)).start, [])) 
+    else:
+        remove_from_index(page)
   else:
     remove(page, db_location=db_location, text_db=text_db, title_db=title_db)
 
 def remove(page, db_location=None, text_db=None, title_db=None):
   """Don't call this function.  Call remove_from_index."""
-  pagename = page.page_name.encode('utf-8')
+  if not title_db:
+      while 1:
+        try:
+            title_db = xapian.WritableDatabase(
+              os.path.join(db_location, 'title'),
+              xapian.DB_CREATE_OR_OPEN)
+        except IOError, err:
+            strerr = str(err) 
+            if strerr == 'DatabaseLockError: Unable to acquire database write lock %s' % os.path.join(os.path.join(db_location, 'title'), 'db_lock'):
+                if config.remote_search:
+                    # we shouldn't try again if we're using remote db
+                    raise IOError, err 
+                _search_sleep_time()
+            else:
+                raise IOError, err
+        else:
+            break
+
+  pagename = page.page_name
   id = make_id(pagename, page.request.config.wiki_name)
-  while 1:
-    try:
-        database = xapian.WritableDatabase(
-          os.path.join(db_location, 'title'),
-          xapian.DB_CREATE_OR_OPEN)
-    except IOError, err:
-        strerr = str(err) 
-        if strerr == 'DatabaseLockError: Unable to acquire database write lock %s' % os.path.join(os.path.join(db_location, 'title'), 'db_lock'):
-            if config.remote_search:
-                # we shouldn't try again if we're using remote db
-                raise IOError, err 
-            _search_sleep_time()
+
+  title_db.delete_document("Q:%s" % id)
+
+  if not text_db:
+      while 1:
+        try:
+            text_db = xapian.WritableDatabase(
+              os.path.join(db_location, 'text'),
+              xapian.DB_CREATE_OR_OPEN)
+        except IOError, err:
+            strerr = str(err) 
+            if strerr == 'DatabaseLockError: Unable to acquire database write lock %s' % os.path.join(os.path.join(db_location, 'text'), 'db_lock'):
+                if config.remote_search:
+                    # we shouldn't try again if we're using remote db
+                    raise IOError, err 
+                _search_sleep_time()
+            else:
+                raise IOError, err
         else:
-            raise IOError, err
-    else:
-        break
+            break
 
-
-  database.delete_document("Q:%s" % id)
-
-  while 1:
-    try:
-        database = xapian.WritableDatabase(
-          os.path.join(db_location, 'text'),
-          xapian.DB_CREATE_OR_OPEN)
-    except IOError, err:
-        strerr = str(err) 
-        if strerr == 'DatabaseLockError: Unable to acquire database write lock %s' % os.path.join(os.path.join(db_location, 'text'), 'db_lock'):
-            if config.remote_search:
-                # we shouldn't try again if we're using remote db
-                raise IOError, err 
-            _search_sleep_time()
-        else:
-            raise IOError, err
-    else:
-        break
-
-  database.delete_document("Q:%s" % id)
+  text_db.delete_document("Q:%s" % id)
 
 def prepare_search_needle(needle):
   """Basically just turns a string of "terms like this" and turns it into a form usable by Search(), paying attention to "quoted subsections" for exact matches."""
@@ -558,8 +644,7 @@ def prepare_search_needle(needle):
     if non_quoted_part: new_list += non_quoted_part
     i = quote.end()
     new_phrase = []
-    phrase = quote.group('phrase').split()
-    phrase = new_phrase
+    phrase = quote.group('phrase').encode('utf-8').split()
     new_list.append(phrase)
   else:
     needles = needle.encode('utf-8').split()

@@ -16,7 +16,7 @@
     together with a user macro; those actions a likely to work only if
     invoked BY that macro, and are thus hidden from the user interface.
 
-    @copyright: 2000-2004 by J?rgen Hermann <jh@web.de>, 2005-2006 Philip Neustrom <philipn@gmail.com>
+    @copyright: 2000-2004 by J?rgen Hermann <jh@web.de>, 2005-2007 Philip Neustrom <philipn@gmail.com>
     @license: GNU GPL, see COPYING for details.
 """
 
@@ -26,8 +26,7 @@ from Sycamore import config, util, wikiutil, user, search, farm
 from Sycamore.Page import Page
 from Sycamore.util import SycamoreNoFooter, pysupport
 
-NOT_ALLOWED_CHARS = '><?#[]{}|"'
-NOT_ALLOWED_CHARS_ESCAPED = re.escape(NOT_ALLOWED_CHARS)
+NOT_ALLOWED_CHARS = '><?#[]_{}|~"'
 MAX_COMMENT_LENGTH = 80
 
 from Sycamore.Page import MAX_PAGENAME_LENGTH
@@ -63,7 +62,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
     except (KeyError, ValueError):
         case = 0
 
-    context = 40
+    context = 30
     max_context = 10 # only show first `max_context` contexts
 
     # check for sensible search term
@@ -90,12 +89,9 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         on_wiki = ''
     wikiutil.send_title(request, _('Search results for "%s"%s') % (printable_needle, on_wiki))
     
-    #searchlog = open(config.data_dir + '/search.log','a')
-    #searchlog.write(needle + '\n')
-    #searchlog.close()
-
     this_search = search.Search(search.prepare_search_needle(needle), request, p_start_loc=pstart, t_start_loc=tstart, num_results=pwith+1, wiki_global=wiki_global) #, start_lock=)
     this_search.process()
+
     # don't display results they can't read
     if not wiki_global:
         title_hits = [title for title in this_search.title_results if request.user.may.read(Page(title.page_name, request))]
@@ -104,12 +100,18 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         title_hits = []
         full_hits = []
 
+        original_wiki = request.config.wiki_name
         for title in this_search.title_results:
+            request.switch_wiki(title.wiki_name)
             if request.user.may.read(Page(title.page_name, request, wiki_name=title.wiki_name)):
                 title_hits.append(title)
         for text in this_search.text_results:
+            request.switch_wiki(text.wiki_name)
             if request.user.may.read(Page(text.page_name, request, wiki_name=text.wiki_name)):
                 full_hits.append(text)
+        request.switch_wiki(original_wiki)
+
+
 
     request.write('<div id="content" class="wikipage content">\n') # start content div
     if len(title_hits) < 1:
@@ -127,7 +129,7 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
                         request.write('Would you like to %s?</td></tr></table>' % (Page(printable_needle, request).link_to(text="create a new page with this title", know_status=True, know_status_exists=False)))
 
     request.write('<ul>')
-    if len(title_hits) > twith:
+    if len(this_search.title_results) > twith:
             for t_hit in title_hits[0:twith]:
                 if wiki_global:
                     wiki_link = farm.link_to_wiki(t_hit.wiki_name, request.formatter)
@@ -170,9 +172,9 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
         if context:
           print_context(this_search, full_hit.data, request, context=context, max_context=max_context)
           
-      if len(full_hits) > pwith:
+      if len(this_search.text_results) > pwith:
          request.write('<p>&nbsp;(<a href="%s?action=%s&string=%s&pstart=%s">next %s matches</a>)</div></dl>'
-                        % (request.getScriptname(), action, urllib.quote_plus(needle), pstart+pwith, pwith))
+                        % (request.getScriptname(), action, urllib.quote_plus(needle.encode()), pstart+pwith, pwith))
       else:
          request.write('</div></dl>')
 
@@ -181,9 +183,32 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1, pstart=
 
 do_inlinesearch = do_search # for comptability to not break old urls in firefox extensions, etc.
 
+def remove_duplicates(l):
+    ll = []
+    for i in l:
+      if i not in ll:
+        is_in = False
+        for j in ll:
+          if j[1] == i[1]:
+	    is_in = True
+	    break
+        if not is_in:
+	  ll.append(i)
+
+    return ll
+
 def print_context(the_search, text, request, context=40, max_context=10):
- """ Prints the search context surrounding a search result.  Makes found terms strong and shows some snippets."""
- padding = 10 # how much context goes around matched areas
+ """ Prints the search context surrounding a search result.  Makes found terms strong and shows some snippets.
+ 
+ Unfortunately, this isn't very good.  However, it's hard to make it good without knowing, given the search terms,
+ what terms were actually 'hits' for the documents we have.  Ideally we'd like a way to get information on what 
+ terms matched and /where/ they matched in a document from Xapian.  Instead, what we do here is look through the 
+ set of matched documents and try and find occurences of terms we were given.
+ 
+ This means if someone gives us "dog", "cat", ""without", "park" we will highlight "without" in a document that is 90% about "dog" "cat" and "park".
+ """
+
+ padding = context # how much context goes around matched areas
  fragments = []
  out = []
  pos = 0
@@ -206,73 +231,98 @@ def print_context(the_search, text, request, context=40, max_context=10):
 
  terms = terms_both
 
+ # find where the terms occur ( also considering stemmed version of terms )
  for item in terms:
      term_string_stemmed = None
      if type(item) == list:
-        exact_terms = [ exact for stemmed, exact in item ] 
+        exact_terms = [ exact.decode(config.charset) for stemmed, exact in item ] 
         term_string_exact = ' '.join(exact_terms) # means this is "exact match yo"
      else:
-       item = item[0]
-       term_item = item
-       term_string_stemmed = term_item[0].lower()
-       term_string_exact = term_item[1].lower()
+        item = item[0]
+        term_item = item
+        term_string_stemmed = term_item[0].lower().decode(config.charset)
+        term_string_exact = term_item[1].lower().decode(config.charset)
      # try and find exact first
 
-     found_loc = fixed_text.find(term_string_exact)
+     previous_found_loc = None
+     found_loc = fixed_text.find(term_string_exact.lower())
      found_one = False
      while True:
        if found_loc == -1: break
        found_one = True
-       terms_with_location.append((term_string_exact, found_loc))
-       rel_position = fixed_text[found_loc+len(term_string_exact):].find(term_string_exact)
+       if not previous_found_loc or (found_loc - previous_found_loc > context):
+         terms_with_location.append((term_string_exact, found_loc))
+       rel_position = fixed_text[found_loc+len(term_string_exact):].find(term_string_exact.lower())
        if rel_position == -1:
          break
+       previous_found_loc = found_loc
        found_loc += rel_position + len(term_string_exact)
 
-     if not found_one and term_string_stemmed: # try and find stemmed version
-       found_loc = fixed_text.find(term_string_stemmed)
+     found_loc = None
+     if term_string_stemmed: # try and find stemmed version
+       found_loc = fixed_text.find(term_string_stemmed.lower())
        while True:
          if found_loc == -1: break
          found_one = True
-         terms_with_location.append((term_string_stemmed, found_loc))
-         rel_position = fixed_text[found_loc+len(term_string_stemmed):].find(term_string_stemmed)
+         if previous_found_loc and (found_loc - previous_found_loc < context):
+             terms_with_location.append((term_string_stemmed, found_loc))
+         rel_position = fixed_text[found_loc+len(term_string_stemmed):].find(term_string_stemmed.lower())
          if rel_position == -1:
            break
+         previous_found_loc = found_loc
          found_loc += rel_position + len(term_string_stemmed)
  
  terms_with_location.sort(lambda x,y: cmp(x[1],y[1]))
+ terms_with_location = remove_duplicates(terms_with_location)
  i = 0
  text_with_context = []
  skip = False
- while i < len(terms_with_location) and i < context:
+
+ # actual highlighting happens here
+ previous_location = None
+ while i < len(terms_with_location) and i < max_context:
    if not skip:
      term = terms_with_location[i][0]
      location = terms_with_location[i][1]
+     has_next_location = i+1 < len(terms_with_location)
+     has_previous_location = i
+
+     if has_previous_location:
+       previous_term, previous_location = terms_with_location[i-1]  
+
+     if has_next_location:
+       next_term = terms_with_location[i+1][0]
+       next_location = terms_with_location[i+1][1]
+
+
+     if has_previous_location:
+       if previous_location + len(previous_term) > location:
+         # matches within this term..whoa, let's skip this
+         skip = True
+
      # first context
-     if not text_with_context:
+     if not text_with_context and not skip:
        if location > padding:
+         text_with_context.append('...')
          text_with_context.append(escape(text[location-padding:location]))
+       else:
+         text_with_context.append(escape(text[:location]))
      text_with_context.append('<strong>%s</strong>' % escape(text[location:location+len(term)]))
-   if i+1 < len(terms_with_location):
-     next_term = terms_with_location[i+1][0]
-     next_location = terms_with_location[i+1][1]
-     if next_location < location + padding:
+
+   if has_next_location:
+     if next_location - location <= padding:
+       text_with_context.append('%s' % (escape(text[location+len(term):next_location])))
        i += 1
-       text_with_context.append(' ')
-       continue
-     if next_location - location < context - padding:
-       text_with_context.append('%s<strong>%s</strong>' % (escape(text[location+len(term):next_location]), escape(text[next_location:next_location+len(next_term)])))
-       i += 1
-       skip = True
        continue
      else:
        text_with_context.append('%s ... %s' % (escape(text[location+len(term):location+len(term)+padding]), escape(text[next_location-len(next_term)-padding:next_location])))
    elif not skip: # we are at the end of the list of terms
      text_with_context.append('%s' % escape(text[location+len(term):location+len(term)+context]))
+
    i += 1
    skip = False
 
- if location and location + padding + 1 < len(text):
+ if text_with_context and location + padding + 1 < len(text):
    text_with_context.append(' ... ')
 
  request.write('<div class="textSearchResult">%s</div>' % ''.join(text_with_context))
@@ -380,12 +430,14 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
         ignorews = 0
 
     _ = request.getText
+
+    l.append('<div id="content" class="wikipage content">\n') # start content div
     
     if in_wiki_interface:
       request.http_headers()
       if request.user.valid: request.user.checkFavorites(page)
-      wikiutil.simple_send_title(request, pagename, strict_title='Diferences for "%s"' % pagename)
-      request.write('<div class="minorTitle">Differences:</div>')
+      wikiutil.simple_send_title(request, pagename, strict_title='Differences for "%s"' % pagename)
+      l.append('<div class="minorTitle">Differences:</div>')
     else:
       l.append("Differences for %s" % (page.proper_name()))
   
@@ -435,7 +487,6 @@ def do_diff(pagename, request, in_wiki_interface=True, text_mode=False, version1
 
     edit_count = abs(oldcount1 - oldcount2)
 
-    l.append('<div id="content" class="wikipage content">\n') # start content div
     l.append('<p><strong>')
 
     old_mtime = oldpage.mtime()
@@ -527,7 +578,7 @@ def do_info(pagename, request):
         request.write('<h3>%s</h3>' % _('Links from this page'))
         if links_from_page:
             for linkedpage in links_from_page:
-                request.write("%s%s " % (Page(linkedpage, request).link_to(), ",."[linkedpage == links_from_page[-1]]))
+                request.write("%s%s " % (user.unify_userpage(request, linkedpage, linkedpage, prefix=True) or Page(linkedpage, request).link_to(), ",."[linkedpage == links_from_page[-1]]))
             request.write("</p>")
         else: request.write('<p>This page links to no pages.</p>')
 
@@ -642,7 +693,7 @@ def do_info(pagename, request):
             
             if entry[2] and entry[2].strip():
                 editUser = user.User(request, entry[2].strip())
-                editUser_text = user.getUserLink(request, editUser)
+                editUser_text = user.getUserLink(request, editUser, show_title=False)
                 editUser_text = '<span title="%s">' % userIP + editUser_text + '</span>'
             else: editUser_text = '<i>none</i>'
             history.addRow((
@@ -811,12 +862,12 @@ def do_edit(pagename, request):
     else:
         _ = request.getText
         not_allowed = ' '.join(NOT_ALLOWED_CHARS)
-        msg = _('Invalid pagename: the characters %s are not allowed in page names.  Page names must be less than %s characters.' % (not_allowed, MAX_PAGENAME_LENGTH))
+        msg = _('Invalid pagename: the characters %s are not allowed in page names.  Page names must be less than %s characters.' % (wikiutil.escape(not_allowed), MAX_PAGENAME_LENGTH))
 
         Page(pagename, request).send_page(msg = msg)
 
 def isValidPageName(name):
-    return not re.search('[%s]' % NOT_ALLOWED_CHARS_ESCAPED, name) and len(name) <= MAX_PAGENAME_LENGTH
+    return not re.search('[%s]' % re.escape(NOT_ALLOWED_CHARS), name) and len(name) <= MAX_PAGENAME_LENGTH
 
 def do_savepage(pagename, request):
     from Sycamore.PageEditor import PageEditor
@@ -831,7 +882,7 @@ def do_savepage(pagename, request):
 
     pg = PageEditor(pagename, request)
     savetext = request.form.get('savetext', [''])[0]
-    datestamp = float(request.form.get('datestamp', [''])[0])
+    datestamp = float(request.form.get('datestamp', ['0'])[0])
     comment = request.form.get('comment', [''])[0]
     category = request.form.get('category', [None])[0]
     rstrip = True
@@ -894,10 +945,12 @@ There was an edit conflict between your changes!</b> Please review the conflicts
         if backto:
             if request.user.valid: request.user.checkFavorites(pg)
             pg = Page(backto, request)
+            # so we see the update on the included page
+            pg.buildCache()
 
         # clear request cache so that the user sees the page as existing
         request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = pg_proper_name
-        pg.send_page(msg=savemsg, send_headers=False)
+        pg.send_page(msg=savemsg, send_headers=False, force_regenerate_content=backto)
         #request.http_redirect(pg.url())
 
 def do_favorite(pagename, request):

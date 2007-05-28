@@ -34,7 +34,7 @@ function fixImage() {
    }
 
    // test for png
-   if ( /\.png$/.test( realSrc.toLowerCase() ) ) {
+   if ( /\.png/.test( realSrc.toLowerCase() ) ) {
       // set blank image
       element.src = blankSrc;
       // set filter

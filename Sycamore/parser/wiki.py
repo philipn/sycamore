@@ -15,6 +15,19 @@ from Sycamore.util import web
 from Sycamore.parser.wiki_simple import Parser as SimpleParser
 
 #############################################################################
+### Utilities
+#############################################################################
+_heading_re = re.compile('(?P<heading>^\s*(?P<hmarker>=+)(\s)*.*(\s)*(?P=hmarker)( )*$)')
+def _is_heading(line):
+    """
+    Is the line a heading?
+    """
+    return _heading_re.match(line)
+
+#############################################################################
+
+
+#############################################################################
 ### Sycamore Wiki Markup Parser
 #############################################################################
 
@@ -48,11 +61,11 @@ class Parser(SimpleParser):
     formatting_rules_dict.update(SimpleParser.formatting_rules_dict)
     formatting_rules = ("(?:%s%s)%s%s" % (SimpleParser.formatting_a, formatting_a, SimpleParser.formatting_b, formatting_b)) % formatting_rules_dict
 
-    def format(self, formatter):
+    def format(self, formatter, inline_edit_default_state=None):
         """ For each line, scan through looking for magic
             strings, outputting verbatim any intervening text.
         """
-        if formatter.__dict__.has_key('page'):
+        if hasattr(formatter, 'page'):
           self.is_a_page = True
         else: self.is_a_page = False
 
@@ -68,8 +81,6 @@ class Parser(SimpleParser):
                 'word_rule': self.word_rule,
                 'rules': rules,
             }
-        if config.backtick_meta:
-            rules = rules + r'|(?P<tt_bt>`.*?`)'
         if config.allow_numeric_entities:
             rules = r'(?P<ent_numeric>&#\d{1,5};)|' + rules
 
@@ -87,7 +98,7 @@ class Parser(SimpleParser):
         self.lines = eol_re.split(rawtext)
         self.line_is_empty = 0
         self.inhibit_br = 0
-
+        self.force_print_p = False
 
         for line in self.lines:
             self.lineno = self.lineno + 1
@@ -95,48 +106,22 @@ class Parser(SimpleParser):
             self.line_was_empty = self.line_is_empty
             self.line_is_empty = 0
             self.first_list_item = 0
+	    self.formatter.printed_inline_edit_id = False
             self.inhibit_p = 0
             if self.inhibit_br > 0: self.inhibit_br -= 1
             else: self.inhibit_br = 0
 
-            if self.in_pre:
-                # still looking for processing instructions
-                if self.in_pre == 1:
-                    self.processor = None
-                    processor_name = ''
-                    if (line.strip()[:2] == "#!"):
-                        from Sycamore.processor import processors
-                        processor_name = line.strip()[2:].split()[0]
-                        self.processor = wikiutil.importPlugin("processor", processor_name, "process")
-                        if not self.processor and (line.find('python') > 0):
-                            from Sycamore.processor.Colorize import process
-                            self.processor = process
-                            processor_name = "Colorize"
-                    if self.processor:
-                        self.in_pre = 2
-                        self.colorize_lines = [line]
-                        self.processor_name = processor_name
-                        continue
-                    else:
-                        self.request.write(self.formatter.preformatted(1))
-                        self.in_pre = 3
-                if self.in_pre == 2:
-                    # processing mode
-                    endpos = line.find("}}}")
-                    if endpos == -1:
-                        self.colorize_lines.append(line)
-                        continue
-                    if line[:endpos]:
-                        self.colorize_lines.append(line[:endpos])
-                    self.request.write(
-                        self.formatter.processor(self.processor_name, self.colorize_lines))
-                    del self.colorize_lines
-                    self.in_pre = 0
-                    self.processor = None
+            self.formatter.inline_edit_force_state = inline_edit_default_state
 
-                    # send rest of line through regex machinery
-                    line = line[endpos+3:]                    
+            if inline_edit_default_state is not None:
+                self.formatter.inline_edit = inline_edit_default_state
             else:
+                self.formatter.inline_edit = True
+
+            if self.formatter.inline_edit:
+                self.formatter.edit_id += 1
+
+            if not self.in_pre:
                 # paragraph break on empty lines
                 if not line.strip():
                     #self.request.write("<!-- empty line start -->\n")
@@ -146,15 +131,16 @@ class Parser(SimpleParser):
                         self.request.write(self.formatter.table(0))
                         self.in_table = 0
                     self.line_is_empty = 1
+                    self.force_print_p = False
                     #self.request.write("<!-- empty line end -->\n")
                     continue
                 elif self.print_br():
                     self.request.write('<br/>')
                     self.inhibit_br += 1 # to avoid printing two if they did [[br]]
                 # start p on first line
-                elif not self.inhibit_p and self.lineno == 1 and self.print_first_p:
-                    self.request.write(self.formatter.paragraph(1))
-
+                #elif not self.inhibit_p and self.lineno == 1 and self.print_first_p:
+                #    self.request.write(self.formatter.paragraph(1))
+ 
                 # check indent level
                 indent = indent_re.match(line)
                 indlen = len(indent.group(0))
@@ -194,16 +180,35 @@ class Parser(SimpleParser):
                     line[indlen:indlen+2] == "||" and line[-2:] == "||"):
                     self.request.write(self.formatter.table(0))
                     self.in_table = 0
+		    self.force_print_p = True
 
             # convert line from wiki markup to HTML and print it
             if not self.in_pre:   # we don't want to have trailing blanks in pre
                 line = line + " " # we don't have \n as whitespace any more
 
-            formatted_line = self.scan(scan_re, line) # this also sets self.inhibit_p as side effect!
-            
-            #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
-            if not (self.inhibit_p or self.in_pre or self.in_table):
+
+            if self.formatter.in_list > 0:
+                self.force_print_p = False
+            elif self.formatter.just_printed_heading and _is_heading(line):
+                self.force_print_p = False
+                self.formatter.just_printed_heading = False
+            elif self.force_print_p and not self.formatter.in_p and not self.in_table:
+                self.force_print_p = False
                 self.request.write(self.formatter.paragraph(1))
+            elif self.formatter.in_p or self.in_table:
+                self.force_print_p = False
+
+            
+            formatted_line = self.scan(scan_re, line) # this also sets self.inhibit_p as side effect!
+            #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
+
+            #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
+            # we check against force_print_p here to avoid printing out <p> (above) and then immediately </p>
+	    #print line
+            if not (self.inhibit_p or self.in_pre or self.in_table or self.force_print_p):
+                 self.request.write(self.formatter.paragraph(1))
+            elif self.formatter.in_list > 0 and not self.formatter.printed_inline_edit_id:
+                 self.request.write(self.formatter.paragraph(1))
 
             #self.request.write("<!-- %s\n     start -->\n" % line)
             self.request.write(formatted_line)
@@ -266,6 +271,9 @@ class Parser(SimpleParser):
         self.inhibit_p = 1
         self.inhibit_br += 2
         icons = ''
+        result = []
+        if self.in_li or self.formatter.in_p:
+            self._close_item(result)
 
         h = word.strip()
         level = 1
@@ -274,6 +282,9 @@ class Parser(SimpleParser):
         depth = min(5,level)
 
         title_text = h[level:-level].strip()
+        # we wikify the title so that things like links show up in the heading
+        title_text = wikiutil.stripOuterParagraph(wikiutil.wikifyString(title_text, self.request, self.formatter.page))
+
         self.titles.setdefault(title_text, 0)
         self.titles[title_text] += 1
 
@@ -281,8 +292,11 @@ class Parser(SimpleParser):
         if self.titles[title_text] > 1:
             unique_id = '-%d' % self.titles[title_text]
 
-        return self.formatter.heading(depth, self.highlight_text(title_text), icons=icons, id=("head-"+sha.new(title_text.encode('utf-8')).hexdigest()+unique_id).decode('utf-8'))
+        self.force_print_p = True
+        result.append(self.formatter.heading(depth, title_text, icons=icons, id=("head-"+sha.new(title_text.encode('utf-8')).hexdigest()+unique_id).decode('utf-8')))
 
+
+        return ''.join(result)
 
     def definition(self, type, key, value):
         d = []

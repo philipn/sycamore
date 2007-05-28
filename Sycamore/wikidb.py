@@ -1,8 +1,8 @@
 # -*- coding: iso-8859-1 -*-
 """
-    Sycamore - Wiki MySQL support functions
+    Sycamore - Wiki database support functions
 
-    @copyright: 2005 Philip Neustrom
+    @copyright: 2005-2007 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
 
@@ -11,7 +11,12 @@
 # Imports
 from Sycamore import config
 from Sycamore.support import pool
-import time, array
+import time, array, copy
+
+#import sys, os.path
+#__directory__ = os.path.dirname(__file__)
+#sys.path.extend([os.path.abspath(os.path.join(__directory__, 'support'))])
+#import sqlalchemy
 
 if config.db_type == 'mysql':
   dbapi_module = __import__("MySQLdb")
@@ -22,17 +27,24 @@ pool_size = config.db_pool_size
 max_overflow = config.db_max_overflow
 
 Binary = dbapi_module.Binary
-dbapi = pool.manage(dbapi_module, pool_size=pool_size, max_overflow=max_overflow)
+if config.db_pool:
+    dbapi = pool.manage(dbapi_module, pool_size=pool_size, max_overflow=max_overflow)
+else:
+    dbapi = dbapi_module
 dbapi.Binary = Binary
 
 MAX_CONNECTION_ATTEMPTS = pool_size + 10
 RC_MAX_DAYS = 7
 
+# MySQL error numbers for 'lost connection' errors
+CONNECTION_ERRORS = [2006, 2013]
+
+# the max number of changes we ever display on RC
+ABSOLUTE_RC_CHANGES_LIMIT = 1000
+
 def fixUpStrings(item):
   def doFixUp(i):
-    if type(i) == array.array:
-      return i.tostring()
-    elif type(i) == str:
+    if config.db_type != 'mysql' and type(i) == str:
       return i.decode(config.db_charset)
     elif type(i) == tuple:
       return fixUpStrings(i)
@@ -48,19 +60,21 @@ class WikiDB(object):
     self.do_commit = False
 
   def close(self):
-    if self.db and self.db.alive:
+    if self.db and (not config.db_pool or self.db.alive):
         self.db.close()
-        del self.db
+        del self.db # ESSENTIAL
+        # the del here is needed so the connection pool gets the element back
   
   def cursor(self):
     # TODO: need to make sure we set autocommit off in other dbs
+    # which dbs use autocommit by default?
     return WikiDBCursor(self)
   
   def commit(self):
     self.db.commit()
 
   def rollback(self):
-    if self.db and self.db.alive:
+    if self.db and (not config.db_pool or self.db.alive):
         self.db.rollback()
 
 
@@ -68,7 +82,7 @@ def _test_connection(db):
     """
     Tries to issue a test query.  If it fails because the connection is dead or because the database went away then we try to fix this.
     """
-    def _try_execute():
+    def _try_execute(db):
         test_query = "SELECT 1"
         had_error = False
         try:
@@ -80,13 +94,14 @@ def _test_connection(db):
 
         return had_error
 
-    had_error = _try_execute()
+    had_error = _try_execute(db)
     
     i = 0
     cant_connect = False
     while had_error and i < MAX_CONNECTION_ATTEMPTS:
         i += 1
-        db.db.alive = False # mark as dead
+        if config.db_pool:
+            db.db.alive = False # mark as dead
         del db.db
         db.db_cursor = None
         # keep trying to get a good connection from the pool
@@ -97,7 +112,7 @@ def _test_connection(db):
             cant_connect = True
             break
 
-        had_error = _try_execute()
+        had_error = _try_execute(db)
 
     if had_error and (cant_connect or i == MAX_CONNECTION_ATTEMPTS):
         raise db.ConnectionError, "Could not connect to database."
@@ -154,6 +169,7 @@ class WikiDBCursor(object):
     if self.db_cursor:
         self.db_cursor.close()
         del self.db_cursor
+        del self.db
 
 def _fixArgs(args):
     # Converts python floats to limited-precision float strings
@@ -224,17 +240,18 @@ def real_connect():
     try:
         db.ping()
     except dbapi_module.OperationalError, (errno, strerror):
-        if errno == 2006:
+        if errno in CONNECTION_ERRORS:
             had_error = True
             while had_error:
-                db.alive = False
+                if config.db_pool:
+                    db.alive = False
                 del db
                 db = dbapi.connect(**d)
                 # keep trying to get a good connection from the pool
                 try:
                     db.ping()
                 except dbapi_module.OperationalError, (errno, strerror):
-                    if errno == 2006:
+                    if errno in CONNECTION_ERRORS:
                         had_error = True
                     else:
                         had_error = False
@@ -246,9 +263,13 @@ def real_connect():
   return db
       
 
-def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=None, size=None):
+def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=None, size=None, fresh=False):
   """
   dict is a dictionary with possible keys: filename, page_name, and file_version.
+
+  We return either False if the file doesn't exist, or a tuple:
+
+  (filecontentstring, last_modified_date)
   """
   from Sycamore.wikiutil import mc_quote
   file_obj = None
@@ -279,7 +300,7 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=Non
         key = "oldfiles:%s,%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']), version)
       query = "SELECT file, uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(page_name)s and uploaded_time=%(file_version)s and wiki_id=%(wiki_id)s"
 
-  if config.memcache:
+  if config.memcache and not fresh:
     file_obj = request.mc.get(key)
 
   if file_obj is None:
@@ -412,7 +433,7 @@ def putFile(request, dict, thumbnail=False, do_delete=False, temporary=False, ti
     #caching.CacheEntry(dict['pagename'], request).clear()
     page = Page(dict['pagename'], request)
     if page.exists():
-      page.buildCache()
+        page.buildCache()
 
 class EditLine:
     def __init__(self, edit_tuple):
@@ -422,30 +443,72 @@ class EditLine:
       self.comment = edit_tuple[4]
       self.userid = edit_tuple[2]
       self.host = edit_tuple[5]
+      self.wiki_name = None
 
-    def getEditor(self, request):
-         from Sycamore import user
-         from Sycamore.Page import Page
-         if self.userid and self.userid.strip():
-           editUser = user.User(request, self.userid)
-           return user.getUserLink(request, editUser, wiki_name=self.wiki_name)
-         else:
-           return '<em>unknown</em>'
+    def __getstate__(self):
+      """
+      Used for pickling (marshalling).
+      """
+      return (self.pagename, self.ed_time, self.action, self.comment, self.userid, self.host, self.wiki_name)
+
+    def __setstate__(self, unpickled_object):
+      """
+      Used for pickling (marshalling).
+      """
+      pagename, ed_time, action, comment, userid, host, wiki_name = unpickled_object
+      self.pagename = pagename
+      self.ed_time = ed_time
+      self.action = action
+      self.comment = comment
+      self.userid = userid
+      self.host = host
+      self.wiki_name = wiki_name
+
+
+def getEditor(editLine, request):
+     from Sycamore.user import User, getUserLink
+     from Sycamore.Page import Page
+     if editLine.userid and editLine.userid.strip():
+       editUser = User(request, editLine.userid)
+       return getUserLink(request, editUser, wiki_name=editLine.wiki_name, show_title=False)
+     else:
+       return '<em>unknown</em>'
 
 def _sort_changes_by_time(changes):
     def cmp_lines_edit(first, second):
+        # in the case of file replacements, we want to show the upload prior to the download
+        # we do this in wikidb rather than recentchanges so that we cache this state and use it
+        # for RSS, etc.
+        if (first.ed_time == second.ed_time):
+          if (first.action == 'ATTDEL' and second.action == 'ATTNEW'):
+            return 1 
+          elif (second.action == 'ATTDEL' and first.action == 'ATTNEW'):
+            return -1
         return cmp(second.ed_time, first.ed_time)
     changes.sort(cmp_lines_edit)
     return changes
+
+
+def filter_may_read(changes, request):
+    def _filter_f(change):
+        request.switch_wiki(change.wiki_name)
+        page = Page(change.pagename, request, wiki_name=change.wiki_name)
+        return request.user.may.read(page)
+
+    from Sycamore.Page import Page
+    return filter(_filter_f, changes)
+        
 
 def setRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor='', wiki_global=False):
   from wikiutil import mc_quote
   if config.memcache:
     if page:
         total_changes_limit = 100
-    changes = getRecentChanges(request, max_days=max_days, total_changes_limit=total_changes_limit, per_page_limit=per_page_limit, page=page, changes_since=changes_since, userFavoritesFor=userFavoritesFor, wiki_global=wiki_global, fresh=True)
-    named = {'prefix': request.mc.prefix}
-    request.postCommitActions.append((request.mc.set, ('rc:%s' % mc_quote(page), changes), named)) # don't want to accidentially list a change that didn't actually 'happen', so we do this as a postCommit :)
+    changes = getRecentChanges(request, max_days=max_days, total_changes_limit=total_changes_limit, per_page_limit=per_page_limit, page=page, changes_since=changes_since, userFavoritesFor=userFavoritesFor, wiki_global=wiki_global, fresh=True, add_to_cache=False, check_acl=False)
+    #named = {'prefix': request.mc.prefix}
+    #request.postCommitActions.append((request.mc.set, ('rc:%s' % mc_quote(page), changes), named)) # don't want to accidentially list a change that didn't actually 'happen', so we do this as a postCommit :)
+    # XXX remove above:  we should be _always_ set()ing after commit only now
+    request.mc.set('rc:%s' % mc_quote(page), changes)
 
 def _get_changes_since(changetime, changes):
     """
@@ -458,9 +521,8 @@ def _get_changes_since(changetime, changes):
         since.append(change)
     return since
 
-def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor='', wiki_global=False, fresh=False, on_wikis=[]):
+def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor='', wiki_global=False, fresh=False, on_wikis=None, add_to_cache=True, check_acl=True):
   from wikiutil import mc_quote
-  # betta' with this line object so we can move away from array indexing
   def addQueryConditions(view, query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global):
     add_query = []
 
@@ -551,7 +613,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
 
     return ''.join(query)
 
-  if not userFavoritesFor and not on_wikis and not fresh:
+  if not userFavoritesFor and on_wikis is None and not fresh:
       changes = None
       if config.memcache:
         changes = request.mc.get('rc:%s' % mc_quote(page))
@@ -560,18 +622,58 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
                 changes = changes[:total_changes_limit]
             if changes_since:
                 changes = _get_changes_since(changes_since, changes)
+            if check_acl:
+                changes = filter_may_read(changes, request)
             return changes
-  elif on_wikis:
-      # get rc for each wiki in on_wikis list
+
+  elif on_wikis is not None:
+      # we're doing an interwiki recent changes
+      # so we get rc for each wiki in on_wikis list
+      # we use get_multi here
+
       changes = []
       original_wiki = request.config.wiki_name
-      for wiki_name in on_wikis:
+
+      if not userFavoritesFor:
+        wiki_keys = {}
+        id_to_name = {}
+        for wiki_name in on_wikis:
+          request.switch_wiki(wiki_name)
+          id_to_name[request.config.wiki_id] = wiki_name
+          wiki_keys['%src:%s' % (request.config.wiki_id, mc_quote(page))] = None
+        # switch back to our original wiki
+        if request.config.wiki_name != original_wiki:
+           request.switch_wiki(original_wiki)
+
+        if config.memcache and not fresh:
+          values = request.mc.get_multi(wiki_keys.keys(), wiki_global=True)
+          for k, got_changes in values.iteritems():
+            if got_changes is not None:
+                if total_changes_limit:
+                    got_changes = got_changes[:total_changes_limit]
+                if changes_since:
+                    got_changes = _get_changes_since(changes_since, got_changes)
+                changes += got_changes
+
+                wiki_keys[k] = got_changes
+
+        for key in wiki_keys:
+          if wiki_keys[key] is None:
+            wiki_id = int(key[:key.find('rc:')])
+            request.switch_wiki(id_to_name[wiki_id])
+            changes += getRecentChanges(request, wiki_global=False, changes_since=changes_since, check_acl=check_acl)    
+
+      else:
         request.switch_wiki(wiki_name)
-        changes += getRecentChanges(request, wiki_global=False, changes_since=changes_since)    
+        changes += getRecentChanges(request, wiki_global=False, changes_since=changes_since, check_acl=check_acl)    
+
       # switch back to our original wiki
       if request.config.wiki_name != original_wiki:
          request.switch_wiki(original_wiki)
       changes = _sort_changes_by_time(changes)
+      if check_acl:
+         changes = filter_may_read(changes, request)
+      changes = changes[:ABSOLUTE_RC_CHANGES_LIMIT] # for consistency's sake
       return changes
 
   elif userFavoritesFor:
@@ -581,17 +683,20 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       for favorite in user.User(request, userFavoritesFor).getFavoriteList(wiki_global=wiki_global):
           wiki_name = favorite.wiki_name
           request.switch_wiki(wiki_name)
-          changes += getRecentChanges(request, page=favorite.page_name, total_changes_limit=1, wiki_global=False)
+          changes += getRecentChanges(request, page=favorite.page_name, total_changes_limit=1, wiki_global=False, check_acl=check_acl)
       # switch back to our original wiki
       if request.config.wiki_name != original_wiki:
           request.switch_wiki(original_wiki)
       changes = _sort_changes_by_time(changes)
+      if check_acl:
+          changes = filter_may_read(changes, request)
       return changes
 
   lines = []
   right_now  = time.gmtime()
   # we limit recent changes to display at most the last max_days of edits.
   if max_days:
+    # the subtraction of max days is okay here, as mktime will do the right thing
     oldest_displayed_time_tuple = (right_now[0], right_now[1], right_now[2]-max_days, 0, 0, 0, 0, 0, 0)
     max_days_ago = time.mktime(oldest_displayed_time_tuple)
   else:
@@ -611,18 +716,19 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     total_changes_limit = 100
   elif not page and total_changes_limit and not userFavoritesFor:
     query_total_changes_limit = 0 # we're doing RC or something close, so let's query for all
-  elif total_changes_limit <= 100:
-    query_total_changes_limit = 100
+  elif total_changes_limit <= ABSOLUTE_RC_CHANGES_LIMIT:
+    query_total_changes_limit = ABSOLUTE_RC_CHANGES_LIMIT
+
 
   # so, let's compile all the different types of changes together!
-  query = buildQuery(query_max_days, query_total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global, request)
+  query = buildQuery(query_max_days, query_total_changes_limit, per_page_limit, page, None, userFavoritesFor, wiki_global, request)
 #   print query % {'max_days_ago': '"'+str(max_days_ago)+'"', 'limit': '"'+str(total_changes_limit)+'"', 'userFavoritesFor': '"'+str(userFavoritesFor)+'"', 'pagename': '"'+str(page)+'"'}
   #print query % {'max_days_ago': '\''+str(query_max_days)+'\'', 'limit': '\''+str(query_total_changes_limit)+'\'', 'userFavoritesFor': '\''+str(userFavoritesFor)+'\'', 'pagename': '\''+str(page)+'\'', 'changes_since': '\''+str(changes_since)+'\'', 'wiki_id': '\'' + str(request.config.wiki_id) + '\''}
   request.cursor.execute(query, {'max_days_ago': query_max_days, 
                                  'limit': query_total_changes_limit, 
                                  'userFavoritesFor': userFavoritesFor, 
                                  'pagename': page, 
-                                 'changes_since':changes_since, 
+                                 'changes_since':None, 
                                  'wiki_id': request.config.wiki_id})
  
   edit = request.cursor.fetchone()
@@ -633,11 +739,20 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     lines.append(editline)
     edit = request.cursor.fetchone()
 
-  if config.memcache:
+  if config.memcache and add_to_cache:
     request.mc.add('rc:%s' % mc_quote(page), lines)
+    lines = copy.deepcopy(lines) # we want to add the 'real' data to the cache (postCommit)
+                        # but sometimes people do lines.comment = something
+                        # which messes with the data (post-commited)
 
   if total_changes_limit:
-    return lines[:total_changes_limit]
+    lines = lines[:total_changes_limit]
+
+  lines = _sort_changes_by_time(lines) 
+  if changes_since:
+      lines = _get_changes_since(changes_since, lines)
+  if check_acl:
+      lines = filter_may_read(lines, request)
   return lines
 
 def getPageCount(request):

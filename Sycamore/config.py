@@ -16,6 +16,7 @@
     @license: GNU GPL, see COPYING for details.
 """
 
+import re
 import time, cPickle
 from copy import copy
 
@@ -53,10 +54,10 @@ def reduce_to_local_config(d):
     return new_d
 
 class Config(object):
-    def __init__(self, wiki_name, request, process_config=True):
+    def __init__(self, wiki_name, request, process_config=True, fresh=False):
         from wikiutil import getTimeOffset
         self.wiki_id = None
-        self.__dict__.update(self._get_config(wiki_name, request, process_config))
+        self.__dict__.update(self._get_config(wiki_name, request, process_config, fresh=fresh))
         self.tz_offset = getTimeOffset(self.tz)
         if stop_hotlinking:
             # Referer regular expression is used to filter out http referers from image viewing.
@@ -75,9 +76,9 @@ class Config(object):
     
         return essentials
 
-    def _get_config(self, wiki_name, request, process_config):
+    def _get_config(self, wiki_name, request, process_config, fresh=False):
         from Sycamore.wikiutil import mc_quote
-        if request.req_cache['wiki_config'].has_key(wiki_name):
+        if not fresh and request.req_cache['wiki_config'].has_key(wiki_name):
             return request.req_cache['wiki_config'][wiki_name]
         d = { 'name': wiki_name , 'wiki_name': wiki_name }
         settings_dict = None
@@ -85,7 +86,7 @@ class Config(object):
         d.update(reduce_to_local_config(CONFIG_VARS))  # set each config object to have the same basic configuration variables
 
         if process_config:
-          if memcache:
+          if not fresh and memcache:
             settings_dict = request.mc.get("settings:%s" % mc_quote(wiki_name), wiki_global=True)
           if settings_dict is None:
             request.cursor.execute("SELECT id, is_disabled, sitename, domain, other_settings from wikis where name=%(name)s", d)
@@ -140,7 +141,7 @@ class Config(object):
         new_wiki = False
         request.cursor.execute("UPDATE wikis set is_disabled=%(is_disabled)s, sitename=%(sitename)s, domain=%(domain)s, other_settings=%(other_settings)s where name=%(name)s", d, isWrite=True)
       else: 
-        if d['wiki_id']:
+        if d.has_key('wiki_id') and d['wiki_id']:
             # we are giving a wiki id..assume it's valid
             request.cursor.execute("INSERT into wikis (name, id, is_disabled, sitename, domain, other_settings) values (%(name)s, %(wiki_id)s, %(is_disabled)s, %(sitename)s, %(domain)s, %(other_settings)s)", d, isWrite=True)
         else:
@@ -176,7 +177,6 @@ _cfg_defaults_global = {
     'allow_xslt': 0,
     'auth_http_enabled': 0,
     'bang_meta': 0,
-    'backtick_meta': 1,
     'caching_formats' : ['text_html'],
     'captcha_support': 1,
     'changed_time_fmt': '%H:%M',
@@ -196,6 +196,7 @@ _cfg_defaults_global = {
     'db_user': 'root',
     'db_user_password': '',
     'db_socket': '',
+    'db_pool': False,
     'db_pool_size': 50,
     'db_max_overflow': -1,
     'default_lang': 'en',
@@ -217,6 +218,7 @@ _cfg_defaults_global = {
     'mail_smarthost_auth': None,
     'mail_from': None,
     'max_macro_size': 50,
+    'max_page_size': 320, # max page size in Kb
     'max_file_size': 500,  # max file size in Kb
     'memcache': False,
     'memcache_servers': [],
@@ -250,6 +252,8 @@ _cfg_defaults_global = {
         'view':        ("%(q_page_name)s", _("View"), "view"),
         },
     'paypal_address': 'donate@example.com',
+    'paypal_name': 'Wiki Spot',
+    'processors': False,
     # this is for prevention of hotlinking.  leave blank if you don't care about people leeching images.
     # to match against any url from any subdomain of daviswiki we would write:
     # 'http\:\/\/(([^\/]*\.)|())daviswiki\.org\/.*'
@@ -262,7 +266,7 @@ _cfg_defaults_global = {
     'show_section_numbers': 0,
     'show_timings': 0,
     'show_version': 0,
-    'sox_location': 'sox',
+    'sox_location': '/usr/local/bin/sox',
     'stop_hotlinking': True,
     'tmp_dir': 'tmp',
     'theme_force': True,
@@ -283,6 +287,7 @@ _cfg_defaults_global = {
     'web_dir' : '',
     'web_root': '/var/www/html',
     'wiki_farm': False,
+    'wiki_farm_from_wiki_msg': """<div style="float: right; width: 12em; padding: 1em; border: 1px dashed gray; background-color: #ccddff;">%(wiki_name)s is a part of %(base_wiki_sitename)s.  Your account here will work on %(wiki_name)s, the %(base_wiki_name)s hub, and all the other wikis that are part of the %(base_wiki_sitename_link)s network.</div>""",
     'wiki_farm_dir': 'wikis',
     'wiki_base_domain': 'localhost',
     'wiki_farm_subdomains': False,
@@ -317,7 +322,8 @@ _cfg_defaults_local = {
     # mimetype values corresponding to allowed extensions added to it.
     'allowed_mimetypes': [],
     'allow_all_mimetypes': False, # set to True to allow any extension / mimetype of uploaded files
-    'catchphrase': 'Your catchphrase here',
+    'catchphrase': 'Your phrase here...',
+    'theme_files_last_modified': {},
     'edit_agreement_text': '',
     'gmaps_api_key': None,
     'interwikimap': 'Interwiki Map',
@@ -330,10 +336,10 @@ _cfg_defaults_local = {
     'page_local_spelling_words': 'Local Spelling Words',
     'sitename': 'Sycamore default install',
     'talk_pages': True,
-    'theme_default': 'eggheadbeta',
+    'theme_default': 'egghead',
     'tz': 'UTC',
-    'tabs_nonuser': ['Front Page', 'Map', 'People', 'Recent Changes'],
-    'tabs_user': ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes'],
+    'tabs_nonuser': ['Front Page', 'People', 'Recent Changes'],
+    'tabs_user': ['Front Page', 'People', 'Bookmarks', 'Recent Changes'],
     'footer_buttons': [],
     'wiki_name': 'sycamore',
     'wiki_id': 1,

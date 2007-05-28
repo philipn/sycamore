@@ -18,14 +18,17 @@ def memorized_timedelta(seconds):
         _timedelta_cache[seconds] = delta
         return delta
 
-_datetime_cache = {}
-def memorized_datetime(*args):
+_epoch = datetime.utcfromtimestamp(0)
+_datetime_cache = {0: _epoch}
+def memorized_datetime(seconds):
     '''Create only one instance of each distinct datetime'''
     try:
-        return _datetime_cache[args]
+        return _datetime_cache[seconds]
     except KeyError:
-        dt = datetime(*args)
-        _datetime_cache[args] = dt
+        # NB. We can't just do datetime.utcfromtimestamp(seconds) as this
+        # fails with negative values under Windows (Bug #90096)
+        dt = _epoch + timedelta(seconds=seconds)
+        _datetime_cache[seconds] = dt
         return dt
 
 _ttinfo_cache = {}

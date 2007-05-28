@@ -10,15 +10,99 @@
 """
 
 # Imports
-from Sycamore import config, wikiutil, wikiaction, caching
+from Sycamore import config, wikiutil, wikiaction, caching, search
 from Sycamore.PageEditor import PageEditor
 from Sycamore.Page import Page
 
-def delete_all_newer(oldpage, request):
+def delete_all_newer(oldpage, request, showrc):
     version_date = oldpage.prev_date
-    d = { 'pagename':oldpage.page_name, 'version_date':version_date, 'wiki_id':request.config.wiki_id }
+    d = { 'pagename':oldpage.page_name, 'version_date':version_date, 'wiki_id':oldpage.wiki_id }
     caching.deleteNewerPageInfo(oldpage.page_name, version_date, request)
     request.cursor.execute("DELETE from allPages where name=%(pagename)s and editTime>%(version_date)s and wiki_id=%(wiki_id)s", d, isWrite=True)
+
+    # clear out map points set in this time period.  move old map point into current map points.
+    request.cursor.execute("DELETE from oldMapPoints where pagename=%(pagename)s and created_time>%(version_date)s and wiki_id=%(wiki_id)s", d, isWrite=True)
+
+    if not showrc:
+        # Check to see if there's actually a map on this page version.  If there is, we move the map point over from oldMapPoints to mapPoints, accordingly.
+        request.cursor.execute("SELECT pagename, x, y, created_time, created_by, created_by_ip, pagename_propercased, address, wiki_id, deleted_time from oldMapPoints where wiki_id=%(wiki_id)s and pagename=%(pagename)s and created_time <= %(version_date)s and deleted_time >= %(version_date)s", d)
+        mapdata = request.cursor.fetchall()
+        cleared_out_already = False
+        for pagename, x, y, created_time, created_by, created_by_ip, pagename_propercased, address, wiki_id, deleted_time in mapdata:
+            this_version_has_map = version_date <= deleted_time
+            if this_version_has_map:
+               if not cleared_out_already:
+                   request.cursor.execute("DELETE from mapPoints where pagename=%(pagename)s and wiki_id=%(wiki_id)s", d, isWrite=True)
+                   cleared_out_already = True
+               # add this map point version into the current map points table
+               d['pagename'] = pagename
+               d['x'] = x
+               d['y'] = y
+               d['created_time'] = created_time
+               d['created_by'] = created_by
+               d['created_by_ip'] = created_by_ip
+               d['pagename_propercased'] = pagename_propercased
+               d['address'] = address
+               d['wiki_id'] = wiki_id
+               request.cursor.execute("INSERT into mapPoints (pagename, x, y, created_time, created_by, created_by_ip, pagename_propercased, address, wiki_id) values (%(pagename)s, %(x)s, %(y)s, %(created_time)s, %(created_by)s, %(created_by_ip)s, %(pagename_propercased)s, %(address)s, %(wiki_id)s)", d, isWrite=True)
+        # these are now in mapPoints, so it's safe to clear them out of the archive table
+        request.cursor.execute("DELETE from oldMapPoints where wiki_id=%(wiki_id)s and pagename=%(pagename)s and created_time <= %(version_date)s and deleted_time >= %(version_date)s", d)
+
+
+def set_current_pagetext(oldpage, request):
+    version_date = oldpage.prev_date
+    d = { 'pagename':oldpage.page_name, 'version_date':version_date, 'wiki_id':oldpage.wiki_id, 'oldtext': oldpage.get_raw_body() }
+    if oldpage.exists(fresh=True):
+        request.cursor.execute("UPDATE curPages set text=%(oldtext)s, cachedText=NULL, editTime=%(version_date)s, cachedTime=NULL, userEdited=(select userEdited from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s and editTime=%(version_date)s), propercased_name=(select propercased_name from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s and editTime=%(version_date)s) where name=%(pagename)s and wiki_id=%(wiki_id)s", d, isWrite=True)
+    else:
+        request.cursor.execute("SELECT editType from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s and editTime=%(version_date)s", d)
+        result = request.cursor.fetchone()
+        if not result or result[0] != 'DELETE':
+            # page wasn't most recently deleted, so we restore it
+            request.cursor.execute("INSERT into curPages (name, text, cachedText, editTime, cachedTime, userEdited, propercased_name, wiki_id) values (%(pagename)s, %(oldtext)s, NULL, %(version_date)s, NULL, (select userEdited from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s and editTime=%(version_date)s), (select propercased_name from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s and editTime=%(version_date)s), %(wiki_id)s)", d, isWrite=True)
+
+def _set_proper_pagename(request, page):
+   d = {'pagename': page.page_name, 'wiki_id': page.wiki_id, 'version_date': page.prev_date}
+   request.cursor.execute("SELECT propercased_name from allPages where name=%(pagename)s and wiki_id=%(wiki_id)s and editTime=%(version_date)s", d)
+   proper_pagename = request.cursor.fetchone()[0]
+   request.req_cache['pagenames'][(page.page_name, request.config.wiki_name)] = proper_pagename
+   return proper_pagename
+
+def revert_to_page(oldpg, request, pg, comment=None, permanent=False, showrc=True):
+    _ = request.getText
+    if permanent:
+        delete_all_newer(oldpg, request, showrc)  
+        if not showrc:
+           set_current_pagetext(oldpg, request)
+    
+    try:
+        # don't log on RC if admin doesn't want it
+        if not (permanent and not showrc):
+            pg.saveText(oldpg.get_raw_body(), '0',
+                stripspaces=0, notify=1, comment=comment, action="SAVE/REVERT")
+            pagename = pg.proper_name()
+        else:
+            #doing hard work ourselves.. should be abstracted into the page object.
+            pg.set_raw_body(oldpg.get_raw_body()) 
+            # deal with the case of macros / other items that change state by /not/ being in the page
+            search.add_to_index(pg)
+            pg.buildCache()
+            caching.CacheEntry(pg.page_name, request).clear()
+            caching.updateRecentChanges(pg)
+            # if we revert to a version with a differently-cased pagename
+            pagename = _set_proper_pagename(request, oldpg)
+        savemsg = _("Page reverted to version %s" % oldpg.version)
+    except pg.Unchanged:
+        savemsg = _("The current page is the same as the older page you wish to revert to!")
+    except pg.SaveError:
+        savemsg = _("An error occurred while reverting the page.")
+    
+    # clear req cache so user sees proper page state (exist)
+    request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = pagename
+
+    return savemsg
+
+
 
 def execute(pagename, request):
     from Sycamore.PageEditor import PageEditor
@@ -26,6 +110,7 @@ def execute(pagename, request):
     actname = __name__.split('.')[-1]
     page = Page(pagename, request)
     permanent = False
+    showrc = True
     if not request.user.may.edit(page):
         return page.send_page(
             msg = _('You are not allowed to revert this page!'))
@@ -40,7 +125,6 @@ def execute(pagename, request):
                 msg = _('Please use the interactive user interface to revert pages!'))
 
         # revert the page
-        #########
         if request.form.has_key('version'):
           version = int(request.form['version'][0])
           oldpg = Page(pagename, request, version=version)
@@ -60,26 +144,12 @@ def execute(pagename, request):
 
         if request.form.has_key('permanent') and request.form['permanent'][0] and request.user.may.admin(page):
             permanent = True
-              
+            if request.form.has_key('noshowrc') and request.form['noshowrc'][0]:
+                showrc = False
+
         pg = PageEditor(pagename, request)
-      
-        if permanent:
-            delete_all_newer(oldpg, request)  
-       
-        try:
-            pg.saveText(oldpg.get_raw_body(), '0',
-                stripspaces=0, notify=1, comment=comment, action="SAVE/REVERT")
-            savemsg = _("Page reverted to version %s" % version)
-        except pg.Unchanged:
-            savemsg = _("The current page is the same as the older page you wish to revert to!")
-        except pg.SaveError:
-            savemsg = _("An error occurred while reverting the page.")
-
-        # clear req cache so user sees proper page state (exist)
-        request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = pagename
-        return pg.send_page(msg=savemsg)
-
-        #########
+        savemsg = revert_to_page(oldpg, request, pg, comment=comment, permanent=permanent, showrc=showrc)
+        return pg.send_page(msg=savemsg, force_regenerate_content=(permanent and not showrc))
 
 
     # get version
@@ -95,7 +165,16 @@ def execute(pagename, request):
     button = _('Revert')
     comment_label = _("Reason for the revert:")
     if request.user.may.admin(page):
-      admin_label = """<p>Permanently remove newer versions: <input type="checkbox" name="permanent" value="1"></p>"""
+      admin_label = """
+<p>Permanently remove newer versions: <input id="noshowrctoggle" type="checkbox" name="permanent" value="1"><span id="noshowrc">Don't log on Recent Changes: <input type="checkbox" name="noshowrc" value="1"></span></p>
+<script type="text/javascript">
+document.getElementById('noshowrc').style.visibility = 'hidden';
+document.getElementById('noshowrc').style.paddingLeft = '1em';
+document.getElementById('noshowrctoggle').onclick = function () {
+document.getElementById('noshowrc').style.visibility = document.getElementById('noshowrctoggle').checked ? 'visible' : 'hidden'; 
+}
+</script>
+      """
     else:
       admin_label = ''
 
