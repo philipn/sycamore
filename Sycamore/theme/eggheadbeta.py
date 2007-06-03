@@ -53,14 +53,18 @@ class Theme(ThemeBase):
             html = ['<a class="nostyle" href="%s/Front_Page">' % self.request.getScriptname()]
 
         if has_file(self.request, self.images_pagename, 'logo.png'):
-          if not self.request.config.logo_sizes.has_key('logo.png'):
-             wikiutil.init_logo_sizes(self.request)
-          if not self.request.config.theme_files_last_modified.has_key('logo.png'):
-             wikiutil.init_theme_files_last_modified(self.request)
-          width, height = self.request.config.logo_sizes['logo.png']
-          last_modified = self.request.config.theme_files_last_modified['logo.png']
-          html.append('<img align="middle" src="%s" alt="wiki logo" style="%s" height="%s" width="%s"></a>' % (getAttachUrl(self.images_pagename, 'logo.png', self.request, ts=last_modified), self.png_behavior, height, width))
-        else: html.append('<div id="logo_text">%s</div></a>' % wikiutil.escape(self.request.config.sitename))
+            if not self.request.config.logo_sizes.has_key('logo.png'):
+                wikiutil.init_logo_sizes(self.request)
+            if not self.request.config.theme_files_last_modified.has_key('logo.png'):
+                wikiutil.init_theme_files_last_modified(self.request)
+            width, height = self.request.config.logo_sizes['logo.png']
+            last_modified = self.request.config.theme_files_last_modified['logo.png']
+            if self.request.isSSL():
+                html.append('<img align="middle" src="%s" alt="wiki logo" style="%s" height="%s" width="%s"></a>' % (self.request.getQualifiedURL(uri=getAttachUrl(self.images_pagename, 'logo.png', self.request, ts=last_modified), force_ssl_off=True), self.png_behavior, height, width))
+            else:
+                html.append('<img align="middle" src="%s" alt="wiki logo" style="%s" height="%s" width="%s"></a>' % (getAttachUrl(self.images_pagename, 'logo.png', self.request, ts=last_modified), self.png_behavior, height, width))
+        else:
+            html.append('<div id="logo_text">%s</div></a>' % wikiutil.escape(self.request.config.sitename))
 
         return ''.join(html)
 
@@ -80,7 +84,10 @@ class Theme(ThemeBase):
 
            width, height = self.request.config.logo_sizes[filename]
            last_modified = self.request.config.theme_files_last_modified[filename]
-           icon = '<img class="borderless" src="%s" alt="%s" style="%s" height="%s" width="%s"/><span>%s</span>' % (getAttachUrl(self.images_pagename, filename, self.request, ts=last_modified), name, self.png_behavior, height, width, name)
+           if self.request.isSSL():
+               icon = '<img class="borderless" src="%s" alt="%s" style="%s" height="%s" width="%s"/><span>%s</span>' % (self.request.getQualifiedURL(uri=getAttachUrl(self.images_pagename, filename, self.request, ts=last_modified), force_ssl_off=True), name, self.png_behavior, height, width, name)
+           else:
+               icon = '<img class="borderless" src="%s" alt="%s" style="%s" height="%s" width="%s"/><span>%s</span>' % (getAttachUrl(self.images_pagename, filename, self.request, ts=last_modified), name, self.png_behavior, height, width, name)
         else:
            # we just show text when we don't have an icon to show
            icon = name
@@ -95,7 +102,7 @@ class Theme(ThemeBase):
                 return """<td class="pageIconSelected"><span id="editIcon">%s</span></td>""" % icon
         else:
             return """<td class="pageIcon"><span id="editIcon">%s</span></td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=edit',
-              '%s' % icon))
+              '%s' % icon, script_name=d['script_name']))
       else:
               return ''
 
@@ -105,7 +112,7 @@ class Theme(ThemeBase):
        icon = self.get_editable_icon('infoicon.png', 'Info')
 
        return """<td class="pageIcon%s"><span id="infoIcon">%s</span></td>""" % (status,
-            wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info', icon))
+            wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'?action=info', icon, script_name=d['script_name']))
 
 
     def talkicon(self, d):
@@ -116,7 +123,7 @@ class Theme(ThemeBase):
 
          icon = self.get_editable_icon('articleicon.png', 'Article')
          
-         return """<td class="pageIcon"><span id="articleIcon">%s</span></td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(article_name), icon))
+         return """<td class="pageIcon"><span id="articleIcon">%s</span></td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(article_name), icon, script_name=d['script_name']))
       else:
         talk_page = Page(wikiutil.article_to_talk_pagename(d['page_name']), self.request)
 
@@ -124,13 +131,13 @@ class Theme(ThemeBase):
 
         if talk_page.exists():
           return """<td class="pageIcon"><span id="talkIcon">%s</span></td>""" % (wikiutil.link_tag_explicit('style="text-decoration: none;"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-         icon))
+         icon, script_name=d['script_name']))
         else:
           # if the viewer can't edit the talk page, let's spare them from looking at a useless link to an empty page:
           if not self.request.user.may.edit(talk_page):
             return ''
           return """<td class="pageIcon"><span id="talkIcon">%s</span></td>""" % (wikiutil.link_tag_explicit('class="tinyNonexistent"', self.request, wikiutil.quoteWikiname(d['page_name'])+'/Talk',
-           icon))
+           icon, script_name=d['script_name']))
 
 
     def mapicon(self, d):
@@ -216,9 +223,9 @@ class Theme(ThemeBase):
 <div class="welcome">Welcome, %s</div><div class="user_items">(%s<a href="%s%s?from_wiki=%s">settings</a> %s| <a href="%s/%s?action=userform&amp;logout=Logout">logout</a>)</div></div>""" % (user.getUserLink(self.request, self.request.user), admin_settings, wiki_base_url, wikiutil.quoteWikiname(config.page_user_preferences), self.request.config.wiki_name, watch_wiki, self.request.getScriptname(), d['q_page_name'])
         else:
             if config.wiki_farm:
-                post_url = farm.getBaseFarmURL(self.request)
+                post_url = "%s%s" % (farm.getBaseFarmURL(self.request, force_ssl=config.use_ssl), wikiutil.quoteWikiname(config.page_user_preferences))
                 our_wiki_url = '%s/%s' % (self.request.getBaseURL(), d['q_page_name'])
-                base_wiki = post_url
+                base_wiki = farm.getBaseFarmURL(self.request)
                 farm_params = """
 <input type="hidden" name="backto_wiki" value="%s">
 <input type="hidden" name="backto_page" value="%s">
@@ -226,7 +233,7 @@ class Theme(ThemeBase):
 """ % (self.request.config.wiki_name, urllib.quote(our_wiki_url), urllib.quote(self.request.query_string))
             else:
                 farm_params = ''
-                post_url = '%s/%s' % (self.request.getScriptname(), d['q_page_name'])
+                post_url = '%s/%s' % (self.request.getQualifiedURL(self.request.getScriptname(), force_ssl=config.use_ssl), wikiutil.quoteWikiName(config.page_user_preferences))
                 base_wiki = '%s/' % self.request.getScriptname()
             html = """<form action="%s" method="POST" onsubmit="if (!canSetCookies()) { alert('You need cookies enabled to log in.'); return false;}">
 <input type="hidden" name="action" value="userform">

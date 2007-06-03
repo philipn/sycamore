@@ -1,9 +1,11 @@
 # -*- coding: iso-8859-1 -*-
 """
-    Sycamore classic theme
+    Sycamore bae theme
 
-    This class can also be used as base class for other themes -
-    if you make an empty child class, you will get classic behaviour.
+    This should be used as base class for other themes.
+    XXX
+    Right now this doesn't work as an independent theme -- you have to modify eggheadbeta as a starting point.
+    This is a big TODO.
 
     If you want modified behaviour, just override the stuff you
     want to change in the child class.
@@ -21,7 +23,9 @@ class Theme(object):
         the look and feel of your wiki site
     """
 
-    name = "classic"
+    name = "base"
+
+    last_modified = '0'
 
     icons = {
         # key         alt                        icon filename      w   h
@@ -44,6 +48,7 @@ class Theme(object):
         # search forms
         'searchbutton': ("[?]",                  "search.png", 12, 12),
         'interwiki':  ("[%(wikitag)s]",          "inter.png",  16, 16),
+        'mailto':     ("[MAILTO]",               "email.png",  14, 10),
     }
 
     stylesheets_print = (
@@ -55,7 +60,8 @@ class Theme(object):
     stylesheets = (
         # theme charset         media       basename
         (name,  'iso-8859-1',   'all',      'common'),
-        (name,  'iso-8859-1',   'screen',   'screen'),
+        (name,  'iso-8859-1',   'screen',   'style'),
+        (name,  'iso-8859-1',   'screen',   'layout'),
         (name,  'iso-8859-1',   'print',    'print'),
         )
 
@@ -68,6 +74,7 @@ class Theme(object):
         @param request: the request object
         """
         self.request = request
+        self.images_pagename = "%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_images)
 
     def img_url(self, img, wiki_global=False):
         """
@@ -92,7 +99,21 @@ class Theme(object):
         @return: the css url
         """
         from Sycamore.action import Files
-        return Files.getAttachUrl("%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_css), '%s.css' % basename, self.request)
+        # we assume that we've already initialized theme_files_last_modified
+        if not self.request.config.theme_files_last_modified.has_key(basename + '.css'):
+           wikiutil.init_theme_files_last_modified(self.request)
+        if self.request.config.theme_files_last_modified.has_key(basename + '.css'):
+                last_modified = self.request.config.theme_files_last_modified[basename + '.css']
+                if self.request.isSSL():
+                    return self.request.getQualifiedURL(uri=Files.getAttachUrl("%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_css), '%s.css' % basename, self.request, ts=last_modified), force_ssl_off=True)
+                else:
+                    return Files.getAttachUrl("%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_css), '%s.css' % basename, self.request, ts=last_modified)
+        else:
+                if self.request.isSSL():
+                    return self.request.getQualifiedURL(uri=Files.getAttachUrl("%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_css), '%s.css' % basename, self.request), force_ssl_off=True)
+                else:
+                    return Files.getAttachUrl("%s/%s" % (config.wiki_settings_page, config.wiki_settings_page_css), '%s.css' % basename, self.request)
+
 
     def emit_custom_html(self, html):
         """
@@ -596,10 +617,7 @@ class Theme(object):
         @rtype: string
         @return: recentchanges daybreak html
         """
-        if d['bookmark_link_html']:
-            set_bm = '&nbsp;<span style="font-size: 13px;">[%(bookmark_link_html)s]</span>' % d
-        else:
-            set_bm = ''
+        set_bm = ''
         return ('<div class="rcdaybreak">'
                 '<h2>%s'
                 '%s</h2>'
