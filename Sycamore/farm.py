@@ -177,11 +177,14 @@ def getWikiURL(wikiname, request):
                 return "http://%s/" % config.wiki_base_domain
 
 
-def getBaseFarmURL(request):
+def getBaseFarmURL(request, force_ssl=False):
     """
     Get the url of the base wiki in the farm.
     """
-    return "http://%s/" % config.wiki_base_domain
+    if not force_ssl:
+        return "http://%s/" % config.wiki_base_domain
+    else:
+        return "https://%s/" % config.wiki_base_domain
 
 def isBaseWiki(request):
     """

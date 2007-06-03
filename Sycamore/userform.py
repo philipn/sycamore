@@ -112,9 +112,9 @@ class UserSettingsHandler(object):
 
         self.from_wiki = None
         if self.request.form.has_key('from_wiki'):
-	  self.from_wiki = self.request.form['from_wiki'][0].lower().strip()
-	  if not wikiutil.isInFarm(self.from_wiki, self.request):
-	    self.from_wiki = None
+          self.from_wiki = self.request.form['from_wiki'][0].lower().strip()
+          if not wikiutil.isInFarm(self.from_wiki, self.request):
+            self.from_wiki = None
 
         new_user = int(form.get('new_user', [0])[0])
         # wiki farm authentication
@@ -309,7 +309,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                     wiki_base_url = '%s/' % self.request.getScriptname()
 
                 if not theuser.valid:
-		    if not self.request.form['backto_wiki'][0]:
+                    if not self.request.form['backto_wiki'][0]:
                         return_string = """
 Unknown username or wrong password.<br /><br />New user?  <a href="%s%s?new_user=1">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
 <form action="%s" method="POST"><input type="hidden" name="action" value="userform">
@@ -320,7 +320,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                         return return_string
                     else:
                         self.request.http_redirect(urllib.unquote(self.request.form['backto_page'][0].encode(config.charset)) + '?action=userform&badlogin=1')
-			return
+                        return
 
             # send the cookie
             theuser.sendCookie(self.request)
@@ -461,20 +461,20 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             self.request.user = theuser
     
 
-	    from Sycamore.formatter.text_html import Formatter
+            from Sycamore.formatter.text_html import Formatter
             formatter = Formatter(self.request)
 
             if not new_user:
               if not msg:
                 msg = _("User preferences saved!")
               if self.from_wiki:
-	        go_back_to_wiki = farm.link_to_wiki(self.from_wiki, formatter)
+                go_back_to_wiki = farm.link_to_wiki(self.from_wiki, formatter)
                 msg = '%s<br/><br/>Wanna go back to %s?' % (msg, go_back_to_wiki)
             else:
               msg = _("Account created!  You are now logged in.")
               self.request.user.valid = 1
               if self.from_wiki and self.from_wiki.lower() != farm.getBaseWikiName(self.request):
-	        go_back_to_wiki = farm.link_to_wiki(self.from_wiki, formatter)
+                go_back_to_wiki = farm.link_to_wiki(self.from_wiki, formatter)
                 msg = '%s<br/><br/>Head back over to %s and your new account should work there!' % (msg, go_back_to_wiki)
             if _debug:
                 msg = msg + util.dumpFormData(form)
@@ -578,21 +578,29 @@ class UserSettings:
 
     def _from_wiki_msg(self):
         """
-	Print a message that says what wiki we're from and what our base wiki is.
-	"""
-	wiki_name = self.from_wiki
-	base_wiki_sitename = farm.getBaseWikiFullName(self.request)
-	d = { 'wiki_name': farm.link_to_wiki(wiki_name, self.request.formatter), 'base_wiki_name': farm.link_to_wiki(farm.getBaseWikiName(self.request), self.request.formatter),
-	      'base_wiki_sitename_link': farm.link_to_wiki(farm.getBaseWikiName(self.request), self.request.formatter, text=base_wiki_sitename, no_icon=True),
-	      'base_wiki_sitename': base_wiki_sitename,
-	    }
-	msg = config.wiki_farm_from_wiki_msg % d
-	return msg
+        Print a message that says what wiki we're from and what our base wiki is.
+        """
+        wiki_name = self.from_wiki
+        base_wiki_sitename = farm.getBaseWikiFullName(self.request)
+        d = { 'wiki_name': farm.link_to_wiki(wiki_name, self.request.formatter), 'base_wiki_name': farm.link_to_wiki(farm.getBaseWikiName(self.request), self.request.formatter),
+              'base_wiki_sitename_link': farm.link_to_wiki(farm.getBaseWikiName(self.request), self.request.formatter, text=base_wiki_sitename, no_icon=True),
+              'base_wiki_sitename': base_wiki_sitename,
+            }
+        msg = config.wiki_farm_from_wiki_msg % d
+        return msg
 
     def make_form(self, html_class="settings_form"):
         """ Create the FORM, and the DIVs with the input fields
         """
-        self._form = html.FORM(action=self.request.getScriptname() + self.request.getPathinfo())
+        if config.use_ssl:
+            action = self.request.getScriptname() + self.request.getPathinfo()
+            if config.wiki_farm:
+                action = "%s%s" % (farm.getBaseFarmURL(self.request, force_ssl=config.use_ssl), wikiutil.quoteWikiname(config.page_user_preferences))
+            else:
+                action = '%s/%s' % (self.request.getQualifiedURL(self.request.getScriptname(), force_ssl=config.use_ssl), wikiutil.quoteWikiName(config.page_user_preferences))
+        else:
+            action = self.request.getScriptname() + self.request.getPathinfo()
+        self._form = html.FORM(action=action)
         self._inner = html.DIV(html_class=html_class)
 
         # Use the user interface language and direction
@@ -600,7 +608,7 @@ class UserSettings:
         self._form.append(html.Raw("<div %s>" % lang_attr))
 
         self._form.append(html.INPUT(type="hidden", name="action", value="userform"))
-	if self.from_wiki:
+        if self.from_wiki:
           self._form.append(html.INPUT(type="hidden", name="from_wiki", value=self.from_wiki))
         self._form.append(self._inner)
         self._form.append(html.Raw("</div>"))
@@ -627,19 +635,19 @@ class UserSettings:
         """ Create the complete HTML form code. """
         _ = self._
         form_html = []
-	self.from_wiki = None
+        self.from_wiki = None
 
         if self.request.form.has_key('new_user'):
           if self.request.form['new_user'][0] and not self.request.user.valid:
             new_user = True
 
         # if they are clicking into the user settings area
-	# from a non-hub wiki then we want to get this wiki's name
-	# and display some message accoridngly
+        # from a non-hub wiki then we want to get this wiki's name
+        # and display some message accoridngly
         if self.request.form.has_key('from_wiki'):
-	  self.from_wiki = self.request.form['from_wiki'][0].lower().strip()
-	  if not wikiutil.isInFarm(self.from_wiki, self.request):
-	    self.from_wiki = None
+          self.from_wiki = self.request.form['from_wiki'][0].lower().strip()
+          if not wikiutil.isInFarm(self.from_wiki, self.request):
+            self.from_wiki = None
         
         # different form elements depending on login state
         html_uid = ''
@@ -664,8 +672,8 @@ class UserSettings:
         self.make_form()
 
         if new_user and self.from_wiki:
-	   if self.from_wiki != farm.getBaseWikiName(self.request):
-	     self._inner.append(html.Raw(self._from_wiki_msg()))
+           if self.from_wiki != farm.getBaseWikiName(self.request):
+             self._inner.append(html.Raw(self._from_wiki_msg()))
 
         if not self.request.user.valid:
           if not new_user: user_name_help_text = ''
@@ -724,8 +732,8 @@ class UserSettings:
             self._inner.append(html.Raw('<h2>General Settings</h2>'))
 
             if self.from_wiki:
-	        if self.from_wiki != farm.getBaseWikiName(self.request):
-	            self._inner.append(html.Raw(self._from_wiki_msg()))
+                if self.from_wiki != farm.getBaseWikiName(self.request):
+                    self._inner.append(html.Raw(self._from_wiki_msg()))
 
             
             self.make_row(_('Email'), [

@@ -8,14 +8,14 @@ import xml.dom.minidom
 
 
 #def clean(text):
-#	text=text.replace('\x85','&#8230;') # elipsis
-#	text=text.replace('\x91','&#8216;') # opening single quote
-#	text=text.replace('\x92','&#8217;') # closing single quote
-#	text=text.replace('\x93','&#8220;') # opening double quote
-#	text=text.replace('\x94','&#8221;') # closing double quote
-#	text=text.replace('\x96','&#8211;') # en-dash
-#	text=text.replace('\x97','&#8212;') # em-dash
-#	return text
+#       text=text.replace('\x85','&#8230;') # elipsis
+#       text=text.replace('\x91','&#8216;') # opening single quote
+#       text=text.replace('\x92','&#8217;') # closing single quote
+#       text=text.replace('\x93','&#8220;') # opening double quote
+#       text=text.replace('\x94','&#8221;') # closing double quote
+#       text=text.replace('\x96','&#8211;') # en-dash
+#       text=text.replace('\x97','&#8212;') # em-dash
+#       return text
 
 MAX_EVENT_NAME_LENGTH = 100
 MAX_EVENT_LOCATION_LENGTH = 100
@@ -32,12 +32,12 @@ def execute(pagename, request):
       if request.form.get("rss")[0] == "1":
         request.http_headers()
         request.write(doRSS(request))
-	raise util.SycamoreNoFooter
+        raise util.SycamoreNoFooter
         return
 
     # be extra paranoid
     elif actname in config.excluded_actions or \
-	not request.user.valid:
+        not request.user.valid:
         #not request.user.may.edit(pagename):
             msg = _('You are not allowed to edit this page. (You need an account in most cases)')
     # check to make sure the events macro is in the page
@@ -51,18 +51,18 @@ def execute(pagename, request):
     # check whether the user filled out the form
     elif request.form.has_key('uid') and request.form.has_key('del'):
         if request.form.get('del')[0] == "1" and request.user.may.admin(Page("Events Board", request)):
-	    # let's try and delete the event!
-	    uid = request.form.get('uid')[0]
-	    request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
-	    name = request.cursor.fetchone()[0]
-	    request.cursor.execute("DELETE from events where uid=%(uid)s", {'uid':uid}, isWrite=True)
+            # let's try and delete the event!
+            uid = request.form.get('uid')[0]
+            request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
+            name = request.cursor.fetchone()[0]
+            request.cursor.execute("DELETE from events where uid=%(uid)s", {'uid':uid}, isWrite=True)
             msg = 'Event "%s" <b>deleted</b>!' % name
 
         elif request.form.get('del')[0] == "1":
             uid = request.form.get('uid')[0]
-	    request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
-	    name = request.cursor.fetchone()[0]
-	    request.cursor.execute("DELETE from events where uid=%(uid)s and posted_by=%(username)s", {'uid':uid, 'username':request.user.propercased_name}, isWrite=True)
+            request.cursor.execute("SELECT event_name from events where uid=%(uid)s", {'uid':uid})
+            name = request.cursor.fetchone()[0]
+            request.cursor.execute("DELETE from events where uid=%(uid)s and posted_by=%(username)s", {'uid':uid, 'username':request.user.propercased_name}, isWrite=True)
             msg = 'Event "%s" <b>deleted</b>!' % name
     
         if config.memcache:
@@ -135,8 +135,8 @@ def doRSS(request):
     generated = 0
     if not generated:        
         rss_text = []
-	events = []
-	timenow = time.time()
+        events = []
+        timenow = time.time()
         today_struct = time.gmtime(timenow+request.config.tz_offset)
         today = list(today_struct[0:3]) + [0,0,0,0,0,0]
         today = calendar.timegm(today) - request.config.tz_offset
@@ -144,31 +144,31 @@ def doRSS(request):
         tomorrow = list(tomorrow_struct[0:3]) + [0,0,0,0,0,0]
         tomorrow = calendar.timegm(tomorrow) - request.config.tz_offset
 
-	request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where event_time >= %(today)s and event_time < %(tomorrow)s and wiki_id=%(wiki_id)s", {'today':today, 'tomorrow':tomorrow, 'wiki_id':request.config.wiki_id})
-	result = request.cursor.fetchone()
-	while result:
-	  events.append(result)
-	  result = request.cursor.fetchone()
+        request.cursor.execute("SELECT uid, event_time, posted_by, text, location, event_name from events where event_time >= %(today)s and event_time < %(tomorrow)s and wiki_id=%(wiki_id)s", {'today':today, 'tomorrow':tomorrow, 'wiki_id':request.config.wiki_id})
+        result = request.cursor.fetchone()
+        while result:
+          events.append(result)
+          result = request.cursor.fetchone()
     
         for event in events:
-	    event_time_unix = event[1]
+            event_time_unix = event[1]
 
-	    # stupid date stuff
-	    time_struct = time.gmtime(event_time_unix+request.config.tz_offset)
-	    year = time_struct[0]
-	    month = time_struct[1]
-	    day = time_struct[2]
-	    hour = time_struct[3]
-	    minute = time_struct[4]
+            # stupid date stuff
+            time_struct = time.gmtime(event_time_unix+request.config.tz_offset)
+            year = time_struct[0]
+            month = time_struct[1]
+            day = time_struct[2]
+            hour = time_struct[3]
+            minute = time_struct[4]
 
             posted_by = event[2]
             event_location = event[4]
-	    event_name = event[5]
+            event_name = event[5]
 
             id = event[0]
             text = event[3]
             if event_name: processed_name = wikiutil.simpleStrip(request,event_name)
-	    else: processed_name = ''
+            else: processed_name = ''
             processed_text = doParse(text,request)
             processed_location = doParse(event_location,request)
             if int(hour) > 12 :
@@ -182,18 +182,18 @@ def doRSS(request):
                     ptime = "12:" + str(minute) + " AM"
                 else:
                     ptime = "12:00 AM"
-	    elif int(hour) == 12:
- 		if not int(minute) == 0:
- 		    ptime = "12:" + str(minute) + " PM"
-		else:
-		    ptime = "12:00 PM"
+            elif int(hour) == 12:
+                if not int(minute) == 0:
+                    ptime = "12:" + str(minute) + " PM"
+                else:
+                    ptime = "12:00 PM"
             else:
                 if not int(minute) == 0:
                     ptime = str(hour) + ":" + str(minute) + " AM"
                 else:
                     ptime = str(hour) + ":00 AM"
         
-	    total_date = "%s, %s %s" % (datetoday(int(day),int(month),int(year)),findMonth(month),day)
+            total_date = "%s, %s %s" % (datetoday(int(day),int(month),int(year)),findMonth(month),day)
             item = rss_dom.createElement("item")
             rss_text = []
 
@@ -201,10 +201,10 @@ def doRSS(request):
                         '<b>Time:</b> %s<br>\n'
                         '<b>Location:</b> %s<br><br>\n'
                         '%s&nbsp;&nbsp;(Posted by %s)\n' % (total_date,ptime,processed_location,processed_text,user.getUserLink(request, user.User(request, name=posted_by), absolute=True)))
-	    item_guid = rss_dom.createElement("guid")
-	    item_guid.setAttribute("isPermaLink","false")
-	    item_guid.appendChild(rss_dom.createTextNode(''.join(str(id))))
-	    item.appendChild(item_guid)
+            item_guid = rss_dom.createElement("guid")
+            item_guid.setAttribute("isPermaLink","false")
+            item_guid.appendChild(rss_dom.createTextNode(''.join(str(id))))
+            item.appendChild(item_guid)
             item_description = rss_dom.createElement("description")
             item_description.appendChild(rss_dom.createTextNode(''.join(rss_text)))
             item_title = rss_dom.createElement("title")
@@ -358,7 +358,7 @@ def hasPassed(month,day,hour,minute,year,request):
           bool = 1
         elif int(day) == int(current_day):
           if int(hour) < int(current_hour):
- 	    bool = 1
+            bool = 1
     else:
        bool = 0
        

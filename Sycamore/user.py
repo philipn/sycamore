@@ -571,7 +571,7 @@ class User(object):
         
         domain = "domain=%s;" % wiki_domain
 
-        return ("Set-Cookie", "%s expires=%s;%sPath=%s" % (cookie_value, expirestr, domain, cookie_dir))
+        return ("Set-Cookie", "%s; expires=%s;%sPath=%s" % (cookie_value, expirestr, domain, cookie_dir))
 
 
     def cookieDough(self, expiretime, now):
@@ -784,6 +784,7 @@ class User(object):
 
                 if config.memcache:
                   self.request.mc.set("userWikiInfo:%s" % self.id, self.wiki_info[self.request.config.wiki_id])
+                self.save()
             else:
                 self.rc_bookmark = tm
                 self.save()
@@ -833,6 +834,7 @@ class User(object):
                   self.wiki_info[self.request.config.wiki_id].rc_bookmark = None
                 if config.memcache:
                   self.request.mc.set("users:%s" % self.id, self.getUserdict(), wiki_global=True)
+                self.save()
                 return None
             else:
                 self.rc_bookmark = 0

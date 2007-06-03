@@ -106,6 +106,7 @@ def display_edits(request, userpage, on_pagename):
         has_edits = True
     
     count = 1
+    original_wiki = request.config.wiki_name
     for edit in results:
         this_edit = 1 + totalEdits - count - offset
 
@@ -116,25 +117,43 @@ def display_edits(request, userpage, on_pagename):
         comment = edit[4]
         wiki_name = edit[5]
 
+        request.switch_wiki(wiki_name)
         page = Page(pagename, request, wiki_name=wiki_name)
 
         version = page.date_to_version_number(mtime)
-        show_page = page.link_to(querystr='action=diff&amp;version2=%s&amp;version1=%s' % (version, version-1), guess_case=True)
+
+        if request.user.may.read(page):
+            may_read = True
+            show_page = page.link_to(querystr='action=diff&amp;version2=%s&amp;version1=%s' % (version, version-1), guess_case=True, absolute=True)
+            formatted_mtime = request.user.getFormattedDateTime(mtime)
+        else:
+            may_read = False
+            show_page = """<em>hidden</em>"""
+            userIp = '<em>hidden</em>'
+            comment = '<em>hidden</em>'
+            formatted_mtime = '<em>hidden</em>'
                      
         comment = Comment(request, comment, editType).render()
 
         if config.wiki_farm:
+            if may_read:
+                farm_link = farm.link_to_wiki(wiki_name, request.formatter)
+            else:
+                farm_link = '<em>hidden</em>'
+        
             edits.addRow((show_page,
-                          farm.link_to_wiki(wiki_name, request.formatter),
-                          request.user.getFormattedDateTime(mtime),
+                          farm_link,
+                          formatted_mtime,
                           userIp,
                           comment))
         else:
             edits.addRow((show_page,
-                          request.user.getFormattedDateTime(mtime),
+                          formatted_mtime,
                           userIp,
                           comment))
         count += 1
+
+    request.switch_wiki(original_wiki)
     
     if has_edits:
         request.write('<p>This user has made <b>%d</b> edits to <b>%d</b> pages on <b>%s</b> wikis.</p>' % (totalEdits, editedPages, editedWikis))

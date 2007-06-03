@@ -1103,7 +1103,7 @@ def link_tag(request, params, text=None, formatter=None, **kw):
     else:
         return ('<a%s href="%s/%s">%s</a>' % (''.join(attrs), request.getScriptname(), params, text))
     
-def link_tag_explicit(inbetween, request, params, text=None, formatter=None, **kw):
+def link_tag_explicit(inbetween, request, params, text=None, formatter=None, script_name='', **kw):
     """
     Create a link.
     But let me tell it what i want between the 'a' and the 'href'!
@@ -1120,13 +1120,13 @@ def link_tag_explicit(inbetween, request, params, text=None, formatter=None, **k
     if text is None:
         text = params # default
     if formatter:
-        return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
+        return formatter.url("%s/%s" % (script_name or request.getScriptname(), params), text, css_class, **kw)
     attrs = []
     if kw.has_key('attrs'):
         attrs.append(' %s' % kw['attrs'])
     if css_class:
         attrs.append(' class="%s"' % css_class)
-    return ('<a%s %s href="%s/%s">%s</a>' % (''.join(attrs), inbetween, request.getScriptname(), params, text))
+    return ('<a%s %s href="%s/%s">%s</a>' % (''.join(attrs), inbetween, script_name or request.getScriptname(), params, text))
 
 
 
@@ -1402,7 +1402,7 @@ def send_title(request, text, **keywords):
         return
 
     form = keywords.get('form', None)
-    icon = request.theme.get_icon('searchbutton')
+    icon = request.theme.get_icon('searchbutton', wiki_global=True)
     searchfield = (
         '<input class="formfields" type="text" name="inline_string" value="%%(value)s" size="15" maxlength="50">'
         '&nbsp;<input type="image" src="%(src)s" alt="%(alt)s">'
@@ -1434,6 +1434,9 @@ def send_title(request, text, **keywords):
         'trail': keywords.get('trail', None),
         'textsearch': textsearch,
     }
+
+    if request.isSSL():
+        d['script_name'] = request.getQualifiedURL(uri=d['script_name'], force_ssl_off=True)
 
     # add quoted versions of pagenames
     newdict = {}

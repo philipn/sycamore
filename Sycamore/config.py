@@ -16,7 +16,6 @@
     @license: GNU GPL, see COPYING for details.
 """
 
-import re
 import time, cPickle
 from copy import copy
 
@@ -283,6 +282,7 @@ _cfg_defaults_global = {
     'url_schemas': [],
     'url_mappings': {},
     'user_page_prefix': 'Users/',
+    'use_ssl': False,
     'valid_image_extensions': ['.gif', '.jpe', '.jpeg', '.jpg', '.png'],
     'web_dir' : '',
     'web_root': '/var/www/html',

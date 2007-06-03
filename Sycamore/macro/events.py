@@ -1,5 +1,5 @@
 import time, re, calendar, string
-from Sycamore import wikiutil, wikiform, config, wikidb
+from Sycamore import wikiutil, wikiform, config, wikidb, user
 from cStringIO import StringIO
 from Sycamore.Page import Page
 
@@ -146,12 +146,14 @@ def full_events(events, are_events_today, htmltext, macro):
             month_dict = { 1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June', 7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December'}
             string_month = month_dict[month]
             events_page = Page("Events Board", macro.request)
+            posted_by_user = user.User(macro.request, name=posted_by)
+            user_link = user.getUserLink(macro.request, posted_by_user)
             if (macro.request.user.may.admin(events_page) or posted_by == macro.request.user.propercased_name): 
                     if date == old_date:
                         htmltext.append('<ul>\n<h4 id="head-%s">%s</h4>\n'
                               '<a href="%s/Events_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s<br>\n'
                               '<b>Location:</b> %s<br>\n'
-                              '%s(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (id, processed_name,macro.request.getScriptname(), id,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))
+                              '%s(Posted by %s)\n</ul>\n' % (id, processed_name, macro.request.getScriptname(), id, ptime, processed_location, processed_text, user_link))
                     else:
                         string_day = datetoday(int(day),int(month),int(year))
                         old_date = date
@@ -159,7 +161,7 @@ def full_events(events, are_events_today, htmltext, macro):
                                 '<ul><h4 id="head-%s">%s</h4>\n'
                                 '<a href="%s/Events_Board?action=events&uid=%s&del=1">[delete]</a>&nbsp;&nbsp;<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n'
                                 '<b>Location:</b> %s<br>\n'
-                                '%s(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,year,id, processed_name,macro.request.getScriptname(), id,ptime,processed_location,processed_text,macro.request.getScriptname(),posted_by,posted_by))
+                                '%s(Posted by %s)\n</ul>\n' % (string_day,string_month,day,year,id, processed_name,macro.request.getScriptname(), id,ptime,processed_location,processed_text,user_link))
 
 
             else:
@@ -167,7 +169,7 @@ def full_events(events, are_events_today, htmltext, macro):
                         htmltext.append('<ul>\n<h4 id="head-%s">%s</h4>\n'
                                 '<b>Time:</b> %s<br>\n'
                                 '<b>Location:</b> %s<br>\n'
-                                '%s(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (id,processed_name,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))                                   
+                                '%s(Posted by %s)\n</ul>\n' % (id,processed_name,ptime,processed_location,processed_text,user_link))                                   
 
                 else:                                        
                         string_day = datetoday(int(day),int(month),int(year))                                        
@@ -176,7 +178,7 @@ def full_events(events, are_events_today, htmltext, macro):
                                 '<ul>\n<h4 id="head-%s">%s</h4>\n'                                        
                                 '<b>Time:</b> %s&nbsp;&nbsp;&nbsp;&nbsp;\n' 
                                 '<b>Location:</b> %s<br>\n'                                        
-                                '%s(Posted by <a href="%s/%s">%s</a>)\n</ul>\n' % (string_day,string_month,day,id,processed_name,ptime,processed_location,processed_text,macro.request.getScriptname(), posted_by,posted_by))
+                                '%s(Posted by %s)\n</ul>\n' % (string_day,string_month,day,id,processed_name,ptime,processed_location,processed_text,user_link))
 
     title = "Post a new event:"
     htmltext.append('<h3>%s</h3>\n'

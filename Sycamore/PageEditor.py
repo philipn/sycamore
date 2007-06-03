@@ -658,6 +658,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         @keyword action: action for log (default: SAVE)
         @keyword proper_name: properly-cased pagename (for renames)
         @keyword ignore_edit_conflicts: force a save regardless of status (boolean)
+        @keyword force_save: ignore "page content the same" error
         @rtype: string
         @return: error msg
         """
@@ -705,7 +706,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
                merged_changes = True
                msg = _("""%s Your changes were successfully merged! """ % msg)
                newtext = verynewtext
-        elif newtext == self.get_raw_body() and not self._rename_lowercase_condition() and kw.get('action') != 'SAVE/REVERT':
+        elif newtext == self.get_raw_body() and not self._rename_lowercase_condition() and kw.get('action') != 'SAVE/REVERT' and not kw.get('force_save'):
             # check to see if they're saving the page with the same content it had before
             msg = _('You did not change the page content, not saved!')
             raise self.Unchanged, msg

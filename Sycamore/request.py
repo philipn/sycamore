@@ -354,6 +354,8 @@ class RequestBase(object):
     def isPOST(self):
         return self.request_method == 'POST' 
 
+    def isSSL(self):
+        return self.is_ssl
 
     def getPageList(self, alphabetize=True, lowercase=False, objects=False):
         """ A cached version of wikiutil.getPageList().
@@ -468,7 +470,7 @@ class RequestBase(object):
         """ Return a fully qualified URL to this script. """
         return self.getQualifiedURL(self.getScriptname())
 
-    def getQualifiedURL(self, uri=None):
+    def getQualifiedURL(self, uri=None, force_ssl=False, force_ssl_off=False):
         """ Return a full URL starting with schema, servername and port.
 
             *uri* -- append this server-rooted uri (must start with a slash)
@@ -476,14 +478,18 @@ class RequestBase(object):
         if uri and uri[:4] == "http":
             return uri
 
-        schema, stdport = (('http', '80'), ('https', '443'))[self.is_ssl]
+        schema, stdport = (('http', '80'), ('https', '443'))[(self.is_ssl or force_ssl) or (self.is_ssl and force_ssl_off)]
         host = self.http_host
 
         if not host:
             host = self.server_name
 
         port = self.server_port
-        if port != stdport:
+        if force_ssl_off and self.is_ssl:
+            port = '80'
+            schema = 'http'
+
+        if port != stdport and not (force_ssl or force_ssl_off):
             host = "%s:%s" % (host, port)
 
         result = "%s://%s" % (schema, host)
@@ -609,7 +615,7 @@ class RequestBase(object):
 
             # if oldlink has control characters when we do an mc_quote -- eep!
             # we want to, then, throw it out because it wasn't going to work
-            if not wikiutil.suitable_mc_key(oldlink.encode(config.charset)):
+            if not oldlink or not wikiutil.suitable_mc_key(oldlink.encode(config.charset)):
                oldlink = ''
 
             pagename_propercased = ''

@@ -121,7 +121,7 @@ def execute(pagename, request):
                 if renamecomment: renamecomment = " (" + renamecomment + ")"
                 #replace_in_xml(pagename, newpagename)
                 if newpagename.lower() != pagename.lower(): 
-                    page.saveText("#redirect %s" % newpagename, '0', comment='Renamed to "%s"' % newpagename, action='RENAME')
+                    page.saveText("#redirect %s" % newpagename, '0', comment='Renamed to "%s"' % newpagename, action='RENAME', force_save=True)
                     # copy images over
                     copy_files(pagename, newpagename, request)
 
