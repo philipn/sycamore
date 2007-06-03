@@ -1,0 +1,38 @@
+Welcome to your new wiki!  This is your wiki's Front Page.  So what do you do now?
+
+= Quick Start Guide! =
+  1. First read the rest of this page!
+  2. If you haven't already, read the [wiki:wikispot:"Wiki Creator Guide"] and [wiki:wikispot:"Wiki Guide"].
+  3. Go to ["Wiki Settings"] and change the settings for your wiki!
+  4. Click the edit button up top of this page and create your new front page.
+  5. Start adding content to your wiki and read about [wiki:wikispot:"building community"]
+  6. Tell your friends, family, acquaintances, enemies, multiple personalities, etc.
+  7. Celebrate!
+
+= Default Pages Included With Your Wiki =
+This is a simple list of of all pages included with your wiki.  You will hopefully create many, many more!
+
+   * ["All Pages"] is an automatically generated list of all the pages in your wiki.
+   * ["Bookmarks"] is for your bookmarks on this wiki. Every user has his/her own bookmarks page based on what they choose to bookmark on this wiki.  To bookmark a page, simply click "Bookmark" at the bottom of the page!  ([wiki:wikispot:"Interwiki Bookmarks"] on wikispot shows you all of your bookmarks on all wikis.)
+   * ["Front Page"] is the page you're currently viewing.
+   * ["Events Board"] is a page where anyone can post events in the community.
+   * ["Help"] links to the main help pages on wikispot -- useful for reference.
+   * ["Interwiki Map"] -- link to non-Wiki Spot wikis using  [wiki:wikispot:"interwiki links"] by adding names and URLs of wikis to this page.
+   * ["Orphaned Pages"] contains an automatically generated list of pages with no links to them.  Ideally, this page should be empty -- keep your wiki well-linked!
+   * ["Outgoing Links"] lists all pages sorted by the number outgoing links on each page. This provides a good place to start if you're feeling [wiki:c2:"WikiGnome" gnomeish] and want to link-up some pages with few to no links.
+   * ["Quick Wiki Tips"] -- At the top of ["Recent Changes"] shows randomly selected tips from this page.
+   * ["Recent Changes"] shows all the recent activity on the wiki in a given time period. This page lets everybody see what's happening in your wiki! ([wiki:wikispot:"Interwiki Recent Changes"] on wikispot shows you the recent changes on all the wikis you're watching.)
+   * ["Random Pages"] is a randomly generated list of twenty-five pages.  Good for finding pages to edit once your wiki grows large.
+   * ["Site Organization"] has links to pages that help you keep your wiki well organized.
+   * ["Templates"] is a user created list of template pages -- pages that you can use as starting blocks for making new pages.  ["Templates/Business"] is there just to give you an idea of what a template should be.
+   * ["User Statistics"] is a page that displays statistics, such as the number of edits, for each person who's edited your wiki.
+   * ["Wanted Pages"] contains all the pages that are linked to, but do not yet exist. This is another good place to start [wiki:c2:"WikiGnome" gnomeing].
+   * ["Wiki Sandbox"] is a place for users to play around with the wiki without disturbing your content.
+   * ["Wiki Settings"] contains the administrative settings for your wiki.
+      *  ["Wiki Settings/CSS"] is the page where you can upload different style sheets that change your wiki's appearance.
+      *  ["Wiki Settings/General"] contains general settings for your wiki.
+      *  ["Wiki Settings/Images"] allows you to customize images on your wiki, such as your logos.
+      *  ["Wiki Settings/Security"] lets you change the default security settings of your wiki and create user groups to control access.
+
+= Making new pages! =
+To create a new page, simply search for the name of the page you wish to create and then click the "Create a new page with this title" link. Another way to create a new page is by making a link to the page you wish to create from a page that already exists, following the link, and clicking "Create this page."

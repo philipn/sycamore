@@ -1,0 +1,573 @@
+/*  Layout.css
+ *  This file controls the margins, paddings, and positionings of the various elements of your wiki.
+ *  Changes here are a bit more complex and for the most general changes (colors and fonts) please
+ *  refer to the style.css file.
+ *  */
+/*****************t********************      Top of page *************/
+/***** Logo & Banner    *************/
+/* banner */
+#banner {
+  margin: 0px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  background-position: 15px -17px;
+  _background-position: 15px -85px; /*IE Hack, draws from bottom rather than top */
+}
+/* Logo container */
+.logo {
+  float: left;
+  margin: 0;
+  width: 100%;
+  border: 0;
+}
+*[dir="rtl"] #logo { float: right; }
+/* Logo  */
+td.logo_banner {
+  padding: 0;
+  vertical-align: middle;
+}
+.logo td {
+  padding-top: 0;
+  padding-bottom: 0;
+  margin: 0;
+}
+/* Logo Text (used if no image */
+#logo_text {
+  padding-left: 8pt;
+}
+/***** User Name, Password Area *****/
+/* User name and settings */
+td.user_banner { height: 70px; }
+td.user_banner table { margin: 5px !important; }
+
+
+/* If Logged in Username & Welcome */
+.user_area {
+  padding: 0;
+  padding: 8px;
+  margin: 0;
+}
+.user_area a {
+}
+.user_area table {
+  vertical-align: top;
+  text-align: center;
+}
+.user_area td {
+  padding: 2px !important;
+  margin: 0 !important;
+}
+.user_area .welcome { 
+  margin-bottom: 10px;
+  display: inline;
+}
+/* If not logged in */
+/* See Et Cetera for input forms */
+.login_area {
+  height: 75px; 
+  padding: 0;
+}
+.login_area input { 
+}
+.login_area table {
+  vertical-align: top;
+  text-align: center;
+}
+.login_area td {
+  padding: 1px !important;
+  margin: 0 !important;
+}
+.login_area a { 
+}
+/*********** Navigation Tab Area ****/
+/* Primary navigational tabs */
+a.tab { margin-left: .4em;}
+a.tab.tab, a.tab:visited {
+  padding: 2px 1em 0px 1em;
+}
+a.tab:hover {
+}
+a.tab.notice {
+}
+/* The tab for the current page, foremost tab */
+a.tab.activeTab, a.tab.activeTab:hover, a.tab.activeTab:visited {
+  padding-top: 4px;
+  z-index:4;
+}
+/* Area which contains the tabs */
+div.tabArea {
+  width:100%;
+  padding-top:1em;
+}
+
+/*********** Switching button-icons **********/
+/* Row that contains page icons (e.g. "Edit", "Info") */
+#iconRow .pageIcon { padding-right: 10px; }
+#iconRow .pageIconSelected { padding-right: 10px; }
+.pageIcon {
+  text-align: center;
+  vertical-align: bottom;
+}
+.pageIconSelected {
+  text-align: center;
+  vertical-align: bottom;
+}
+/* This is the action text, e.g. "Edit", "Info" */
+.pageIcon span span, .pageIconSelected span span {
+  display: block;
+  text-align: center;
+  padding-left: 2px; /* we pad here because our
+    icon's visible weight is more toward the right.
+    For your own icons you may need to change this
+    to obtain maximum prettiness.*/
+}
+/* The search box */
+#search_form { 
+  margin: 5pt 2pt 4pt 13pt;
+  vertical-align: middle;
+  text-align: right;
+  white-space: nowrap;
+}
+#search_form form {
+  padding-left: 10px;
+}
+/*************************************      Page content    *************/
+
+/* Page Title */
+#title {
+  min-height: 51px; 
+  padding-top: 0pt;
+  padding-bottom: 0pt;
+  vertical-align: middle;
+  width: 100%;
+}
+/* Title Text */
+#title_text { vertical-align: middle; } 
+#title_text td { vertical-align: middle; }
+#title_area_table { width: 100%; }
+#title h1 {
+        margin: 0;
+        margin-left: 10px;
+        margin-right: 1em;
+}
+#title td { padding: 3pt 0 3pt 0; } 
+
+/* Sub-title */
+.minorTitle {
+  text-align: center;
+  margin-top: .4em;
+}
+
+/************* Page Body *************/
+body {
+  margin:0;
+  padding:0;
+}
+
+/* Page Content */
+.content {
+  margin-top: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-bottom: 20px;
+}
+
+/* Standard Text */
+pre {
+  padding: .5em;
+  overflow: auto;
+  white-space: normal;
+}
+
+/* Table Of Contents */
+.tableOfContents
+{
+    padding:.3em;
+}
+.tableOfContents td {
+    vertical-align: middle;
+    padding: .5em;
+    padding-right: .9em;
+    _padding: 1em .8em .3em .5em;
+}
+.floatLeftTOC
+{
+  float: left;
+  margin-right: 15px;
+}
+.floatRightTOC
+{
+  float: right;
+  margin-left: 15px;
+}
+
+/* Link Formatting */
+a:link {
+}
+a:visited {
+}
+a:hover {
+}
+a.nonexistent, a.badinterwiki {
+}
+a.nonexistent:hover {
+}
+a.nonexistent:visited { 
+}
+a.tinyNonexistent /* used for things like "Talk" links when they don't exist */ {
+}
+a.tinyNonexistent:hover {
+  cursor: pointer;
+}
+
+/* Tables */
+.wikitable td { padding: 2pt; }
+.wikitable {
+  padding-top: 3pt;
+  padding-bottom: 4pt;
+  padding-right: 2pt;
+  padding-left: 2pt;
+}
+/* Lists */
+.wikipage ul {
+  line-height: 1.5em;
+  margin: 0.5em 0em 1.5em 50px;
+  padding:0;
+}
+.wikipage li { margin-bottom: 0.25em; }
+
+/*indented headings*/
+.wikipage ul h2, h3,h4,h5,h6{
+  line-height: 1em;
+}
+/* Headings */
+h2, h3, h4, h5, h6 {
+  margin-bottom: 10px;
+  clear:both;
+  padding-top: 2px;
+  margin-top: 8px;
+}
+h3, h4, h5, h6 {
+  margin-top: 10px;
+}
+h1 a, h2 a, h3 a{
+}
+h2 {
+  margin-top: .6em;
+}
+h3 {
+}
+h4 {
+}
+h5 {
+}
+h6 {
+}
+
+/* Editable Subsections */
+table.sectionEdit h2 
+{ 
+  margin: -0.1em; 
+} 
+table.sectionEdit 
+{ 
+  margin-bottom: 7px;
+}
+table.sectionEdit a { 
+ }
+table.sectionEdit h2 a {
+}
+table.sectionEdit td { vertical-align: bottom; }
+
+
+/* Horizontal Rule */
+hr {
+    text-align: left;
+    margin: 0;
+    padding: 0;
+}
+/* Footnotes */
+.footnotes div {
+  margin-top: 2em;
+  width: 10em;
+  clear: both;
+}
+
+/*************************************      Bottom of Page  *************/
+/* The footer, which contains things like "Edit", "Bookmark" and text/icons. */
+#footer {
+  clear: both;
+  margin-left: 10px;
+  margin-bottom: 10px;
+  margin-right: 10px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+}
+#footer p {
+  margin-top: 5px;
+  margin-left: 5px;
+  margin-right: 5px;
+  margin-bottom: 10px; 
+}
+#footer .license { 
+ }
+
+
+/*************************************      Edit Page   *************/
+/* This is the page editing area (textarea, in our case) */
+#savetext { 
+ line-height: inherit;
+ width: 100%;
+}
+/* Input button used for some actions (e.g. "Rename" page) */
+.formbutton {
+}
+/* The comment area for making a page edit */
+#editComment { margin-top: 2px; }
+
+/* The editor markup buttons */
+#editButtonRow {
+  padding: 0;
+  margin-top: .8em;
+  margin-bottom: .8em;
+}
+#editButtonRow .editActions {
+  padding: .5em;
+  margin-left: 1em;
+}
+
+
+/*************************************      History Page    *************/
+/* Content of the tab area */
+#tabPage {
+  position: relative;
+  z-index: 0;
+  padding: 4pt 5pt 4pt 5pt;
+}
+#tabPage h3 { margin-top: 9pt;}
+/* The tabs themselves */
+#tabmenu {
+     margin: 12pt 0px 0px 0px;
+     padding: 0;
+     z-index: 1;
+     padding-left: 10pt
+}
+#tabmenu li {
+     display: inline;
+     overflow: hidden;
+     margin-right: 2pt; 
+     padding: 2pt 4pt 0 5pt;
+     list-style-type: none;
+     position: relative;
+     z-index: 2;
+}
+#tabmenu li.active {
+     padding-top: 2pt;
+     top: -2px;
+     _top: -1px; /*ie hack*/
+}
+#tabmenu li.active a {
+     padding-top: 2.5pt;
+     _padding-top: 0; /*ie hack*/
+     _top: -1px; /*ie hack*/
+}
+
+/* Info area history */
+#pageHistory td { padding: 0 .3em; }
+div.editInfo { margin-top: 10pt; }
+
+
+/* The 'differences' view */
+.diff {
+  width:100%;
+  margin-bottom: 6px;
+  margin-top: 2px;
+}
+.diff td {
+  padding: 4px 2px 4px 2px;
+}
+/* One side of the differences */
+.diff-item { width:50%; }
+/* Area that marks the line numbers where things change */
+.diff-title {
+}
+/* Added area */
+.diff-added span { 
+ }
+/* Removed area */
+.diff-removed span { 
+ }
+
+/*************************************  Recent Changes Page *************/
+
+/* Editor's name */
+.rceditor {
+  margin-left: .2em;
+}
+/* Editor's comment */
+.rccomment {
+  text-indent: 6em;
+  margin-bottom: .3em;
+}
+
+/* Recent Changes / Bookmarks change display */
+
+/* Entry and Line Formatting */
+.rcEntry { margin-bottom: 1em; }
+.rcpageline { margin-bottom: .5em; }
+
+/* Link to Page */
+.rcpagelink {
+}
+.rcpagelink span { vertical-align: top; }
+
+/* Recent changes modified time */
+.rctime {
+  margin-left: .8em;
+}
+/***** Recent Changes Tag Stuff *****/
+/* General Tag Formatting */
+.rcTag {
+  text-align: left;
+  white-space: nowrap;
+  width: 5em;
+  margin-right: 1em;
+  float: left;
+}
+.rcTag a { text-decoration: none; }
+/* "New" tag */
+.rcTagNew {
+  padding: 2px;
+  text-align: center;
+}
+/* "Changes" tag */
+.rcTagChanges {
+  padding: 2px;
+  text-align: center;
+}
+/* "Deleted" tag */
+.rcTagDeleted {
+  padding: 2px;
+  text-align: center;
+}
+/* General page stuff*/
+.recentchanges {
+  padding-bottom: 1em;
+}
+
+/*************************************  User's Stuff    *************/
+/* User Link area, "logout/settings/watch" */
+.user_area .user_items {
+  margin-top: 4px;
+  margin-left: 5px;
+}
+
+/***** Bookmarks display (user's bookmarks) *****/
+/* Edit time */
+.favtime {
+}
+/* Page editor */
+.faveditor {
+} 
+/* Edit comment */
+.favcomment {
+}
+
+
+/* Bookmarks Display */
+.bookmarks {
+  padding-bottom: 1em;
+}
+.bookmarks .rcpagelink {
+  clear:left;
+  padding-bottom: .3em;
+}
+
+/* Formatting for [[Userstats()]] */
+#useredits table { width: 100%; }
+#useredits table td {
+  width: 15%;
+  padding: .3em .3em .3em .3em;
+}
+/*************************************      Map Stuff   *************/
+
+/* Contains the map */
+#mapContainer {
+  margin-top: -5px;
+}
+/* Contains just the map */
+#map {
+  top: 12px;
+  left: 10px
+}
+
+/*************************************      Et cetera   *************/
+.inlineEditHighlight {
+  margin-bottom: 0px !important;
+  padding-bottom: 0px!important;
+  overflow: hidden;
+}
+
+/* The warning / notification message box */
+#message {
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  padding-left: 5px;
+}
+
+/* Non-warning/alert style dialog.  Such as used for search results. */
+.dialogBox {
+  clear: both;
+  margin-left: 10pt;
+  margin-top: 5pt;
+  margin-bottom: 10pt;
+}
+.dialogBox td { padding: 10px; }
+
+/* actionBoxes, similar to buttons, used to show users, hide users, etc. */
+.actionBoxes { padding-bottom: 15pt; }
+td .actionBoxes {
+  margin: .7em 0 0 0 !important;
+  padding: 0 !important;
+}
+td .actionBoxes span { margin: 6pt 0 0 0!important; }
+.actionBoxes a { 
+} 
+span.actionBoxSelected {
+}
+.actionBoxes span {
+  margin:0 3pt 0 0;
+  padding: 2pt 3pt 2pt 3pt;
+}
+.actionBoxes a { 
+} 
+
+/* "optional" or minor points are made using minorText. */
+.minorText {
+  margin-left: .5em;
+}
+.minorText a {
+}
+.minorText a:hover {
+}
+
+/* used for [action here] boxes with brackets around them */
+.minorActionBox { 
+}
+
+/* Input field for forms (e.g. username/password fields) */
+.formfields {
+}
+
+/* Icon used when linking to other wikis using interwiki-style links.
+ *  * also used when displaying certain links to other wikis, such as search results
+ *   * */
+img.interwiki_icon {
+  margin-right: .25em;
+  padding: 0;
+}
+/* more wikispot stuff */
+.wikiSpotFrontPage td { padding-right: 1em; }

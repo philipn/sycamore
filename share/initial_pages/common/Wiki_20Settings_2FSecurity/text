@@ -1,0 +1,12 @@
+== By default ... ==
+[[SecuritySettings]]
+
+These are the default security settings.  Security on an individual page can be changed by pressing the "Security" button while in the Edit area.
+
+= User groups =
+You can put users into different logical "groups".  With user groups you can set fine-grained permission controls on the wiki.  You can set the default permissions for a group above, and you can control the security of a particular page by going into the edit area and pressing the "Security" button.
+
+Enter groups of users with one username per line (separated with returns).
+
+[[UserGroups]]
+
