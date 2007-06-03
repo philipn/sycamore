@@ -7,7 +7,7 @@
     the module Scyamore.config for a full list of names and their
     default values.
 
-    @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
+    @copyright: 2005-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000-2003 by J?rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -19,8 +19,8 @@ from blacklist import *
 
 # basic options (you normally need to change these)
 wiki_farm = True
-wiki_name = 'sycamore'
-sitename = 'Sycamore Default Install'
+wiki_name = 'basewiki'
+sitename = 'Our Untitled Wiki'
 interwikiname = None
 interwiki_map = 'Interwiki Map'
 
@@ -58,81 +58,77 @@ relative_dir = ''
 
 #your domain (used for cookies, etc)
 # uncomment only if you've got a domain
-wiki_base_domain = 'wikispot.org'
+#wiki_base_domain = 'topsikiw.org'
 
 # turn to 0 if you want to disable the built-in talk-page theme stuff
 talk_pages = 1
 
 # This is the license text that appears in the page footer.  If you don't want a license, comment this out.  You'll want to make the <a href="copyrightpage"> yourself.
-license_text = """<!-- Creative Commons Licence -->Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/2.0/">Creative Commons License</a>.  See <a href="/index.cgi/Copyrights">Copyrights</a>.<!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/2.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/2.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->"""
+license_text = """<!-- Creative Commons License -->Except where otherwise noted, this content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/3.0/">Creative Commons Attribution License</a>.  See <a href="/Copyrights">Copyrights</a>.<!-- /Creative Commons License --><!--  <rdf:RDF xmlns="http://web.resource.org/cc/" xmlns:dc="http://purl.org/dc/elements/1.1/"     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"> <Work rdf:about=""><dc:type rdf:resource="http://purl.org/dc/dcmitype/Text" /><license rdf:resource="http://creativecommons.org/licenses/by/3.0/" /> </Work>  <License rdf:about="http://creativecommons.org/licenses/by/3.0/"> <permits rdf:resource="http://web.resource.org/cc/Reproduction" /> <permits rdf:resource="http://web.resource.org/cc/Distribution" /> <requires rdf:resource="http://web.resource.org/cc/Notice" /> <requires rdf:resource="http://web.resource.org/cc/Attribution" /> <permits rdf:resource="http://web.resource.org/cc/DerivativeWorks" /> </License>  </rdf:RDF>  -->"""
 
 # This will be shown under "save changes" in the wiki editor.  If you're going to use a license then it's good to have a small snippet of text that they see when saving.
-edit_agreement_text = """By clicking "Save Changes" you are agreeing to release your contribution under the <a href="http://creativecommons.org/licenses/by/2.0/">Creative Commons-By license</a>, unless noted otherwise. <b>Do not submit copyrighted work (including images) without permission.</b>  For more information, see <a href="/index.cgi/Copyrights">Copyrights</a>."""
+edit_agreement_text = """By clicking "Save Changes" you are agreeing to release your contribution under the <a href="http://creativecommons.org/licenses/by/3.0/">Creative Commons-By license</a>, unless noted otherwise. <b>Do not submit copyrighted work (including images) without permission.</b>  For more information, see <a href="/Copyrights">Copyrights</a>."""
 
 
 # These are the buttons that appear to the right in the footer.
-footer_buttons = ["""<a href="http://creativecommons.org/licenses/by/2.0/"><img alt="Creative Commons License" border="0" src="/wiki/eggheadbeta/img/cc.png"/></a>""", """<a href="/index.cgi/Donate"><img name="rollover" onMouseOver="document.rollover.src=donate2.src;" onMouseOut="document.rollover.src=donate.src;" src="/wiki/eggheadbeta/img/donate.png" border="0" alt="donate"/></a>"""]
+footer_buttons = ["""<a href="http://creativecommons.org/licenses/by/3.0/"><img alt="Creative Commons License" border="0" src="/wiki/eggheadbeta/img/cc.png" /></a>""", """<a href="http://wikispot.org/Donate"><img src="/wiki/eggheadbeta/img/donate.png" border="0" alt="donate"/></a>"""]
 
 # tabs at the top of the browser for people who aren't logged in
-#tabs_nonuser = ['Front Page', 'Map', 'People', 'Recent Changes']
+tabs_nonuser = ['Front Page', 'People', 'Recent Changes']
 # tabs at teh top of the browser for people who are logged in
-#tabs_user = ['Front Page', 'Map', 'People', 'Bookmarks', 'Recent Changes']
+tabs_user = ['Front Page', 'People', 'Bookmarks', 'Recent Changes']
+
+#gmaps_api_key = 'ABQIAAAAOEBBNZASx3d_UuJ3mi57ohTEjcm4VSoPxWzMEwTEo7cRC39heBT9fu36vZ2IIW6H_AvpMpBXQQd9Xw'
+
+#wiki_farm_from_wiki_msg = """<div style="float: right; width: 12em; padding: 1em; border: 1px dashed gray; background-color: #ccddff;">%(wiki_name)s is a member of the %(base_wiki_sitename)s community, a nonprofit effort that allows people everywhere to easily collaborate on wikis.<br/><br/>Your account here will work on %(wiki_name)s, the %(base_wiki_name)s hub, and all the other wikis that are part of the %(base_wiki_sitename_link)s community.</div>"""
 
 # database settings.
 db_type = 'postgres'  # can be 'mysql' or 'postgres'
 db_name = 'wiki'
-db_user = 'philipneustrom'
-db_user_password = ''
+db_user = 'wiki'
+db_user_password = 'wiki'
 # The IP address or hostname of the database.  Leave empty for local non-networked connection (usually works)
 # (setting db_host = 'localhost' usually makes a local networked connection ;)
 db_host = '' 
-
-gmaps_api_key = 'ABQIAAAAOEBBNZASx3d_UuJ3mi57ohSCaCGm-etKP9QViL3d8ut3crpNDBQl8unPg-aqvvDWomJwzffIt8PZgw'
 
 # location of the GNU Diff3 application.
 diff3_location = '/usr/bin/diff3'
 
 # == CAPTCHAS ==
-# locmtion of the sox application
-sox_location = '/opt/local/bin/sox'
+# location of the festival applicatiion
+festival_location = '/projects/festival/bin/festival'
+
+# location of the sox application
+#sox_location = '/usr/local/bin/sox'
 
 # == End Captcha stuff ==
 
 #Memcache settings.  This is if you want a high-performance wiki.
-memcache = True
-memcache_servers = ['127.0.0.1:11211']
+memcache = False
+#memcache_servers = ['127.0.0.1:11211']
 # memcache_servers can be either ['server1:port', 'server2:port'] or given with weights as in
 #  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)
 
-has_xapian = True
+has_xapian = False
 #location of the search dbs.  you probably shouldn't have to change this.
 search_db_location = os.path.join(data_dir, 'search')
 
 # do we want to use the remote sycamore-xapian databse?
-remote_search = ('127.0.0.1', 33432)
+#remote_search = ('127.0.0.1', 33432)
+
+# do we want SSL for authentication?  do we have an HTTPS running, too?
+use_ssl = True
 
 # farm settings
 # leave blank unless you want a wiki farm
-wiki_farm = True
-wiki_farm_dir = ''
-wiki_farm_subdomains = True
+wiki_farm = False
+#wiki_farm_dir = ''
+#wiki_farm_subdomains = True
 # turn on web based wiki creation to allow _anyone_ that can access your site to create a wiki
 # don't turn this on unless you know what you're doing, 'mate!
-allow_web_based_wiki_creation = True
-# message to display when they someone tries to go to a wiki that doesn't exist
-wiki_farm_no_exist_msg = ("""<p>The wiki %s does not exist!</p>
-<p>You might want to <a href="http://wikispot.org/Interwiki_Search">search all wikis</a>.  If you think this wiki should exist, you can <a href="http://wikispot.org/Create_a_wiki">create a wiki</a> by ths name.</p>
-<p>You might just be looking for more information about <a href="http://wikispot.org">Wiki Spot</a> or other <a href="http://wikispot.org/Wiki_Index">Wiki Spot wikis</a>.""", 'wiki_name')
+#allow_web_based_wiki_creation = True
 
-# Referer regular expression is used to filter out http referers from image viewing.
-# It's for stopping image hotlinking, basically.
-# leave blank if you don't care about people leeching images.
-# to match against any url from any subdomain of daviswiki we would write:
-#referer_regexp = '^http\:\/\/(([^\/]*\.)|())daviswiki\.org((\/.*)|())$'
-# here's another example
-#referer_regexp = '^http\:\/\/(([^\/]*\.)|())localhost((\/.*)|())$'
-
-page_footer1 = '<div class="wikiSpotFooter">A Wiki Spot wiki.  Wiki Spot is a 501(c)3 non-profit organization that helps communities collaborate via wikis.</div>'
+#page_footer1 = '<div class="wikiSpotFooter">This is a <a href="http://wikispot.org/">Wiki Spot</a> wiki.  Wiki Spot is a non-profit organization that helps communities collaborate via wikis.</div>'
 
 # encoding and WikiName char sets
 # (change only for outside America or Western Europe)
@@ -143,7 +139,7 @@ lowerletters = "0-9a-z?????????????????????????????????"
 allowed_actions = ['DeletePage','AttachFile']
 
 # for standalone http server (see installhtml/index)
-httpd_host = "localhost"
+httpd_host = "127.0.0.1"
 httpd_port = 80
 httpd_user = "root"
 
@@ -154,4 +150,7 @@ max_file_size = 5000
 
 mail_smarthost = "localhost"
 #mail_smarthost_auth = ('username', 'password')
-mail_from = "dont_respond@daviswiki.org"
+mail_from = "dont_respond@example.org"
+
+#paypal_address = 'mypaypal@example.org'
+#paypal_name = 'Example'
