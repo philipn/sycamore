@@ -597,7 +597,7 @@ class UserSettings:
             if config.wiki_farm:
                 action = "%s%s" % (farm.getBaseFarmURL(self.request, force_ssl=config.use_ssl), wikiutil.quoteWikiname(config.page_user_preferences))
             else:
-                action = '%s/%s' % (self.request.getQualifiedURL(self.request.getScriptname(), force_ssl=config.use_ssl), wikiutil.quoteWikiName(config.page_user_preferences))
+                action = '%s/%s' % (self.request.getQualifiedURL(self.request.getScriptname(), force_ssl=config.use_ssl), wikiutil.quoteWikiname(config.page_user_preferences))
         else:
             action = self.request.getScriptname() + self.request.getPathinfo()
         self._form = html.FORM(action=action)
