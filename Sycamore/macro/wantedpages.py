@@ -66,13 +66,15 @@ def execute(macro, args, formatter=None):
       for w_result in wanted_results:
           if old_pagename.startswith(config.user_page_prefix.lower()):
               if not show_users:
-                  dont_append = True
+                  old_pagename_propercased = w_result[0]
+                  old_pagename = old_pagename_propercased.lower()
                   continue
               if user.unify_userpage(macro.request, old_pagename, old_pagename):
                   theusername = old_pagename[len(config.user_page_prefix):]
                   theuser = user.User(macro.request, name=theusername)
-                  if theuser.wiki_for_userpage != macro.request.config.wiki_name:
-                      dont_append = True
+                  if theuser.wiki_for_userpage and theuser.wiki_for_userpage != macro.request.config.wiki_name:
+                      old_pagename_propercased = w_result[0]
+                      old_pagename = old_pagename_propercased.lower()
                       continue
 
           new_pagename_propercased = w_result[0]
@@ -87,7 +89,7 @@ def execute(macro, args, formatter=None):
               links = [w_result[1]]
               old_pagename_propercased = new_pagename_propercased
               old_pagename = old_pagename_propercased.lower()
-      if not dont_append: wanted.append((old_pagename_propercased, num_links, links))
+      wanted.append((old_pagename_propercased, num_links, links))
     else:
         macro.request.write("<p>%s</p>" % _("No wanted pages in this wiki."))
         return ''

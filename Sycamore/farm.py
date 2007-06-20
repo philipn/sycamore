@@ -64,6 +64,8 @@ def get_name_from_domain(domain, request):
                  result = request.cursor.fetchone()
                  if result and result[0]:
                      wiki_name = result[0]
+                 else:
+                     wiki_name = False # to differ from None
                  if config.memcache:
                      request.mc.add('wiki_domains:%s' % domain, wiki_name, wiki_global=True)
              return wiki_name

@@ -158,7 +158,7 @@ class Formatter:
             return macro_obj.execute(name, args, formatter=self)
         else:
             return self.__insert_code(
-                '%srequest.write(%s.macro(macro_obj, %r, %r))' %
+                '%srequest.write(%s.macro(wikimacro.Macro(parser), %r, %r))' %
                 (self.__adjust_formatter_state(),
                  self.__formatter, name, args))
             

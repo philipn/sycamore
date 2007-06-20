@@ -7,7 +7,7 @@
     the module Scyamore.config for a full list of names and their
     default values.
 
-    @copyright: 2005-2007 by Philip Neustrom <philipn@gmail.com>
+    @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000-2003 by J?rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -19,7 +19,7 @@ from blacklist import *
 
 # basic options (you normally need to change these)
 wiki_farm = True
-wiki_name = 'basewiki'
+wiki_name = 'wikispot'
 sitename = 'Our Untitled Wiki'
 interwikiname = None
 interwiki_map = 'Interwiki Map'
@@ -58,7 +58,7 @@ relative_dir = ''
 
 #your domain (used for cookies, etc)
 # uncomment only if you've got a domain
-#wiki_base_domain = 'topsikiw.org'
+wiki_base_domain = 'topsikiw.org'
 
 # turn to 0 if you want to disable the built-in talk-page theme stuff
 talk_pages = 1
@@ -78,9 +78,9 @@ tabs_nonuser = ['Front Page', 'People', 'Recent Changes']
 # tabs at teh top of the browser for people who are logged in
 tabs_user = ['Front Page', 'People', 'Bookmarks', 'Recent Changes']
 
-#gmaps_api_key = 'ABQIAAAAOEBBNZASx3d_UuJ3mi57ohTEjcm4VSoPxWzMEwTEo7cRC39heBT9fu36vZ2IIW6H_AvpMpBXQQd9Xw'
+gmaps_api_key = 'ABQIAAAAOEBBNZASx3d_UuJ3mi57ohTEjcm4VSoPxWzMEwTEo7cRC39heBT9fu36vZ2IIW6H_AvpMpBXQQd9Xw'
 
-#wiki_farm_from_wiki_msg = """<div style="float: right; width: 12em; padding: 1em; border: 1px dashed gray; background-color: #ccddff;">%(wiki_name)s is a member of the %(base_wiki_sitename)s community, a nonprofit effort that allows people everywhere to easily collaborate on wikis.<br/><br/>Your account here will work on %(wiki_name)s, the %(base_wiki_name)s hub, and all the other wikis that are part of the %(base_wiki_sitename_link)s community.</div>"""
+wiki_farm_from_wiki_msg = """<div style="float: right; width: 12em; padding: 1em; border: 1px dashed gray; background-color: #ccddff;">%(wiki_name)s is a member of the %(base_wiki_sitename)s community, a nonprofit effort that allows people everywhere to easily collaborate on wikis.<br/><br/>Your account here will work on %(wiki_name)s, the %(base_wiki_name)s hub, and all the other wikis that are part of the %(base_wiki_sitename_link)s community.</div>"""
 
 # database settings.
 db_type = 'postgres'  # can be 'mysql' or 'postgres'
@@ -104,31 +104,31 @@ festival_location = '/projects/festival/bin/festival'
 # == End Captcha stuff ==
 
 #Memcache settings.  This is if you want a high-performance wiki.
-memcache = False
-#memcache_servers = ['127.0.0.1:11211']
+memcache = True
+memcache_servers = ['127.0.0.1:11211']
 # memcache_servers can be either ['server1:port', 'server2:port'] or given with weights as in
 #  [('server1:port', 1), ('server2:port', 3)]  (say that server2 has 3x the memory as server1)
 
-has_xapian = False
+has_xapian = True
 #location of the search dbs.  you probably shouldn't have to change this.
 search_db_location = os.path.join(data_dir, 'search')
 
 # do we want to use the remote sycamore-xapian databse?
-#remote_search = ('127.0.0.1', 33432)
+remote_search = ('127.0.0.1', 33432)
 
 # do we want SSL for authentication?  do we have an HTTPS running, too?
 use_ssl = True
 
 # farm settings
 # leave blank unless you want a wiki farm
-wiki_farm = False
-#wiki_farm_dir = ''
-#wiki_farm_subdomains = True
+wiki_farm = True
+wiki_farm_dir = ''
+wiki_farm_subdomains = True
 # turn on web based wiki creation to allow _anyone_ that can access your site to create a wiki
 # don't turn this on unless you know what you're doing, 'mate!
-#allow_web_based_wiki_creation = True
+allow_web_based_wiki_creation = True
 
-#page_footer1 = '<div class="wikiSpotFooter">This is a <a href="http://wikispot.org/">Wiki Spot</a> wiki.  Wiki Spot is a non-profit organization that helps communities collaborate via wikis.</div>'
+page_footer1 = '<div class="wikiSpotFooter">This is a <a href="http://wikispot.org/">Wiki Spot</a> wiki.  Wiki Spot is a non-profit organization that helps communities collaborate via wikis.</div>'
 
 # encoding and WikiName char sets
 # (change only for outside America or Western Europe)
@@ -150,7 +150,7 @@ max_file_size = 5000
 
 mail_smarthost = "localhost"
 #mail_smarthost_auth = ('username', 'password')
-mail_from = "dont_respond@example.org"
+mail_from = "dont_respond@wikispot.org"
 
-#paypal_address = 'mypaypal@example.org'
-#paypal_name = 'Example'
+paypal_address = 'daviswiki@gmail.com'
+paypal_name = 'Wiki Spot'

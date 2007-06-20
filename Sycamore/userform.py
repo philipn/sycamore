@@ -301,7 +301,11 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                 password = form.get('password',[''])[0]
 
                 # load the user data and check for validness
-                theuser = user.User(self.request, id=uid, name=name, password=password, is_login=True)
+                if name:
+                    theuser = user.User(self.request, name=name, password=password, is_login=True)
+                else:
+                    theuser = user.User(self.request, id=uid, name=name, password=password, is_login=True)
+
 
                 if config.wiki_farm:
                     wiki_base_url = farm.getBaseFarmURL(self.request)
@@ -309,7 +313,7 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
                     wiki_base_url = '%s/' % self.request.getScriptname()
 
                 if not theuser.valid:
-                    if not self.request.form['backto_wiki'][0]:
+                    if not self.request.form.has_key('backto_wiki') or not self.request.form['backto_wiki'][0]:
                         return_string = """
 Unknown username or wrong password.<br /><br />New user?  <a href="%s%s?new_user=1">Click here to create an account!</a><br /><br />Forgot your password?  We'll email it to you.
 <form action="%s" method="POST"><input type="hidden" name="action" value="userform">
@@ -422,7 +426,9 @@ Email address: <input class="formfields" type="text" name="email">&nbsp;<input t
             if new_user:
                 theuser.propercased_name = theuser.propercased_name.strip() # strip spaces, we don't allow them anyway
                 theuser.name = theuser.propercased_name.lower()
-                if theuser.propercased_name.find(' ') != -1:
+                if not theuser.name.strip():
+                    raise BadData, (_("Please provide a user name!"), new_user)
+                elif theuser.propercased_name.find(' ') != -1:
                     raise BadData, (_("Invalid username: spaces are not allowed in user names"), new_user)
                 elif re.search('[%s]' % re.escape(USER_NOT_ALLOWED_CHARS), theuser.propercased_name):
                     raise BadData, (_("Invalid username: the characters %s are not allowed in usernames." % wikiutil.escape(USER_NOT_ALLOWED_CHARS)), new_user)
@@ -597,7 +603,7 @@ class UserSettings:
             if config.wiki_farm:
                 action = "%s%s" % (farm.getBaseFarmURL(self.request, force_ssl=config.use_ssl), wikiutil.quoteWikiname(config.page_user_preferences))
             else:
-                action = '%s/%s' % (self.request.getQualifiedURL(self.request.getScriptname(), force_ssl=config.use_ssl), wikiutil.quoteWikiname(config.page_user_preferences))
+                action = '%s/%s' % (self.request.getQualifiedURL(self.request.getScriptname(), force_ssl=config.use_ssl), wikiutil.quoteWikiName(config.page_user_preferences))
         else:
             action = self.request.getScriptname() + self.request.getPathinfo()
         self._form = html.FORM(action=action)

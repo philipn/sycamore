@@ -554,7 +554,7 @@ class User(object):
         locale.setlocale(locale.LC_TIME, loc)
 
         cookie = Cookie.SimpleCookie()
-        if not sessionid or not secret:
+        if sessionid is None or secret is None:
             sessionid, secret = self.cookieDough(expire, now)
         if config.wiki_farm:
             cookie_id = wikiutil.quoteCookiename(config.wiki_base_domain + ',ID')
@@ -854,7 +854,7 @@ class User(object):
         """
         watched = None
         if not self.valid:
-           return []
+           return {}
         if self.watched_wikis is not None:
             return self.watched_wikis
         if self.request.req_cache['watchedWikis'].has_key(self.id):

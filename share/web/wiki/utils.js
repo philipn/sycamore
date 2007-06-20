@@ -1,9 +1,26 @@
 var can_alter_textarea = true;
-
+var RC_LIST_THRESHOLD = 15;
 if ((navigator.appName == 'Microsoft Internet Explorer') && (parseInt(navigator.appVersion) <= 6))
     is_ie_6_or_less = true;
 else
     is_ie_6_or_less = false;
+
+//Get all the elements of the given classname of the given tag.
+function getElementsByClassName(classname,tag) {
+ if(!tag) tag = "*";
+ var anchs =  document.getElementsByTagName(tag);
+ var total_anchs = anchs.length;
+ var regexp = new RegExp('\\b' + classname + '\\b');
+ var class_items = new Array()
+ 
+ for(var i=0;i<total_anchs;i++) { //Go thru all the links seaching for the class name
+  var this_item = anchs[i];
+  if(regexp.test(this_item.className)) {
+   class_items.push(this_item);
+  }
+ }
+ return class_items;
+}
 
 function preview()
 {
@@ -844,6 +861,76 @@ function dohide()
     hide("map");
     hide("hideMap");
     show("showMap");
+}
+function doOnLoadStuff()
+{
+    for (i = 0; i < onLoadStuff.length; i++) {
+        eval(onLoadStuff[i]);
+    }
+    onLoadStuff = new Array();
+}
+function getElementsByClassName(className, tag, elm){
+    var testClass = new RegExp("(^|\\s)" + className + "(\\s|$)");
+    var tag = tag || "*";
+    var elm = elm || document;
+    var elements = (tag == "*" && elm.all)? elm.all : elm.getElementsByTagName(tag);
+    var returnElements = [];
+    var current;
+    var length = elements.length;
+    for(var i=0; i<length; i++){
+        current = elements[i];
+        if(testClass.test(current.className)){
+            returnElements.push(current);
+        }
+    }
+    return returnElements;
+}
+function groupAllRcChanges() {
+    rc_entries = getElementsByClassName("rcEntry", "div");
+    for (i = 0; i < rc_entries.length; i++) {
+        groupChanges(rc_entries[i]);
+    }
+}
+function unGroupChanges(entryNode)
+{
+    entry = entryNode.parentNode.parentNode;
+    mostly_rc_comments = entry.childNodes;
+    for (var i = 1; i < (mostly_rc_comments.length-1); i++) {
+        if (mostly_rc_comments[i].className == "rccomment") {
+            rc_comment = mostly_rc_comments[i];
+            rc_comment.style.height = null;
+            rc_comment.style.width = null;
+            rc_comment.style.position = 'static';
+            rc_comment.style.visibility = 'visible';
+        }
+    }
+    // hide 'show all' node
+    entry.removeChild(mostly_rc_comments[mostly_rc_comments.length-1]);
+}
+function groupChanges(entry)
+{
+    mostly_rc_comments = entry.childNodes;
+    num_comments = 0;
+    for (var i = 1; i < mostly_rc_comments.length; i++) {
+        if (mostly_rc_comments[i].className == "rccomment") {
+            num_comments++;
+            if (num_comments > RC_LIST_THRESHOLD) {
+                rc_comment = mostly_rc_comments[i];
+                parentNode = rc_comment.parentNode;
+                rc_comment.style.visibility = 'hidden';
+                rc_comment.style.height = '0';
+                rc_comment.style.width = '0';
+                rc_comment.style.position = 'absolute';
+            }
+        }
+    }
+    if (num_comments > RC_LIST_THRESHOLD) {
+        show_all = document.createElement('div');
+        show_all.className = 'rccomment';
+        show_all.style.marginTop = ".5em";
+        show_all.innerHTML = '&darr;<span onclick="unGroupChanges(this);"><a href="#" onclick="return false;" style="text-decoration:none;">' + (num_comments - RC_LIST_THRESHOLD) + ' more edits</a></span>';
+        entry.appendChild(show_all);
+    }
 }
 function createCookie(name,value,seconds) {
     if (seconds) {

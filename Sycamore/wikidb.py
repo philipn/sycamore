@@ -496,7 +496,10 @@ def filter_may_read(changes, request):
         return request.user.may.read(page)
 
     from Sycamore.Page import Page
-    return filter(_filter_f, changes)
+    original_wiki = request.config.wiki_name
+    filtered = filter(_filter_f, changes)
+    request.switch_wiki(original_wiki)
+    return filtered
         
 
 def setRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor='', wiki_global=False):

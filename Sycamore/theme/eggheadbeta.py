@@ -15,7 +15,7 @@ class Theme(ThemeBase):
     """
 
     name = "eggheadbeta"
-    last_modified = '1176889424'
+    last_modified = '1182309000'
     showapplet = 0
 
     stylesheets_print = (
@@ -233,7 +233,7 @@ class Theme(ThemeBase):
 """ % (self.request.config.wiki_name, urllib.quote(our_wiki_url), urllib.quote(self.request.query_string))
             else:
                 farm_params = ''
-                post_url = '%s/%s' % (self.request.getQualifiedURL(self.request.getScriptname(), force_ssl=config.use_ssl), wikiutil.quoteWikiname(config.page_user_preferences))
+                post_url = '%s/%s' % (self.request.getQualifiedURL(self.request.getScriptname(), force_ssl=config.use_ssl), wikiutil.quoteWikiName(config.page_user_preferences))
                 base_wiki = '%s/' % self.request.getScriptname()
             html = """<form action="%s" method="POST" onsubmit="if (!canSetCookies()) { alert('You need cookies enabled to log in.'); return false;}">
 <input type="hidden" name="action" value="userform">

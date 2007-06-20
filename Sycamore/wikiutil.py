@@ -1337,7 +1337,7 @@ def send_title(request, text, **keywords):
         user_head.append("""<script name="text/javascript">var wikiLines = [%s]; var wikiLinesHTML = document.createElement("div");</script>""" % wikiLines)
     else:
         may_inline_edit = 'false'
-    user_head.append("""<script type="text/javascript">var urlPrefix = '%s';var curTimestamp = '%s'; var action = '%s'; var may_inline_edit = %s;</script>""" % (config.url_prefix, time.time(), page.url(), may_inline_edit))
+    user_head.append("""<script type="text/javascript">var urlPrefix = '%s';var curTimestamp = '%s'; var action = '%s'; var may_inline_edit = %s; var onLoadStuff = new Array();</script>""" % (config.url_prefix, time.time(), page.url(), may_inline_edit))
     user_head.append("""<script src="%s%s/utils.js?tm=%s" type="text/javascript"></script>""" % (config.web_dir, config.url_prefix, request.theme.last_modified))
 
     if keywords.has_key('strict_title') and keywords['strict_title']: strict_title = keywords['strict_title']
@@ -1387,8 +1387,9 @@ def send_title(request, text, **keywords):
     bodyattr.append(' %s' % request.theme.ui_lang_attr())
     
     body_onload = keywords.get('body_onload', '')
-    if body_onload:
-        bodyattr.append(''' onload="%s"''' % body_onload)
+    # doOnLoadStuff() is a javascript function that eval()s JS code sprinkled anywhere
+    # this is good because we can only really do a lot of things during the body's onload event
+    bodyattr.append(''' onload="doOnLoadStuff();%s"''' % body_onload)
     request.write('\n<body %s>\n' % ''.join(bodyattr))
 
     # if the wiki is disabled then we print out a message telling them so

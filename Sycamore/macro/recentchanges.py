@@ -162,9 +162,12 @@ def cmp_lines(first, second):
 
 def execute(macro, args, formatter=None, **kw):
     if not formatter: formatter = macro.formatter
-
+    
     request = macro.request
     _ = request.getText
+
+    # set up javascript entry grouping -- this happens when the page renders
+    request.write("""<script type="text/javascript">onLoadStuff.push('groupAllRcChanges();');</script>\n""")
 
     pagename = formatter.page.page_name
     q_pagename = wikiutil.quoteWikiname(pagename)

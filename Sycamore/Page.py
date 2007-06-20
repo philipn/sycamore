@@ -776,13 +776,13 @@ class Page(object):
                 import marshal
                 code = marshal.loads(cache.content())
             except ValueError: #bad marshal data
-                #print 'bad marshal'
                 needsupdate = 1
 	    except EOFError: #bad marshal data
 	        needsupdate = 1
 
         # render page
         if needsupdate:
+	    request.set_cache = True
             body = self.get_raw_body(fresh=True)
 
             from Sycamore.formatter.text_python import Formatter
@@ -818,6 +818,7 @@ class Page(object):
             code_string = marshal.dumps(code)
             cache.update(code_string, links)
             update_links = True
+	    request.set_cache = True
         else:
            parser = Parser(body, request)
            update_links = False
@@ -1002,7 +1003,7 @@ class Page(object):
         Returns a list of page names of pages that link to this page.
         """
         links = []
-        self.cursor.execute("SELECT curPages.propercased_name from links, curPages where destination_pagename=%(page_name)s and source_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s group by propercased_name", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id})
+        self.cursor.execute("SELECT curPages.propercased_name from links, curPages where destination_pagename=%(page_name)s and source_pagename=curPages.name and curPages.wiki_id=%(wiki_id)s and links.wiki_id=%(wiki_id)s group by propercased_name", {'page_name':self.page_name, 'wiki_id':self.request.config.wiki_id})
         result = self.cursor.fetchone()
         while result:
           links.append(result[0])

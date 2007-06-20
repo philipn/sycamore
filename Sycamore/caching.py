@@ -312,9 +312,9 @@ def pageInfo(page, get_from_cache=True, cached_content=None, cached_time=None):
   page_info = pageInfoObj(edit_info, cached_text, meta_text, has_acl, has_map)
 
   if config.memcache and not page.request.set_cache:
-    page.request.mc.add("page_info:%s" % key, page_info)
-  #elif config.memcache and page.request.set_cache:
-  #  page.request.mc.set("page_info:%s" % key, page_info)
+     page.request.mc.add("page_info:%s" % key, page_info)
+  elif config.memcache and page.request.set_cache:
+     page.request.mc.set("page_info:%s" % key, page_info)
 
   page.request.req_cache['page_info'][(key, page.request.config.wiki_id)] = page_info
   return page_info

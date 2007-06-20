@@ -557,7 +557,7 @@ class RequestBase(object):
       if not config.db_pool:
           self.db.close()
 
-      if not had_error and process_post and do_commit:
+      if not had_error and process_post:
         self.processPostCommitActions()
 
     def run(self):
