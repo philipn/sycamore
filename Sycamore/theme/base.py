@@ -650,7 +650,7 @@ class Theme(object):
             html.append((_("Show all changes in the last %s days.") % (days,)))
 
         if self.request.user.valid:
-            html.append(' (%(show_comments_html)s %(rc_update_bookmark)s%(rc_curr_bookmark)s)' % d)
+            html.append(' (%(show_comments_html)s %(rc_update_bookmark)s%(rc_curr_bookmark)s%(rc_group_by_wiki)s)' % d)
 
         html.append('</div>\n')
         return ''.join(html)

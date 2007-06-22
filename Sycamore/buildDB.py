@@ -168,7 +168,8 @@ def create_tables(cursor):
      tz varchar(50),
      propercased_name varchar(100) not null,
      last_wiki_edited int,
-     wiki_for_userpage varchar(100)
+     wiki_for_userpage varchar(100),
+     rc_group_by_wiki BOOLEAN default false,
      ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
   elif config.db_type == 'postgres':
     cursor.execute("""create table users
@@ -198,6 +199,7 @@ def create_tables(cursor):
       propercased_name varchar(100) not null,
       last_wiki_edited int,
       wiki_for_userpage varchar(100),
+      rc_group_by_wiki boolean default false,
 
       CHECK (disabled IN ('0', '1')),
       CHECK (remember_me IN ('0', '1')),

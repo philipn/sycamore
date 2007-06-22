@@ -212,6 +212,7 @@ class User(object):
         self.tz_offset = 0
         self.rc_bookmark = 0
         self.rc_showcomments = 1
+        self.rc_group_by_wiki = False
         self.wiki_for_userpage = ''
         self.favorites = None
         self.watched_wikis = None
@@ -415,7 +416,7 @@ class User(object):
           if config.memcache:
             user_data = self.request.mc.get('users:%s' % self.id, wiki_global=True)
           if not user_data:
-            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, theme_name, last_saved, tz, rc_bookmark, rc_showcomments, propercased_name, wiki_for_userpage from users where id=%(userid)s", {'userid':self.id})
+            self.request.cursor.execute("SELECT name, email, enc_password, language, remember_me, css_url, disabled, edit_cols, edit_rows, theme_name, last_saved, tz, rc_bookmark, rc_showcomments, propercased_name, wiki_for_userpage, rc_group_by_wiki from users where id=%(userid)s", {'userid':self.id})
             data = self.request.cursor.fetchone()
 
             user_data = {'enc_password': ''}
@@ -435,6 +436,7 @@ class User(object):
             user_data['rc_showcomments'] = data[13]
             user_data['propercased_name'] = data[14]
             user_data['wiki_for_userpage'] = data[15] or ''
+            user_data['rc_group_by_wiki'] = data[16]
 
             if config.memcache: self.request.mc.add('users:%s' % self.id, user_data, wiki_global=True)
 
@@ -493,7 +495,7 @@ class User(object):
 
     def getUserdict(self):
         #Returns dictionary of all relevant user values -- essentially an entire user's relevant information
-        return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz':self.tz, 'wiki_for_userpage': self.wiki_for_userpage, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments, 'propercased_name': self.propercased_name, 'wiki_info':self.wiki_info}
+        return {'id':self.id, 'name':self.name, 'email':self.email, 'enc_password':self.enc_password, 'language':self.language, 'remember_me': str(self.remember_me), 'css_url':self.css_url, 'disabled':str(self.disabled), 'edit_cols':self.edit_cols, 'edit_rows':self.edit_rows, 'theme_name':self.theme_name, 'last_saved':self.last_saved, 'tz':self.tz, 'wiki_for_userpage': self.wiki_for_userpage, 'rc_bookmark': self.rc_bookmark, 'rc_showcomments': self.rc_showcomments, 'rc_group_by_wiki': self.rc_group_by_wiki, 'propercased_name': self.propercased_name, 'wiki_info':self.wiki_info}
 
 
     def save(self, new_user=False):
@@ -516,7 +518,7 @@ class User(object):
           if config.memcache:
             self.request.mc.set("users:%s" % self.id, userdict, wiki_global=True)
         else:
-          self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz=%(tz)s, propercased_name=%(propercased_name)s, rc_bookmark=%(rc_bookmark)s, rc_showcomments=%(rc_showcomments)s, wiki_for_userpage=%(wiki_for_userpage)s where id=%(id)s", userdict, isWrite=True)
+          self.request.cursor.execute("UPDATE users set id=%(id)s, name=%(name)s, email=%(email)s, enc_password=%(enc_password)s, language=%(language)s, remember_me=%(remember_me)s, css_url=%(css_url)s, disabled=%(disabled)s, edit_cols=%(edit_cols)s, edit_rows=%(edit_rows)s, theme_name=%(theme_name)s, last_saved=%(last_saved)s, tz=%(tz)s, propercased_name=%(propercased_name)s, rc_bookmark=%(rc_bookmark)s, rc_showcomments=%(rc_showcomments)s, wiki_for_userpage=%(wiki_for_userpage)s, rc_group_by_wiki=%(rc_group_by_wiki)s where id=%(id)s", userdict, isWrite=True)
           if config.memcache:
             self.request.mc.set("users:%s" % self.id, userdict, wiki_global=True)
                 
@@ -762,6 +764,28 @@ class User(object):
           return self.rc_showcomments
 
         return 1
+
+    def setRcGroupByWiki(self, group_by_wiki):
+        """
+        Sets whether or not we show the wikis on the interwiki recent changes page grouped by wiki or not.
+
+        @param group_by_wiki: boolean -- True if we group by wiki.
+        """
+        if self.valid:
+            self.rc_group_by_wiki = group_by_wiki
+            self.request.cursor.execute("UPDATE users SET rc_group_by_wiki=%(rc_group_by_wiki)s where id=%(userid)s", {'rc_group_by_wiki': group_by_wiki, 'userid':self.id}, isWrite=True)
+            if config.memcache:
+                self.request.mc.set("users:%s" % self.id, self.getUserdict(), wiki_global=True)
+
+    def getRcGroupByWiki(self):
+        """
+        Do we group changes on the interwiki recent changes page by wiki?
+
+        @rtype: boolean
+        @return: whether or not we group by wiki.
+        """
+        if self.valid:
+            return self.rc_group_by_wiki
 
     def setBookmark(self, tm = None, wiki_global=False):
         """

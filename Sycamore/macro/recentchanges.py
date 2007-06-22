@@ -26,7 +26,7 @@ file_action = 'Files'
 ### RecentChanges Macro
 #############################################################################
 
-Dependencies = ["time"] # ["user", "pages", "pageparams", "bookmark"]
+Dependencies = ["time"]
 
 def getPageStatus(lines, pagename, request):
     """
@@ -36,9 +36,47 @@ def getPageStatus(lines, pagename, request):
     for edit in lines:
       if edit.action != 'ATTNEW' and edit.action != 'ATTDEL':
         if edit.action != 'DELETE':
-	   request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = pagename
-	else: request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = False
-	break
+           request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = pagename
+        else: request.req_cache['pagenames'][(pagename.lower(), request.config.wiki_name)] = False
+        break
+
+def group_changes_by_day(lines, tnow, max_days, request):
+    days_and_lines = []
+    today = request.user.getTime(tnow)[0:3]
+    this_day = today
+    days_lines = []
+    day_tm = tnow
+    days_total = 1
+    for line in lines:
+        line.time_tuple = request.user.getTime(line.ed_time)
+        day = line.time_tuple[0:3]
+        
+        if this_day != day:
+            this_day = day
+            days_and_lines.append((day_tm, days_lines))
+            days_lines = []
+            day_tm = line.ed_time
+            days_total += 1
+            if days_total > max_days:
+                break
+
+        days_lines.append(line)
+
+    # final item
+    if days_lines:
+        days_and_lines.append((day_tm, days_lines))
+
+    return days_and_lines
+
+def group_changes_by_wiki(lines, request):
+    wikis = request.user.getWatchedWikis()
+    for wiki in wikis:
+        wikis[wiki] = []
+
+    for line in lines: 
+        wikis[line.wiki_name].append(line)
+
+    return wikis
 
 def is_new_page(lines):
     """
@@ -83,7 +121,7 @@ def format_page_edit_icon(request, lines, page, hilite, bookmark, formatter):
 
     return html_link
       
-def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_global=False):
+def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_global=False, grouped_by_wiki=False):
     _ = request.getText
     d = {} # dict for passing stuff to theme
     line = lines[0]
@@ -97,7 +135,7 @@ def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_gl
         page = Page(line.pagename, request, wiki_name=line.wiki_name)
     else:
         page = Page(line.pagename, request)
-    getPageStatus(lines, pagename, request) # can infer 'exists?' from current rc data?
+    getPageStatus(lines, pagename, request) # we can infer 'exists?' from current rc data in some cases
 
     html_link = format_page_edit_icon(request, lines, page, hilite, bookmark, formatter)
     
@@ -107,7 +145,11 @@ def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_gl
     d['rc_tag_html'] = html_link
 
     if wiki_global:
-        d['pagelink_html'] = '%s <span class="minorText">(on %s)</span>' % (page.link_to(text=pagename, absolute=True), farm.link_to_wiki(line.wiki_name, formatter))
+        if not grouped_by_wiki:
+            on_wiki = ' <span class="minorText">(on %s)</span>' % farm.link_to_wiki(line.wiki_name, formatter)
+        else:
+            on_wiki = ''
+        d['pagelink_html'] = '%s%s' % (page.link_to(text=pagename, absolute=True), on_wiki)
     else:
         d['pagelink_html'] = page.link_to(text=pagename) 
     
@@ -149,14 +191,44 @@ def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_gl
     comments = []
     for idx in range(len(lines)):
         comment = Comment(request, lines[idx].comment,
-			  lines[idx].action, page).render()
-	comments.append(comment)
+                          lines[idx].action, page).render()
+        comments.append(comment)
     
     d['changecount'] = len(lines)
     d['comments'] = comments
 
     return request.theme.recentchanges_entry(d)
-    
+
+def print_day(day, request, d):
+    d['date'] = request.user.getFormattedDateWords(day)
+    request.write(request.theme.recentchanges_daybreak(d))
+
+def print_changes(lines, bookmark, tnow, max_days, showComments, d, wiki_global, macro, request, formatter, grouped=False):
+    pages = {}
+    today = request.user.getTime(tnow)[0:3]
+    this_day = today
+    day_count = 0
+
+    for line in lines:
+        line.page = Page(line.pagename, macro.request, wiki_name=line.wiki_name)
+        if not line.ed_time: continue
+        line.time_tuple = request.user.getTime(line.ed_time)
+        day = line.time_tuple[0:3]
+        hilite = line.ed_time > (bookmark or line.ed_time)
+        
+        if pages.has_key((line.pagename, line.wiki_name)):
+            pages[(line.pagename, line.wiki_name)].append(line)
+        else:
+            pages[(line.pagename, line.wiki_name)] = [line]
+
+    if len(pages) > 0:
+        pages = pages.values()
+        pages.sort(cmp_lines)
+        pages.reverse()
+        
+        for page_line in pages:
+            request.write(format_page_edits(request, page_line, showComments, bookmark, formatter, wiki_global=wiki_global, grouped_by_wiki=grouped))
+
 def cmp_lines(first, second):
     return cmp(first[0].ed_time, second[0].ed_time)
 
@@ -181,10 +253,6 @@ def execute(macro, args, formatter=None, **kw):
         wiki_global = True
     else:
         wiki_global = False
-
-    # flush output because getting all the changes may take a while in some cases
-    # this may actually be bad for web server performance
-    #request.flush()
 
     # set max size in days
     max_days = min(int(request.form.get('max_days', [0])[0]), _DAYS_SELECTION[-1])
@@ -228,6 +296,13 @@ def execute(macro, args, formatter=None, **kw):
             d['rc_curr_bookmark'] = " | %s" % rc_page.link_to(querystr="action=bookmark&time=del%s" % globalstr, text=_("Show all changes"))
                  
         d['rc_update_bookmark'] = ' | %s' % rc_page.link_to(querystr="action=bookmark&time=%d%s" % (tnow, globalstr), text=_("Clear observed changes"))
+        if wiki_global:
+            if request.user.getRcGroupByWiki():
+                d['rc_group_by_wiki'] = ' | %s' % rc_page.link_to(querystr="action=groupbywiki&off=1", text="Group all changes together")
+            else:
+                d['rc_group_by_wiki'] = ' | %s' % rc_page.link_to(querystr="action=groupbywiki", text="Group changes by wiki")
+        else:
+            d['rc_group_by_wiki'] = ''
         
     # give known user the option to extend the normal display
     if request.user.valid:
@@ -235,16 +310,7 @@ def execute(macro, args, formatter=None, **kw):
     else:
         d['rc_days'] = []
 
-    ## add rss link
-    #d['rc_rss_link'] = None
-    #d['rc_rss_link'] = '<link rel=alternate type="application/rss+xml" href="%s/Recent_Changes?action=rss_rc" title="Recent Changes RSS Feed"><div style="float:right;"><a title="Recent Changes RSS Feed" href="%s/Recent_Changes?action=rss_rc" style="border:1px solid;border-color:#FC9 #630 #330 #F96;padding:0 3px;font:bold 10px verdana,sans-serif;color:#FFF;background:#F60;text-decoration:none;margin:0;">RSS</a></div>' % (request.getScriptname(), request.getScriptname())
-
     request.write(request.theme.recentchanges_header(d))
-    
-    pages = {}
-    today = request.user.getTime(tnow)[0:3]
-    this_day = today
-    day_count = 0
     
     if not lines:
         if wiki_global:
@@ -254,63 +320,20 @@ def execute(macro, args, formatter=None, **kw):
         if not wiki_global or watched_wikis:
             request.write("<p>No recent changes.  Quick &mdash; change something while nobody's looking!</p>")
 
-    for line in lines:
-        line.page = Page(line.pagename, macro.request, wiki_name=line.wiki_name)
-	    # 2006-05 calling acl 'may' here is too expensive.  just show them the page.  on the off chance they can't read it, then, well, clicking on it won't be too productive for them.
-        # 2006-12 maybe we should filter by may() in wikidb?
-        #if not request.user.may.read(line.page):
-        #    continue
-        if not line.ed_time: continue
-        line.time_tuple = request.user.getTime(line.ed_time)
-        day = line.time_tuple[0:3]
-        hilite = line.ed_time > (bookmark or line.ed_time)
-        
-        if (((this_day != day or (not hilite and not max_days)))
-            and len(pages) > 0):
-            # new day or bookmark reached: print out stuff 
-            this_day = day
-            pages = pages.values()
-            pages.sort(cmp_lines)
-            pages.reverse()
-            d['show_comments'] = showComments        
-            d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)
-            request.write(request.theme.recentchanges_daybreak(d))
-            
-            for page_line in pages:
-                request.write(format_page_edits(request, page_line, showComments, bookmark, formatter, wiki_global=wiki_global))
-            day_count += 1
-            pages = {}
-            if max_days and (day_count >= max_days):
-                break
-
-        elif this_day != day:
-            # new day but no changes
-            this_day = day
-
-        # end listing by default if user has a bookmark and we reached it
-        if not max_days and not hilite:
-            msg = _('<h5>Bookmark reached</h5>')
-            break
-
-        if pages.has_key((line.pagename, line.wiki_name)):
-            pages[(line.pagename, line.wiki_name)].append(line)
+    lines_by_day = group_changes_by_day(lines, tnow, max_days, request)
+    for day, lines in lines_by_day:
+        print_day(day, request, d)
+        if request.user.getRcGroupByWiki():
+            lines_grouped = group_changes_by_wiki(lines, request)
+            wiki_names_sorted = lines_grouped.keys()
+            wiki_names_sorted.sort()
+            for wiki_name in wiki_names_sorted:
+                if lines_grouped[wiki_name]:
+                    request.write('<h3 style="padding: .15em;">%s:</h3>' % farm.link_to_wiki(wiki_name, formatter))
+                    print_changes(lines_grouped[wiki_name], bookmark, tnow, max_days, showComments, d, wiki_global, macro, request, formatter, grouped=True)
         else:
-            pages[(line.pagename, line.wiki_name)] = [line]
-    else:
-        if len(pages) > 0:
-            # end of loop reached: print out stuff 
-            # XXX duplicated code from above
-            # but above does not trigger if have the first day in wiki history
-            pages = pages.values()
-            pages.sort(cmp_lines)
-            pages.reverse()
-            
-            d['date'] = request.user.getFormattedDateWords(pages[0][0].ed_time)
-            request.write(request.theme.recentchanges_daybreak(d))
-            
-            for page_line in pages:
-                request.write(format_page_edits(request, page_line, showComments, bookmark, formatter, wiki_global=wiki_global))
-    
+            print_changes(lines, bookmark, tnow, max_days, showComments, d, wiki_global, macro, request, formatter)
+        
 
     d['rc_msg'] = msg
     request.write(request.theme.recentchanges_footer(d))
