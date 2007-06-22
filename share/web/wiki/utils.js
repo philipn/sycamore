@@ -900,8 +900,7 @@ function unGroupChanges(entryNode)
             rc_comment = mostly_rc_comments[i];
             rc_comment.style.height = null;
             rc_comment.style.width = null;
-            rc_comment.style.position = 'static';
-            rc_comment.style.visibility = 'visible';
+            rc_comment.style.display = 'inline';
         }
     }
     // hide 'show all' node
@@ -917,10 +916,7 @@ function groupChanges(entry)
             if (num_comments > RC_LIST_THRESHOLD) {
                 rc_comment = mostly_rc_comments[i];
                 parentNode = rc_comment.parentNode;
-                rc_comment.style.visibility = 'hidden';
-                rc_comment.style.height = '0';
-                rc_comment.style.width = '0';
-                rc_comment.style.position = 'absolute';
+                rc_comment.style.display = 'none';
             }
         }
     }
