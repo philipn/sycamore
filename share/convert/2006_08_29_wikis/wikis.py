@@ -285,6 +285,7 @@ req.cursor.execute("ALTER TABLE users ADD COLUMN wiki_for_userpage varchar(100);
 req.cursor.execute("ALTER TABLE users ADD CHECK (disabled IN ('0', '1'));", isWrite=True)
 req.cursor.execute("ALTER TABLE users ADD CHECK (remember_me IN ('0', '1'));", isWrite=True)
 req.cursor.execute("ALTER TABLE users ADD CHECK (rc_showcomments IN ('0', '1'));", isWrite=True)
+req.cursor.execute("ALTER TABLE users ADD COLUMN rc_group_by_wiki boolean default false;", isWrite=True)
 
 req.cursor.execute("ALTER TABLE userFavorites ADD COLUMN wiki_name varchar(100);", isWrite=True)
 req.cursor.execute("UPDATE userFavorites set wiki_name=%(wiki_name)s", d, isWrite=True)
