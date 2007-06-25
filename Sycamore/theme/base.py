@@ -650,7 +650,15 @@ class Theme(object):
             html.append((_("Show all changes in the last %s days.") % (days,)))
 
         if self.request.user.valid:
-            html.append(' (%(show_comments_html)s %(rc_update_bookmark)s%(rc_curr_bookmark)s%(rc_group_by_wiki)s)' % d)
+            if d['show_comments_html']:
+                html.append(' <span class="actionBoxes" style="padding-left: .5em;"><span>%(show_comments_html)s</span></span>' % d)
+            if d['rc_update_bookmark']:
+                html.append('<span class="actionBoxes"><span>%(rc_update_bookmark)s' % d)
+                if d['rc_curr_bookmark']:
+                    html.append(' | %(rc_curr_bookmark)s' % d)
+                html.append('</span></span>')
+            if d['rc_group_by_wiki']:
+                html.append('<span class="actionBoxes"><span>%(rc_group_by_wiki)s</span></span>' % d)
 
         html.append('</div>\n')
         return ''.join(html)

@@ -1102,24 +1102,6 @@ def do_formtest(pagename, request):
     wikiform.do_formtest(pagename, request)
 
 
-# def do_macro(pagename, request):
-#     """ Execute a helper action within a macro.
-#     """
-
-#     from Sycamore import wikimacro
-#     from Sycamore.formatter.text_html import Formatter
-#     from Sycamore.parser.wiki import Parser
-#     from Sycamore.Page import Page
-#     macro_name = request.form["macro"][0]
-#     args = request.form.get('args', [''])[0]
-    
-#     parser = Parser('', request)
-#     parser.formatter = Formatter(request)
-#     parser.formatter.page = Page('dummy')
-#     request.http_headers()
-#     request.write(wikimacro.Macro(parser).execute(macro_name, args))
-#     request.finish()
-    
 #############################################################################
 ### Special Actions
 #############################################################################

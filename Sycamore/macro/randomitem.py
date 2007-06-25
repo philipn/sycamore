@@ -1,4 +1,5 @@
 # -*- coding: iso-8859-1 -*-
+from Sycamore import config
 """
     Sycamore - RandomQuote Macro
 
@@ -47,19 +48,14 @@ def execute(macro, args, formatter=None):
     # !!! TODO: make multi-line quotes possible (optionally split by "----" or something)
     quotes = raw.splitlines()
     if links > 1:
-        #quotes = [quote.strip() for quote in quotes]
         quotes = [quote for quote in quotes if quote.startswith(' *')]
         random.shuffle(quotes)
         while len(quotes) > links:
             quotes = quotes[:-1]
         quote = ''
 
-    #quote = macro.formatter.bullet_list(1)        
         for name in quotes:
-            #quote = quote + macro.formatter.listitem(1)            
             quote = quote + name + '\n'
-            #quote = quote + macro.formatter.listitem(0)
-    #quote = macro.formatter.bullet_list(0)
             
         page.set_raw_body(quote, 1)
         out = cStringIO.StringIO()
@@ -67,11 +63,7 @@ def execute(macro, args, formatter=None):
         page.send_page(content_only=1, content_id="randomquote_%s" % wikiutil.quoteWikiname(page.page_name) )
         quote = out.getvalue()
         macro.request.redirect()
-        # quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)
 
-
-        #quote = quote + macro.formatter.bullet_list(0)
-    
     else:
         quotes = [quote.strip() for quote in quotes]
         quotes = [quote[2:] for quote in quotes if quote.startswith('* ')]
@@ -86,7 +78,6 @@ def execute(macro, args, formatter=None):
         page.send_page(content_only=1, content_id="randomquote_%s" % wikiutil.quoteWikiname(page.page_name) )
         quote = out.getvalue()
         macro.request.redirect()
-        # quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)    
 
 
     if not quotes:
@@ -94,5 +85,4 @@ def execute(macro, args, formatter=None):
                 _('No quotes on %(pagename)s.') % {'pagename': pagename} +
                 macro.formatter.highlight(0))
     
-    return ''.join(quote)
-
+    return quote.decode(config.charset)

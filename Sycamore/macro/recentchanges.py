@@ -2,8 +2,6 @@
 """
     Sycamore - RecentChanges Macro
 
-    Parameter "ddiffs" by Ralf Zosel <ralf@zosel.com>, 04.12.2003.
-
     @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>, 2005-2007 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
@@ -22,10 +20,7 @@ _MAX_PAGENAME_LENGTH = 15 # 35
 
 file_action = 'Files'
 
-#############################################################################
-### RecentChanges Macro
-#############################################################################
-
+# For caching purposes.
 Dependencies = ["time"]
 
 def getPageStatus(lines, pagename, request):
@@ -53,12 +48,13 @@ def group_changes_by_day(lines, tnow, max_days, request):
         
         if this_day != day:
             this_day = day
-            days_and_lines.append((day_tm, days_lines))
-            days_lines = []
-            day_tm = line.ed_time
-            days_total += 1
-            if days_total > max_days:
-                break
+            if days_lines:
+                days_and_lines.append((day_tm, days_lines))
+                days_lines = []
+                day_tm = line.ed_time
+                days_total += 1
+                if days_total > max_days:
+                    break
 
         days_lines.append(line)
 
@@ -293,14 +289,14 @@ def execute(macro, args, formatter=None, **kw):
         else:
             globalstr = ''
         if bookmark:
-            d['rc_curr_bookmark'] = " | %s" % rc_page.link_to(querystr="action=bookmark&time=del%s" % globalstr, text=_("Show all changes"))
+            d['rc_curr_bookmark'] = " %s" % rc_page.link_to(querystr="action=bookmark&time=del%s" % globalstr, text=_("Show all changes"))
                  
-        d['rc_update_bookmark'] = ' | %s' % rc_page.link_to(querystr="action=bookmark&time=%d%s" % (tnow, globalstr), text=_("Clear observed changes"))
+        d['rc_update_bookmark'] = ' %s' % rc_page.link_to(querystr="action=bookmark&time=%d%s" % (tnow, globalstr), text=_("Clear observed changes"))
         if wiki_global:
             if request.user.getRcGroupByWiki():
-                d['rc_group_by_wiki'] = ' | %s' % rc_page.link_to(querystr="action=groupbywiki&off=1", text="Group all changes together")
+                d['rc_group_by_wiki'] = ' %s' % rc_page.link_to(querystr="action=groupbywiki&off=1", text="View all changes together")
             else:
-                d['rc_group_by_wiki'] = ' | %s' % rc_page.link_to(querystr="action=groupbywiki", text="Group changes by wiki")
+                d['rc_group_by_wiki'] = ' %s' % rc_page.link_to(querystr="action=groupbywiki", text="Group changes by wiki")
         else:
             d['rc_group_by_wiki'] = ''
         
@@ -323,13 +319,13 @@ def execute(macro, args, formatter=None, **kw):
     lines_by_day = group_changes_by_day(lines, tnow, max_days, request)
     for day, lines in lines_by_day:
         print_day(day, request, d)
-        if request.user.getRcGroupByWiki():
+        if wiki_global and request.user.getRcGroupByWiki():
             lines_grouped = group_changes_by_wiki(lines, request)
             wiki_names_sorted = lines_grouped.keys()
             wiki_names_sorted.sort()
             for wiki_name in wiki_names_sorted:
                 if lines_grouped[wiki_name]:
-                    request.write('<h3 style="padding: .15em;">%s:</h3>' % farm.link_to_wiki(wiki_name, formatter))
+                    request.write('<h3 style="padding: .2em;">%s:</h3>' % farm.link_to_wiki(wiki_name, formatter))
                     print_changes(lines_grouped[wiki_name], bookmark, tnow, max_days, showComments, d, wiki_global, macro, request, formatter, grouped=True)
         else:
             print_changes(lines, bookmark, tnow, max_days, showComments, d, wiki_global, macro, request, formatter)
@@ -339,5 +335,3 @@ def execute(macro, args, formatter=None, **kw):
     request.write(request.theme.recentchanges_footer(d))
 
     return ''
-
-
