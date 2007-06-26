@@ -289,14 +289,14 @@ def execute(macro, args, formatter=None, **kw):
         else:
             globalstr = ''
         if bookmark:
-            d['rc_curr_bookmark'] = " %s" % rc_page.link_to(querystr="action=bookmark&time=del%s" % globalstr, text=_("Show all changes"))
+            d['rc_curr_bookmark'] = rc_page.link_to(querystr="action=bookmark&time=del%s" % globalstr, text=_("Show all changes"))
                  
-        d['rc_update_bookmark'] = ' %s' % rc_page.link_to(querystr="action=bookmark&time=%d%s" % (tnow, globalstr), text=_("Clear observed changes"))
+        d['rc_update_bookmark'] = rc_page.link_to(querystr="action=bookmark&time=%d%s" % (tnow, globalstr), text=_("Clear observed changes"))
         if wiki_global:
             if request.user.getRcGroupByWiki():
-                d['rc_group_by_wiki'] = ' %s' % rc_page.link_to(querystr="action=groupbywiki&off=1", text="View all changes together")
+                d['rc_group_by_wiki'] = rc_page.link_to(querystr="action=groupbywiki&off=1", text="View all changes together")
             else:
-                d['rc_group_by_wiki'] = ' %s' % rc_page.link_to(querystr="action=groupbywiki", text="Group changes by wiki")
+                d['rc_group_by_wiki'] = rc_page.link_to(querystr="action=groupbywiki", text="Group changes by wiki")
         else:
             d['rc_group_by_wiki'] = ''
         

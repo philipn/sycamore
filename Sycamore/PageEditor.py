@@ -690,8 +690,8 @@ Your changes were sucessfully merged!""" % conflict_msg)
             original_text = Page(self.page_name, self.request, prev_date=datestamp).get_raw_body()
             saved_text = self.get_raw_body()
             verynewtext, had_conflict = diff3.text_merge(original_text, saved_text, savetext,
-                 marker1='----- /!\ Edit conflict! Other version: -----\n',
-                 marker2='----- /!\ Edit conflict! Your version: -----\n',
+                 marker1='----- /!\ Edit conflict! Your version: -----\n',
+                 marker2='----- /!\ Edit conflict! Other version: -----\n',
                  marker3='----- /!\ End of edit conflict -----\n')
             msg = _("""Someone else changed this page while you were editing.""")
 
@@ -713,7 +713,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         elif config.max_page_size and len(newtext.encode(config.charset)) > (config.max_page_size*1024):
             msg = _('This page is too big!  Pages can be, at most, %sK.  Consider splitting the page up into multiple pages instead!' % (config.max_page_size))
             raise self.TooBig, msg
-            
+
         # save only if no error occured (msg is empty)
         if not msg or merged_changes:
             # set success msg

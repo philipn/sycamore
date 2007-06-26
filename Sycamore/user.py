@@ -243,6 +243,7 @@ class User(object):
             setattr(self, key, 0)
 
         self.remember_me = 1
+        logged_in_via_cookie = False
 
         if not self.auth_username and not self.id and not self.name:
             try:
@@ -262,6 +263,7 @@ class User(object):
                             # okay, lets let them in
                             self.id = self.getUserIdDough(cookie[cookie_id].value)
                             self.is_login = True
+                            logged_in_via_cookie = True
                             # kill possible old 'COOKIE_NOT_LOGGED_IN' cookies
                             if cookie.has_key(COOKIE_NOT_LOGGED_IN):
                                 # clear out this cookie
@@ -299,7 +301,7 @@ class User(object):
             self.id = getUserId(self.name, self.request)
 
         if self.id:
-            self.load_from_id(check_pass=is_login)
+            self.load_from_id(check_pass=(is_login and not logged_in_via_cookie))
             if self.name == self.auth_username:
                 self.trusted = 1
         elif self.name:
@@ -308,17 +310,18 @@ class User(object):
         # we want them to be able to sign back in right after they click the 'logout' GET link, hence this test
         is_form_logout = (request.form.has_key('qs') and 
                           urllib.unquote(request.form['qs'][0]) == 'action=userform&logout=Logout')
-        if (is_login or not_logged_in is None) and request.config.domain and request.config.domain != config.wiki_base_domain and \
-          config.wiki_farm and not self.id and not is_form_logout:
-              # we try the base farm for authentication
-              page_url = '%s%s' % (request.getBaseURL(), request.getPathinfo())
-              if request.query_string:
-                qs = '&qs=%s' % urllib.quote(request.query_string)
-              else:
-                qs = ''
-              url = 'http://%s%s/%s?action=userform&login_check=1&backto_wiki=%s&backto_page=%s%s' % (config.wiki_base_domain, config.web_dir, config.relative_dir, request.config.wiki_name, urllib.quote(page_url), qs)
-              request.html_head.append("""<script type="text/javascript">var authentication_url = '%s';</script>""" % url)
-        else:
+        if is_login:
+          if not_logged_in is None and request.config.domain and request.config.domain != config.wiki_base_domain and \
+              config.wiki_farm and not self.id and not is_form_logout:
+                # we try the base farm for authentication
+                page_url = '%s%s' % (request.getBaseURL(), request.getPathinfo())
+                if request.query_string:
+                  qs = '&qs=%s' % urllib.quote(request.query_string)
+                else:
+                  qs = ''
+                url = 'http://%s%s/%s?action=userform&login_check=1&backto_wiki=%s&backto_page=%s%s' % (config.wiki_base_domain, config.web_dir, config.relative_dir, request.config.wiki_name, urllib.quote(page_url), qs)
+                request.html_head.append("""<script type="text/javascript">var authentication_url = '%s';</script>""" % url)
+          else:
               request.html_head.append("""<script type="text/javascript">var authentication_url = '';</script>""")
 
         if not self.name and not self.id:

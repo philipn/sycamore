@@ -239,7 +239,7 @@ class RequestBase(object):
             return
         else:
             self.relative_dir = getRelativeDir(self)
-            self.user = user.User(self)
+            self.user = user.User(self, is_login=True)
 
             self.lang = i18n.requestLanguage(self) 
             self.getText = lambda text, i18n=self.i18n, request=self, lang=self.lang: i18n.getText(text, request, lang)

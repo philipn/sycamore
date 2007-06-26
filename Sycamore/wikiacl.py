@@ -76,7 +76,7 @@ class AccessControlList:
              allowed = self.acl_dict["Known"][ACL_RIGHTS_TABLE[dowhat]]
              return allowed
         else:
-          # we fall back to ALl behavior if there is something specific to All on this page
+          # we fall back to All behavior if there is something specific to All on this page
           if self.acl_dict.has_key('All'):
              allowed = self.acl_dict["All"][ACL_RIGHTS_TABLE[dowhat]]
              return allowed

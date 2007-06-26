@@ -490,10 +490,15 @@ def _sort_changes_by_time(changes):
 
 
 def filter_may_read(changes, request):
+    readability_status = {} # to reduce the number of method calls here.  People refresh RC a lot!
     def _filter_f(change):
+        if readability_status.has_key((change.wiki_name, change.pagename)):
+            return readability_status[(change.wiki_name, change.pagename)]
         request.switch_wiki(change.wiki_name)
         page = Page(change.pagename, request, wiki_name=change.wiki_name)
-        return request.user.may.read(page)
+        status = request.user.may.read(page)
+        readability_status[(change.wiki_name, change.pagename)] = status
+        return status
 
     from Sycamore.Page import Page
     original_wiki = request.config.wiki_name
@@ -674,9 +679,9 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       if request.config.wiki_name != original_wiki:
          request.switch_wiki(original_wiki)
       changes = _sort_changes_by_time(changes)
-      if check_acl:
-         changes = filter_may_read(changes, request)
       changes = changes[:ABSOLUTE_RC_CHANGES_LIMIT] # for consistency's sake
+      if check_acl:
+          changes = filter_may_read(changes, request)
       return changes
 
   elif userFavoritesFor:
