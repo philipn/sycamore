@@ -898,9 +898,7 @@ function unGroupChanges(entryNode)
     for (var i = 1; i < (mostly_rc_comments.length-1); i++) {
         if (mostly_rc_comments[i].className == "rccomment") {
             rc_comment = mostly_rc_comments[i];
-            rc_comment.style.height = null;
-            rc_comment.style.width = null;
-            rc_comment.style.display = 'inline';
+            rc_comment.style.display = 'block';
         }
     }
     // hide 'show all' node
