@@ -64,6 +64,7 @@ def group_changes_by_day(lines, tnow, max_days, request):
 
     return days_and_lines
 
+
 def group_changes_by_wiki(lines, request):
     wikis = request.user.getWatchedWikis()
     for wiki in wikis:
@@ -74,6 +75,7 @@ def group_changes_by_wiki(lines, request):
 
     return wikis
 
+
 def is_new_page(lines):
     """
     Looks at lines and determines if the page is newly created or not.
@@ -82,6 +84,7 @@ def is_new_page(lines):
         if line.action == 'SAVENEW':
             return True
     return False
+
 
 def format_page_edit_icon(request, lines, page, hilite, bookmark, formatter):
     is_new = is_new_page(lines)
@@ -116,6 +119,7 @@ def format_page_edit_icon(request, lines, page, hilite, bookmark, formatter):
                                       text=tag, absolute=True)
 
     return html_link
+
       
 def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_global=False, grouped_by_wiki=False):
     _ = request.getText
@@ -195,11 +199,13 @@ def format_page_edits(request, lines, showcomments, bookmark, formatter, wiki_gl
 
     return request.theme.recentchanges_entry(d)
 
+
 def print_day(day, request, d):
     d['date'] = request.user.getFormattedDateWords(day)
     request.write(request.theme.recentchanges_daybreak(d))
 
-def print_changes(lines, bookmark, tnow, max_days, showComments, d, wiki_global, macro, request, formatter, grouped=False):
+
+def print_changes(lines, bookmark, tnow, max_days, do_we_show_comments, d, wiki_global, macro, request, formatter, grouped=False):
     pages = {}
     today = request.user.getTime(tnow)[0:3]
     this_day = today
@@ -223,10 +229,58 @@ def print_changes(lines, bookmark, tnow, max_days, showComments, d, wiki_global,
         pages.reverse()
         
         for page_line in pages:
-            request.write(format_page_edits(request, page_line, showComments, bookmark, formatter, wiki_global=wiki_global, grouped_by_wiki=grouped))
+            request.write(format_page_edits(request, page_line, do_we_show_comments, bookmark, formatter, wiki_global=wiki_global, grouped_by_wiki=grouped))
+
 
 def cmp_lines(first, second):
     return cmp(first[0].ed_time, second[0].ed_time)
+
+
+def print_rc_header(request, d):
+    # give known user the option to extend the normal display
+    if request.user.valid:
+        d['rc_days'] = _DAYS_SELECTION
+    else:
+        d['rc_days'] = []
+
+    request.write(request.theme.recentchanges_header(d))
+
+
+def add_bookmark_link(rc_page, tnow, bookmark, wiki_global, request, d):
+    """
+    Add bookmark link if valid user.
+    """
+    _ = request.getText
+    d['rc_curr_bookmark'] = None
+    d['rc_update_bookmark'] = None
+    if request.user.valid:
+        d['rc_curr_bookmark'] = ''
+        if wiki_global:
+            globalstr = '&global=1'
+        else:
+            globalstr = ''
+        if bookmark:
+            d['rc_curr_bookmark'] = rc_page.link_to(querystr="action=bookmark&time=del%s" % globalstr, text=_("Show all changes"))
+                 
+        d['rc_update_bookmark'] = rc_page.link_to(querystr="action=bookmark&time=%d%s" % (tnow, globalstr), text=_("Clear observed changes"))
+        if wiki_global:
+            if request.user.getRcGroupByWiki():
+                d['rc_group_by_wiki'] = rc_page.link_to(querystr="action=groupbywiki&off=1", text="View all changes together")
+            else:
+                d['rc_group_by_wiki'] = rc_page.link_to(querystr="action=groupbywiki", text="Group changes by wiki")
+        else:
+            d['rc_group_by_wiki'] = ''
+
+
+def setup_show_comments(do_we_show_comments, rc_page, request, d):
+    d['show_comments_html'] = None
+    d['show_comments'] = None
+    d['show_comments'] = do_we_show_comments 
+    if do_we_show_comments == 1:
+        d['show_comments_html'] = rc_page.link_to(querystr="action=showcomments&hide=1", text="Hide comments")
+    else:
+        d['show_comments_html'] = rc_page.link_to(querystr="action=showcomments", text="Show comments")
+
 
 def execute(macro, args, formatter=None, **kw):
     if not formatter: formatter = macro.formatter
@@ -270,43 +324,12 @@ def execute(macro, args, formatter=None, **kw):
     tnow = time.time()
     msg = ""
 
-    showComments = request.user.getShowComments()
-    d['show_comments_html'] = None
-    d['show_comments'] = None
-    d['show_comments'] = showComments
-    if showComments == 1:
-        d['show_comments_html'] = rc_page.link_to(querystr="action=showcomments&hide=1", text="Hide comments")
-    else:
-        d['show_comments_html'] = rc_page.link_to(querystr="action=showcomments", text="Show comments")
+    do_we_show_comments = request.user.getShowComments()
+    setup_show_comments(do_we_show_comments, rc_page, request, d)
 
-    # add bookmark link if valid user
-    d['rc_curr_bookmark'] = None
-    d['rc_update_bookmark'] = None
-    if request.user.valid:
-        d['rc_curr_bookmark'] = ''
-        if wiki_global:
-            globalstr = '&global=1'
-        else:
-            globalstr = ''
-        if bookmark:
-            d['rc_curr_bookmark'] = rc_page.link_to(querystr="action=bookmark&time=del%s" % globalstr, text=_("Show all changes"))
-                 
-        d['rc_update_bookmark'] = rc_page.link_to(querystr="action=bookmark&time=%d%s" % (tnow, globalstr), text=_("Clear observed changes"))
-        if wiki_global:
-            if request.user.getRcGroupByWiki():
-                d['rc_group_by_wiki'] = rc_page.link_to(querystr="action=groupbywiki&off=1", text="View all changes together")
-            else:
-                d['rc_group_by_wiki'] = rc_page.link_to(querystr="action=groupbywiki", text="Group changes by wiki")
-        else:
-            d['rc_group_by_wiki'] = ''
+    add_bookmark_link(rc_page, tnow, bookmark, wiki_global, request, d)
         
-    # give known user the option to extend the normal display
-    if request.user.valid:
-        d['rc_days'] = _DAYS_SELECTION
-    else:
-        d['rc_days'] = []
-
-    request.write(request.theme.recentchanges_header(d))
+    print_rc_header(request, d)
     
     if not lines:
         if wiki_global:
@@ -326,9 +349,9 @@ def execute(macro, args, formatter=None, **kw):
             for wiki_name in wiki_names_sorted:
                 if lines_grouped[wiki_name]:
                     request.write('<h3 style="padding: .2em;">%s:</h3>' % farm.link_to_wiki(wiki_name, formatter))
-                    print_changes(lines_grouped[wiki_name], bookmark, tnow, max_days, showComments, d, wiki_global, macro, request, formatter, grouped=True)
+                    print_changes(lines_grouped[wiki_name], bookmark, tnow, max_days, do_we_show_comments, d, wiki_global, macro, request, formatter, grouped=True)
         else:
-            print_changes(lines, bookmark, tnow, max_days, showComments, d, wiki_global, macro, request, formatter)
+            print_changes(lines, bookmark, tnow, max_days, do_we_show_comments, d, wiki_global, macro, request, formatter)
         
 
     d['rc_msg'] = msg
