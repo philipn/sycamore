@@ -352,7 +352,6 @@ def execute(macro, args, formatter=None, **kw):
                     print_changes(lines_grouped[wiki_name], bookmark, tnow, max_days, do_we_show_comments, d, wiki_global, macro, request, formatter, grouped=True)
         else:
             print_changes(lines, bookmark, tnow, max_days, do_we_show_comments, d, wiki_global, macro, request, formatter)
-        
 
     d['rc_msg'] = msg
     request.write(request.theme.recentchanges_footer(d))

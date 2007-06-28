@@ -5,18 +5,14 @@
     @copyright: 2005-2007 Philip Neustrom
     @license: GNU GPL, see COPYING for details.
 """
-
 # User calls wikidb.connect() to get a WikiDB object.
+# We only connect to the database when we execute a query.
+# (But it's all invisible to you.)
 
 # Imports
 from Sycamore import config
 from Sycamore.support import pool
 import time, array, copy
-
-#import sys, os.path
-#__directory__ = os.path.dirname(__file__)
-#sys.path.extend([os.path.abspath(os.path.join(__directory__, 'support'))])
-#import sqlalchemy
 
 if config.db_type == 'mysql':
   dbapi_module = __import__("MySQLdb")
@@ -66,8 +62,6 @@ class WikiDB(object):
         # the del here is needed so the connection pool gets the element back
   
   def cursor(self):
-    # TODO: need to make sure we set autocommit off in other dbs
-    # which dbs use autocommit by default?
     return WikiDBCursor(self)
   
   def commit(self):
@@ -141,10 +135,6 @@ class WikiDBCursor(object):
     else:
         self.db_cursor.execute(query, args) 
 
-    # Debug output:
-    #if self.db_cursor.__class__.__name__ == 'WikiDBCursor':
-    #    print query % args
-
   def executemany(self, query, args_seq=(), isWrite=False):
     if isWrite:
       self.db.do_commit = True
@@ -172,23 +162,23 @@ class WikiDBCursor(object):
         del self.db
 
 def _fixArgs(args):
-    # Converts python floats to limited-precision float strings
-    #  before sending them to the db.  This is so that we can 
-    #  keep the precision consistent between implementations.
-    #  (I am not sure of a more elegant way to do this without using a specialized mysql type.)
-    #  (This at least keeps consistency and keeps the accidential programmer from being throw off by 
-    #  weird floating point issues)
-    #  The idea is that we limit the length of our floats to be five places after the decimal point.
-    #  Python's floats are bigger than this, and so are mysql's.  So we know that our internal rounding
-    #  will work and be consistent between the two.
+    """
+    Converts python floats to limited-precision float strings
+    before sending them to the db.  This is so that we can 
+    keep the precision consistent between implementations.
+    (I am not sure of a more elegant way to do this without using a specialized mysql type.)
+    (This at least keeps consistency and keeps the accidential programmer from being throw off by 
+    weird floating point issues)
+
+    The idea is that we limit the length of our floats to be five places after the decimal point.
+    Python's floats are bigger than this, and so are mysql's.  So we know that our internal rounding
+    will work and be consistent between the two.
+    """
 
     def fixValue(o):
       if type(o) == float: return _floatToString(o)
       else: return o
     
-    # is args a sequence?
-    #if type(args) == type([]) or type(args) == type((1,)):
-    #  args = map(fixValue, args)
     new_args = {}
     for k, v in args.iteritems():
       new_args[k] = fixValue(v) 
@@ -196,12 +186,16 @@ def _fixArgs(args):
     return new_args
 
 def _floatToString(f):
-  # converts a float to the proper length of double that mysql uses.
-  # we need to use this when we render a link (GET/POST) that displays a double from the db, because python's floats are bigger than mysql's floats
+  """
+  Converts a float to the proper length of double that mysql uses.
+  We need to use this when we render a link (GET/POST) that displays a double from the db, because python's floats are bigger than mysql's floats
+  """
   return "%.5f" % f
 
 def binaryToString(b):
-  # converts a binary format (as returned by the db) to a string.  Different modules do this differently :-/
+  """
+  Converts a binary format (as returned by the db) to a string.  Different modules do this differently :-/
+  """
   if config.db_type == 'postgres':
     return str(b)
   elif config.db_type == 'mysql':
@@ -209,9 +203,17 @@ def binaryToString(b):
     return b.tostring()
 
 def connect():
+  """
+  A 'pretend' connect.
+
+  We don't really connect to the db until we internally call real_connect().  We do this when we see our first query.
+  """
   return WikiDB(None)
 
 def real_connect():
+  """
+  Actually initiate a connection to the database.
+  """
   d = {}
   global dbapi
   if config.db_host:
@@ -265,40 +267,53 @@ def real_connect():
 
 def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=None, size=None, fresh=False):
   """
-  dict is a dictionary with possible keys: filename, page_name, and file_version.
+  Get the file from the database.
 
-  We return either False if the file doesn't exist, or a tuple:
+  @param dict: a dictionary with possible keys: filename, page_name, and file_version.
+  @param deleted: whether or not the version of the file we want is a deleted version.
+  @param thumbnail: whether or not the file is an image thumbnail.
+  @param version: the unix timestamp of the version of the file we want.  Leave blank for the current version.
+  @param ticket: request ticket that we need to avoid thumbnail regeneration.  Only applies for thumbnails.
+  @param size: the integer size of the image we are grabbing.  Only applies for images.
+  @param fresh: if True then grab only fresh data -- nothing stale from the cache.
 
-  (filecontentstring, last_modified_date)
+  @return: either False if the file doesn't exist, or a tuple: (filecontentstring, last_modified_date)
   """
+  def assemble_query():
+      # let's assemble the query and key if we use memcache
+      key = None
+      if not deleted and not thumbnail and not version:
+        if config.memcache:
+          key = "files:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']))
+        query = "SELECT file, uploaded_time from files where name=%(filename)s and attached_to_pagename=%(page_name)s and wiki_id=%(wiki_id)s"
+      elif thumbnail:
+        if not ticket:
+          if config.memcache:
+            key = "thumbnails:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']))
+          query = "SELECT image, last_modified from thumbnails where name=%(filename)s and attached_to_pagename=%(page_name)s and wiki_id=%(wiki_id)s"
+        else: 
+          if config.memcache:
+            key = "thumbnails:%s,%s" % (mc_quote(dict['filename']), size or ticket)
+      elif deleted:
+        if not version:
+          # default behavior is to grab the latest backup version of the image
+          if config.memcache:
+            key = "oldfiles:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']))
+          query = "SELECT file, uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(page_name)s and wiki_id=%(wiki_id)s order by uploaded_time desc;"
+        elif version:
+          if config.memcache:
+            key = "oldfiles:%s,%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']), version)
+          query = "SELECT file, uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(page_name)s and uploaded_time=%(file_version)s and wiki_id=%(wiki_id)s"
+
+      return query, key
+
+
   from Sycamore.wikiutil import mc_quote
   file_obj = None
   dict['page_name'] = dict['page_name'].lower()
   dict['wiki_id'] = request.config.wiki_id
 
-  # let's assemble the query and key if we use memcache
-  if not deleted and not thumbnail and not version:
-    if config.memcache:
-      key = "files:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']))
-    query = "SELECT file, uploaded_time from files where name=%(filename)s and attached_to_pagename=%(page_name)s and wiki_id=%(wiki_id)s"
-  elif thumbnail:
-    if not ticket:
-      if config.memcache:
-        key = "thumbnails:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']))
-      query = "SELECT image, last_modified from thumbnails where name=%(filename)s and attached_to_pagename=%(page_name)s and wiki_id=%(wiki_id)s"
-    else: 
-      if config.memcache:
-        key = "thumbnails:%s,%s" % (mc_quote(dict['filename']), size or ticket)
-  elif deleted:
-    if not version:
-      # default behavior is to grab the latest backup version of the image
-      if config.memcache:
-        key = "oldfiles:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']))
-      query = "SELECT file, uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(page_name)s and wiki_id=%(wiki_id)s order by uploaded_time desc;"
-    elif version:
-      if config.memcache:
-        key = "oldfiles:%s,%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['page_name']), version)
-      query = "SELECT file, uploaded_time from oldFiles where name=%(filename)s and attached_to_pagename=%(page_name)s and uploaded_time=%(file_version)s and wiki_id=%(wiki_id)s"
+  query, key = assemble_query()
 
   if config.memcache and not fresh:
     file_obj = request.mc.get(key)
@@ -324,6 +339,7 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=Non
 
   if file_obj:
     return file_obj[0], file_obj[1]
+
 
 def putFile(request, dict, thumbnail=False, do_delete=False, temporary=False, ticket=None, permanent=False):
   """
