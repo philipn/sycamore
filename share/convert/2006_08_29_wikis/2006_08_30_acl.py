@@ -6,7 +6,7 @@ from Sycamore import wikiutil, config, request, caching, wikidb, maintenance, bu
 from Sycamore.Page import Page
 from Sycamore.buildDB import FlatPage
 
-wiki_name = 'anthill' # leave None if you aren't dealing with more than one wiki
+wiki_name = None # leave None if you aren't dealing with more than one wiki
 
 admin_group = 'AdminGroup'  # the name of the old-style group who had admin-y rights
 banned_group = 'BannedGroup' # the name of the old-style group who was banned

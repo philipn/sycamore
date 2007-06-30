@@ -28,59 +28,59 @@ wikis_to_merge = [
 ]
 
 tables = [ 
-    #('curPages', ('name', 'text', 'cachedText', 'editTime', 'cachedTime', 'userEdited', 'propercased_name', 'wiki_id')),
-    #('allPages', ('name', 'text', 'editTime', 'userEdited', 'editType', 'comment', 'userIP', 'propercased_name', 'wiki_id')),
-    #('users', ('id', 'name', 'email', 'enc_password', 'language', 'remember_me', 'css_url', 'disabled', 'edit_cols', 'edit_rows', 'edit_on_doubleclick', 'theme_name', 'last_saved', 'join_date', 'created_count', 'edit_count', 'file_count', 'last_page_edited', 'last_edit_date', 'rc_bookmark', 'rc_showcomments', 'tz', 'propercased_name', 'last_wiki_edited', 'wiki_for_userpage')),
-    #('userFavorites', ('username', 'page', 'viewTime', 'wiki_name')),
-    #('userWatchedWikis', ('username', 'wiki_name')),
-    #('userSessions', ('user_id', 'session_id', 'secret', 'expire_time')),
-    #('links', ('source_pagename', 'destination_pagename', 'destination_pagename_propercased', 'wiki_id')),
+    ('curPages', ('name', 'text', 'cachedText', 'editTime', 'cachedTime', 'userEdited', 'propercased_name', 'wiki_id')),
+    ('allPages', ('name', 'text', 'editTime', 'userEdited', 'editType', 'comment', 'userIP', 'propercased_name', 'wiki_id')),
+    ('users', ('id', 'name', 'email', 'enc_password', 'language', 'remember_me', 'css_url', 'disabled', 'edit_cols', 'edit_rows', 'edit_on_doubleclick', 'theme_name', 'last_saved', 'join_date', 'created_count', 'edit_count', 'file_count', 'last_page_edited', 'last_edit_date', 'rc_bookmark', 'rc_showcomments', 'tz', 'propercased_name', 'last_wiki_edited', 'wiki_for_userpage')),
+    ('userFavorites', ('username', 'page', 'viewTime', 'wiki_name')),
+    ('userWatchedWikis', ('username', 'wiki_name')),
+    ('userSessions', ('user_id', 'session_id', 'secret', 'expire_time')),
+    ('links', ('source_pagename', 'destination_pagename', 'destination_pagename_propercased', 'wiki_id')),
     ('events', ('uid', 'event_time', 'posted_by', 'text', 'location', 'event_name', 'posted_by_ip', 'posted_time', 'wiki_id')),
-   # ('files', ('name', 'file', 'uploaded_time', 'uploaded_by', 'attached_to_pagename', 'uploaded_by_ip', 'attached_to_pagename_propercased', 'wiki_id')),
-   # ('oldFiles', ('name', 'file', 'uploaded_time', 'uploaded_by', 'attached_to_pagename', 'deleted_time', 'deleted_by', 'uploaded_by_ip', 'deleted_by_ip', 'attached_to_pagename_propercased', 'wiki_id')),
-   # ('thumbnails', ('xsize', 'ysize', 'name', 'attached_to_pagename', 'image', 'last_modified', 'wiki_id')),
-   # ('imageInfo', ('name', 'attached_to_pagename', 'xsize', 'ysize', 'wiki_id')),
-   # ('oldImageInfo', ('name', 'attached_to_pagename', 'xsize', 'ysize', 'uploaded_time', 'wiki_id')),
-   # ('imageCaptions', ('image_name', 'attached_to_pagename', 'linked_from_pagename', 'caption', 'wiki_id')),
-   # #('mapCategoryDefinitions', ('id', 'img', 'name', 'wiki_id')),
-   # #('mapPoints', ('pagename', 'x', 'y', 'created_time', 'created_by', 'created_by_ip', 'id', 'pagename_propercased', 'address', 'wiki_id')),
-   # #('oldMapPoints', ('pagename', 'x', 'y', 'created_time', 'created_by', 'created_by_ip', 'deleted_time', 'deleted_by_ip', 'pagename_propercased', 'address', 'wiki_id')),
-   # #('mapPointCategories', ('pagename', 'x', 'y', 'id', 'wiki_id')),
-   # #('oldMapPointCategories', ('pagename', 'x', 'y', 'id', 'deleted_time', 'wiki_id')),
-   # ('pageDependencies', ('page_that_depends', 'source_page', 'wiki_id')),
-   # ('metadata', ('pagename', 'type', 'name', 'value', 'wiki_id')),
-   # ('wikis', ('id', 'name', 'domain', 'is_disabled', 'sitename', 'other_settings')),
-   # ('userWikiInfo', ('user_name', 'wiki_id', 'first_edit_date', 'created_count', 'edit_count', 'file_count', 'last_page_edited', 'last_edit_date', 'rc_bookmark')),
-   # ('pageAcls', ('pagename', 'groupname', 'wiki_id', 'may_read', 'may_edit', 'may_delete', 'may_admin')),
-   # ('userGroups', ('username', 'groupname', 'wiki_id')),
-   # ('userGroupsIPs', ('ip', 'groupname', 'wiki_id')),
-   # ('lostPasswords', ('uid', 'code', 'written_time')), 
-   # ('wikisPending', ('wiki_name', 'code', 'written_time')),
-   # ('captchas', ('id', 'secret', 'human_readable_secret', 'written_time')),
+    ('files', ('name', 'file', 'uploaded_time', 'uploaded_by', 'attached_to_pagename', 'uploaded_by_ip', 'attached_to_pagename_propercased', 'wiki_id')),
+    ('oldFiles', ('name', 'file', 'uploaded_time', 'uploaded_by', 'attached_to_pagename', 'deleted_time', 'deleted_by', 'uploaded_by_ip', 'deleted_by_ip', 'attached_to_pagename_propercased', 'wiki_id')),
+    ('thumbnails', ('xsize', 'ysize', 'name', 'attached_to_pagename', 'image', 'last_modified', 'wiki_id')),
+    ('imageInfo', ('name', 'attached_to_pagename', 'xsize', 'ysize', 'wiki_id')),
+    ('oldImageInfo', ('name', 'attached_to_pagename', 'xsize', 'ysize', 'uploaded_time', 'wiki_id')),
+    ('imageCaptions', ('image_name', 'attached_to_pagename', 'linked_from_pagename', 'caption', 'wiki_id')),
+    ('mapCategoryDefinitions', ('id', 'img', 'name', 'wiki_id')),
+    ('mapPoints', ('pagename', 'x', 'y', 'created_time', 'created_by', 'created_by_ip', 'id', 'pagename_propercased', 'address', 'wiki_id')),
+    ('oldMapPoints', ('pagename', 'x', 'y', 'created_time', 'created_by', 'created_by_ip', 'deleted_time', 'deleted_by_ip', 'pagename_propercased', 'address', 'wiki_id')),
+    ('mapPointCategories', ('pagename', 'x', 'y', 'id', 'wiki_id')),
+    ('oldMapPointCategories', ('pagename', 'x', 'y', 'id', 'deleted_time', 'wiki_id')),
+    ('pageDependencies', ('page_that_depends', 'source_page', 'wiki_id')),
+    ('metadata', ('pagename', 'type', 'name', 'value', 'wiki_id')),
+    ('wikis', ('id', 'name', 'domain', 'is_disabled', 'sitename', 'other_settings')),
+    ('userWikiInfo', ('user_name', 'wiki_id', 'first_edit_date', 'created_count', 'edit_count', 'file_count', 'last_page_edited', 'last_edit_date', 'rc_bookmark')),
+    ('pageAcls', ('pagename', 'groupname', 'wiki_id', 'may_read', 'may_edit', 'may_delete', 'may_admin')),
+    ('userGroups', ('username', 'groupname', 'wiki_id')),
+    ('userGroupsIPs', ('ip', 'groupname', 'wiki_id')),
+    ('lostPasswords', ('uid', 'code', 'written_time')), 
+    ('wikisPending', ('wiki_name', 'code', 'written_time')),
+    ('captchas', ('id', 'secret', 'human_readable_secret', 'written_time')),
 ]
 
 tables_with_wiki_id = [
-#    'curPages',
-#    'allPages',
-#    'links',
+    'curPages',
+    'allPages',
+    'links',
     'events',
-#    'files',
-#    'oldFiles',
-#    'thumbnails',
-#    'imageInfo',
-#    'oldImageInfo',
-#    'imageCaptions',
-#    'mapCategoryDefinitions',
-#    'mapPoints',
-#    'oldMapPoints',
-#    'mapPointCategories',
-#    'oldMapPointCategories',
-#    'pageDependencies',
-#    'metadata',
-#    'userWikiInfo',
-#    'pageAcls',
-#    'userGroups',
-#    'userGroupsIPs',
+    'files',
+    'oldFiles',
+    'thumbnails',
+    'imageInfo',
+    'oldImageInfo',
+    'imageCaptions',
+    'mapCategoryDefinitions',
+    'mapPoints',
+    'oldMapPoints',
+    'mapPointCategories',
+    'oldMapPointCategories',
+    'pageDependencies',
+    'metadata',
+    'userWikiInfo',
+    'pageAcls',
+    'userGroups',
+    'userGroupsIPs',
 ]
 
 def clear_user_sessions(request):
@@ -99,7 +99,7 @@ def update_uid(username, uid, wikis_to_merge):
             cursor.execute("UPDATE files set uploaded_by=%(uid)s where uploaded_by=%(old_uid)s", d)
             cursor.execute("UPDATE oldFiles set uploaded_by=%(uid)s where uploaded_by=%(old_uid)s", d)
             cursor.execute("UPDATE oldFiles set deleted_by=%(uid)s where deleted_by=%(old_uid)s", d)
-            #cursor.execute("UPDATE mapPoints set created_by=%(uid)s where created_by=%(old_uid)s", d)
+            cursor.execute("UPDATE mapPoints set created_by=%(uid)s where created_by=%(old_uid)s", d)
             cursor.execute("UPDATE oldMapPoints set created_by=%(uid)s where created_by=%(old_uid)s", d)
             cursor.execute("UPDATE oldMapPoints set deleted_by=%(uid)s where deleted_by=%(old_uid)s", d)
 
@@ -271,7 +271,7 @@ for wiki_dict in wikis_to_merge:
     wiki_dict['db'] = wiki_db
     wiki_dict['cursor'] = wiki_cursor
 
-#users = find_canonical_users(wikis_to_merge, req)
+users = find_canonical_users(wikis_to_merge, req)
 
 req.cursor.execute("SELECT max(uid) from events")
 result = req.cursor.fetchone()
@@ -289,7 +289,7 @@ for wiki_dict in wikis_to_merge:
     wiki_cursor = wiki_dict['cursor']
     # if the wiki's id is already in the main hub
     # then we move the existing wiki to a new id
-    #move_potential_wiki_id_conflicts(wiki_cursor, req)
+    move_potential_wiki_id_conflicts(wiki_cursor, req)
     move_potential_uid_conflicts(wiki_cursor, req)
     
     for table, columns in tables:
@@ -309,9 +309,9 @@ for wiki_dict in wikis_to_merge:
             print "ValueError on", table, "at", wiki_dict['db_name']
             raise Exception
 
-#set_incremented_values(req)
+set_incremented_values(req)
 
-#clear_user_sessions(req)
+clear_user_sessions(req)
 
 req.db_disconnect()
 
