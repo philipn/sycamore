@@ -976,22 +976,22 @@ class Page(object):
             #clears the content of the cache regardless of whether or not the page needs an update
             self.request.mc.delete("links:%s" % key)
             if type == 'page save new':
-               self.request.mc.set("pagename:%s" % key, self.proper_name())
-               if wikiutil.isTemplatePage(self.proper_name()):
-                  # dirty the cache
-                  self.request.mc.set("templates", None)
+                self.request.mc.set("pagename:%s" % key, self.proper_name())
+                 if wikiutil.isTemplatePage(self.proper_name()):
+                    # dirty the cache
+                    self.request.mc.set("templates", None)
             elif type == 'page save delete':
-               self.request.mc.set("pagename:%s" % key, False)
-               if wikiutil.isTemplatePage(self.proper_name()):
-                  # dirty the cache
-                  self.request.mc.set("templates", None)
+                 self.request.mc.set("pagename:%s" % key, False)
+                 if wikiutil.isTemplatePage(self.proper_name()):
+                    # dirty the cache
+                    self.request.mc.set("templates", None)
             else:
-               if self.exists():
-                 self.request.mc.set("pagename:%s" % key, self.proper_name())
+                if self.exists():
+                    self.request.mc.set("pagename:%s" % key, self.proper_name())
 
             if self.page_name.lower() == self.request.config.interwikimap.lower():
-               self.request.req_cache['interwiki'][self.request.config.wiki_id] = wikidicts.Dict(self.page_name, self.request, case_insensitive=True, fresh=True)
-               self.request.mc.set('interwiki', self.request.req_cache['interwiki'][self.request.config.wiki_id])
+                self.request.req_cache['interwiki'][self.request.config.wiki_id] = wikidicts.Dict(self.page_name, self.request, case_insensitive=True, fresh=True)
+                self.request.mc.set('interwiki', self.request.req_cache['interwiki'][self.request.config.wiki_id])
 
         request.mode_getpagelinks = 0
         request.generating_cache = False
