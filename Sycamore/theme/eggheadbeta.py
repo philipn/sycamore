@@ -586,16 +586,3 @@ def execute(request):
     @return: Theme object
     """
     return Theme(request)
-    
-def is_word_in_file(file, word):
-      """
-      Pass me a file location and i tell you if word is in that file
-      """
-      f = open(file)
-      lines = f.readlines()
-      f.close()
-      for line in lines:
-         if string.find(line, word) >= 0:
-            return 1
-      return 0
-

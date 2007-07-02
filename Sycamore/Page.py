@@ -977,7 +977,7 @@ class Page(object):
             self.request.mc.delete("links:%s" % key)
             if type == 'page save new':
                 self.request.mc.set("pagename:%s" % key, self.proper_name())
-                 if wikiutil.isTemplatePage(self.proper_name()):
+                if wikiutil.isTemplatePage(self.proper_name()):
                     # dirty the cache
                     self.request.mc.set("templates", None)
             elif type == 'page save delete':
@@ -1040,10 +1040,7 @@ class Page(object):
 
     def isTalkPage(self):
        pagename = self.proper_name()
-       if len(pagename) >= 5:
-           if pagename[len(pagename)-5:] == '/Talk':
-               return True
-       return False
+       return ( len(pagename) >= 5 and pagename[len(pagename)-5:] == '/Talk' )
 
 
     def getPageLinksTo(self):

@@ -2,7 +2,8 @@
 """
     Sycamore - PageEditor class
 
-    @copyright: 2005-2006 Philip Neustrom, <philipn@gmail.com>, 2000-2004 by J?rgen Hermann <jh@web.de>
+    @copyright: 2005-2007 Philip Neustrom, <philipn@gmail.com>,
+                2000-2004 by J?rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
@@ -64,7 +65,6 @@ class PageEditor(Page):
         Page.__init__(self, page_name, request, **keywords)
 
         self.do_revision_backup = keywords.get('do_revision_backup', 1)
-        #self.do_editor_backup = keywords.get('do_editor_backup', 1)
 
 
     def sendEditor(self, **kw):
@@ -121,7 +121,7 @@ class PageEditor(Page):
 
         page_needle = self.page_name
         if config.allow_subpages and page_needle.count('/'):
-          page_needle = '/' + page_needle.split('/')[-1]
+            page_needle = '/' + page_needle.split('/')[-1]
 
         wikiutil.send_title(self.request,
             self.proper_name(),
@@ -137,26 +137,28 @@ class PageEditor(Page):
         # get request parameters
         text_rows = None
         if form.has_key('rows'):
-          text_rows = int(form['rows'][0])
-          if self.request.user.valid:
-            # possibly update user's pref
-            if text_rows != self.request.user.edit_rows:
-              self.request.user.edit_rows = text_rows
-              self.request.user.save()
+            text_rows = int(form['rows'][0])
+            if self.request.user.valid:
+                # possibly update user's pref
+                if text_rows != self.request.user.edit_rows:
+                    self.request.user.edit_rows = text_rows
+                    self.request.user.save()
         else:
-          text_rows = config.edit_rows
-          if self.request.user.valid: text_rows = int(self.request.user.edit_rows)
+            text_rows = config.edit_rows
+            if self.request.user.valid:
+                text_rows = int(self.request.user.edit_rows)
 
         if form.has_key('cols'):
             text_cols = int(form['cols'][0])
             if self.request.user.valid:
-              # possibly update user's pref
-              if text_rows != self.request.user.edit_rows:
-                self.request.user.edit_rows = text_rows
-                self.request.user.save()
+                # possibly update user's pref
+                if text_rows != self.request.user.edit_rows:
+                    self.request.user.edit_rows = text_rows
+                    self.request.user.save()
         else:
             text_cols = 80
-            if self.request.user.valid: text_cols = int(self.request.user.edit_cols)
+            if self.request.user.valid:
+                text_cols = int(self.request.user.edit_cols)
 
         # check datestamp (version) of the page our edit is based on
         if preview is not None:
@@ -221,7 +223,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         # send text above text area
         
-        
         # button toolbar
         self.request.write('<div id="editArea">')
         self.request.write("<script type=\"text/javascript\">var buttonRoot = '%s';</script>" % (os.path.join(config.url_prefix, self.request.theme.name, 'img', 'buttons')))
@@ -251,9 +252,9 @@ Your changes were sucessfully merged!""" % conflict_msg)
         # generate default content
         if not raw_body:
             if self.isTalkPage():
-              raw_body = _('This page is for discussing the contents of ["%s"].') % (self.proper_name()[:-5],)
+                raw_body = _('This page is for discussing the contents of ["%s"].') % (self.proper_name()[:-5],)
             else:
-              raw_body = _('Describe %s here.') % (self.proper_name(),)
+                raw_body = _('Describe %s here.') % (self.proper_name(),)
 
         # replace CRLF with LF
         raw_body = self._normalize_text(raw_body)
@@ -298,8 +299,8 @@ Your changes were sucessfully merged!""" % conflict_msg)
         mapButton = ""
         mapHtml = ""
         if show_applet:
-          mapButton = '<input id="show" class="formbutton" type="button" value="Edit Map" onclick="doshow();"/><input class="formbutton" id="hide" style="display: none;" type="button" value="Hide Map" onclick="dohide();"/>'
-          mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="/%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, self.request.getScriptname(), self.proper_name(), self.request.getScriptname())
+            mapButton = '<input id="show" class="formbutton" type="button" value="Edit Map" onclick="doshow();"/><input class="formbutton" id="hide" style="display: none;" type="button" value="Hide Map" onclick="dohide();"/>'
+            mapHtml = '<br><table style="display: none;" id="map" cellspacing="0" cellpadding="0" width="810" height="460"><tr><td bgcolor="#ccddff" style="border: 1px dashed #aaaaaa;"><applet code="WikiMap.class" archive="%s/wiki/map.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="set" value="true"><param name="highlight" value="%s"><param name="wiki" value="/%s">You do not have Java enabled.</applet></td></tr></table>' % (config.web_dir, config.web_dir, self.request.getScriptname(), self.proper_name(), self.request.getScriptname())
 
         if self.request.user.may.admin(self):
             security_button = """<input type="button" class="formbutton" onClick="location.href='%s/%s?action=Security'" value="Security">""" % (self.request.getScriptname(), wikiutil.quoteWikiname(proper_name))
@@ -331,7 +332,8 @@ Your changes were sucessfully merged!""" % conflict_msg)
 %s
 ''' % (_('Preview'), save_button_text, cancel_button_text, mapButton, self.request.getScriptname(), wikiutil.quoteWikiname(proper_name), button_spellcheck, delete_button, rename_button, security_button, mapHtml))
 
-        if self.request.config.edit_agreement_text: self.request.write(self.request.config.edit_agreement_text)
+        if self.request.config.edit_agreement_text:
+            self.request.write(self.request.config.edit_agreement_text)
 
         badwords_re = None
         if preview is not None:
@@ -369,8 +371,9 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         if preview is not None:
             if not emit_anchor:
-              preview_name = "previewHide"
-            else: preview_name = "preview"
+                preview_name = "previewHide"
+            else:
+                preview_name = "preview"
             self.request.write('<div id="%s" class="preview">' % preview_name)
             self.send_page(content_only=1, hilite_re=badwords_re, preview=preview)
             self.request.write('</div>')
@@ -383,6 +386,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
         self.request.theme.emit_custom_html(config.page_footer2)
 
         self.request.write('</body></html>') 
+
 
     def sendCancel(self, newtext, datestamp):
         """
@@ -430,10 +434,10 @@ Your changes were sucessfully merged!""" % conflict_msg)
         from Sycamore import caching, search
 
         if config.memcache:
-          pagecount = wikidb.getPageCount(self.request) - 1
-          self.request.mc.set('active_page_count', pagecount)
-          if permanent and not showrc:
-                caching.updateRecentChanges(self)
+            pagecount = wikidb.getPageCount(self.request) - 1
+            self.request.mc.set('active_page_count', pagecount)
+            if permanent and not showrc:
+                  caching.updateRecentChanges(self)
 
         self.request.req_cache['pagenames'][(self.page_name, self.wiki_name)] = False
 
@@ -444,133 +448,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
         search.remove_from_index(self)
 
         return ''
-
-    def _sendNotification(self, comment, emails, email_lang, oldversions):
-        """
-        Send notification email for a single language.
-        @param comment: editor's comment given when saving the page
-        @param emails: list of email addresses
-        @param email_lang: language of emails
-        @param oldversions: old versions of this page
-        @rtype: int
-        @return: sendmail result
-        """
-        _ = lambda s, r=self.request, l=email_lang: r.getText(s, lang=l)
-
-        mailBody = _("Dear Wiki user,\n\n"
-            'You have subscribed to a wiki page or wiki category on "%(sitename)s" for change notification.\n\n'
-            "The following page has been changed by %(editor)s:\n"
-            "%(pagelink)s\n\n") % {
-                'editor': user.getUserIdentification(self.request),
-                'pagelink': self.request.getQualifiedURL(self.url(self.request)),
-                'sitename': self.request.config.sitename or self.request.getBaseURL(),
-        }
-
-        if comment:
-            mailBody = mailBody + \
-                _("The comment on the change is:\n%(comment)s\n\n") % {'comment': comment}
-
-        # append a diff
-        if not oldversions:
-            mailBody = mailBody + \
-                _("No older revisions of the page stored, diff not available.")
-        else:
-            newpage = os.path.join(config.text_dir, wikiutil.quoteFilename(self.page_name))
-            oldpage = os.path.join(config.backup_dir, oldversions[0])
-
-            rc, page_file, backup_file, lines = wikiutil.pagediff(oldpage, newpage)
-            if lines and len(lines) > 2:
-                mailBody = "%s%s\n%s" % (
-                    mailBody, ("-" * 78), ''.join(lines[2:]))
-            else:
-                mailBody = mailBody + _("No differences found!\n")
-                if rc:
-                    mailBody = mailBody + '\n\n' + \
-                        _('The diff function returned with error code %(rc)s!') % {'rc': rc}
-
-        return util.mail.sendmail(self.request, emails,
-            _('[%(sitename)s] Update of "%(pagename)s"') % {
-                'sitename': self.request.config.sitename or "Wiki",
-                'pagename': self.page_name,
-            },
-            mailBody, mail_from=config.mail_from)
-            # was: self.request.user.email, but we don't want to disclose email
-
-
-    def _notifySubscribers(self, comment):
-        """
-        Send email to all subscribers of this page.
-        
-        @param comment: editor's comment given when saving the page
-        @rtype: string
-        @return: message, indicating success or errors.
-        """
-        _ = self._
-        subscribers = self.getSubscribers(self.request, return_users=1)
-
-        wiki_is_smarter_than_its_users = _("You will not be notified of your own changes!") + '<br>'
-
-        if subscribers:
-            # get a list of old revisions, and append a diff
-            oldversions = wikiutil.getBackupList(config.backup_dir, self.page_name)
-
-            # send email to all subscribers
-            results = [_('Status of sending notification mails:')]
-            for lang in subscribers.keys():
-                emails = map(lambda u: u.email, subscribers[lang])
-                names  = map(lambda u: u.name,  subscribers[lang])
-                mailok, status = self._sendNotification(comment, emails, lang, oldversions)
-                recipients = ", ".join(names)
-                results.append(_('[%(lang)s] %(recipients)s: %(status)s') % {
-                    'lang': lang, 'recipients': recipients, 'status': status})
-
-            return wiki_is_smarter_than_its_users + '<br>'.join(results)
-
-        return wiki_is_smarter_than_its_users + _('Nobody subscribed to this page, no mail sent.')
-
-
-    def _user_variable(self):
-        """
-        If user has a profile return the user name from the profile
-        else return the remote address or "<unknown>"
-
-        If the user name contains spaces it is wiki quoted to allow
-        links to the wiki user homepage (if one exists).
-        
-        @rtype: string
-        @return: wiki freelink to user's homepage or remote address
-        """
-        username = self.request.user.name
-        if username and \
-                username.count(' ') and Page(username, self.request).exists():
-            username = '["%s"]' % username
-        return user.getUserIdentification(self.request, username)
-
-
-    def _expand_variables(self, text):
-        """
-        Expand @VARIABLE@ in `text`and return the expanded text.
-        
-        @param text: current text of wikipage
-        @rtype: string
-        @return: new text of wikipage, variables replaced
-        """
-        #!!! TODO: Allow addition of variables via moin_config (and/or a text file)
-        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", util.datetime.tmtuple())
-        system_vars = {
-            'PAGE': lambda s=self: s.page_name,
-            'TIME': lambda t=now: "[[DateTime(%s)]]" % t,
-            'DATE': lambda t=now: "[[Date(%s)]]" % t,
-            'USERNAME': lambda s=self: s._user_variable(),
-            'USER': lambda s=self: "-- %s" % (s._user_variable(),),
-            'SIG': lambda s=self, t=now: "-- %s [[DateTime(%s)]]"
-                % (s._user_variable(), t,),
-        }
-
-        #!!! TODO: Use a more stream-lined re.sub algorithm
-        for name, val in system_vars.items():
-            text = text.replace('@%s@' % name, val())
-        return text
 
 
     def _normalize_text(self, newtext, **kw):
@@ -666,10 +543,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
         _ = self._
         newtext = self._normalize_text(newtext, **kw)
 
-        # expand variables, unless it's a template or form page
-        if not wikiutil.isTemplatePage(self.page_name):
-            newtext = self._expand_variables(newtext)
-
         # for inline editing we want things to be as smooth as we can
         no_save_msg = False
         if self.request.form.has_key('no_save_msg') and self.request.form['no_save_msg'][0]:
@@ -743,6 +616,7 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
             return msg
 
+
     def _rename_lowercase_condition(self):
         given_name = self.given_name
         current_name = self.proper_name()
@@ -753,11 +627,6 @@ Your changes were sucessfully merged!""" % conflict_msg)
 
         return False
           
-    def notifySubscribers(self, **kw):
-        msg = ''
-        #if config.mail_smarthost and kw.get('notify', 0):
-        msg = msg + self._notifySubscribers(kw.get('comment', ''))
-        return msg
 
     def userStatAdd(self, theuser, action, pagename):
         self.request.cursor.execute("SELECT created_count, edit_count from users where name=%(username)s", {'username':theuser.name})
@@ -789,25 +658,3 @@ Your changes were sucessfully merged!""" % conflict_msg)
         wiki_info.last_edit_date = last_edit_date
 
         theuser.setWikiInfo(wiki_info)
-
-def is_word_in_file(file, word):
-      """
-      Pass me a file location and i tell you if word is in that file
-      """
-      f = open(file)
-      lines = f.readlines()
-      f.close()
-      for line in lines:
-         if string.find(line, word) >= 0:
-            return 1
-      return 0
-
-def on_same_line(file, word1, word2):
-      f = open(file)
-      lines = f.readlines()
-      f.close()
-      for line in lines:
-         if string.find(line, word1) >= 0 and string.find(line, word2) >= 0:
-            return 1
-      return 0
-
