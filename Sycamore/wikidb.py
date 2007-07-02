@@ -655,6 +655,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
         
         query += add_query
 
+
     def buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global, request):
         # we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
         if per_page_limit:
@@ -697,20 +698,7 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
         return ''.join(query)
 
 
-    if not userFavoritesFor and on_wikis is None and not fresh:
-        changes = None
-        if config.memcache:
-          changes = request.mc.get('rc:%s' % mc_quote(page))
-          if changes is not None:
-              if total_changes_limit:
-                  changes = changes[:total_changes_limit]
-              if changes_since:
-                  changes = _get_changes_since(changes_since, changes)
-              if check_acl:
-                  changes = filter_may_read(changes, request)
-              return changes
-
-    elif on_wikis is not None:
+    def get_interwiki_recent_changes():
         # we're doing an interwiki recent changes
         # so we get rc for each wiki in on_wikis list
         # we use get_multi here
@@ -760,7 +748,8 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
             changes = filter_may_read(changes, request)
         return changes
 
-    elif userFavoritesFor:
+
+    def get_user_favorites():
         from Sycamore import user
         changes = []
         original_wiki = request.config.wiki_name
@@ -776,6 +765,26 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
             changes = filter_may_read(changes, request)
         return changes
 
+
+    if not userFavoritesFor and on_wikis is None and not fresh:
+        changes = None
+        if config.memcache:
+          changes = request.mc.get('rc:%s' % mc_quote(page))
+          if changes is not None:
+              if total_changes_limit:
+                  changes = changes[:total_changes_limit]
+              if changes_since:
+                  changes = _get_changes_since(changes_since, changes)
+              if check_acl:
+                  changes = filter_may_read(changes, request)
+              return changes
+
+    elif on_wikis is not None:
+        return get_interwiki_recent_changes()
+        
+    elif userFavoritesFor:
+        return get_user_favorites()
+        
     lines = []
     right_now  = time.gmtime()
     # we limit recent changes to display at most the last max_days of edits.
@@ -791,7 +800,6 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       query_max_days = time.mktime((right_now[0], right_now[1], right_now[2]-RC_MAX_DAYS, 0, 0, 0, 0, 0, 0))
     else:
       query_max_days = max_days_ago
-
 
     query_total_changes_limit = total_changes_limit
     # by default for a per-page, grab total_changes_limit = 100
@@ -821,20 +829,21 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
       edit = request.cursor.fetchone()
 
     if config.memcache and add_to_cache:
-      request.mc.add('rc:%s' % mc_quote(page), lines)
+        request.mc.add('rc:%s' % mc_quote(page), lines)
 
-      # deepcopy here because sometimes people do lines.comment = something, and we
-      # want to add the 'real' data to the cache (postCommit, so it happens way later)
-      lines = copy.deepcopy(lines) 
+        # deepcopy here because sometimes people do lines.comment = something, and we
+        # want to add the 'real' data to the cache (postCommit, so it happens way later)
+        lines = copy.deepcopy(lines) 
 
     if total_changes_limit:
-      lines = lines[:total_changes_limit]
+        lines = lines[:total_changes_limit]
 
     lines = _sort_changes_by_time(lines) 
     if changes_since:
         lines = _get_changes_since(changes_since, lines)
     if check_acl:
         lines = filter_may_read(lines, request)
+
     return lines
 
 
