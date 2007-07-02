@@ -36,11 +36,12 @@ def getPageStatus(lines, pagename, request):
         break
 
 def group_changes_by_day(lines, tnow, max_days, request):
+    if not lines:
+        return
     days_and_lines = []
-    today = request.user.getTime(tnow)[0:3]
-    this_day = today
+    this_day = request.user.getTime(lines[0].ed_time)[0:3]
+    day_tm = lines[0].ed_time
     days_lines = []
-    day_tm = tnow
     days_total = 1
     for line in lines:
         line.time_tuple = request.user.getTime(line.ed_time)
@@ -206,16 +207,13 @@ def print_day(day, request, d):
 
 
 def print_changes(lines, bookmark, tnow, max_days, do_we_show_comments, d, wiki_global, macro, request, formatter, grouped=False):
+    if not lines:
+        return
     pages = {}
-    today = request.user.getTime(tnow)[0:3]
-    this_day = today
-    day_count = 0
 
     for line in lines:
         line.page = Page(line.pagename, macro.request, wiki_name=line.wiki_name)
         if not line.ed_time: continue
-        line.time_tuple = request.user.getTime(line.ed_time)
-        day = line.time_tuple[0:3]
         hilite = line.ed_time > (bookmark or line.ed_time)
         
         if pages.has_key((line.pagename, line.wiki_name)):

@@ -1,5 +1,5 @@
 #!/usr/bin/python -OO
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 
 import sys, socket, getopt, threading, time, copy, os, cPickle, xapian, random
 import __init__ # woo hackmagic
@@ -27,7 +27,8 @@ MAX_RETRY_OPEN = 10
 
 def debug_log(t):
     if DEBUG:
-        print t
+        sys.stdout.write(t + '\n')
+        sys.stdout.flush()
 
 def _search_sleep_time(delta=0):
     """

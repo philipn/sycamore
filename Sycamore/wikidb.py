@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Wiki database support functions
 
@@ -342,54 +342,86 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0, ticket=Non
 
 
 def putFile(request, dict, thumbnail=False, do_delete=False, temporary=False, ticket=None, permanent=False):
-  """
-  Puts the file (found in dict) into the database. dict is a dictionary with possible keys: filename, filecontent, uploaded_time, uploaded_by, pagename, uploaded_by_ip, xsize, ysize, deleted_time, deleted_by, deleted_by_ip
-  """
-  from Sycamore.wikiutil import mc_quote, isImage
-  from Sycamore.Page import Page
-  from Sycamore import caching
-  from Sycamore.action.Files import get_filedict
-  # prep for insert of binary data
-  if dict.has_key('filecontent'):
-    raw_image = dict['filecontent']
-    uploaded_time = dict['uploaded_time']
-    dict['filecontent'] = dbapi.Binary(raw_image)
-  page = Page(dict['pagename'], request)
-  dict['pagename_propercased'] = page.proper_name()
-  dict['pagename'] = dict['pagename'].lower()
-  dict['wiki_id'] = request.config.wiki_id
-  replaced_image = False
-  is_image = isImage(dict['filename'])
-    
-  if not temporary:
-    if not thumbnail and not do_delete:
-      request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict)
-      exists = request.cursor.fetchone()
-      if exists:
-        # backup file, then remove it  
-        replaced_image = True
-        request.cursor.execute("INSERT into oldFiles (name, file, uploaded_time, uploaded_by, attached_to_pagename, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased, wiki_id) values (%(filename)s, (select file from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_by from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(pagename)s, %(uploaded_time)s, %(uploaded_by)s, (select uploaded_by_ip from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(uploaded_by_ip)s, %(pagename_propercased)s, %(wiki_id)s)", dict, isWrite=True)
+    """
+    Puts the file (found in dict) into the database. dict is a dictionary with possible keys: filename, filecontent, uploaded_time, uploaded_by, pagename, uploaded_by_ip, xsize, ysize, deleted_time, deleted_by, deleted_by_ip
+    """
+    from Sycamore.wikiutil import mc_quote, isImage
+    from Sycamore.Page import Page
+    from Sycamore import caching
+    from Sycamore.action.Files import get_filedict
+
+    def set_cache_for_file():
+        """
+        Sets the memory cache for the new file.
+        """
+        if not config.memcache:
+            return
+
+        if not do_delete:
+            if not thumbnail: table = 'files'
+            else: table = 'thumbnails'
+            if not temporary:
+                key = "%s:%s,%s" % (table, mc_quote(dict['filename']), mc_quote(dict['pagename'].lower()))
+            else:
+                key = "%s,%s,%s" % (table, mc_quote(dict['filename']), ticket)
+            image_obj = (raw_image, uploaded_time)
+            request.mc.set(key, image_obj)
+        else:
+            if not thumbnail:
+                key = "files:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['pagename'].lower()))
+                request.mc.set(key, False)
+            if is_image and thumbnail:
+                key = "thumbnails:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['pagename'].lower()))
+                request.mc.set(key, False)
+
+        # set new file dict
+        if not replaced_image:
+            get_filedict(request, dict['pagename'], fresh=True, set=True)
+
+
+    def rebuild_page_cache():
+        """
+        Rebuilds the page cache.
+        """
+        if not request.generating_cache and not request.previewing_page:
+          from Sycamore import caching
+          from Sycamore.Page import Page
+          #caching.CacheEntry(dict['pagename'], request).clear()
+          page = Page(dict['pagename'], request)
+          if page.exists():
+              page.buildCache()
+
+
+    def handle_file_add():
+        request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict)
+        exists = request.cursor.fetchone()
+        if exists:
+            # backup file, then remove it  
+            replaced_image = True
+            request.cursor.execute("INSERT into oldFiles (name, file, uploaded_time, uploaded_by, attached_to_pagename, deleted_time, deleted_by, uploaded_by_ip, deleted_by_ip, attached_to_pagename_propercased, wiki_id) values (%(filename)s, (select file from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_by from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(pagename)s, %(uploaded_time)s, %(uploaded_by)s, (select uploaded_by_ip from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(uploaded_by_ip)s, %(pagename_propercased)s, %(wiki_id)s)", dict, isWrite=True)
+            if is_image:
+                request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time, wiki_id) values (%(filename)s, %(pagename)s, (select xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(wiki_id)s)", dict, isWrite=True)
+                request.cursor.execute("DELETE from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
+
+            request.cursor.execute("DELETE from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
+
+        request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased, wiki_id) values (%(filename)s, %(filecontent)s, %(uploaded_time)s, %(uploaded_by)s, %(pagename)s, %(uploaded_by_ip)s, %(pagename_propercased)s, %(wiki_id)s)", dict, isWrite=True)
         if is_image:
-          request.cursor.execute("INSERT into oldImageInfo (name, attached_to_pagename, xsize, ysize, uploaded_time, wiki_id) values (%(filename)s, %(pagename)s, (select xsize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select ysize from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), (select uploaded_time from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s), %(wiki_id)s)", dict, isWrite=True)
-          request.cursor.execute("DELETE from imageInfo where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
+            request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize, wiki_id) values (%(filename)s, %(pagename)s, %(xsize)s, %(ysize)s, %(wiki_id)s)", dict, isWrite=True)
+      
+        caching.updateRecentChanges(page)
 
-        request.cursor.execute("DELETE from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
 
-      request.cursor.execute("INSERT into files (name, file, uploaded_time, uploaded_by, attached_to_pagename, uploaded_by_ip, attached_to_pagename_propercased, wiki_id) values (%(filename)s, %(filecontent)s, %(uploaded_time)s, %(uploaded_by)s, %(pagename)s, %(uploaded_by_ip)s, %(pagename_propercased)s, %(wiki_id)s)", dict, isWrite=True)
-      if is_image:
-        request.cursor.execute("INSERT into imageInfo (name, attached_to_pagename, xsize, ysize, wiki_id) values (%(filename)s, %(pagename)s, %(xsize)s, %(ysize)s, %(wiki_id)s)", dict, isWrite=True)
-    
-      caching.updateRecentChanges(page)
+    def handle_thumbnail_add():
+        request.cursor.execute("SELECT name from thumbnails where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict)
+        exists = request.cursor.fetchone()
+        if exists:
+            request.cursor.execute("UPDATE thumbnails set xsize=%(x)s, ysize=%(y)s, image=%(filecontent)s, last_modified=%(uploaded_time)s where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
+        else:
+            request.cursor.execute("INSERT into thumbnails (xsize, ysize, name, image, last_modified, attached_to_pagename, wiki_id) values (%(x)s, %(y)s, %(filename)s, %(filecontent)s, %(uploaded_time)s, %(pagename)s, %(wiki_id)s)", dict, isWrite=True)
 
-    elif thumbnail and not do_delete:
-      request.cursor.execute("SELECT name from thumbnails where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict)
-      exists = request.cursor.fetchone()
-      if exists:
-        request.cursor.execute("UPDATE thumbnails set xsize=%(x)s, ysize=%(y)s, image=%(filecontent)s, last_modified=%(uploaded_time)s where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
-      else:
-        request.cursor.execute("INSERT into thumbnails (xsize, ysize, name, image, last_modified, attached_to_pagename, wiki_id) values (%(x)s, %(y)s, %(filename)s, %(filecontent)s, %(uploaded_time)s, %(pagename)s, %(wiki_id)s)", dict, isWrite=True)
-    elif do_delete:
-      if not thumbnail:
+
+    def handle_file_delete():
         request.cursor.execute("SELECT name from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict)
         has_file = request.cursor.fetchone()
         if has_file:
@@ -416,40 +448,46 @@ def putFile(request, dict, thumbnail=False, do_delete=False, temporary=False, ti
             request.cursor.execute("DELETE from files where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
 
             caching.updateRecentChanges(page)
-      else:
+
+
+    def handle_thumbnail_delete():
         # delete thumbnail
         request.cursor.execute("DELETE from thumbnails where name=%(filename)s and attached_to_pagename=%(pagename)s and wiki_id=%(wiki_id)s", dict, isWrite=True)
 
-  if config.memcache:
-    if not do_delete:
-      if not thumbnail: table = 'files'
-      else: table = 'thumbnails'
-      if not temporary:
-        key = "%s:%s,%s" % (table, mc_quote(dict['filename']), mc_quote(dict['pagename'].lower()))
-      else:
-        key = "%s,%s,%s" % (table, mc_quote(dict['filename']), ticket)
-      image_obj = (raw_image, uploaded_time)
-      request.mc.set(key, image_obj)
-    else:
-      if not thumbnail:
-        key = "files:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['pagename'].lower()))
-        request.mc.set(key, False)
-      if is_image and thumbnail:
-        key = "thumbnails:%s,%s" % (mc_quote(dict['filename']), mc_quote(dict['pagename'].lower()))
-        request.mc.set(key, False)
 
-    # set new file dict
-    if not replaced_image:
-      get_filedict(request, dict['pagename'], fresh=True, set=True)
+    # prep for insert of binary data
+    if dict.has_key('filecontent'):
+      raw_image = dict['filecontent']
+      uploaded_time = dict['uploaded_time']
+      dict['filecontent'] = dbapi.Binary(raw_image)
 
-  # rebuild the page cache
-  if not request.generating_cache and not request.previewing_page:
-    from Sycamore import caching
-    from Sycamore.Page import Page
-    #caching.CacheEntry(dict['pagename'], request).clear()
     page = Page(dict['pagename'], request)
-    if page.exists():
-        page.buildCache()
+    dict['pagename_propercased'] = page.proper_name()
+    dict['pagename'] = dict['pagename'].lower()
+    dict['wiki_id'] = request.config.wiki_id
+
+    replaced_image = False
+    is_image = isImage(dict['filename'])
+      
+    if temporary:
+        # we don't update the database in this case
+        set_cache_for_file()
+        rebuild_page_cache()
+        return
+
+    if not thumbnail and not do_delete:
+        handle_file_add()
+    elif thumbnail and not do_delete:
+        handle_thumbnail_add()
+    elif do_delete:
+        if not thumbnail:
+            handle_file_delete()            
+        else:
+            handle_thumbnail_delete()
+
+    set_cache_for_file()
+    rebuild_page_cache()
+    
 
 class EditLine:
     def __init__(self, edit_tuple):
@@ -490,6 +528,7 @@ def getEditor(editLine, request):
      else:
        return '<em>unknown</em>'
 
+
 def _sort_changes_by_time(changes):
     def cmp_lines_edit(first, second):
         # in the case of file replacements, we want to show the upload prior to the download
@@ -524,15 +563,16 @@ def filter_may_read(changes, request):
         
 
 def setRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor='', wiki_global=False):
-  from wikiutil import mc_quote
-  if config.memcache:
-    if page:
-        total_changes_limit = 100
-    changes = getRecentChanges(request, max_days=max_days, total_changes_limit=total_changes_limit, per_page_limit=per_page_limit, page=page, changes_since=changes_since, userFavoritesFor=userFavoritesFor, wiki_global=wiki_global, fresh=True, add_to_cache=False, check_acl=False)
-    #named = {'prefix': request.mc.prefix}
-    #request.postCommitActions.append((request.mc.set, ('rc:%s' % mc_quote(page), changes), named)) # don't want to accidentially list a change that didn't actually 'happen', so we do this as a postCommit :)
-    # XXX remove above:  we should be _always_ set()ing after commit only now
-    request.mc.set('rc:%s' % mc_quote(page), changes)
+    """
+    We call this method to set the recent changes cache/s after a change has occured.
+    """
+    from wikiutil import mc_quote
+    if config.memcache:
+      if page:
+          total_changes_limit = 100
+      changes = getRecentChanges(request, max_days=max_days, total_changes_limit=total_changes_limit, per_page_limit=per_page_limit, page=page, changes_since=changes_since, userFavoritesFor=userFavoritesFor, wiki_global=wiki_global, fresh=True, add_to_cache=False, check_acl=False)
+      request.mc.set('rc:%s' % mc_quote(page), changes)
+
 
 def _get_changes_since(changetime, changes):
     """
@@ -545,252 +585,272 @@ def _get_changes_since(changetime, changes):
         since.append(change)
     return since
 
+
 def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_limit='', page='', changes_since=0, userFavoritesFor='', wiki_global=False, fresh=False, on_wikis=None, add_to_cache=True, check_acl=True):
-  from wikiutil import mc_quote
-  def addQueryConditions(view, query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global):
-    add_query = []
-
-    if per_page_limit:
-       if view != 'eventChanges':
-         add_query.append("(SELECT %(view)s.propercased_name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
-       else:
-         add_query.append("(SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
-    else:
-       if view != 'eventChanges':
-         add_query.append("(SELECT %(view)s.propercased_name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
-       else:
-         add_query.append("(SELECT %(view)s.name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
-
-    printed_where = False
-    if page and not userFavoritesFor:
-      add_query.append(' where %(view)s.name=%%(pagename)s and %(view)s.changeTime is not NULL and wiki_id=%(wiki_id)s' % {'view':view, 'wiki_id':request.config.wiki_id})
-      printed_where = True
-
-    if not printed_where:
-        printed_where = True
-        add_query.append(' where')
-    else:
-        add_query.append(' and')
-
-    if max_days_ago:
-        if changes_since:
-            add_query.append(' changeTime >= %(changes_since)s and')
-    else:
-        if changes_since:
-            add_query.append(' changeTime >= %(changes_since)s and')
-      
-    add_query.append(' wiki_id=%(wiki_id)s')
-
-    if total_changes_limit and not per_page_limit:
-      if not printed_where:
-        add_query.append(' where')
-      else:
-        add_query.append(' and')
-
-      add_query.append(" changeTime is not NULL and id is not NULL and wiki_id=%%(wiki_id)s order by changeTime desc limit %s)" % total_changes_limit)
-
-    elif not total_changes_limit and per_page_limit:
-      pass
-    else:
-      add_query.append(')')
+    """
+    This is our recent changes-getting method!  The recentchanges.py macro does the pretty formatting.
     
-    query += add_query
+    @param request: request object.
+    @param max_days: integer number of max days to show on rc -- defaults to False if not given and we use RC_MAX_DAYS.
+    @param total_changes_limit: integer limit on the total number of changes to return.  Defaults to 0 and we use ABSOLUTE_RC_CHANGES_LIMIT.
+    @param per_page_limit: integer max for the number of changes per-page.  Currently only supports the limit of 1.  Defaults to '', which means no intrinsic page limit.
+    @param page: page object to limit the changes to.  Defaults to '', which means we grab changes on all pages.
+    @param changes_since: grab only changes since this time (given as a unix timestamp).  Defaults to 0, which means we grab change back as far in time as makes sense.
+    @param userFavoritesFor: user id of a user.  Providing this will grab all of the changes on the user's bookmarked pages.  Defaults to '', which means we just grab changes like usual.
+    @param wiki_global: boolean.  If True, we grab changes across multiple wikis.  If False, we just grab changes on the current wiki.
+    @param fresh: boolean.  If True then we don't grab any data from the cache.  Defaults to False.
+    @param on_wikis: a list of wiki names.  If provided then we grab changes on all of the wikis provided and mash them together.  Defaults to None, which means we grab only the current wiki's changes.
+    @param add_to_cache: boolean.  Defaults to True.  If True, we add the results of calling getRecentChanges() to the memory cache.
+    @param check_acl: boolean.  Defaults to True.  If True, then we return only pages the user can read.
 
-  def buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global, request):
-    # we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
-    if per_page_limit:
-      if config.db_type == 'postgres':
-        query = ['SELECT distinct on (name) name, changeTime, id, editType, comment, userIP from ( SELECT * from ( ']
-      elif config.db_type == 'mysql':
-        query = ['SELECT distinct (name), changeTime, id, editType, comment, userIP from ( SELECT * from ( ']
-    else:
-      query = ['SELECT name, changeTime, id, editType, comment, userIP from (']
-    printed_where = False
-    addQueryConditions('pageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
-    query.append(' UNION ALL ')
-    addQueryConditions('currentFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
-    query.append(' UNION ALL ')
-    addQueryConditions('oldFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
-    query.append(' UNION ALL ')
-    addQueryConditions('deletedFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
-    query.append(' UNION ALL ')
-    addQueryConditions('eventChanges', query, max_days_ago, total_changes_limit,  per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
-    query.append(' UNION ALL ')
-    addQueryConditions('oldMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
-    query.append(' UNION ALL ')
-    addQueryConditions('currentMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+    @returns: None.
+    """
+    from wikiutil import mc_quote
+    def addQueryConditions(view, query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global):
+        add_query = []
 
-    if request.config.has_old_wiki_map:
-        query.append(' UNION ALL ')
-        addQueryConditions('deletedMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+        if per_page_limit:
+           if view != 'eventChanges':
+             add_query.append("(SELECT %(view)s.propercased_name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+           else:
+             add_query.append("(SELECT %(view)s.name as name, max(%(view)s.changeTime) as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+        else:
+           if view != 'eventChanges':
+             add_query.append("(SELECT %(view)s.propercased_name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
+           else:
+             add_query.append("(SELECT %(view)s.name as name, %(view)s.changeTime as changeTime, %(view)s.id as id, %(view)s.editType as editType, %(view)s.comment as comment, %(view)s.userIP as userIP from %(view)s" % {'view': view})
 
-    if not per_page_limit: query.append(' order by changeTime desc')
+        printed_where = False
+        if page and not userFavoritesFor:
+          add_query.append(' where %(view)s.name=%%(pagename)s and %(view)s.changeTime is not NULL and wiki_id=%(wiki_id)s' % {'view':view, 'wiki_id':request.config.wiki_id})
+          printed_where = True
 
-    if total_changes_limit: query.append(' limit %(limit)s) as result')
-    else:
-      if per_page_limit:
-        query.append(""" ) as sortedChanges order by changeTime desc ) as result""")
-      else:
-        query.append(') as result')
+        if not printed_where:
+            printed_where = True
+            add_query.append(' where')
+        else:
+            add_query.append(' and')
 
-      #if per_page_limit: query.append(' group by name')
-
-    return ''.join(query)
-
-  if not userFavoritesFor and on_wikis is None and not fresh:
-      changes = None
-      if config.memcache:
-        changes = request.mc.get('rc:%s' % mc_quote(page))
-        if changes is not None:
-            if total_changes_limit:
-                changes = changes[:total_changes_limit]
+        if max_days_ago:
             if changes_since:
-                changes = _get_changes_since(changes_since, changes)
-            if check_acl:
-                changes = filter_may_read(changes, request)
-            return changes
+                add_query.append(' changeTime >= %(changes_since)s and')
+        else:
+            if changes_since:
+                add_query.append(' changeTime >= %(changes_since)s and')
+          
+        add_query.append(' wiki_id=%(wiki_id)s')
 
-  elif on_wikis is not None:
-      # we're doing an interwiki recent changes
-      # so we get rc for each wiki in on_wikis list
-      # we use get_multi here
+        if total_changes_limit and not per_page_limit:
+          if not printed_where:
+            add_query.append(' where')
+          else:
+            add_query.append(' and')
 
-      changes = []
-      original_wiki = request.config.wiki_name
+          add_query.append(" changeTime is not NULL and id is not NULL and wiki_id=%%(wiki_id)s order by changeTime desc limit %s)" % total_changes_limit)
 
-      if not userFavoritesFor:
-        wiki_keys = {}
-        id_to_name = {}
-        for wiki_name in on_wikis:
+        elif not total_changes_limit and per_page_limit:
+          pass
+        else:
+          add_query.append(')')
+        
+        query += add_query
+
+    def buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global, request):
+        # we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
+        if per_page_limit:
+          if config.db_type == 'postgres':
+            query = ['SELECT distinct on (name) name, changeTime, id, editType, comment, userIP from ( SELECT * from ( ']
+          elif config.db_type == 'mysql':
+            query = ['SELECT distinct (name), changeTime, id, editType, comment, userIP from ( SELECT * from ( ']
+        else:
+          query = ['SELECT name, changeTime, id, editType, comment, userIP from (']
+        printed_where = False
+        addQueryConditions('pageChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+        query.append(' UNION ALL ')
+        addQueryConditions('currentFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+        query.append(' UNION ALL ')
+        addQueryConditions('oldFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+        query.append(' UNION ALL ')
+        addQueryConditions('deletedFileChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+        query.append(' UNION ALL ')
+        addQueryConditions('eventChanges', query, max_days_ago, total_changes_limit,  per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+        query.append(' UNION ALL ')
+        addQueryConditions('oldMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+        query.append(' UNION ALL ')
+        addQueryConditions('currentMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+
+        if request.config.has_old_wiki_map:
+            query.append(' UNION ALL ')
+            addQueryConditions('deletedMapChanges', query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global)
+
+        if not per_page_limit: query.append(' order by changeTime desc')
+
+        if total_changes_limit: query.append(' limit %(limit)s) as result')
+        else:
+          if per_page_limit:
+            query.append(""" ) as sortedChanges order by changeTime desc ) as result""")
+          else:
+            query.append(') as result')
+
+          #if per_page_limit: query.append(' group by name')
+
+        return ''.join(query)
+
+
+    if not userFavoritesFor and on_wikis is None and not fresh:
+        changes = None
+        if config.memcache:
+          changes = request.mc.get('rc:%s' % mc_quote(page))
+          if changes is not None:
+              if total_changes_limit:
+                  changes = changes[:total_changes_limit]
+              if changes_since:
+                  changes = _get_changes_since(changes_since, changes)
+              if check_acl:
+                  changes = filter_may_read(changes, request)
+              return changes
+
+    elif on_wikis is not None:
+        # we're doing an interwiki recent changes
+        # so we get rc for each wiki in on_wikis list
+        # we use get_multi here
+
+        changes = []
+        original_wiki = request.config.wiki_name
+
+        if not userFavoritesFor:
+          wiki_keys = {}
+          id_to_name = {}
+          for wiki_name in on_wikis:
+            request.switch_wiki(wiki_name)
+            id_to_name[request.config.wiki_id] = wiki_name
+            wiki_keys['%src:%s' % (request.config.wiki_id, mc_quote(page))] = None
+          # switch back to our original wiki
+          if request.config.wiki_name != original_wiki:
+             request.switch_wiki(original_wiki)
+
+          if config.memcache and not fresh:
+            values = request.mc.get_multi(wiki_keys.keys(), wiki_global=True)
+            for k, got_changes in values.iteritems():
+              if got_changes is not None:
+                  if total_changes_limit:
+                      got_changes = got_changes[:total_changes_limit]
+                  if changes_since:
+                      got_changes = _get_changes_since(changes_since, got_changes)
+                  changes += got_changes
+
+                  wiki_keys[k] = got_changes
+
+          for key in wiki_keys:
+            if wiki_keys[key] is None:
+              wiki_id = int(key[:key.find('rc:')])
+              request.switch_wiki(id_to_name[wiki_id])
+              changes += getRecentChanges(request, wiki_global=False, changes_since=changes_since, check_acl=check_acl)    
+
+        else:
           request.switch_wiki(wiki_name)
-          id_to_name[request.config.wiki_id] = wiki_name
-          wiki_keys['%src:%s' % (request.config.wiki_id, mc_quote(page))] = None
+          changes += getRecentChanges(request, wiki_global=False, changes_since=changes_since, check_acl=check_acl)    
+
         # switch back to our original wiki
         if request.config.wiki_name != original_wiki:
            request.switch_wiki(original_wiki)
+        changes = _sort_changes_by_time(changes)
+        changes = changes[:ABSOLUTE_RC_CHANGES_LIMIT] # for consistency's sake
+        if check_acl:
+            changes = filter_may_read(changes, request)
+        return changes
 
-        if config.memcache and not fresh:
-          values = request.mc.get_multi(wiki_keys.keys(), wiki_global=True)
-          for k, got_changes in values.iteritems():
-            if got_changes is not None:
-                if total_changes_limit:
-                    got_changes = got_changes[:total_changes_limit]
-                if changes_since:
-                    got_changes = _get_changes_since(changes_since, got_changes)
-                changes += got_changes
+    elif userFavoritesFor:
+        from Sycamore import user
+        changes = []
+        original_wiki = request.config.wiki_name
+        for favorite in user.User(request, userFavoritesFor).getFavoriteList(wiki_global=wiki_global):
+            wiki_name = favorite.wiki_name
+            request.switch_wiki(wiki_name)
+            changes += getRecentChanges(request, page=favorite.page_name, total_changes_limit=1, wiki_global=False, check_acl=check_acl)
+        # switch back to our original wiki
+        if request.config.wiki_name != original_wiki:
+            request.switch_wiki(original_wiki)
+        changes = _sort_changes_by_time(changes)
+        if check_acl:
+            changes = filter_may_read(changes, request)
+        return changes
 
-                wiki_keys[k] = got_changes
+    lines = []
+    right_now  = time.gmtime()
+    # we limit recent changes to display at most the last max_days of edits.
+    if max_days:
+      # the subtraction of max days is okay here, as mktime will do the right thing
+      oldest_displayed_time_tuple = (right_now[0], right_now[1], right_now[2]-max_days, 0, 0, 0, 0, 0, 0)
+      max_days_ago = time.mktime(oldest_displayed_time_tuple)
+    else:
+      max_days_ago = False
 
-        for key in wiki_keys:
-          if wiki_keys[key] is None:
-            wiki_id = int(key[:key.find('rc:')])
-            request.switch_wiki(id_to_name[wiki_id])
-            changes += getRecentChanges(request, wiki_global=False, changes_since=changes_since, check_acl=check_acl)    
-
-      else:
-        request.switch_wiki(wiki_name)
-        changes += getRecentChanges(request, wiki_global=False, changes_since=changes_since, check_acl=check_acl)    
-
-      # switch back to our original wiki
-      if request.config.wiki_name != original_wiki:
-         request.switch_wiki(original_wiki)
-      changes = _sort_changes_by_time(changes)
-      changes = changes[:ABSOLUTE_RC_CHANGES_LIMIT] # for consistency's sake
-      if check_acl:
-          changes = filter_may_read(changes, request)
-      return changes
-
-  elif userFavoritesFor:
-      from Sycamore import user
-      changes = []
-      original_wiki = request.config.wiki_name
-      for favorite in user.User(request, userFavoritesFor).getFavoriteList(wiki_global=wiki_global):
-          wiki_name = favorite.wiki_name
-          request.switch_wiki(wiki_name)
-          changes += getRecentChanges(request, page=favorite.page_name, total_changes_limit=1, wiki_global=False, check_acl=check_acl)
-      # switch back to our original wiki
-      if request.config.wiki_name != original_wiki:
-          request.switch_wiki(original_wiki)
-      changes = _sort_changes_by_time(changes)
-      if check_acl:
-          changes = filter_may_read(changes, request)
-      return changes
-
-  lines = []
-  right_now  = time.gmtime()
-  # we limit recent changes to display at most the last max_days of edits.
-  if max_days:
-    # the subtraction of max days is okay here, as mktime will do the right thing
-    oldest_displayed_time_tuple = (right_now[0], right_now[1], right_now[2]-max_days, 0, 0, 0, 0, 0, 0)
-    max_days_ago = time.mktime(oldest_displayed_time_tuple)
-  else:
-    max_days_ago = False
-
-  # still grab all the maximum days, and then limit them after grabing (more efficient on the whole)
-  if not userFavoritesFor and not page:
-    query_max_days = time.mktime((right_now[0], right_now[1], right_now[2]-RC_MAX_DAYS, 0, 0, 0, 0, 0, 0))
-  else:
-    query_max_days = max_days_ago
+    # still grab all the maximum days, and then limit them after grabing (more efficient on the whole)
+    if not userFavoritesFor and not page:
+      query_max_days = time.mktime((right_now[0], right_now[1], right_now[2]-RC_MAX_DAYS, 0, 0, 0, 0, 0, 0))
+    else:
+      query_max_days = max_days_ago
 
 
-  query_total_changes_limit = total_changes_limit
-  # by default for a per-page, grab total_changes_limit = 100
-  if page and not total_changes_limit:
-    query_total_changes_limit = 100
-    total_changes_limit = 100
-  elif not page and total_changes_limit and not userFavoritesFor:
-    query_total_changes_limit = 0 # we're doing RC or something close, so let's query for all
-  elif total_changes_limit <= ABSOLUTE_RC_CHANGES_LIMIT:
-    query_total_changes_limit = ABSOLUTE_RC_CHANGES_LIMIT
+    query_total_changes_limit = total_changes_limit
+    # by default for a per-page, grab total_changes_limit = 100
+    if page and not total_changes_limit:
+      query_total_changes_limit = 100
+      total_changes_limit = 100
+    elif not page and total_changes_limit and not userFavoritesFor:
+      query_total_changes_limit = 0 # we're doing RC or something close, so let's query for all
+    elif total_changes_limit <= ABSOLUTE_RC_CHANGES_LIMIT:
+      query_total_changes_limit = ABSOLUTE_RC_CHANGES_LIMIT
 
-
-  # so, let's compile all the different types of changes together!
-  query = buildQuery(query_max_days, query_total_changes_limit, per_page_limit, page, None, userFavoritesFor, wiki_global, request)
-#   print query % {'max_days_ago': '"'+str(max_days_ago)+'"', 'limit': '"'+str(total_changes_limit)+'"', 'userFavoritesFor': '"'+str(userFavoritesFor)+'"', 'pagename': '"'+str(page)+'"'}
-  #print query % {'max_days_ago': '\''+str(query_max_days)+'\'', 'limit': '\''+str(query_total_changes_limit)+'\'', 'userFavoritesFor': '\''+str(userFavoritesFor)+'\'', 'pagename': '\''+str(page)+'\'', 'changes_since': '\''+str(changes_since)+'\'', 'wiki_id': '\'' + str(request.config.wiki_id) + '\''}
-  request.cursor.execute(query, {'max_days_ago': query_max_days, 
-                                 'limit': query_total_changes_limit, 
-                                 'userFavoritesFor': userFavoritesFor, 
-                                 'pagename': page, 
-                                 'changes_since':None, 
-                                 'wiki_id': request.config.wiki_id})
+    # so, let's compile all the different types of changes together!
+    query = buildQuery(query_max_days, query_total_changes_limit, per_page_limit, page, None, userFavoritesFor, wiki_global, request)
+    request.cursor.execute(query, {'max_days_ago': query_max_days, 
+                                   'limit': query_total_changes_limit, 
+                                   'userFavoritesFor': userFavoritesFor, 
+                                   'pagename': page, 
+                                   'changes_since':None, 
+                                   'wiki_id': request.config.wiki_id})
  
-  edit = request.cursor.fetchone()
-  
-  while edit:
-    editline = EditLine(edit)
-    editline.wiki_name = request.config.wiki_name
-    lines.append(editline)
     edit = request.cursor.fetchone()
+    
+    while edit:
+      editline = EditLine(edit)
+      editline.wiki_name = request.config.wiki_name
+      lines.append(editline)
+      edit = request.cursor.fetchone()
 
-  if config.memcache and add_to_cache:
-    request.mc.add('rc:%s' % mc_quote(page), lines)
-    lines = copy.deepcopy(lines) # we want to add the 'real' data to the cache (postCommit)
-                        # but sometimes people do lines.comment = something
-                        # which messes with the data (post-commited)
+    if config.memcache and add_to_cache:
+      request.mc.add('rc:%s' % mc_quote(page), lines)
 
-  if total_changes_limit:
-    lines = lines[:total_changes_limit]
+      # deepcopy here because sometimes people do lines.comment = something, and we
+      # want to add the 'real' data to the cache (postCommit, so it happens way later)
+      lines = copy.deepcopy(lines) 
 
-  lines = _sort_changes_by_time(lines) 
-  if changes_since:
-      lines = _get_changes_since(changes_since, lines)
-  if check_acl:
-      lines = filter_may_read(lines, request)
-  return lines
+    if total_changes_limit:
+      lines = lines[:total_changes_limit]
+
+    lines = _sort_changes_by_time(lines) 
+    if changes_since:
+        lines = _get_changes_since(changes_since, lines)
+    if check_acl:
+        lines = filter_may_read(lines, request)
+    return lines
+
 
 def getPageCount(request):
-   """
-   Returns the number of current (alive, not deleted) pages in the wiki.
-   """
-   page_count = None
-   if config.memcache:
-     # check memcache
-     page_count = request.mc.get('active_page_count')
-   if page_count is None:
-     cursor = request.cursor
-     cursor.execute("SELECT count(name) from curPages where wiki_id=%(wiki_id)s", {'wiki_id':request.config.wiki_id})
-     page_count = cursor.fetchone()[0]
-     if config.memcache:
-       request.mc.add('active_page_count', page_count)
-   return page_count
+    """
+    Returns the number of current (alive, not deleted) pages in the wiki.
+    """
+    page_count = None
+    if config.memcache:
+        # check memcache
+        page_count = request.mc.get('active_page_count')
+    if page_count is None:
+        cursor = request.cursor
+        cursor.execute("SELECT count(name) from curPages where wiki_id=%(wiki_id)s", {'wiki_id':request.config.wiki_id})
+        page_count = cursor.fetchone()[0]
+        if config.memcache:
+            request.mc.add('active_page_count', page_count)
+    
+    return page_count
