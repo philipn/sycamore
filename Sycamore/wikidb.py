@@ -607,6 +607,9 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     """
     from wikiutil import mc_quote
     def addQueryConditions(view, query, max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global):
+        """
+        Limits the query in various ways.
+        """
         add_query = []
 
         if per_page_limit:
@@ -657,6 +660,9 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
 
 
     def buildQuery(max_days_ago, total_changes_limit, per_page_limit, page, changes_since, userFavoritesFor, wiki_global, request):
+        """
+        Build up the big old recent changes query.
+        """
         # we use a select statement on the outside here, though not needed, so that MySQL will cache the statement.  MySQL does not cache non-selects, so we have to do this.
         if per_page_limit:
           if config.db_type == 'postgres':
@@ -785,31 +791,32 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     elif userFavoritesFor:
         return get_user_favorites()
         
+    # We have to get the 'normal' recent changes, as this isn't a special case and it wasn't in the cache.
     lines = []
     right_now  = time.gmtime()
     # we limit recent changes to display at most the last max_days of edits.
     if max_days:
-      # the subtraction of max days is okay here, as mktime will do the right thing
-      oldest_displayed_time_tuple = (right_now[0], right_now[1], right_now[2]-max_days, 0, 0, 0, 0, 0, 0)
-      max_days_ago = time.mktime(oldest_displayed_time_tuple)
+        # the subtraction of max days is okay here, as mktime will do the right thing
+        oldest_displayed_time_tuple = (right_now[0], right_now[1], right_now[2]-max_days, 0, 0, 0, 0, 0, 0)
+        max_days_ago = time.mktime(oldest_displayed_time_tuple)
     else:
-      max_days_ago = False
+        max_days_ago = False
 
     # still grab all the maximum days, and then limit them after grabing (more efficient on the whole)
     if not userFavoritesFor and not page:
-      query_max_days = time.mktime((right_now[0], right_now[1], right_now[2]-RC_MAX_DAYS, 0, 0, 0, 0, 0, 0))
+        query_max_days = time.mktime((right_now[0], right_now[1], right_now[2]-RC_MAX_DAYS, 0, 0, 0, 0, 0, 0))
     else:
-      query_max_days = max_days_ago
+        query_max_days = max_days_ago
 
     query_total_changes_limit = total_changes_limit
     # by default for a per-page, grab total_changes_limit = 100
     if page and not total_changes_limit:
-      query_total_changes_limit = 100
-      total_changes_limit = 100
+        query_total_changes_limit = 100
+        total_changes_limit = 100
     elif not page and total_changes_limit and not userFavoritesFor:
-      query_total_changes_limit = 0 # we're doing RC or something close, so let's query for all
+        query_total_changes_limit = 0 # we're doing RC or something close, so let's query for all
     elif total_changes_limit <= ABSOLUTE_RC_CHANGES_LIMIT:
-      query_total_changes_limit = ABSOLUTE_RC_CHANGES_LIMIT
+        query_total_changes_limit = ABSOLUTE_RC_CHANGES_LIMIT
 
     # so, let's compile all the different types of changes together!
     query = buildQuery(query_max_days, query_total_changes_limit, per_page_limit, page, None, userFavoritesFor, wiki_global, request)
@@ -823,10 +830,10 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0, per_page_li
     edit = request.cursor.fetchone()
     
     while edit:
-      editline = EditLine(edit)
-      editline.wiki_name = request.config.wiki_name
-      lines.append(editline)
-      edit = request.cursor.fetchone()
+        editline = EditLine(edit)
+        editline.wiki_name = request.config.wiki_name
+        lines.append(editline)
+        edit = request.cursor.fetchone()
 
     if config.memcache and add_to_cache:
         request.mc.add('rc:%s' % mc_quote(page), lines)
