@@ -766,7 +766,11 @@ class Page(object):
                     redir = request.form['redirect'][0]
                     if not request.form.has_key('wiki'):
                         # local redirect
-                        polite_msg = 'Redirected from %s' % wikiutil.link_tag(request, wikiutil.quoteWikiname(redir) + '?action=show', redir)
+                        polite_msg = 'Redirected from %s' % (
+                            wikiutil.link_tag(request,
+                                              wikiutil.quoteWikiname(redir) +
+                                                '?action=show',
+                                              redir))
                     else:
                         # interwiki redirect
                         wiki_name = request.form['wiki'][0]
