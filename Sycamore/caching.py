@@ -1,8 +1,8 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore caching module
 
-    @copyright: 2005 by Philip Neustrom, 2001-2004 by Jürgen Hermann <jh@web.de>
+    @copyright: 2005-2007 by Philip Neustrom, 2001-2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
@@ -12,13 +12,6 @@ from Sycamore import config, wikiutil, wikidb
 from Sycamore.Page import Page
 
 MAX_DEPENDENCY_DEPTH = 5
-
-def update_image_info(pagename, request):
-    """
-    If a page contains images then let's ensure that we have the size of these images stored.
-    """
-    pass
-
 
 class CacheEntry:
     def __init__(self, key, request):
@@ -31,8 +24,10 @@ class CacheEntry:
     def needsUpdate(self):
         needsupdate = False
         page_cache = self.content_info()
-        if not page_cache[0] or not page_cache[1]: return True
-        if self.request.set_cache: return True
+        if not page_cache[0] or not page_cache[1]:
+            return True
+        if self.request.set_cache:
+            return True
 
         return needsupdate
 
@@ -71,8 +66,6 @@ class CacheEntry:
         for link in links:
           self.request.cursor.execute("INSERT into links (source_pagename, destination_pagename, destination_pagename_propercased, wiki_id) values (%(key)s, %(link)s, %(link_propercased)s, %(wiki_id)s)", {'key':self.key, 'link':link.lower(), 'link_propercased':link, 'wiki_id':self.request.config.wiki_id}, isWrite=True)
         page_info = pageInfo(Page(self.key, self.request), get_from_cache=False, cached_content=content, cached_time=cached_time)
-        # if the page contains images, let's ensure that we have their size information
-        update_image_info(self.key, self.request)
 
         text = wikidb.binaryToString(content)
         page_info.cached_text = (text, cached_time)
@@ -83,7 +76,6 @@ class CacheEntry:
              self.request.mc.add("page_info:%s" % wikiutil.mc_quote(self.key), page_info)
 
         self.request.req_cache['page_info'][(wikiutil.quoteFilename(self.key), self.request.config.wiki_id)] = page_info
-
 
     def content_info(self):
         page_cache = None

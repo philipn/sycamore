@@ -37,7 +37,7 @@ def getPageStatus(lines, pagename, request):
 
 def group_changes_by_day(lines, tnow, max_days, request):
     if not lines:
-        return
+        return []
     days_and_lines = []
     this_day = request.user.getTime(lines[0].ed_time)[0:3]
     day_tm = lines[0].ed_time
