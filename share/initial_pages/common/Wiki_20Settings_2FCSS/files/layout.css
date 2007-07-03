@@ -176,7 +176,6 @@ body {
 pre {
   padding: .5em;
   overflow: auto;
-  white-space: normal;
 }
 
 /* Table Of Contents */
