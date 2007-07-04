@@ -167,14 +167,14 @@ def create_tables(cursor):
           primary key (name, editTime, wiki_id)
           );""", isWrite=True)
    
-    cursor.execute("CREATE INDEX allPages_userEdited on
-        allPages (userEdited);", isWrite=True)
-    cursor.execute("CREATE INDEX allPages_userIP on
-        allPages (userIP);", isWrite=True)
-    cursor.execute("CREATE INDEX editTime_wiki_id on
-        allPages (editTime, wiki_id);", isWrite=True)  # for local-wiki changes
-    cursor.execute("CREATE INDEX editTime on
-        allPages (editTime);", isWrite=True)  # global changes
+    cursor.execute("""CREATE INDEX allPages_userEdited on
+        allPages (userEdited);""", isWrite=True)
+    cursor.execute("""CREATE INDEX allPages_userIP on
+        allPages (userIP);""", isWrite=True)
+    cursor.execute("""CREATE INDEX editTime_wiki_id on
+        allPages (editTime, wiki_id);""", isWrite=True) #for local-wiki changes
+    cursor.execute("""CREATE INDEX editTime on
+        allPages (editTime);""", isWrite=True)  # global changes
    
     if config.db_type == 'mysql':
         cursor.execute("""create table users
