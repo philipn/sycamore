@@ -692,11 +692,12 @@ class PageEditor(Page):
             original_text = Page(self.page_name, self.request,
                                  prev_date=datestamp).get_raw_body()
             saved_text = self.get_raw_body()
-            verynewtext, had_conflict = diff3.text_merge(original_text, saved_text, savetext,
-                 marker1='----- /!\ Edit conflict! Your version: -----\n',
-                 marker2='----- /!\ Edit conflict! Other version: -----\n',
-                 marker3='----- /!\ End of edit conflict -----\n')
-            msg = _("""Someone else changed this page while you were editing.""")
+            verynewtext, had_conflict = diff3.text_merge(
+                original_text, saved_text, savetext,
+                marker1='----- /!\ Edit conflict! Your version: -----\n',
+                marker2='----- /!\ Edit conflict! Other version: -----\n',
+                marker3='----- /!\ End of edit conflict -----\n')
+            msg = _("Someone else changed this page while you were editing.")
 
             if (had_conflict and self.request.user.valid and
                 (self.request.user.id == self.last_edit_info()[1])):
@@ -713,8 +714,10 @@ class PageEditor(Page):
                 newtext = verynewtext
         elif (newtext == self.get_raw_body() and not
               self._rename_lowercase_condition() and
-              kw.get('action') != 'SAVE/REVERT' and not kw.get('force_save')):
-            # check to see if they're saving the page with the same content it had before
+              kw.get('action') != 'SAVE/REVERT' and not
+              kw.get('force_save')):
+            # check to see if they're saving the page with the same content
+            # it had before
             msg = _('You did not change the page content, not saved!')
             raise self.Unchanged, msg
         elif (config.max_page_size and 
