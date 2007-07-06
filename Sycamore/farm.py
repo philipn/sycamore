@@ -6,33 +6,47 @@
     @license: GNU GPL, see COPYING for details.
 """
 # Imports
-import os, sys
+import os
+import sys
 from copy import copy
+
 __directory__ = os.path.dirname(__file__)
-sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', 'share'))]),
+sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', 'share'))])
+
 import __init__
-from Sycamore.wikiutil import quoteFilename, mc_quote
-from Sycamore import config, buildDB, wikiutil, search, wikiacl, request, maintenance
+from Sycamore import config
+from Sycamore import buildDB
+from Sycamore import wikiutil
+from Sycamore import search
+from Sycamore import wikiacl
+from Sycamore import request
+from Sycamore import maintenance
 from Sycamore.Page import Page
+from Sycamore.wikiutil import quoteFilename, mc_quote
 
 WIKINAME_CHARS = '0123456789abcdefghijklmnopqrstuvwxyz-'
 WIKINAME_MAX_LENGTH = 40
 EXPLICIT_FORBIDDEN_WIKI_NAMES = ['www', 'paypal']
 
 def isValidWikiName(wikiname):
-   import re
-   if wikiname in EXPLICIT_FORBIDDEN_WIKI_NAMES:
-     return False
-   return  (len(wikiname) < WIKINAME_MAX_LENGTH and not re.search('[^%s]' % WIKINAME_CHARS, wikiname))
+    import re
+    if wikiname in EXPLICIT_FORBIDDEN_WIKI_NAMES:
+        return False
+    return  (len(wikiname) < WIKINAME_MAX_LENGTH and not
+             re.search('[^%s]' % WIKINAME_CHARS, wikiname))
 
 def isDomainInFarm(domain, request):
-    """Is the domain in the wiki farm in some form?"""
-    if not domain: return True # base wiki
+    """
+    Is the domain in the wiki farm in some form?
+    """
+    if not domain:
+        return True # base wiki
     is_in_farm = False
     if config.wiki_farm_subdomains:
         if domain.endswith(config.wiki_base_domain):
             sub_domain = domain[:-len(config.wiki_base_domain)]
-            if not sub_domain or sub_domain == 'www.': return True # is base
+            if not sub_domain or sub_domain == 'www.':
+                return True # is base
             split_sub_domain = sub_domain.split('.')
             if split_sub_domain[0] == 'www': # toss out www
                 split_sub_domain = split_sub_domain[1:]
@@ -51,23 +65,27 @@ def isDomainInFarm(domain, request):
 
 def get_name_from_domain(domain, request):
     def get_name_from_domain_base(domain, request):
-        if not domain: return None
+        if not domain:
+            return None
     
         if request.req_cache['wiki_domains'].has_key(domain):
              return request.req_cache['wiki_domains'][domain]  
         else:
              wiki_name = None
              if config.memcache:
-                 wiki_name = request.mc.get('wiki_domains:%s' % domain, wiki_global=True)
+                 wiki_name = request.mc.get('wiki_domains:%s' % domain,
+                                            wiki_global=True)
              if wiki_name is None:
-                 request.cursor.execute("SELECT name from wikis where domain=%(domain)s", {'domain': domain})
+                 request.cursor.execute("""SELECT name from wikis
+                    where domain=%(domain)s""", {'domain': domain})
                  result = request.cursor.fetchone()
                  if result and result[0]:
                      wiki_name = result[0]
                  else:
                      wiki_name = False # to differ from None
                  if config.memcache:
-                     request.mc.add('wiki_domains:%s' % domain, wiki_name, wiki_global=True)
+                     request.mc.add('wiki_domains:%s' % domain, wiki_name,
+                                    wiki_global=True)
              return wiki_name
 
     name = get_name_from_domain_base(domain, request)
@@ -75,8 +93,6 @@ def get_name_from_domain(domain, request):
         return name
     if domain.startswith('www'):
         return get_name_from_domain_base(domain[4:], request)
-
-            
 
 def create_config(wikiname, request):
     config_dict = config.reduce_to_local_config(config.CONFIG_VARS)
@@ -114,7 +130,8 @@ def build_page_caches(request):
 
 def clear_page_caches(request):
     plist = wikiutil.getPageList(request)
-    maintenance.clearCaches(request.config.wiki_name, plist, doprint=False, req=request)
+    maintenance.clearCaches(request.config.wiki_name, plist, doprint=False,
+                            req=request)
 
 def create_wiki(wikiname, adminname, request):
     from Sycamore.wikidb import setRecentChanges
@@ -130,7 +147,7 @@ def create_wiki(wikiname, adminname, request):
         buildDB.insert_pages(request, global_pages=False)
         setup_admin(adminname, request)
 
-	build_page_caches(request)
+        build_page_caches(request)
         clear_page_caches(request)
 
         build_search_index(request)
@@ -139,20 +156,29 @@ def create_wiki(wikiname, adminname, request):
         return None
 
     if is_in_farm:
-        return """Wiki creation failed because the wiki "%s" already exists!""" % wikiname
+        return 'Wiki creation failed because the wiki "%s" already exists!' % (
+            wikiname)
     if not is_valid_name:
-        return """Wiki creation failed because the wiki name "%s" is invalid.  You may only use the numbers 0-9, the letters a-z, and the dash "-" in a wiki name.""" % wikiname
+        return ('Wiki creation failed because the wiki name "%s" is invalid.  '
+                'You may only use the numbers 0-9, the letters a-z, and the '
+                'dash "-" in a wiki name.' % wikiname)
 
 def link_to_wiki(wikiname, formatter, no_icon=False, text=''):
-    if not text: text = wikiname
-    return formatter.interwikilink('%s:%s' % (wikiname, 'Front Page'), text, no_icon=no_icon)
+    if not text:
+        text = wikiname
+    return formatter.interwikilink('%s:%s' % (wikiname, 'Front Page'), text,
+                                   no_icon=no_icon)
 
-def link_to_page(wikiname, pagename, formatter, no_icon=True, force_farm=False, text=''):
-    if not text: text = pagename
-    return formatter.interwikilink('%s:%s' % (wikiname, pagename), text, no_icon=no_icon, force_farm=force_farm)
+def link_to_page(wikiname, pagename, formatter, no_icon=True,
+                 force_farm=False, text=''):
+    if not text:
+        text = pagename
+    return formatter.interwikilink('%s:%s' % (wikiname, pagename), text,
+                                   no_icon=no_icon, force_farm=force_farm)
 
 def page_url(wikiname, pagename, formatter, force_farm=False):
-    return formatter.interwikiurl('%s:%s' % (wikiname, pagename), force_farm=force_farm)[0]
+    return formatter.interwikiurl('%s:%s' % (wikiname, pagename),
+                                  force_farm=force_farm)[0]
 
 def getWikiURL(wikiname, request):
     """
@@ -169,15 +195,16 @@ def getWikiURL(wikiname, request):
                 return "http://%s/" % config.wiki_base_domain
         elif config.wiki_farm_dir:
             if wiki_config.wiki_id != 1:
-                return "http://%s/%s/%s/" % (config.wiki_base_domain, config.wiki_farm_dir, wikiname)
+                return "http://%s/%s/%s/" % (config.wiki_base_domain,
+                    config.wiki_farm_dir, wikiname)
             else:
-                return "http://%s/%s/" % (config.wiki_base_domain, config.wiki_farm_dir)
+                return "http://%s/%s/" % (config.wiki_base_domain,
+                    config.wiki_farm_dir)
         else:
             if wiki_config.wiki_id != 1:
                 return "http://%s/%s/" % (config.wiki_base_domain, wikiname)
             else:
                 return "http://%s/" % config.wiki_base_domain
-
 
 def getBaseFarmURL(request, force_ssl=False):
     """
