@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Configuration defaults and handling
 
@@ -11,24 +11,26 @@
     
     Please use sycamore_config.py to configure your wiki.
 
-    @copyright: 2005-2006 by Philip Neustrom <philipn@gmail.com>
+    @copyright: 2005-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
-import time, cPickle
+import time
+import cPickle
 from copy import copy
 
-# Try to import sycamore_config. If it fails, either someone forgot sycamore_config,
-# or someone who doesn't know sycamore_config might be required, tried to import
-# us or something (Page, for example) which imports us.
+# Try to import sycamore_config.
+# If it fails, either someone forgot sycamore_config,
+# or someone who doesn't know sycamore_config might be required,
+# tried to import us or something (Page, for example) which imports us.
 default_config = 0
 try:
     from sycamore_config import *
 except ImportError, e:
     default_config = 1
-    msg = 'import of sycamore_config failed due to "%s";' \
-          ' default configuration used instead.' % e
+    msg = ('import of sycamore_config failed due to "%s";'
+          ' default configuration used instead.' % e)
     import warnings
     warnings.warn(msg)
     del warnings
@@ -39,29 +41,33 @@ if not vars().has_key('url_prefix'):
 
 # this is a trick to mark some text for the gettext tools so that they dont
 # get orphaned. See http://www.python.org/doc/current/lib/node278.html.
-def _(text): return text
-
-import time
+def _(text):
+    return text
 
 def reduce_to_local_config(d):
     """
-    Takes dict d and removes all elements that aren't local configuation options.
+    Takes dict d and removes all elements that aren't local
+    configuation options.
     """
     new_d = {}
     for name in _cfg_defaults_local:
         new_d[name] = d[name]
     return new_d
 
+
 class Config(object):
     def __init__(self, wiki_name, request, process_config=True, fresh=False):
         from wikiutil import getTimeOffset
         self.wiki_id = None
-        self.__dict__.update(self._get_config(wiki_name, request, process_config, fresh=fresh))
+        self.__dict__.update(
+            self._get_config(wiki_name, request, process_config, fresh=fresh))
         self.tz_offset = getTimeOffset(self.tz)
         if stop_hotlinking:
-            # Referer regular expression is used to filter out http referers from image viewing.
+            # Referer regular expression is used to filter out http
+            # referers from image viewing.
             # It's for stopping image hotlinking, basically.
-            self.referer_regexp = '^%s((\/.*)|())$' % re.escape(request.getQualifiedURL())
+            self.referer_regexp = '^%s((\/.*)|())$' % (
+                re.escape(request.getQualifiedURL()))
         else:
             self.referer_regexp = ''
 
@@ -82,43 +88,53 @@ class Config(object):
         d = { 'name': wiki_name , 'wiki_name': wiki_name }
         settings_dict = None
 
-        d.update(reduce_to_local_config(CONFIG_VARS))  # set each config object to have the same basic configuration variables
+        # set each config object to have the same basic configuration variables
+        d.update(reduce_to_local_config(CONFIG_VARS))  
 
         if process_config:
-          if not fresh and memcache:
-            settings_dict = request.mc.get("settings:%s" % mc_quote(wiki_name), wiki_global=True)
-          if settings_dict is None:
-            request.cursor.execute("SELECT id, is_disabled, sitename, domain, other_settings from wikis where name=%(name)s", d)
-            result = request.cursor.fetchone()
-            if result:
-              id, is_disabled, sitename, domain, other_settings_pickled = result
-              other_settings = cPickle.loads(_binaryToString(other_settings_pickled))
-              d.update(other_settings)
-              d['wiki_id'] = id
-              d['is_disabled'] = is_disabled
-              d['sitename'] = sitename
-              d['domain'] = domain
-              d['wiki_name'] = wiki_name
-              d['name'] = wiki_name
-              settings_dict = d
-            else: settings_dict = {}
-            if memcache:
-                request.mc.add("settings:%s" % mc_quote(wiki_name), settings_dict, wiki_global=True)
-          else:
-            d.update(settings_dict)
+            if not fresh and memcache:
+                settings_dict = request.mc.get("settings:%s" % (
+                    mc_quote(wiki_name)), wiki_global=True)
+            if settings_dict is None:
+                request.cursor.execute("""SELECT id, is_disabled, sitename,
+                                                 domain, other_settings
+                                                 from wikis
+                                                 where name=%(name)s""", d)
+                result = request.cursor.fetchone()
+                if result:
+                    (id, is_disabled, sitename, domain,
+                     other_settings_pickled) = result
+                    other_settings = cPickle.loads(
+                        _binaryToString(other_settings_pickled))
+                    d.update(other_settings)
+                    d['wiki_id'] = id
+                    d['is_disabled'] = is_disabled
+                    d['sitename'] = sitename
+                    d['domain'] = domain
+                    d['wiki_name'] = wiki_name
+                    d['name'] = wiki_name
+                    settings_dict = d
+                else:
+                    settings_dict = {}
+                if memcache:
+                    request.mc.add("settings:%s" % mc_quote(wiki_name),
+                                   settings_dict, wiki_global=True)
+            else:
+                d.update(settings_dict)
 
         request.req_cache['wiki_config'][wiki_name] = d
         return d
 
     def zap_config(self, request):
         """
-        Because of the way we store some of our configuration options, it makes sense to
-        'zap' the configuration back into place on a wiki after we've added a new configuration
-        option in config.py.
+        Because of the way we store some of our configuration options,
+        it makes sense to 'zap' the configuration back into place on a wiki
+        after we've added a new configuration option in config.py.
 
         Generally, don't mess with this unless you're a Sycamore developer.
         """
-        local_vars = reduce_to_local_config(CONFIG_VARS)  # grab the basic configuration options
+        # grab the basic configuration options
+        local_vars = reduce_to_local_config(CONFIG_VARS)  
         d = copy(local_vars)
         d.update(self.get_dict()) # ensure we get new options
         for k in d:
@@ -129,44 +145,61 @@ class Config(object):
         self.set_config(self.wiki_name, d, request)
 
     def set_config(self, wiki_name, d, request):
-      from wikidb import Binary
-      d['name'] = wiki_name
-      request.cursor.execute("SELECT name from wikis where name=%(name)s", d)
-      result = request.cursor.fetchall()
-      d['other_settings'] = Binary(cPickle.dumps(d, True))
-      original_domain = request.config.domain
+        from wikidb import Binary
+        d['name'] = wiki_name
+        request.cursor.execute("SELECT name from wikis where name=%(name)s", d)
+        result = request.cursor.fetchall()
+        d['other_settings'] = Binary(cPickle.dumps(d, True))
+        original_domain = request.config.domain
 
-      if result and result[0]:
-        new_wiki = False
-        request.cursor.execute("UPDATE wikis set is_disabled=%(is_disabled)s, sitename=%(sitename)s, domain=%(domain)s, other_settings=%(other_settings)s where name=%(name)s", d, isWrite=True)
-      else: 
-        if d.has_key('wiki_id') and d['wiki_id']:
-            # we are giving a wiki id..assume it's valid
-            request.cursor.execute("INSERT into wikis (name, id, is_disabled, sitename, domain, other_settings) values (%(name)s, %(wiki_id)s, %(is_disabled)s, %(sitename)s, %(domain)s, %(other_settings)s)", d, isWrite=True)
-        else:
-            # new wiki id
-            if db_type == 'mysql':
-                request.cursor.execute("INSERT into wikis (name, id, is_disabled, sitename, domain, other_settings) values (%(name)s, NULL, %(is_disabled)s, %(sitename)s, %(domain)s, %(other_settings)s)", d, isWrite=True)
+        if result and result[0]:
+            new_wiki = False
+            request.cursor.execute("""UPDATE wikis set
+                is_disabled=%(is_disabled)s, sitename=%(sitename)s,
+                domain=%(domain)s, other_settings=%(other_settings)s
+                where name=%(name)s""", d, isWrite=True)
+        else: 
+            if d.has_key('wiki_id') and d['wiki_id']:
+                # we are giving a wiki id..assume it's valid
+                request.cursor.execute("""INSERT into wikis
+                    (name, id, is_disabled, sitename, domain, other_settings)
+                    values (%(name)s, %(wiki_id)s, %(is_disabled)s,
+                            %(sitename)s, %(domain)s, %(other_settings)s)""",
+                    d, isWrite=True)
             else:
-                request.cursor.execute("INSERT into wikis (name, id, is_disabled, sitename, domain, other_settings) values (%(name)s, NEXTVAL('wikis_seq'), %(is_disabled)s, %(sitename)s, %(domain)s, %(other_settings)s)", d, isWrite=True)
-            request.cursor.execute("SELECT id from wikis where name=%(name)s", d)
+                # new wiki id
+                if db_type == 'mysql':
+                    request.cursor.execute("""INSERT into wikis (name, id,
+                        is_disabled, sitename, domain, other_settings)
+                        values (%(name)s, NULL, %(is_disabled)s, %(sitename)s,
+                                %(domain)s, %(other_settings)s)""",
+                        d, isWrite=True)
+                else:
+                    request.cursor.execute("""INSERT into wikis (name, id,
+                        is_disabled, sitename, domain, other_settings)
+                        values (%(name)s, NEXTVAL('wikis_seq'),
+                                %(is_disabled)s, %(sitename)s, %(domain)s,
+                                %(other_settings)s)""", d, isWrite=True)
+                request.cursor.execute("""SELECT id from wikis where
+                    name=%(name)s""", d)
+                d['wiki_id'] = request.cursor.fetchone()[0]
 
-            d['wiki_id'] = request.cursor.fetchone()[0]
-
-      del d['other_settings']
-      if original_domain != d['domain'] and d['domain']:
-        request.req_cache['wiki_domains'][d['domain']] = d['wiki_name']
-      if memcache:
-        request.mc.set("settings:%s" % wiki_name, d, wiki_global=True) 
+        del d['other_settings']
         if original_domain != d['domain'] and d['domain']:
-            request.mc.set("wiki_domains:%s" % d['domain'], d['wiki_name'], wiki_global=True)
+            request.req_cache['wiki_domains'][d['domain']] = d['wiki_name']
+        if memcache:
+            request.mc.set("settings:%s" % wiki_name, d, wiki_global=True) 
+            if original_domain != d['domain'] and d['domain']:
+                request.mc.set("wiki_domains:%s" % d['domain'],
+                    d['wiki_name'], wiki_global=True)
 
-      request.config.__dict__.update(d)
-      request.req_cache['wiki_config'][d['wiki_name']] = request.config.__dict__
+        request.config.__dict__.update(d)
+        request.req_cache['wiki_config'][d['wiki_name']] = \
+            request.config.__dict__
 
 # default config values
-# to change the way these are displayed/what is displayed in the wiki, see sitesettings.py 
-
+# to change the way these are displayed/what is displayed in the wiki,
+# see sitesettings.py 
 
 _cfg_defaults_global = {
     'acl_rights_valid': ['read', 'edit', 'delete', 'admin'],
@@ -211,7 +244,9 @@ _cfg_defaults_global = {
     'httpd_port': 8080,
     'httpd_user': None,
     # XXX UNICODE fix
-    'lowerletters': '0-9a-z\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe8\xe9\xea\xeb\xec\xed\xee\xef\xf2\xf3\xf4\xf5\xf6\xf8\xf9\xfa\xfb\xfc\xfd\xff\xb5\xdf\xe7\xf0\xf1\xfe',
+    'lowerletters': ('0-9a-z\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe8\xe9\xea\xeb\xec'
+                     '\xed\xee\xef\xf2\xf3\xf4\xf5\xf6'
+                     '\xf8\xf9\xfa\xfb\xfc\xfd\xff\xb5\xdf\xe7\xf0\xf1\xfe'),
     'mail_login': None, # or "user pwd" if you need to use SMTP AUTH
     'mail_smarthost': None,
     'mail_smarthost_auth': None,
@@ -223,7 +258,8 @@ _cfg_defaults_global = {
     'memcache_servers': [],
     'nonexist_qm': 0,
 
-    'page_credits': """<a href="http://projectsycamore.org">Sycamore Powered</a><br>""",
+    'page_credits': ('<a href="http://projectsycamore.org">'
+                     'Sycamore Powered</a><br>'),
     'page_footer1': '',
     'page_footer2': '',
 
@@ -242,20 +278,18 @@ _cfg_defaults_global = {
     # Standard buttons in the iconbar
     'page_icons_table': {
         # key           last part of url, title, icon-key
-        'diff':        ("%(q_page_name)s?action=diff", _("Diffs"), "diff"),
-        'info':        ("%(q_page_name)s?action=info", _("Info"), "info"),
-        'edit':        ("%(q_page_name)s?action=edit", _("Edit"), "edit"),
-        'raw':         ("%(q_page_name)s?action=raw", _("Raw"), "raw"),
-        'xml':         ("%(q_page_name)s?action=format&amp;mimetype=text/xml", _("XML"), "xml"),
-        'print':       ("%(q_page_name)s?action=print", _("Print"), "print"),
-        'view':        ("%(q_page_name)s", _("View"), "view"),
+        'diff':("%(q_page_name)s?action=diff", _("Diffs"), "diff"),
+        'info':("%(q_page_name)s?action=info", _("Info"), "info"),
+        'edit':("%(q_page_name)s?action=edit", _("Edit"), "edit"),
+        'raw': ("%(q_page_name)s?action=raw", _("Raw"), "raw"),
+        'xml': ("%(q_page_name)s?action=format&amp;mimetype=text/xml",
+            _("XML"), "xml"),
+        'print':("%(q_page_name)s?action=print", _("Print"), "print"),
+        'view':("%(q_page_name)s", _("View"), "view"),
         },
     'paypal_address': 'donate@example.com',
     'paypal_name': 'Wiki Spot',
     'processors': False,
-    # this is for prevention of hotlinking.  leave blank if you don't care about people leeching images.
-    # to match against any url from any subdomain of daviswiki we would write:
-    # 'http\:\/\/(([^\/]*\.)|())daviswiki\.org\/.*'
     'refresh': None, # (minimum_delay, type), e.g.: (2, 'internal')
     'relative_dir': 'index.cgi',
     'remote_search': False,
@@ -270,14 +304,19 @@ _cfg_defaults_global = {
     'tmp_dir': 'tmp',
     'theme_force': True,
     'trail_size': 5,
-    'trust_x_forwarded_for': False, # use X_FORWARDED_FOR for request.remote_addr if provided.
+    # use X_FORWARDED_FOR for request.remote_addr if provided.
+    'trust_x_forwarded_for': False, 
     # a regex of HTTP_USER_AGENTS that should be excluded from logging,
     # and receive a FORBIDDEN for anything except viewing a page
-    'ua_spiders': 'archiver|crawler|google|htdig|httrack|jeeves|larbin|leech|linkbot' +
-                  '|linkmap|linkwalk|mercator|mirror|robot|scooter|search|sitecheck|spider|wget',
+    'ua_spiders': ('archiver|crawler|google|htdig|httrack|jeeves|larbin|'
+        'leech|linkbot') +
+        ('|linkmap|linkwalk|mercator|mirror|robot|scooter|search|sitecheck'
+        '|spider|wget'),
     'umask': 0775, # with 0777 ACLs are rather pointless!
     # XXX UNICODE fix
-    'upperletters': 'A-Z\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc8\xc9\xca\xcb\xcc\xcd\xce\xcf\xd2\xd3\xd4\xd5\xd6\xd8\xd9\xda\xdb\xdc\xdd\xc7\xd0\xd1\xde',
+    'upperletters': ('A-Z\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc8\xc9'
+                    '\xca\xcb\xcc\xcd\xce\xcf\xd2\xd3\xd4\xd5\xd6\xd8'
+                    '\xd9\xda\xdb\xdc\xdd\xc7\xd0\xd1\xde'),
     'url_prefix': '/wiki',
     'url_schemas': [],
     'url_mappings': {},
@@ -287,12 +326,22 @@ _cfg_defaults_global = {
     'web_dir' : '',
     'web_root': '/var/www/html',
     'wiki_farm': False,
-    'wiki_farm_from_wiki_msg': """<div style="float: right; width: 12em; padding: 1em; border: 1px dashed gray; background-color: #ccddff;">%(wiki_name)s is a part of %(base_wiki_sitename)s.  Your account here will work on %(wiki_name)s, the %(base_wiki_name)s hub, and all the other wikis that are part of the %(base_wiki_sitename_link)s network.</div>""",
+    'wiki_farm_from_wiki_msg': ('<div style="float: right; width: 12em; '
+                                'padding: 1em; border: 1px dashed gray; '
+                                'background-color: #ccddff;">%(wiki_name)s '
+                                'is a part of %(base_wiki_sitename)s.  '
+                                'Your account here '
+                                'will work on %(wiki_name)s, the '
+                                '%(base_wiki_name)s hub, and all the other '
+                                'wikis that are part of '
+                                'the %(base_wiki_sitename_link)s network.'
+                                '</div>'),
     'wiki_farm_dir': 'wikis',
     'wiki_base_domain': 'localhost',
     'wiki_farm_subdomains': False,
     'wiki_farm_clean_uploaded_code': True,
-    'wiki_farm_no_exist_msg': ('<p>The wiki %s does not exist!</p>', 'wiki_name'),
+    'wiki_farm_no_exist_msg': ('<p>The wiki %s does not exist!</p>',
+        'wiki_name'),
     'wiki_settings_page': 'Wiki Settings',
     'wiki_settings_page_images': 'Images',
     'wiki_settings_page_css': 'CSS',
@@ -302,10 +351,8 @@ _cfg_defaults_global = {
     'SecurityPolicy': None,
 }
 
-
 # remove that hack again
 del _
-
 
 for key, val in _cfg_defaults_global.items():
     if not vars().has_key(key):
@@ -313,7 +360,10 @@ for key, val in _cfg_defaults_global.items():
 
 _cfg_defaults_local = {
     'active': False,
-    'acl_rights_default': {'Admin': (True, True, True, True), 'Known': (True, True, True, False), 'Banned': (True, False, False, False), 'All': (True, True, False, False)},
+    'acl_rights_default': {'Admin': (True, True, True, True),
+                           'Known': (True, True, True, False),
+                           'Banned': (True, False, False, False),
+                           'All': (True, True, False, False)},
     'address_locale': '',
     'allow_subpages': 1,
     # extensions that are allowed in user uploads
@@ -321,7 +371,8 @@ _cfg_defaults_local = {
     # mimetypes allowed in uploads, this list will automagically have the 
     # mimetype values corresponding to allowed extensions added to it.
     'allowed_mimetypes': [],
-    'allow_all_mimetypes': False, # set to True to allow any extension / mimetype of uploaded files
+    # set to True to allow any extension / mimetype of uploaded files
+    'allow_all_mimetypes': False, 
     'catchphrase': 'Your phrase here...',
     'theme_files_last_modified': {},
     'edit_agreement_text': '',
@@ -347,7 +398,8 @@ _cfg_defaults_local = {
 }
 
 local_config_checkbox_fields = [
-         ('noindex_everywhere', lambda _: _('Don\'t let search engines index this wiki')),
+         ('noindex_everywhere', lambda _: _('Don\'t let search engines index '
+                                            'this wiki')),
          ('talk_pages', lambda _: _('Use "Talk" pages on this wiki')),
          ('is_disabled', lambda _: _('Delete this wiki')),
 ]
@@ -367,7 +419,6 @@ default_lang = default_lang.lower()
 
 del key
 del val
-
 
 # create list of excluded actions by first listing all "dangerous"
 # actions, and then selectively remove those the user allows
