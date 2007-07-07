@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-This lets you perform various maintenance tasks in your wiki.  Edit the sys.path.extend line and then run this for the options.
+This lets you perform various maintenance tasks in your wiki.
+Edit the sys.path.extend line and then run this for the options.
 """
 # Imports
 import sys
