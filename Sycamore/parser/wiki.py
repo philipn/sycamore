@@ -9,7 +9,7 @@
 # Imports
 import os, re
 import string
-from Sycamore import config, wikimacro, wikiutil, metadata
+from Sycamore import config, wikimacro, wikiutil
 from Sycamore.Page import Page
 from Sycamore.util import web
 from Sycamore.parser.wiki_simple import Parser as SimpleParser
@@ -313,19 +313,6 @@ class Parser(SimpleParser):
                   self.formatter.definition_desc(False)])
 
         return ''.join(d)
-
-    def _definition_repl(self, word):
-        typeKey, value = word.split(':=', 1)
-        if ' ' in typeKey:
-            type, key = typeKey.split(' ', 1)
-        else:
-            type, key, value = typeKey, value, False
-
-        if not self.formatter.isPreview():
-            result = metadata.addKey(self.formatter.page.page_name, type, 
-                                     key, value)
-
-        return self.definition(type, key, value)
 
     def get_page_lines(self): 
         # get text and replace TABs
