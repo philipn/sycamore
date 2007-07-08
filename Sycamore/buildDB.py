@@ -204,7 +204,7 @@ def create_tables(cursor):
          propercased_name varchar(100) not null,
          last_wiki_edited int,
          wiki_for_userpage varchar(100),
-         rc_group_by_wiki BOOLEAN default false,
+         rc_group_by_wiki BOOLEAN default false
          ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
     elif config.db_type == 'postgres':
         cursor.execute("""create table users
@@ -344,7 +344,7 @@ def create_tables(cursor):
         event_name mediumtext not null,
         posted_by_ip char(16),
         posted_time double,
-        wiki_id int, 
+        wiki_id int
         ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
         cursor.execute("ALTER TABLE events AUTO_INCREMENT = 1;", isWrite=True)
     elif config.db_type == 'postgres':
