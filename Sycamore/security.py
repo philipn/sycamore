@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Wiki Security Interface
 
@@ -10,6 +10,7 @@
     Then assign your new class to "SecurityPolicy" in moin_config;
     and I mean the class, not an instance of it!
 
+    @copyright: 2006-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -20,47 +21,53 @@
 
 
 class Permissions:
-    """ Basic interface for user permissions and system policy.
+    """
+    Basic interface for user permissions and system policy.
 
-        Note that you still need to allow some of the related actions, this
-        just controls their behaviour, not their activation.
+    Note that you still need to allow some of the related actions, this
+    just controls their behaviour, not their activation.
     """
 
     def __init__(self, user):
-        """ Calculate the permissons `user` has.
+        """
+        Calculate the permissons `user` has.
         """
         self.name = user.name
         self.request = user.request
 
     def read(self, page, **kw):
-        """ Check whether user may read this page.
+        """
+        Check whether user may read this page.
 
-            `kw` allows passing more information without breaking user
-            policies and is not used currently.
+        `kw` allows passing more information without breaking user
+        policies and is not used currently.
         """
         return self.getACL(page, **kw).may(self.request, self.name, "read")
 
     def edit(self, page, **kw):
-        """ Check whether user may edit this page.
+        """
+        Check whether user may edit this page.
 
-            `kw` allows passing more information without breaking user
-            policies and is not used currently.
+        `kw` allows passing more information without breaking user
+        policies and is not used currently.
         """
         return self.getACL(page, **kw).may(self.request, self.name, "edit")
 
     def delete(self, page, **kw):
-        """ Check whether user may delete this page.
+        """
+        Check whether user may delete this page.
 
-            `kw` allows passing more information without breaking user
-            policies and is not used currently.
+        `kw` allows passing more information without breaking user
+        policies and is not used currently.
         """
         return self.getACL(page, **kw).may(self.request, self.name, "delete")
 
     def admin(self, page, **kw):
-        """ Check whether user may administrate this page.
+        """
+        Check whether user may administrate this page.
 
-            `kw` allows passing more information without breaking user
-            policies and is not used currently.
+        `kw` allows passing more information without breaking user
+        policies and is not used currently.
         """
         return self.getACL(page, **kw).may(self.request, self.name, "admin")
 
@@ -69,4 +76,3 @@ class Permissions:
 
 # make an alias for the default policy
 Default = Permissions
-
