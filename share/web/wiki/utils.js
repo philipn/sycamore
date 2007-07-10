@@ -347,7 +347,7 @@ function createEditSubmit()
 {
     if (!may_inline_edit)
         return false;
-    document.getElementById('content').innerHTML += '<div style="visibility:hidden!important;position:absolute;left:0px;top:0px;height:0px;width:0px;z-index:-100;"><form name="editform" id="editform" method="post" action="' + action + '"><input type="hidden" name="action" value="savepage"><input type="hidden" name="datestamp" value="' + curTimestamp + '"><input type="text" name="screenposy" style="height:0px;width:0px;"><textarea id="savetext" name="savetext" style="height:0px;width:0px;"></textarea><input type="submit" name="button_save" value="Save Changes" style="width:0px;height:0px;"><input type="hidden" name="comment" value="(quick edit)"><input type="hidden" name="no_save_msg" value="1"></form></div>';
+    document.getElementById('content').innerHTML += '<div style="display: none;"><form name="editform" id="editform" method="post" action="' + action + '"><input type="hidden" name="action" value="savepage"><input type="hidden" name="datestamp" value="' + curTimestamp + '"><input type="text" name="screenposy" style="display: none;"><textarea id="savetext" name="savetext" style="display: none;"></textarea><input type="submit" name="button_save" value="Save Changes" style="display: none;"><input type="hidden" name="comment" value="(quick edit)"><input type="hidden" name="no_save_msg" value="1"></form></div>';
 }
 
 function createEditAskArea(id_start, id_end, type)
