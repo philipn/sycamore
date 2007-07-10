@@ -1,16 +1,35 @@
 #!/usr/bin/python -OO
 # -*- coding: utf-8 -*-
 
-import sys, socket, getopt, threading, time, copy, os, cPickle, xapian, random
-import __init__ # woo hackmagic
+# Imports
+import sys
+import socket
+import getopt
+import threading
+import time
+import copy
+import os
+import cPickle
+import random
+
+import __init__
 __directory__ = os.path.dirname(__file__)
 share_directory = os.path.abspath(os.path.join(__directory__, '..', 'share'))
 sys.path.extend([share_directory]),
-from Sycamore import request, wikiutil, search, config
+
+from Sycamore import request
+from Sycamore import wikiutil
+from Sycamore import search
+from Sycamore import config
 from Sycamore.Page import Page
 
-SPOOL_WAIT_TIME = 10 # the amount of time to wait, in seconds, until processing a spool
-COMMIT_TIME_THRESHOLD = 60 # the amount of time, in seconds, to wait until commiting a batch of xapian changes
+if config.has_xapian:
+    import xapian
+
+# the amount of time to wait, in seconds, until processing a spool
+SPOOL_WAIT_TIME = 10 
+# amount of time in seconds to wait until commiting a batch of xapian changes
+COMMIT_TIME_THRESHOLD = 60 
 
 keep_processing = True
 
@@ -19,6 +38,7 @@ in_transaction = False
 
 doing_db_rebuild = False
 tmp_db_location = None
+db_location = None
 in_re_init = False
 db_files_moving = False
 
@@ -40,8 +60,8 @@ def _search_sleep_time(delta=0):
 
 class Spool(object):
     def __init__(self):
-      self.item_dict = {}
-      self.item_queue = []
+        self.item_dict = {}
+        self.item_queue = []
 
     def _mark(self, item, label):
       if not item in self.item_dict or not self.item_dict[item] != label:
@@ -49,14 +69,15 @@ class Spool(object):
           self.item_dict[item] = label
 
     def mark_for_add(self, item):
-      self._mark(item, 'add')
+        self._mark(item, 'add')
 
     def mark_for_remove(self, item):
-      self._mark(item, 'del')
+        self._mark(item, 'del')
 
     def clear(self):
-      self.item_dict = {}
-      self.item_queue = []
+        self.item_dict = {}
+        self.item_queue = []
+
 
 def setup_databases(given_db_location=None):
     global db_location
@@ -70,7 +91,10 @@ def setup_databases(given_db_location=None):
         except IOError, err:
             strerr = str(err) 
             debug_log("Had error opening title db.")
-            if strerr == 'DatabaseLockError: Unable to acquire database write lock %s' % os.path.join(os.path.join(given_db_location or db_location, 'title'), 'db_lock'):
+            if strerr == ('DatabaseLockError: Unable to acquire database '
+                          'write lock %s' % os.path.join(
+                            os.path.join(given_db_location or db_location,
+                            'title'), 'db_lock')):
                 cleanup_file_locks()
                 _search_sleep_time()
             else:
@@ -96,7 +120,10 @@ def setup_databases(given_db_location=None):
         except IOError, err:
             debug_log("Had error opening text db.")
             strerr = str(err) 
-            if strerr == 'DatabaseLockError: Unable to acquire database write lock %s' % os.path.join(os.path.join(given_db_location or db_location, 'title'), 'db_lock'):
+            if strerr == ('DatabaseLockError: Unable to acquire database '
+                          'write lock %s' % os.path.join(
+                            os.path.join(given_db_location or db_location,
+                            'title'), 'db_lock')):
                 cleanup_file_locks()
                 _search_sleep_time()
             else:
@@ -115,7 +142,6 @@ def setup_databases(given_db_location=None):
     debug_log("Opened DBs successfully")
     return (text_database, title_database)
 
-
 spool_lock = threading.Lock()
 spool = Spool()
 
@@ -123,19 +149,25 @@ text_database_lock = threading.Lock()
 title_database_lock = threading.Lock()
 
 def usage():
-    print "usage: syc_search_server -l <location of databases> [-h <host> -p <port> -d]"
-    print ""
-    print " h : what IP/domain to bind to."
-    print " p : what port to use (defaults to 33432)."
-    print " l : location of the search directory containing title and text databases."
-    print " d : run as daemon."
-    print ""
+        print "usage: syc_search_server -l <location of databases> [-h <host>",
+        print "-p <port> -d]"
+        print ""
+        print " h : what IP/domain to bind to."
+        print " p : what port to use (defaults to 33432)."
+        print " l : location of the search directory containing title and",
+        print "text databases."
+        print " d : run as daemon."
+        print ""
 
 def cleanup_file_locks():
-    if os.path.exists(os.path.join(os.path.join(config.search_db_location, "text"), 'db_lock')):
-        os.remove(os.path.join(os.path.join(config.search_db_location, "text"), 'db_lock'))
-    if os.path.exists(os.path.join(os.path.join(config.search_db_location, "title"), 'db_lock')):
-        os.remove(os.path.join(os.path.join(config.search_db_location, "title"), 'db_lock'))
+        if os.path.exists(os.path.join(os.path.join(config.search_db_location,
+                                                    "text"), 'db_lock')):
+            os.remove(os.path.join(os.path.join(config.search_db_location,
+                                                "text"), 'db_lock'))
+        if os.path.exists(os.path.join(os.path.join(config.search_db_location,
+                                                    "title"), 'db_lock')):
+            os.remove(os.path.join(os.path.join(config.search_db_location,
+                                                "title"), 'db_lock'))
 
 def process_search(terms, wiki_name, client, p_start_loc, t_start_loc):
     global db_location, db_files_moving
@@ -156,8 +188,11 @@ def process_search(terms, wiki_name, client, p_start_loc, t_start_loc):
             req.db_disconnect()
 	    return
 
-    thesearch = search.XapianSearch(None, req, db_location=db_location, processed_terms=terms, wiki_global=wiki_global,
-        p_start_loc=p_start_loc, t_start_loc=t_start_loc)
+    thesearch = search.XapianSearch(None, req, db_location=db_location,
+                                    processed_terms=terms,
+                                    wiki_global=wiki_global,
+                                    p_start_loc=p_start_loc,
+                                    t_start_loc=t_start_loc)
     thesearch.process()
     results = (thesearch.title_results, thesearch.text_results)
     thesearch_encoded = wikiutil.quoteFilename(cPickle.dumps(results))
@@ -167,9 +202,9 @@ def process_search(terms, wiki_name, client, p_start_loc, t_start_loc):
     req.db_disconnect()
     del req
 
-
 def _begin_xapian_transaction():
-    global text_database, title_database, transaction_start_time, in_transaction
+    global text_database, title_database, transaction_start_time
+    global in_transaction
     debug_log("Beginning Xapian transaction")
     text_database.begin_transaction()
     title_database.begin_transaction()
@@ -177,7 +212,8 @@ def _begin_xapian_transaction():
     in_transaction = True
 
 def force_commit_xapian_transaction():
-    global text_database, title_database, transaction_start_time, in_transaction, text_database_lock, title_database_lock
+    global text_database, title_database, transaction_start_time
+    global in_transaction, text_database_lock, title_database_lock
     debug_log("Forcing commit of Xapian transaction..")
     if in_transaction:
         debug_log("..in transaction, asking for locks..")
@@ -192,22 +228,9 @@ def force_commit_xapian_transaction():
         debug_log("released locks")
     in_transaction = False
 
-#def process_xapian_transaction():
-#    global text_database, title_database, transaction_start_time, in_transaction
-#    print transaction_start_time
-#    if in_transaction and (time.time() - transaction_start_time) > COMMIT_TIME_THRESHOLD:
-#        print (time.time() - transaction_start_time), COMMIT_TIME_THRESHOLD
-#        text_database.commit_transaction()
-#        title_database.commit_transaction()
-#        print 'commited normally'
-#        _begin_xapian_transaction()
-#    elif not in_transaction:
-#        print '!!!!!!!!!!HERE'
-#        print 'bob', (time.time() - transaction_start_time)
-#        _begin_xapian_transaction()
-
 def cleanup_db_init():
-    global tmp_db_location, text_database, title_database, text_database_lock, title_database_lock, in_re_init, db_files_moving
+    global tmp_db_location, text_database, title_database
+    global text_database_lock, title_database_lock, in_re_init, db_files_moving
     debug_log("in db init cleanup")
     # do switchover of title_db and text_db to the normal location
     debug_log("attempting to acquire locks in db_init cleanup..")
@@ -221,10 +244,17 @@ def cleanup_db_init():
     # in posix os.rename is atomic
     db_files_moving = True
     for filename in os.listdir(os.path.join(tmp_db_location, "title")):
-      os.rename(os.path.join(os.path.join(tmp_db_location, "title"), filename), os.path.join(os.path.join(config.search_db_location, "title"), filename))
+        os.rename(os.path.join(os.path.join(tmp_db_location, "title"),
+                               filename),
+                  os.path.join(os.path.join(config.search_db_location,
+                                            "title"),
+                               filename))
 
     for filename in os.listdir(os.path.join(tmp_db_location, "text")):
-      os.rename(os.path.join(os.path.join(tmp_db_location, "text"), filename), os.path.join(os.path.join(config.search_db_location, "text"), filename))
+        os.rename(os.path.join(os.path.join(tmp_db_location, "text"),
+                               filename),
+                  os.path.join(os.path.join(config.search_db_location, "text"),
+                               filename))
 
     os.rmdir(os.path.join(tmp_db_location, "title"))
     os.rmdir(os.path.join(tmp_db_location, "text"))
@@ -243,13 +273,9 @@ def cleanup_db_init():
     text_database_lock.release()
     title_database_lock.release()
 
-
 def process_spool(spool):
-    global db_location, title_database, text_database, transaction_start_time, in_transaction, in_re_init, doing_db_rebuild
-    #if not spool.item_queue:
-    #   if in_transaction:
-    #      process_xapian_transaction()
-    #   return
+    global db_location, title_database, text_database
+    global transaction_start_time, in_transaction, in_re_init, doing_db_rebuild
     if not spool.item_queue:
         return
 
@@ -258,9 +284,7 @@ def process_spool(spool):
     debug_log("attempting to begin xap transaction in process spool")
     _begin_xapian_transaction()
     debug_log("in transaction in process spool")
-    #process_xapian_transaction()
     while spool.item_queue:
-        #process_xapian_transaction()
         item = spool.item_queue.pop(0)
         type = spool.item_dict[item]
         pagename, wiki_name = item
@@ -277,11 +301,14 @@ def process_spool(spool):
             if doing_db_rebuild:
                 in_re_init = True
             try:
-                search.index(page, text_db=text_database, title_db=title_database)
+                search.index(page, text_db=text_database,
+                             title_db=title_database)
             except RuntimeError, msg:
                 debug_log("had error in process spool (first search index)")
                 msg = str(msg)
-                if msg == 'unknown error in Xapian' or msg == "UnimplementedError: Can't open modified postlist during a transaction":
+                if (msg == 'unknown error in Xapian' or
+                    msg == ("UnimplementedError: Can't open modified postlist "
+                            "during a transaction")):
                         debug_log("releasing lock in process spool")
                         text_database_lock.release()
                         title_database_lock.release()
@@ -295,23 +322,28 @@ def process_spool(spool):
                         debug_log("attempting to force commit in process spool")
                         force_commit_xapian_transaction()
                         debug_log("forced commit in process spool")
-                        debug_log("attempting to acquire locks in process spool")
+                        debug_log("attempting to acquire locks in "
+                                  "process spool")
                         text_database_lock.acquire()
                         title_database_lock.acquire()
                         debug_log("locks acquired in process spool")
                         try:
-                            search.index(page, text_db=text_database, title_db=title_database)
+                            search.index(page, text_db=text_database,
+                                         title_db=title_database)
                         except RuntimeError, msg:
-                            debug_log("had error on search index in process spool")
+                            debug_log("had error on search index in "
+                                      "process spool")
                             msg = str(msg)
                             if msg == 'unknown error in Xapian':
                                     spool.item_queue.append(item)
-                                    debug_log("releasing locks in process spool")
+                                    debug_log("releasing locks in "
+                                              "process spool")
                                     text_database_lock.release()
                                     title_database_lock.release()
                                     return
                             else:
-                                    debug_log("releasing locks in process spool")
+                                    debug_log("releasing locks in "
+                                              "process spool")
                                     text_database_lock.release()
                                     title_database_lock.release()
                                     raise
@@ -333,42 +365,54 @@ def process_spool(spool):
             if doing_db_rebuild:
                in_re_init = True
             try:
-                search.remove(page, text_db=text_database, title_db=title_database)
+                search.remove(page, text_db=text_database,
+                              title_db=title_database)
             except RuntimeError, msg:
                 debug_log("had error in process spool (first remove)")
                 msg = str(msg)
-                if msg == 'unknown error in Xapian' or msg == "UnimplementedError: Can't open modified postlist during a transaction":
+                if (msg == 'unknown error in Xapian' or
+                    msg == ("UnimplementedError: Can't open modified "
+                            "postlist during a transaction")):
                         debug_log("releasing locks in process spool")
                         text_database_lock.release()
                         title_database_lock.release()
-                        debug_log("attempting to force commit of xap transaction in process spool")
+                        debug_log("attempting to force commit of "
+                                  "xap transaction in process spool")
                         force_commit_xapian_transaction()
-                        debug_log("forced commit of xap transaction in process spool")
+                        debug_log("forced commit of xap transaction "
+                                  "in process spool")
                         time.sleep(1)
                         _search_sleep_time()
                         debug_log("re-opening xapian db's")
                         text_database.reopen()
                         title_database.reopen()
                         debug_log("xapian db's reopened")
-                        debug_log("attempting to force commit of xap transaction in process spool (2)")
+                        debug_log("attempting to force commit of xap "
+                                  "transaction in process spool (2)")
                         force_commit_xapian_transaction()
-                        debug_log("forced commit of xap transaction in process spool (2)")
-                        debug_log("attempting to acquire locks in process spool (2)")
+                        debug_log("forced commit of xap transaction in "
+                                  "process spool (2)")
+                        debug_log("attempting to acquire locks in "
+                                  "process spool (2)")
                         text_database_lock.acquire()
                         title_database_lock.acquire()
                         try:
-                            search.remove(page, text_db=text_database, title_db=title_database)
+                            search.remove(page, text_db=text_database,
+                                          title_db=title_database)
                         except RuntimeError, msg:
-                            debug_log("had ANOTHER error in process spool (remove)")
+                            debug_log("had ANOTHER error in "
+                                      "process spool (remove)")
                             msg = str(msg)
                             if msg == 'unknown error in Xapian':
                                     spool.item_queue.append(item)
-                                    debug_log("releasing locks in process spool")
+                                    debug_log("releasing locks "
+                                              "in process spool")
                                     text_database_lock.release()
                                     title_database_lock.release()
                                     return
                             else:
-                                    debug_log("releasing locks in process spool")
+                                    debug_log("releasing locks in "
+                                              "process spool")
                                     text_database_lock.release()
                                     title_database_lock.release()
                                     raise
@@ -379,11 +423,9 @@ def process_spool(spool):
                         title_database_lock.release()
                         raise
 
-
             debug_log("releasing locks in process spool")
             text_database_lock.release()
             title_database_lock.release()
-
 
     debug_log("forcing commit xap transaction (bottom of process spool)")
     force_commit_xapian_transaction()
@@ -392,23 +434,22 @@ def process_spool(spool):
     del req
 
 def load_spool():
-   """
-   Load spool that was serialized to disk, if it's there.
-   """
-   global spool
-   if os.path.exists('syc_search.spool'):
-     spool = cPickle.load(open('syc_search.spool', 'r'))
-     os.remove('syc_search.spool')
-   return spool
+    """
+    Load spool that was serialized to disk, if it's there.
+    """
+    global spool
+    if os.path.exists('syc_search.spool'):
+        spool = cPickle.load(open('syc_search.spool', 'r'))
+        os.remove('syc_search.spool')
+    return spool
 
 def save_spool():
-   """
-   Save spool to the disk.
-   """
-   global spool
-   if spool.item_queue: # if there's things in the spool
-     cPickle.dump(spool, open('syc_search.spool', 'w'), True)
-
+    """
+    Save spool to the disk.
+    """
+    global spool
+    if spool.item_queue: # if there's things in the spool
+        cPickle.dump(spool, open('syc_search.spool', 'w'), True)
 
 def servespool():
     global spool_lock, spool, keep_processing, doing_db_rebuild, in_re_init
@@ -416,22 +457,22 @@ def servespool():
 
     slept = SPOOL_WAIT_TIME
     while keep_processing:
-      time.sleep(1)
-      slept -= 1
-      if slept <= 0:
-        spool_lock.acquire()
-        if doing_db_rebuild:
-           in_re_init = True
-        spool_to_process = copy.copy(spool)
-        spool.clear()
-        spool_lock.release()
+        time.sleep(1)
+        slept -= 1
+        if slept <= 0:
+            spool_lock.acquire()
+            if doing_db_rebuild:
+                in_re_init = True
+            spool_to_process = copy.copy(spool)
+            spool.clear()
+            spool_lock.release()
 
-        process_spool(spool_to_process) 
-        slept = SPOOL_WAIT_TIME
-        if in_re_init and not doing_db_rebuild:
-           # time to do an automic rename and clean up
-           # after the rebuild
-           cleanup_db_init()
+            process_spool(spool_to_process) 
+            slept = SPOOL_WAIT_TIME
+            if in_re_init and not doing_db_rebuild:
+                # time to do an automic rename and clean up
+                # after the rebuild
+                cleanup_db_init()
 
     save_spool()
       
@@ -457,7 +498,8 @@ def serveclient(client):
         spool_lock.release()
 
     def handle_re_init():
-        global doing_db_rebuild, tmp_db_location, text_database, title_database, text_database_lock, title_database_lock
+        global doing_db_rebuild, tmp_db_location, text_database
+        global title_database, text_database_lock, title_database_lock
         client.close()
 
         spool_lock.acquire()
@@ -465,7 +507,9 @@ def serveclient(client):
         spool_lock.release()
 
         timenow = time.time()
-        tmp_db_location = os.path.join(os.path.join(config.search_db_location, ".."), "search.%s" % timenow)
+        tmp_db_location = os.path.join(os.path.join(config.search_db_location,
+                                                    ".."),
+                                       "search.%s" % timenow)
         os.mkdir(tmp_db_location)
 
         # do switchover of title_db and text_db to the temporary location
@@ -478,13 +522,12 @@ def serveclient(client):
         text_database_lock.release()
         title_database_lock.release()
 
-
     def handle_re_init_stop():
         global doing_db_rebuild, in_re_init
         client.close()
-        if not in_re_init: in_re_init = True
+        if not in_re_init:
+            in_re_init = True
         doing_db_rebuild = False
-        
 
     def handle_search():
         lines = data
@@ -575,32 +618,34 @@ def run_as_daemon(host, port):
 if __name__ == '__main__':
     global text_database, title_database
     try:
-      opts, args = getopt.getopt(sys.argv[1:], "h:p:l:d")
+        opts, args = getopt.getopt(sys.argv[1:], "h:p:l:d")
     except getopt.GetoptError:
-      usage()
-      sys.exit(2)
+        usage()
+        sys.exit(2)
 
     host = ''
     port = 33432 
     daemon = False
     if opts:
-      for o, a in opts:
-        if o == '-h':
-           host = a
-        elif o == '-p':
-           port = int(a)
-        elif o == '-l':
-           db_location = a
-        elif o == '-d':
-           daemon = True
+        for o, a in opts:
+            if o == '-h':
+                host = a
+            elif o == '-p':
+                port = int(a)
+            elif o == '-l':
+                db_location = a
+            elif o == '-d':
+                daemon = True
 
     if not db_location:
-      usage()
-      sys.exit(2)
+        usage()
+        sys.exit(2)
 
     db_location = os.path.abspath(db_location)
 
     text_database, title_database = setup_databases()
 
-    if daemon: run_as_daemon(host, port)
-    else: do_run(host, port)
+    if daemon:
+        run_as_daemon(host, port)
+    else:
+        do_run(host, port)
