@@ -799,13 +799,15 @@ class UserSettings:
                     html.DIV().extend(cell),
                     ]))
         else:
-            option_label = html.SPAN(html_class="optional", **kw).extend([option_text])
-            settings_label = html.DIV(html_class="settings_form_label", **kw).extend([label, option_label])
-            self._inner.append(html.DIV(html_class="settings_form_item").extend([
-                settings_label,
-                html.DIV().extend(cell),
-            ]))
-
+            option_label = html.SPAN(html_class="optional",
+                                     **kw).extend([option_text])
+            settings_label = html.DIV(html_class="settings_form_label",
+                                      **kw).extend([label, option_label])
+            self._inner.append(html.DIV(
+                html_class="settings_form_item").extend([
+                    settings_label,
+                    html.DIV().extend(cell),
+                    ]))
 
     def asHTML(self, msg='', new_user=False):
         """
