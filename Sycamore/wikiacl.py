@@ -441,7 +441,8 @@ def getACL(pagename, request):
 
 def _sameAsDefaults(groupdict, request):
     """
-    Is groupdict, consisting of permissions for groups, essentially the same as the default ACL rights on the wiki?
+    Is groupdict, consisting of permissions for groups, essentially the
+    same as the default ACL rights on the wiki?
     """
     defaults = {}
     for groupname in request.config.acl_rights_default:
