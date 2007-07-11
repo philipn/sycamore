@@ -741,6 +741,8 @@ class Page(object):
                 self.request.user.checkFavorites(self)
 
             # send the document leader
+            if not self.exists() and not request.status:
+                request.status = '404 Not Found'
             request.http_headers()
             request.write(doc_leader)
 
