@@ -7,9 +7,15 @@
         http://moin.conectiva.com.br/GustavoNiemeyer
     @license: GNU GPL, see COPYING for details.
 """
-import time, os
+
+# Imports
+import time
+import os
 import cPickle as pickle
-from Sycamore import config, wikiutil, Page
+
+from Sycamore import config
+from Sycamore import wikiutil
+from Sycamore import Page
 
 DICTS_PICKLE_VERSION = 1
 
