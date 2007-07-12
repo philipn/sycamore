@@ -428,7 +428,7 @@ class User(object):
                 """SELECT name, email, enc_password, language, remember_me,
                           css_url, disabled, edit_cols, edit_rows, theme_name,
                           last_saved, tz, rc_bookmark, propercased_name,
-                          wiki_for_userpage
+                          wiki_for_userpage, rc_showcomments, rc_group_by_wiki
                    from users where id=%(userid)s""", {'userid':self.id})
               data = self.request.cursor.fetchone()
               if data:
@@ -448,6 +448,9 @@ class User(object):
                     user_data['rc_bookmark'] = data[12]
                     user_data['propercased_name'] = data[13]
                     user_data['wiki_for_userpage'] = data[14] or ''
+                    user_data['rc_showcomments'] = data[15]
+                    user_data['rc_group_by_wiki'] = data[16]
+
                     result = user_data
                     if config.memcache:
                         self.request.mc.add('users:%s' % self.id, result,
