@@ -630,7 +630,6 @@ class Page(object):
         pi_refresh = None
         pi_formtext = []
         pi_formfields = []
-        wikiform = None
 
         # check processing instructions
         while meta_text:

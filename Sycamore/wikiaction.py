@@ -1247,11 +1247,6 @@ def do_groupbywiki(pagename, request):
     request.user.setRcGroupByWiki(group_by_wiki)
     Page(pagename, request).send_page()
 
-def do_formtest(pagename, request):
-    # test a user defined form
-    from Sycamore import wikiform
-    wikiform.do_formtest(pagename, request)
-
 #############################################################################
 ### Special Actions
 #############################################################################
