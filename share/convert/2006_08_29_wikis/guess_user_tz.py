@@ -10,7 +10,7 @@ from Sycamore.Page import Page
 # values.  Sets the tz to the tz of the wiki they
 # made the most edits on.
 #################################################
-tzs = {'davis':'US/Pacific', 'rochester':'US/Eastern', 'santacruz':'US/Pacific', 'chico':'US/Pacific', 'pittsburgh':'US/Eastern', 'anthill':'US/Eastern'}
+tzs = {'yourwikishortname':'US/Pacific'}
 
 req = request.RequestDummy()
 
