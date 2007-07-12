@@ -8,11 +8,11 @@ from Sycamore.Page import Page
 
 # things you might want to change
 # ignore this: sc: 5, dwiki: 2, roc:3, pgh:4, proj:6, ant:7, chico:8
-wiki_id = 5
+wiki_id = 1
 wiki_name = config.wiki_name
 d = {"wiki_id": wiki_id, "wiki_name": wiki_name}
-maps_start = 844
-events_start = 2875
+maps_start = 0
+events_start = 0
 
 # don't change these
 maps_start_local = None
