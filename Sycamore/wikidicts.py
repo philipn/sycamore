@@ -1,9 +1,10 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore Dictionary / Group Functions
 
     @copyright: 2003 by Thomas Waldmann, http://linuxwiki.de/ThomasWaldmann
-    @copyright: 2003 by Gustavo Niemeyer, http://moin.conectiva.com.br/GustavoNiemeyer
+    @copyright: 2003 by Gustavo Niemeyer,
+        http://moin.conectiva.com.br/GustavoNiemeyer
     @license: GNU GPL, see COPYING for details.
 """
 import time, os
@@ -17,46 +18,51 @@ DICTS_PICKLE_VERSION = 1
 DICTS_DATA = {}
 
 class Dict:
-    """a Dict - a mapping of keys to values
+    """
+    a Dict - a mapping of keys to values
 
-       How a Dict definition page should look like:
+    How a Dict definition page should look like:
 
-       any text does not care
-        key1:: value1
-        * does not care, too
-        key2:: value2 containing spaces
-        ...
-        keyn:: ....
-       any text does not care
-       
-       If dict=0, then groups are simulated by a dict:
-       How a Group definition page should look like:
+    any text does not care
+    key1:: value1
+    * does not care, too
+     key2:: value2 containing spaces
+     ...
+     keyn:: ....
+    any text does not care
+    
+    If dict=0, then groups are simulated by a dict:
+    How a Group definition page should look like:
 
-       any text does not care
-        * member1
-         * does not care, too
-        * member2
-        * ....
-        * memberN
-       any text does not care
+    any text does not care
+     * member1
+      * does not care, too
+     * member2
+     * ....
+     * memberN
+    any text does not care
 
-       if there are any free links using ["free link"] notation, the markup
-       is stripped from the member 
+    if there are any free links using ["free link"] notation, the markup
+    is stripped from the member 
     """
 
-    def __init__(self, name, request, dict=1, case_insensitive=True, fresh=False):
-        """Initialize a Dict, starting from <nothing>.
+    def __init__(self, name, request, dict=1, case_insensitive=True,
+                 fresh=False):
         """
-	import re
+        Initialize a Dict, starting from <nothing>.
+        """
+        import re
         self.name = name
         self._dict = {}
         p = Page.Page(name, request)
         if dict: # used for dicts
-            regex = r'^\s(?P<key>.*?)::\s(?P<val>.*?)(\s*)$' # 1st level definition list,
-                                               # strip trailing blanks
+            # 1st level definition list,
+            regex = r'^\s(?P<key>.*?)::\s(?P<val>.*?)(\s*)$'
+            # strip trailing blanks
         else: # used for groups
-            regex = r'^\s\*\s(\[\")?(?P<member>.*?)(\"\])?(\s*)$' # 1st level item list,
-                               # strip trailing blanks and free link markup
+            # 1st level item list,
+            regex = r'^\s\*\s(\[\")?(?P<member>.*?)(\"\])?(\s*)$'
+            # strip trailing blanks and free link markup
         regex = re.compile(regex)
         text = p.get_raw_body(fresh=fresh)
         for line in text.split("\n"):
@@ -83,12 +89,12 @@ class Dict:
 
 
 class Group(Dict):
-    """a Group - e.g. of users, of pages, of whatever
-
     """
-
+    a Group - e.g. of users, of pages, of whatever
+    """
     def __init__(self, name, request):
-        """Initialize a Group, starting from <nothing>.
+        """
+        Initialize a Group, starting from <nothing>.
         """
         Dict.__init__(self, name, request, dict=0)
 
@@ -130,17 +136,17 @@ class Group(Dict):
 
 
 class DictDict:
-    """a dictionary of Dict objects
-
-       Config:
-           config.page_dict_regex
-               Default: ".*Dict$"  Defs$ Vars$ ???????????????????
     """
+    a dictionary of Dict objects
 
+    Config:
+        config.page_dict_regex
+            Default: ".*Dict$"  Defs$ Vars$ ???????????????????
+    """
     def __init__(self, request):
         self.reset()
-	self.request = request
-	self.cursor = request.cursor
+        self.request = request
+        self.cursor = request.cursor
 
     def reset(self):
         self.dictdict = {}
@@ -171,7 +177,9 @@ class DictDict:
         return dict.values()
 
     def dict(self, dictname):
-        """get dict <dictname>"""
+        """
+        get dict <dictname>
+        """
         try:
             dict = self.dictdict[dictname.lower()]
         except KeyError:
@@ -179,14 +187,18 @@ class DictDict:
         return dict
 
     def adddict(self, dictname):
-        """add a new dict (will be read from the wiki page)"""
+        """
+        add a new dict (will be read from the wiki page)
+        """
         self.dictdict[dictname.lower()] = Dict(dictname.lower(), self.request)
 
     def has_dict(self, dictname):
         return self.dictdict.has_key(dictname.lower())
 
     def keydict(self, key):
-        """list all dicts that contain key"""
+        """
+        list all dicts that contain key
+        """
         dictlist = []
         key = key.lower()
         for dict in self.dictdict.values():
@@ -196,11 +208,12 @@ class DictDict:
 
 
 class GroupDict(DictDict):
-    """a dictionary of Group objects
+    """
+    a dictionary of Group objects
 
-       Config:
-           config.page_group_regex
-               Default: ".*Group$"
+    Config:
+        config.page_group_regex
+            Default: ".*Group$"
     """
     def __init__(self, request):
       self.request = request
@@ -214,7 +227,9 @@ class GroupDict(DictDict):
         return 0
 
     def members(self, groupname):
-        """get members of group <groupname>"""
+        """
+        get members of group <groupname>
+        """
         try:
             group = self.dictdict[groupname.lower()]
         except KeyError:
@@ -222,14 +237,19 @@ class GroupDict(DictDict):
         return group.members()
 
     def addgroup(self, groupname):
-        """add a new group (will be read from the wiki page)"""
-        self.dictdict[groupname.lower()] = Group(groupname.lower(), self.request)
+        """
+        add a new group (will be read from the wiki page)
+        """
+        self.dictdict[groupname.lower()] = Group(groupname.lower(),
+                                                 self.request)
 
     def hasgroup(self, groupname):
         return self.dictdict.has_key(groupname.lower())
 
     def membergroups(self, member):
-        """list all groups where member is a member of"""
+        """
+        list all groups where member is a member of
+        """
         grouplist = []
         for group in self.dictdict.values():
             if group.has_member(member):
@@ -237,7 +257,9 @@ class GroupDict(DictDict):
         return grouplist
 
     def save(self):
-       # save to disk and memcache the results of an add
+       """
+       save to disk and memcache the results of an add
+       """
        data = {
             "namespace_timestamp": self.namespace_timestamp,
             "pageupdate_timestamp": self.pageupdate_timestamp,
@@ -254,18 +276,20 @@ class GroupDict(DictDict):
          self.request.mc.set('dicts_data', data)
 
     def scandicts(self, force_update=False, update_pagename=None):
-        """scan all pages matching the dict / group regex and init the dictdict"""
+        """
+        scan all pages matching the dict / group regex and init the dictdict
+        """
         global DICTS_PICKLE_VERSION
         dump = 0
-	if config.memcache:
-	  DICTS_DATA = self.request.mc.get("dicts_data")
-	else:
-	  DICTS_DATA = {}
+        if config.memcache:
+          DICTS_DATA = self.request.mc.get("dicts_data")
+        else:
+          DICTS_DATA = {}
 
         if DICTS_DATA and not force_update:
             self.__dict__.update(DICTS_DATA)
         else:
-	    DICTS_DATA = {}
+            DICTS_DATA = {}
             try:
                 picklefile = config.data_dir + '/dicts.pickle'
                 data = pickle.load(open(picklefile))
@@ -273,17 +297,17 @@ class GroupDict(DictDict):
                 if self.picklever != DICTS_PICKLE_VERSION:
                     self.reset()
                     dump = 1
-		if config.memcache:
-		  self.request.mc.add('dicts_data', data)
+                if config.memcache:
+                  self.request.mc.add('dicts_data', data)
             except:
                 self.reset()
 
-	# init the dicts the first time
-	if not self.namespace_timestamp or force_update:
+        # init the dicts the first time
+        if not self.namespace_timestamp or force_update:
             now = time.time()
             if force_update and update_pagename:
                self.addgroup(update_pagename)
-	    else:
+            else:
               import re
               group_re = re.compile(config.page_group_regex, re.IGNORECASE)
               pagelist = wikiutil.getPageList(self.request)
@@ -307,7 +331,7 @@ class GroupDict(DictDict):
                     group = self.dictdict[pagename.lower()]
                     group.expandgroups(self)
 
-	    if config.memcache: self.request.mc.set('dicts_data', data)
+            if config.memcache: self.request.mc.set('dicts_data', data)
             pickle.dump(data, open(picklefile, 'w'), True)
             try:
                 os.chmod(picklefile, 0666 & config.umask)
