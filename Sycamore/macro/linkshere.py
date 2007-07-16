@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
-from Sycamore import wikiutil, wikiform, config
+from Sycamore import wikiutil, config
 from Sycamore.Page import Page
 
 Dependencies = ["time"] # can't really be cached right now, maybe later (use memcache and might not matter)

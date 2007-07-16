@@ -888,8 +888,8 @@ def importPlugin(kind, name, function="execute"):
     # First try data/plugins
     result = pysupport.importName("plugin." + kind + "." + name, function)
     if not result:
-      # then Sycamore
-      result = pysupport.importName("Sycamore." + kind + "." + name, function)
+        # then Sycamore
+        result = pysupport.importName("Sycamore." + kind + "." + name, function)
     return result
 
 def builtinPlugins(kind):

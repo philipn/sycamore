@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
-from Sycamore import wikiutil, wikiform, config, wikidb
+from Sycamore import wikiutil, config, wikidb
 from Sycamore.Page import Page
 
 system_pages_startswith = ('wiki settings/', 'templates/')

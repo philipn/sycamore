@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
-from Sycamore import wikiutil, wikiform, config
+from Sycamore import wikiutil, config
 
 #Dependencies = []
 

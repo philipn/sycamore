@@ -1,6 +1,6 @@
 # -*- coding: iso-8859-1 -*-
 
-from Sycamore import wikiutil, wikiform, config, farm
+from Sycamore import wikiutil, config, farm
 from Sycamore.Page import Page
 
 KEEP_TIME = 60*60*2 # every two hours

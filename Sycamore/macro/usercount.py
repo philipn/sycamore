@@ -1,5 +1,5 @@
 # -*- coding: iso-8859-1 -*-
-from Sycamore import wikiutil, wikiform, config, wikidb
+from Sycamore import wikiutil, config, wikidb
 
 def execute(macro, args, formatter=None):
   if not formatter: formatter = macro.formatter

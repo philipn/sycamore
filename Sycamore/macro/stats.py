@@ -1,5 +1,5 @@
 import time, re
-from Sycamore import wikiutil, wikiform, config, wikidb, user
+from Sycamore import wikiutil, config, wikidb, user
 from Sycamore.Page import Page
 from cStringIO import StringIO
 

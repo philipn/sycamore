@@ -1021,7 +1021,6 @@ class Page(object):
         
         @param request: the request object
         """
-        from Sycamore.action import LikePages
         request = self.request
         _ = request.getText
   
