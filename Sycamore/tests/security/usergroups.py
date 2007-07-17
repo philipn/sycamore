@@ -160,14 +160,20 @@ class BasicUserGroups(RequestBasics):
             for j in range(0, 5):
                 username = _create_username()
                 # save the user
-                user.User(self.request, name=username, fresh=True).save(new_user=True)
+                user.User(self.request, name=username).save(new_user=True)
                 group.add(username)
             group.save()
 
         def _create_rights(groups):
             rights = {}
             for groupname in groups:
+               if groupname in ["Admin", "All", "Known", "Banned"]:
+                 continue
                rights[groupname] = (random.choice([True, False]), random.choice([True, False]), random.choice([True, False]), random.choice([True, False]))
+            rights['All'] = (random.choice([True, False]), random.choice([True, False]), random.choice([True, False]), False)
+            rights['Known'] = (random.choice([True, False]), random.choice([True, False]), random.choice([True, False]), False)
+            rights['Banned'] = (random.choice([True, False]), random.choice([True, False]), random.choice([True, False]), False)
+            rights['Admin'] = (True, True, True, True)
             return rights
 
         def _remove_preset_groups(rights):
@@ -180,44 +186,63 @@ class BasicUserGroups(RequestBasics):
 
         def _check_page_rights(rights):
             page = Page('this page has never existed.%s' % time.time(), self.request)
-            for groupname in rights.keys()[:10]:
+            for groupname in rights.keys():
                  group = wikiacl.Group(groupname, self.request, fresh=True)
-                 if not group.users(): continue
+                 if not group.users():
+                    continue
                  random_username_in_group = random.choice(group.users())
-                 random_user = user.User(self.request, name=random_username_in_group, fresh=True)
+                 random_user = user.User(self.request, name=random_username_in_group)
+
+                 
                  may_read_status = False
                  may_edit_status = False
                  may_delete_status = False
                  may_admin_status = False
 
-                 custom_group_rights = _remove_preset_groups(rights)
-
+                 
+                 
                  # we need to do an OR over all of the groups the user is in
-                 for iter_groupname in custom_group_rights:
+                 user_is_in_a_group = False
+                 for iter_groupname in _remove_preset_groups(rights):
                     iter_group = wikiacl.Group(iter_groupname, self.request, fresh=True)
                     if random_user.name in iter_group:
+                       user_is_in_a_group = True
                        may_read_status = may_read_status or rights[iter_groupname][ACL_RIGHTS_TABLE['read']]
                        may_edit_status = may_edit_status or rights[iter_groupname][ACL_RIGHTS_TABLE['edit']]
                        may_delete_status = may_delete_status or rights[iter_groupname][ACL_RIGHTS_TABLE['delete']]
                        may_admin_status = may_admin_status or rights[iter_groupname][ACL_RIGHTS_TABLE['admin']]
 
-                 if random_user.may.admin(page, fresh=True):
-                    # admins are gods
-                    may_read_status = True
-                    may_edit_status = True
-                    may_delete_status = True
-                    may_admin_status = True
+                 if not user_is_in_a_group:
+                    # Set up the default rights for the user
+                    may_read_status = rights['All'][ACL_RIGHTS_TABLE['read']] or rights['Known'][ACL_RIGHTS_TABLE['read']]
+                    may_edit_status = rights['All'][ACL_RIGHTS_TABLE['edit']] or rights['Known'][ACL_RIGHTS_TABLE['edit']]
+                    may_delete_status = rights['All'][ACL_RIGHTS_TABLE['delete']] or rights['Known'][ACL_RIGHTS_TABLE['delete']]
+                    may_admin_status = rights['All'][ACL_RIGHTS_TABLE['admin']] or rights['Known'][ACL_RIGHTS_TABLE['admin']]
 
+                 if random_user.name in wikiacl.Group('Banned', self.request, fresh=True):
+                       may_read_status = rights['Banned'][ACL_RIGHTS_TABLE['read']]
+                       may_edit_status = rights['Banned'][ACL_RIGHTS_TABLE['edit']]
+                       may_delete_status = rights['Banned'][ACL_RIGHTS_TABLE['delete']]
+                       may_admin_status = rights['Banned'][ACL_RIGHTS_TABLE['admin']]
+
+                                  
+                 if random_user.name in wikiacl.Group('Admin', self.request, fresh=True):
+                       # admins are gods
+                       may_read_status = True
+                       may_edit_status = True
+                       may_delete_status = True
+                       may_admin_status = True
+
+                 
                  self.assertEqual(may_read_status, random_user.may.read(page, fresh=True))
+                 self.assertEqual(may_admin_status, random_user.may.admin(page, fresh=True))
                  self.assertEqual(may_edit_status, random_user.may.edit(page, fresh=True))
                  self.assertEqual(may_delete_status, random_user.may.delete(page, fresh=True))
-                 self.assertEqual(may_admin_status, random_user.may.admin(page, fresh=True))
 
 
         for i in range(0, 10):
             groups = wikiacl.AccessControlList(self.request).grouplist()
             rights = _create_rights(groups)
-            
             self.request.config.acl_rights_default = rights
             self.request.config.set_config(self.request.config.wiki_name, self.request.config.get_dict(), self.request)
             self.assertEqual(self.request.config.acl_rights_default, rights)

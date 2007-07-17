@@ -98,11 +98,16 @@ class AccessControlList:
         defaults_without_special.remove("Known") 
         defaults_without_special.remove("Admin") 
         defaults_without_special.remove("Banned") 
+        is_in_a_custom_group = False
+        allowed = False
         for groupname in defaults_without_special:
-            allowed = request.config.acl_rights_default[
-                groupname][ACL_RIGHTS_TABLE[dowhat]]
-            if username in Group(groupname, request) and allowed:
-                return True
+            if username in Group(groupname, request):
+                allowed = allowed or request.config.acl_rights_default[
+                    groupname][ACL_RIGHTS_TABLE[dowhat]]
+                is_in_a_custom_group = True
+
+        if is_in_a_custom_group:
+            return allowed
 
         for groupname in ["Known", "All"]:
             if groupname == 'Known' and has_known_setting:
@@ -404,13 +409,14 @@ class Group(object):
       return {}
     
 
-def getACL(pagename, request):
+def getACL(pagename, request, fresh=False):
     acl_dict = None
     got_from_mc = False
     pagename = pagename.lower()
-    if request.req_cache['acls'].has_key((pagename, request.config.wiki_id)):
+    if (not fresh and
+        request.req_cache['acls'].has_key((pagename, request.config.wiki_id))):
         return request.req_cache['acls'][(pagename, request.config.wiki_id)]
-    if config.memcache:
+    if not fresh and config.memcache:
         acl_dict = request.mc.get('acl:%s' % mc_quote(pagename))
 
     if acl_dict is None:
