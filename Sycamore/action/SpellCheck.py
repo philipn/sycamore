@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """  
     Sycamore - Spelling Action
      
@@ -21,13 +21,18 @@
 """
 
 # Imports
-import os, re
-from Sycamore import config, wikiutil
+import os
+import re
+
+from Sycamore import config
+from Sycamore import wikiutil
 from Sycamore.Page import Page
 
 # Functions
 def _getWordsFiles():
-    """Check a list of possible word files"""
+    """
+    Check a list of possible word files
+    """
     candidates = []
 
     # load a list of possible word files
@@ -45,10 +50,9 @@ def _getWordsFiles():
     # return validated file list
     return wordsfiles
 
-
 def _loadWordsFile(request, dict, filename):
-    #request.clock.start('spellread')
-    # XXX UNICODE fix needed. the dictionaries should be encoded in config.charset.
+    # XXX UNICODE fix needed. the dictionaries should be encoded in
+    # config.charset.
     # if they are not, we can recode them before use.
     file = open(filename, 'rt')
     try:
@@ -60,22 +64,20 @@ def _loadWordsFile(request, dict, filename):
                 for word in words: dict[word] = ''
     finally:
         file.close()
-    #request.clock.stop('spellread')
-
 
 def _loadWordsString(request, dict, text):
-    #request.clock.start('spellread')
-    # XXX UNICODE fix needed. the dictionaries should be encoded in config.charset.
+    # XXX UNICODE fix needed. the dictionaries should be encoded in
+    # config.charset.
     # if they are not, we can recode them before use.
     for line in text.split('\n'):
-      words = line.split()
-      for word in words:
-        dict[word] = ''
-    #request.clock.stop('spellread')
-
+        words = line.split()
+        for word in words:
+            dict[word] = ''
 
 def _loadDict(request):
-    """ Load words from words files or cached dict """
+    """
+    Load words from words files or cached dict
+    """
     # check for "dbhash" module
     try:
         import dbhash
@@ -87,7 +89,6 @@ def _loadDict(request):
     if dbhash and os.path.exists(cachename):
         wordsdict = dbhash.open(cachename, "r")
     else:
-        #request.clock.start('dict.cache')
         wordsfiles = _getWordsFiles()
         if dbhash:
             wordsdict = dbhash.open(cachename, 'n', 0666 & config.umask)
@@ -98,10 +99,8 @@ def _loadDict(request):
             _loadWordsFile(request, wordsdict, wordsfile)
 
         if dbhash: wordsdict.sync()
-        #request.clock.stop('dict.cache')
 
     return wordsdict
-
 
 def _addLocalWords(request):
     import types
@@ -124,24 +123,25 @@ def _addLocalWords(request):
         words = words + '\n'
     lsw_page.saveText(words + '\n' + newwords, '0')
 
-
 def checkSpelling(page, request, own_form=1):
-    """ Do spell checking, return a tuple with the result.
+    """
+    Do spell checking, return a tuple with the result.
     """
     _ = request.getText
 
     # first check to see if we we're called with a "newwords" parameter
-    if request.form.has_key('button_newwords'): _addLocalWords(request)
+    if request.form.has_key('button_newwords'):
+        _addLocalWords(request)
 
     # load words
     wordsdict = _loadDict(request)
 
     localwords = {}
     lsw_page = Page(request.config.page_local_spelling_words, request)
-    if lsw_page.exists(): _loadWordsString(request, localwords, lsw_page.get_raw_body())
+    if lsw_page.exists():
+        _loadWordsString(request, localwords, lsw_page.get_raw_body())
 
     # init status vars & load page
-    #request.clock.start('spellcheck')
     badwords = {}
     text = page.get_raw_body()
 
@@ -150,7 +150,7 @@ def checkSpelling(page, request, own_form=1):
         config.upperletters, config.lowerletters))
 
     def checkword(match, wordsdict=wordsdict, badwords=badwords,
-            localwords=localwords, num_re=re.compile(r'^\d+$')):
+                  localwords=localwords, num_re=re.compile(r'^\d+$')):
         word = match.group(1)
         if len(word) == 1:
             return ""
@@ -181,8 +181,10 @@ def checkSpelling(page, request, own_form=1):
         if localwords:
             lsw_msg = ' ' + _('(including %(localwords)d %(pagelink)s)') % {
                 'localwords': len(localwords), 'pagelink': lsw_page.link_to()}
-        msg = _('The following %(badwords)d words could not be found in the dictionary of '
-                '%(totalwords)d words%(localwords)s and are highlighted below:') % {
+        msg = _('The following %(badwords)d words could not be found '
+                'in the dictionary of '
+                '%(totalwords)d words%(localwords)s and are '
+                'highlighted below:') % {
             'badwords': len(badwords),
             'totalwords': len(wordsdict)+len(localwords),
             'localwords': lsw_msg} + "<br>"
@@ -196,9 +198,12 @@ def checkSpelling(page, request, own_form=1):
                 '<form method="POST" action="%s">'
                 '<input type="hidden" name="action" value="%s">'
                 % (page.url(request), action_name,))
-        checkbox = '<input type="checkbox" name="newwords" value="%(word)s">%(word)s&nbsp;&nbsp;'
+        checkbox = ('<input type="checkbox" name="newwords" '
+                           'value="%(word)s">%(word)s&nbsp;&nbsp;')
         msg = msg + (
-            " ".join(map(lambda w, cb=checkbox: cb % {'word': wikiutil.escape(w),}, badwords)) +
+            " ".join(map(
+                lambda w, cb=checkbox: cb % {'word': wikiutil.escape(w),},
+                badwords)) +
             '<p><input type="submit" name="button_newwords" value="%s"></p>' %
                 _('Add checked words to dictionary')
         )
@@ -208,10 +213,7 @@ def checkSpelling(page, request, own_form=1):
         badwords_re = None
         msg = _("No spelling errors found!")
 
-    #request.clock.stop('spellcheck')
-
     return badwords, badwords_re, msg
-
 
 def execute(pagename, request):
     _ = request.getText
@@ -226,4 +228,3 @@ def execute(pagename, request):
         page.send_page(request, msg=msg, hilite_re=badwords_re)
     else:
         page.send_page(request, msg=msg)
-

@@ -1457,9 +1457,15 @@ def send_viewfile(pagename, request):
         is_image = wikiutil.isImage(filename)
 
         if version is None:
-           # in some rare cases the images were not uploaded by a user, so 
-           # let's check to see if there's information on the upload-er
-           request.cursor.execute("SELECT name, uploaded_time, uploaded_by, length(file) from files where attached_to_pagename=%(pagename)s and name=%(filename)s and wiki_id=%(wiki_id)s", {'pagename':lower_pagename, 'filename':filename, 'wiki_id':request.config.wiki_id})
+            # in some rare cases the images were not uploaded by a user, so 
+            # let's check to see if there's information on the upload-er
+            request.cursor.execute(
+                """SELECT name, uploaded_time, uploaded_by, length(file)
+                   from files
+                   where attached_to_pagename=%(pagename)s and
+                         name=%(filename)s and wiki_id=%(wiki_id)s""",
+                {'pagename':lower_pagename, 'filename':filename,
+                 'wiki_id':request.config.wiki_id})
         else:
             request.cursor.execute(
                 """SELECT name, uploaded_time, uploaded_by, length(file)
@@ -1480,7 +1486,8 @@ def send_viewfile(pagename, request):
                      wiki_id=%(wiki_id)s""",
             {'filename':filename, 'pagename':lower_pagename,
              'wiki_id':request.config.wiki_id})
-        if request.cursor.fetchone():  deleted_file = False
+        if request.cursor.fetchone():
+            deleted_file = False
 
         if is_image:
             request.write("<h4>Image '%s' of page %s:</h4>" %

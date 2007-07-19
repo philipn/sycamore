@@ -790,7 +790,7 @@ def getRandomPages(request):
         rand_pages = request.mc.get('random:*')
     if rand_pages is None: 
         rand_pages = []
-        query = ("SELECT name from curPages where wiki_id=%%(wiki_id)s"
+        query = ("SELECT name from curPages where wiki_id=%%(wiki_id)s "
                  "order by %s limit %s" % (RAND_FUNCTION, MAX_RANDOM_GET))
         request.cursor.execute(query, {'wiki_id':request.config.wiki_id})
         for item in request.cursor.fetchall(): 
