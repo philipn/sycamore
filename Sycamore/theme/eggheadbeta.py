@@ -478,11 +478,7 @@ src="%(web_dir)s/wiki/utils.js?tm=%(theme_last_modified)s" type="text/javascript
            self.showapplet = True
         apphtml = ''
         if self.showapplet:
-           if config.has_old_wiki_map:
-               map_html = """<applet code="WikiMap.class" archive="%s/wiki/map.jar" height=460 width=810 border="1"><param name="map" value="%s/wiki/map.xml"><param name="points" value="%s/Map?action=mapPointsXML"><param name="highlight" value="%s"><param name="wiki" value="%s">You do not have Java enabled.</applet>"""% (config.web_dir, config.web_dir, d['script_name'], d['page_name'], d['script_name'])
-               apphtml = '<div id="map" style="width: 810px; height: 460px; display: none; margin-top: -1px;">%s</div>' % map_html 
-           else:
-                apphtml = '<div id="mapContainer" style="width: 478px; height: 330px; display: none;"><div id="map" style="width: 450px; height: 300px; position: relative; display: none;"></div></div>'
+            apphtml = '<div id="mapContainer" style="width: 478px; height: 330px; display: none;"><div id="map" style="width: 450px; height: 300px; position: relative; display: none;"></div></div>'
 
         dict = {
             'config_header1_html': self.emit_custom_html(config.page_header1),
