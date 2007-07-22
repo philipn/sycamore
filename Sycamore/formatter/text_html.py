@@ -107,9 +107,10 @@ class Formatter(FormatterBase):
         title = kw.get('title', None)
 
         if show_image and not pretty and wikiutil.isPicture(url):
-            return '<img src="%s" alt="%s">' % (url,url)
+            return (u'<img src="%s" alt="%s">' % (url,url)).encode(config.charset)
 
-        if text is None: text = url
+        if text is None:
+            text = url
 
         # create link
         str = '<a'
@@ -117,6 +118,8 @@ class Formatter(FormatterBase):
         if title: str = '%s title="%s"' % (str, title)
         str = '%s href="%s">%s</a>' % (str, wikiutil.escape(url, 1), text)
 
+        if type(str) == unicode:
+            str = str.encode(config.charset)
         return str
 
     def interwikiurl(self, url, **kw):
@@ -158,7 +161,7 @@ class Formatter(FormatterBase):
                 image_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
                 self.request.switch_wiki(wikitag)
                 if wikiutil.hasFile(image_pagename, 'tinylogo.png', self.request):
-                    icon_url = getAttachUrl(image_pagename, 'tinylogo.png', self.request, base_url=farm.getWikiURL(wikitag, self.request))
+                    icon_url = getAttachUrl(image_pagename, 'tinylogo.png', self.request, base_url=farm.getWikiURL(wikitag, self.request), escaped=0)
                     icon = self.image(html_class="interwiki_icon", src=icon_url, alt=wikitag, height='16', width='16')
                 else:
                     icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}, html_class="interwiki_icon")
