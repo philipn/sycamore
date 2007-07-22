@@ -181,7 +181,7 @@ def openImage(filecontent):
     im = Image.open(cStringIO.StringIO(filecontent))
     return im
 
-def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0,
+def getAttachUrl(pagename, filename, request, addts=0, escaped=1, deleted=0,
                  version=None, thumb=False, size=0, do_download=False,
                  ticket=None, base_url=None, ts=0):
     """
@@ -191,39 +191,47 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=0, deleted=0,
     is added, so that browsers reload a changed file.
     NOTE:  FOR NOW we ignore addts..may add back if needed later.
     """
+    if escaped:
+        amp = '&amp;'
+    else:
+        amp = '&'
     if not base_url:
         base_url = "%s/" % request.getScriptname()
     pagename = Page(pagename, request).proper_name()
     if not deleted:
         if not thumb:
-            url = "%s%s?sendfile=true&amp;file=%s" % (base_url, 
-                wikiutil.quoteWikiname(pagename), urllib.quote(filename))
+            url = "%s%s?sendfile=true%sfile=%s" % (base_url, 
+                wikiutil.quoteWikiname(pagename), amp, urllib.quote(filename))
         else:
             if not size:
-                url = "%s%s?sendfile=true&amp;file=%s&amp;thumb=yes" % (
-                    base_url, wikiutil.quoteWikiname(pagename),
-                    urllib.quote(filename))
+                url = "%s%s?sendfile=true%sfile=%s%sthumb=yes" % (
+                    base_url, wikiutil.quoteWikiname(pagename), amp,
+                    urllib.quote(filename), amp)
             else:
-                url = ("%s%s?sendfile=true&amp;file=%s&amp;thumb=yes&amp;"
+                url = ("%s%s?sendfile=true%sfile=%s%sthumb=yes%s"
                        "size=%s" % (base_url,
                                     wikiutil.quoteWikiname(pagename),
-                                    urllib.quote(filename), size))
+                                    amp,
+                                    urllib.quote(filename), amp, amp, size))
             if ticket:
-                url = "%s&amp;ticket=%s&amp;size=%s" % (url, ticket,size)
+                url = "%s%sticket=%s%ssize=%s" % (url, amp, ticket, amp, size)
     else:
       if version is None:
-            url = "%s%s?sendfile=true&amp;file=%s&amp;deleted=true" % (
+            url = "%s%s?sendfile=true%sfile=%s%sdeleted=true" % (
                 base_url, 
                 wikiutil.quoteWikiname(pagename),
-                urllib.quote(filename))
+                amp,
+                urllib.quote(filename), amp)
       else:
-        url = ("%s%s?sendfile=true&amp;file=%s&amp;deleted=true&amp;"
+        url = ("%s%s?sendfile=true%sfile=%s%sdeleted=true%s"
                "version=%s" % (base_url, wikiutil.quoteWikiname(pagename),
-                               urllib.quote(filename), repr(version)))
+                               amp,
+                               urllib.quote(filename), amp, amp,
+                               repr(version)))
     if do_download:
-        url = '%s&amp;download=true' % url
+        url = '%s%sdownload=true' % (url, amp)
     if ts:
-        url = '%s&amp;ts=%s' % (url, repr(ts))
+        url = '%s%sts=%s' % (url, amp, repr(ts))
     return url
 
 def _revisions_footer(request,revisions, baseurl, urlpagename, action,
