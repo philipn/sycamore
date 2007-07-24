@@ -1,7 +1,8 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - "text/plain" Formatter
 
+    @copyright: 2006-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000, 2001, 2002 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -15,7 +16,7 @@ from Sycamore.formatter.base import FormatterBase
 
 class Formatter(FormatterBase):
     """
-        Send text data.
+    Send text data.
     """
 
     hardspace = ' '

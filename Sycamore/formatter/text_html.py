@@ -1,10 +1,10 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - "text/html+css" Formatter
 
     This is a cleaned up version of text_html.py.
 
-    @copyright 2005-2007 by Pihlip Neustrom <philipn@gmail.com>
+    @copyright 2005-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000 - 2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -22,7 +22,7 @@ from Sycamore.action.Files import getAttachUrl
 
 class Formatter(FormatterBase):
     """
-        Send HTML data.
+    Send HTML data.
     """
 
     hardspace = '&nbsp;' # XXX was: '&#160;', but that breaks utf-8
@@ -64,18 +64,19 @@ class Formatter(FormatterBase):
         return result
 
     def lang(self, lang_name, text):
-        """ Insert text with specific lang and direction.
+        """
+        Insert text with specific lang and direction.
         
-            Enclose within span tag if lang_name is different from
-            the current lang    
+        Enclose within span tag if lang_name is different from
+        the current lang    
         """
         
         if lang_name != self.request.current_lang:
             dir = i18n.getDirection(lang_name)
             text = wikiutil.escape(text)
-            return '<span lang="%(lang_name)s" dir="%(dir)s">%(text)s</span>' % {
-                'lang_name': lang_name, 'dir': dir, 'text': text}
-        
+            return ('<span lang="%(lang_name)s" dir="%(dir)s">'
+                    '%(text)s</span>' % {'lang_name': lang_name, 'dir': dir,
+                                         'text': text})
         return text            
                 
     def sysmsg(self, text, **kw):
@@ -85,9 +86,10 @@ class Formatter(FormatterBase):
     # Links ##############################################################
     
     def pagelink(self, pagename, text=None, **kw):
-        """ Link to a page.
+        """
+        Link to a page.
 
-            See wikiutil.link_tag() for possible keyword parameters.
+        See wikiutil.link_tag() for possible keyword parameters.
         """
         apply(FormatterBase.pagelink, (self, pagename, text), kw)
         try:
@@ -98,24 +100,27 @@ class Formatter(FormatterBase):
 
     def url(self, url, text=None, css=None, show_image=True, **kw):
         """
-            Keyword params:
-                title - title attribute
-                ... some more (!!! TODO) 
+        Keyword params:
+            title - title attribute
+            ... some more (!!! TODO) 
         """
         url = wikiutil.mapURL(url)
         pretty = kw.get('pretty_url', 0)
         title = kw.get('title', None)
 
         if show_image and not pretty and wikiutil.isPicture(url):
-            return (u'<img src="%s" alt="%s">' % (url,url)).encode(config.charset)
+            return (u'<img src="%s" alt="%s">' %
+                    (url, url)).encode(config.charset)
 
         if text is None:
             text = url
 
         # create link
         str = '<a'
-        if css: str = '%s class="%s"' % (str, css)
-        if title: str = '%s title="%s"' % (str, title)
+        if css:
+            str = '%s class="%s"' % (str, css)
+        if title:
+            str = '%s title="%s"' % (str, title)
         str = '%s href="%s">%s</a>' % (str, wikiutil.escape(url, 1), text)
 
         if type(str) == unicode:
@@ -125,9 +130,12 @@ class Formatter(FormatterBase):
     def interwikiurl(self, url, **kw):
         """
         Return the URL and status information for the interwiki page.
-        @rtype: tuple containing: (page url, wikitag, wikiurl, wikitail, wikitag_bad, wikitype)
+        @rtype: tuple containing: (page url, wikitag, wikiurl, wikitail,
+                                   wikitag_bad, wikitype)
         """
-        wikitag, wikiurl, wikitail, wikitag_bad, wikitype = wikiutil.resolve_wiki(self.request, url, force_farm=kw.get('force_farm'))
+        wikitag, wikiurl, wikitail, wikitag_bad, wikitype = \
+            wikiutil.resolve_wiki(self.request, url,
+                                  force_farm=kw.get('force_farm'))
         wikiurl = wikiutil.mapURL(wikiurl)
 
         if wikitype == wikiutil.INTERWIKI_FARM_TYPE:
@@ -136,12 +144,12 @@ class Formatter(FormatterBase):
         href = wikiutil.join_wiki(wikiurl, wikitail)
         return (href, wikitag, wikiurl, wikitail, wikitag_bad, wikitype)
 
-
     def interwikilink(self, url, text, **kw):
         """
         Return the HTML linking to the interwiki page.
         """
-        href, wikitag, wikiurl, wikitail, wikitag_bad, wikitype = self.interwikiurl(url, **kw)
+        href, wikitag, wikiurl, wikitail, wikitag_bad, wikitype = \
+            self.interwikiurl(url, **kw)
 
         # link to self?
         if wikitag is None:
@@ -154,26 +162,37 @@ class Formatter(FormatterBase):
         else:
             html_class = 'interwiki'
         
-        # if the wiki they're linking to is in our farm and if they have a defined icon then display that
+        # if the wiki they're linking to is in our farm and if they have a
+        # defined icon then display that
         if not kw.get('no_icon'):
             if wikitype == wikiutil.INTERWIKI_FARM_TYPE:
                 current_wiki = self.request.config.wiki_name
-                image_pagename = '%s/%s' % (config.wiki_settings_page, config.wiki_settings_page_images)
+                image_pagename = '%s/%s' % (config.wiki_settings_page,
+                                            config.wiki_settings_page_images)
                 self.request.switch_wiki(wikitag)
-                if wikiutil.hasFile(image_pagename, 'tinylogo.png', self.request):
-                    icon_url = getAttachUrl(image_pagename, 'tinylogo.png', self.request, base_url=farm.getWikiURL(wikitag, self.request), escaped=0)
-                    icon = self.image(html_class="interwiki_icon", src=icon_url, alt=wikitag, height='16', width='16')
+                if wikiutil.hasFile(image_pagename, 'tinylogo.png',
+                                    self.request):
+                    icon_url = getAttachUrl(image_pagename, 'tinylogo.png',
+                                            self.request,
+                                            base_url=farm.getWikiURL(
+                                                wikitag, self.request),
+                                            escaped=0)
+                    icon = self.image(html_class="interwiki_icon",
+                                      src=icon_url, alt=wikitag, height='16',
+                                      width='16')
                 else:
-                    icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}, html_class="interwiki_icon")
+                    icon = self.request.theme.make_icon('interwiki',
+                        {'wikitag': wikitag}, html_class="interwiki_icon")
                 self.request.switch_wiki(current_wiki)
             else:
-                icon = self.request.theme.make_icon('interwiki', {'wikitag': wikitag}, html_class="interwiki_icon")
+                icon = self.request.theme.make_icon('interwiki',
+                    {'wikitag': wikitag}, html_class="interwiki_icon")
         else:
             icon = ''
 
-        return self.url(href, icon + text,
-            title=wikitag, unescaped=1, pretty_url=kw.get('pretty_url', 0), css = html_class, show_image=False)
-  
+        return self.url(href, icon + text, title=wikitag, unescaped=1,
+                        pretty_url=kw.get('pretty_url', 0), css=html_class,
+                        show_image=False)
  
     def anchordef(self, id):
         return '<a id="%s"></a>' % id
@@ -253,9 +272,6 @@ class Formatter(FormatterBase):
             self.in_list += 1
             if type: attrs += ' type="%s"' % (type,)
             if start is not None: attrs += ' start="%d"' % (start,)
-            #if self.inline_edit and on:
-            #    attrs = '%s id="%s"' % (attrs, self.inline_edit_id())
-            #    self.inline_edit = False
             result = '<ol%s%s>' % (self._langAttr(), attrs)
         else:    
             self.in_list -= 1
@@ -272,17 +288,15 @@ class Formatter(FormatterBase):
         return '%s\n' % result
 
     def listitem(self, on, **kw):
-        """ List item inherit its lang from the list. """
+        """
+        List item inherit its lang from the list.
+        """
         self._in_li = on != 0
         if on:
             css_class = kw.get('css_class', None)
             attrs = ''
-            if css_class: attrs += ' class="%s"' % (css_class,)
-            #if self.inline_edit_force_state is not None:
-            #    self.inline_edit = self.inline_edit_force_state
-            #if self.inline_edit:
-            #    attrs = '%s id="%s"' % (attrs, self.inline_edit_id())
-            #    self.inline_edit = False
+            if css_class:
+                attrs += ' class="%s"' % (css_class,)
 
             result = '<li%s>' % (attrs,)
         else:
@@ -326,16 +340,20 @@ class Formatter(FormatterBase):
         number = ''
         if self._show_section_numbers:
             # count headings on all levels
-            self.request._fmt_hd_counters = self.request._fmt_hd_counters[:count_depth]
+            self.request._fmt_hd_counters = \
+                self.request._fmt_hd_counters[:count_depth]
             while len(self.request._fmt_hd_counters) < count_depth:
                 self.request._fmt_hd_counters.append(0)
-            self.request._fmt_hd_counters[-1] = self.request._fmt_hd_counters[-1] + 1
-            number = '.'.join(map(str, self.request._fmt_hd_counters[self._show_section_numbers-1:]))
-            if number: number += ". "
+            self.request._fmt_hd_counters[-1] = \
+                self.request._fmt_hd_counters[-1] + 1
+            number = '.'.join(map(str,
+                self.request._fmt_hd_counters[self._show_section_numbers-1:]))
+            if number:
+                number += ". "
 
         id_text = ''
         if id:
-          id_text = ' id="%s"' % id
+            id_text = ' id="%s"' % id
 
         heading_depth = depth + 1
         link_to_heading = False
@@ -349,13 +367,16 @@ class Formatter(FormatterBase):
                 if self.inline_edit:
                     attrs = '%s id="%s"' % (attrs, self.inline_edit_id())
 
-                result = '<span%s><h%d%s></span>' % (id_text, heading_depth, attrs)
+                result = '<span%s><h%d%s></span>' % (id_text, heading_depth,
+                                                     attrs)
             else:
                 result = '</h%d>' % heading_depth
         else:
             if link_to_heading:
-              title = Page(kw.get('pagename') or title, self.request).link_to(know_status=True, know_status_exists=True, text=title)
-
+                title = Page(kw.get('pagename') or title,
+                             self.request).link_to(know_status=True,
+                                                   know_status_exists=True,
+                                                   text=title)
             attrs = ''
             if self.inline_edit_force_state is not None:
                 self.inline_edit = self.inline_edit_force_state
@@ -363,42 +384,58 @@ class Formatter(FormatterBase):
                     attrs = '%s id="%s"' % (attrs, self.inline_edit_id())
 
             result = '<span%s><h%d%s%s>%s%s%s</h%d></span>\n' % (
-                id_text, heading_depth, self._langAttr(), attrs, kw.get('icons', ''), number, title, heading_depth)
+                id_text, heading_depth, self._langAttr(), attrs,
+                kw.get('icons', ''), number, title, heading_depth)
 
         if kw.has_key('action_link'):
-          if kw['action_link'] == 'edit':
-            pagename = kw['pagename']
-            backto = kw['backto']
-            
-            if not (self.request.form.has_key('action') and self.request.form['action'][0] == 'print') and \
-               self.request.user.may.edit(Page(pagename, self.request)):
-                 result = '<table class="sectionEdit" width="100%%"><tr><td align="left">%s</td><td align="right">[%s]</td></tr></table>' % \
-                    (result, Page(pagename, self.request).link_to(text="edit", querystr="action=edit&backto=%s" % backto, know_status=True, know_status_exists=True))
-            else:
-                 result = '<table class="sectionEdit" width="98%%"><tr><td align="left">%s</td></tr></table>' % result
+            if kw['action_link'] == 'edit':
+                pagename = kw['pagename']
+                backto = kw['backto']
+                
+                if (not (self.request.form.has_key('action') and
+                         self.request.form['action'][0] == 'print') and
+                    self.request.user.may.edit(Page(pagename, self.request))):
+                     result = (
+                        '<table class="sectionEdit" width="100%%"><tr>'
+                        '<td align="left">%s</td><td align="right">[%s]</td>'
+                        '</tr></table>' % 
+                        (result, Page(pagename, self.request).link_to(
+                            text="edit",
+                            querystr="action=edit&backto=%s" % backto,
+                            know_status=True, know_status_exists=True)
+                        ))
+                else:
+                     result = ('<table class="sectionEdit" width="98%%">'
+                               '<tr><td align="left">%s</td></tr></table>' %
+                               result)
 
         self.just_printed_heading = True
         return result
     
     # Tables #############################################################
-
-    # XXX TODO find better solution for bgcolor, align, valign (deprecated in html4)
+    # XXX TODO find better solution for bgcolor, align, valign
+    # (deprecated in html4)
     # do not remove current code before making working compliant code
 
     allowed_table_attrs = {
-        'table': ['class', 'width', 'height', 'bgcolor', 'border', 'cellpadding', 'bordercolor'],
+        'table': ['class', 'width', 'height', 'bgcolor', 'border',
+                  'cellpadding', 'bordercolor'],
         'row': ['class', 'width', 'align', 'valign', 'bgcolor'],
-        '': ['colspan', 'rowspan', 'class', 'width', 'align', 'valign', 'bgcolor'],
+        '': ['colspan', 'rowspan', 'class', 'width', 'align', 'valign',
+             'bgcolor'],
     }
 
     def _checkTableAttr(self, attrs, prefix):
-        if not attrs: return ''
+        if not attrs:
+            return ''
 
         result = ''
         for key, val in attrs.items():
-            if prefix and key[:len(prefix)] != prefix: continue
+            if prefix and key[:len(prefix)] != prefix:
+                continue
             key = key[len(prefix):]
-            if key not in self.allowed_table_attrs[prefix]: continue
+            if key not in self.allowed_table_attrs[prefix]:
+                continue
             result = '%s %s=%s' % (result, key, val)
         return result
 
@@ -435,4 +472,3 @@ class Formatter(FormatterBase):
         else:
             result = '</td>'
         return '%s\n' % result
-

@@ -1,7 +1,8 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Formatter Base Class
 
+    @copyright: 2005 - 2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000 - 2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
@@ -14,11 +15,12 @@ from Sycamore import wikiutil
 #############################################################################
 
 class FormatterBase:
-    """ This defines the output interface used all over the rest of the code.
+    """
+    This defines the output interface used all over the rest of the code.
 
-        Note that no other means should be used to generate _content_ output,
-        while navigational elements (HTML page header/footer) and the like
-        can be printed directly without violating output abstraction.
+    Note that no other means should be used to generate _content_ output,
+    while navigational elements (HTML page header/footer) and the like
+    can be printed directly without violating output abstraction.
     """
 
     hardspace = ' '
@@ -43,9 +45,10 @@ class FormatterBase:
         self.page = page
 
     def sysmsg(self, text, **kw):
-        """ Emit a system message (embed it into the page).
+        """
+        Emit a system message (embed it into the page).
 
-            Normally used to indicate disabled options, or invalid markup.
+        Normally used to indicate disabled options, or invalid markup.
         """
         return text
 
@@ -60,7 +63,8 @@ class FormatterBase:
     # Links ##############################################################
     
     def pagelink(self, pagename, text=None, **kw):
-        if kw.get('generated', 0) or not self._store_pagelinks: return
+        if kw.get('generated', 0) or not self._store_pagelinks:
+            return
         lower_pagename = pagename.lower()
         if lower_pagename not in self.pagelinks:
             self.pagelinks.append(lower_pagename)
@@ -76,9 +80,10 @@ class FormatterBase:
         return text
 
     def image(self, **kw):
-        """ Take HTML <IMG> tag attributes in `attr`.
+        """
+        Take HTML <IMG> tag attributes in `attr`.
 
-            Attribute names have to be lowercase!
+        Attribute names have to be lowercase!
         """
         result = '<img'
         for attr, value in kw.items():
@@ -169,8 +174,9 @@ class FormatterBase:
         return macro_obj.execute(name, args, formatter=self) 
 
     def processor(self, processor_name, lines):
-        """ processor_name MUST be valid!
-            writes out the result instead of returning it!
+        """
+        processor_name MUST be valid!
+        writes out the result instead of returning it!
         """
         processor = wikiutil.importPlugin("processor",
                                           processor_name, "process")
@@ -191,15 +197,15 @@ class FormatterBase:
     # Other ##############################################################
     
     def rawHTML(self, markup):
-        """ This allows emitting pre-formatted HTML markup, and should be
-            used wisely (i.e. very seldom).
+        """
+        This allows emitting pre-formatted HTML markup, and should be
+        used wisely (i.e. very seldom).
 
-            Using this event while generating content results in unwanted
-            effects, like loss of markup or insertion of CDATA sections
-            when output goes to XML formats.
+        Using this event while generating content results in unwanted
+        effects, like loss of markup or insertion of CDATA sections
+        when output goes to XML formats.
         """
         if type(markup) == str:
           markup = markup.decode('utf-8')
 
         return markup
-

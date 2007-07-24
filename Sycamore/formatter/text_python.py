@@ -1,17 +1,22 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - "text/python" Formatter
 
+    @copyright: 2005-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000, 2001, 2002 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
 import time
-from Sycamore.formatter.base import FormatterBase
-from Sycamore import wikiutil, config, i18n, wikimacro
-from Sycamore.Page import Page
 
+from Sycamore import wikiutil
+from Sycamore import config
+from Sycamore import i18n
+from Sycamore import wikimacro
+
+from Sycamore.formatter.base import FormatterBase
+from Sycamore.Page import Page
 
 #############################################################################
 ### Wiki to Pythoncode Formatter
@@ -19,11 +24,11 @@ from Sycamore.Page import Page
 
 class Formatter:
     """
-        Inserts '<<<>>>' into the page and adds python code to
-        self.code_fragments for dynamic parts of the page
-        (as macros, wikinames...).
-        Static parts are formatted with an extrenal formatter.
-        Page must be assembled after the parsing to get working python code.
+    Inserts '<<<>>>' into the page and adds python code to
+    self.code_fragments for dynamic parts of the page
+    (as macros, wikinames...).
+    Static parts are formatted with an extrenal formatter.
+    Page must be assembled after the parsing to get working python code.
     """
 
     def __init__(self, request, static = [], formatter = None, **kw):
@@ -40,9 +45,6 @@ class Formatter:
         self.__parser = "parser"
         self.request = request
         self.name = 'text_python'
-        # XXX never used???
-        #self.__static_macros = ['BR', 'GoTo', 'TableOfContents', 'Anchor', 'Icon']
-        #self.__static_macros.extend(i18n.languages.keys())
         self.__in_p = 0
         self.__in_pre = 0
         self.text_cmd_begin = '\nrequest.write("""'
@@ -50,11 +52,13 @@ class Formatter:
         self.page = None
 
     def isPreview(self):
-        if self._preview: return True
+        if self._preview:
+            return True
         return False
 
     def assemble_code(self, text):
-        """inserts the code into the generated text
+        """
+        inserts the code into the generated text
         """
         text = text.replace('\\', '\\\\')
         text = text.replace('"', '\\"')
@@ -72,7 +76,9 @@ class Formatter:
         return source
 
     def __getattr__(self, name):
-        """ For every thing we have no method/attribute use the formatter"""
+        """
+        For every thing we have no method/attribute use the formatter
+        """
         if self.__dict__.has_key(name):
             return self.__dict__[name]
         else:
@@ -80,8 +86,11 @@ class Formatter:
                 return getattr(self.__dict__['formatter'], name)
 
     def __setattr__(self, name, value):
-        """ For every thing we have no method/attribute use the formatter"""
-        if self.__dict__.has_key(name):       # any normal attributes are handled normally
+        """
+        For every thing we have no method/attribute use the formatter
+        """
+        # any normal attributes are handled normally
+        if self.__dict__.has_key(name):       
             self.__dict__[name] = value
         elif self.__dict__.has_key('formatter'):
             self.formatter.__dict__[name] = value
@@ -89,7 +98,8 @@ class Formatter:
             self.__dict__[name] = value
 
     def __insert_code(self, call):
-        """ returns the python code
+        """
+        returns the python code
         """
         self.code_fragments.append(call)
         return '<<<>>>'
@@ -111,7 +121,7 @@ class Formatter:
         return result
     
     def dynamic_content(self, parser, callback, arg_list = [], arg_dict = {},
-                            returns_content = 1):
+                        returns_content = 1):
         adjust = self.__adjust_formatter_state()
         if returns_content:
             return self.__insert_code('%srequest.write(%s.%s(*%r,**%r))' %
@@ -127,8 +137,9 @@ class Formatter:
         self.page = page
 
     def interwikilink(self, url, text, **kw):
-        return self.__insert_code('request.write(%s.interwikilink(%r, %r, **%r))' %
-                        (self.__formatter, url, text, kw))
+        return self.__insert_code(
+            'request.write(%s.interwikilink(%r, %r, **%r))' %
+            (self.__formatter, url, text, kw))
 
     def add_code(self, code_text):
         return self.__insert_code(code_text)
@@ -147,8 +158,9 @@ class Formatter:
                 self._show_section_numbers = int(numbering)
 
         if self._show_section_numbers or kw.has_key('action_link'):
-            return self.__insert_code('request.write(%s.heading(%r, %r, **%r))' %
-                        (self.__formatter, depth, title, kw))
+            return self.__insert_code(
+                'request.write(%s.heading(%r, %r, **%r))' %
+                (self.__formatter, depth, title, kw))
         else:
             return self.formatter.heading(depth, title, **kw)
 
@@ -163,11 +175,12 @@ class Formatter:
                  self.__formatter, name, args))
             
     def processor(self, processor_name, lines):
-        """ processor_name MUST be valid!
+        """
+        processor_name MUST be valid!
         prints out the result insted of returning it!
         """
         Dependencies = wikiutil.importPlugin("processor",
-                                            processor_name, "Dependencies")
+                                             processor_name, "Dependencies")
         if Dependencies == None:
             Dependencies = ["time"]
         if self.__is_static(Dependencies):
@@ -177,4 +190,3 @@ class Formatter:
                                       (self.__adjust_formatter_state(),
                                        self.__formatter,
                                        processor_name, lines))
-
