@@ -2,6 +2,7 @@
 """
     Sycamore - OrphanedPages Macro
 
+    @copyright: 2006-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2001 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
