@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Include macro
 
@@ -10,42 +10,33 @@
     @license: GNU GPL, see COPYING for details.
 """
 
-import re, cStringIO
-from Sycamore import config, wikiutil, caching
+# Imports
+import re
+import cStringIO
+
+from Sycamore import config
+from Sycamore import wikiutil
+from Sycamore import caching
+
 from Sycamore.Page import Page
 
 _sysmsg = '<p><strong class="%s">%s</strong></p>'
-#_arg_heading = r'((?P<heading>,)\s*(|(?P<hquote>[\'"])(?P<htext>.+?)(?P=hquote))){0,1}'
-#_arg_showtitle = r'((?P<showtitle>))'
-#_arg_level = r'(?P<level>)'
-#_arg_from = r'((?P<fquote>)(?P<from>)(?P=fquote))?'
-#_arg_to = r'((?P<tquote>)(?P<to>)(?P=tquote))?'
-#_arg_sort = r'((?P<sort>))?'
-#_arg_items = r'((?P<items>))?'
-#_arg_skipitems = r'((?P<skipitems>))?'
-#_arg_titlesonly = r'((?P<titlesonly>))?'
-#_args_re_pattern = r'^(?P<name>[^"]+)(%s%s(%s)?%s%s%s%s%s%s)?$' % (
-#    _arg_heading, _arg_showtitle, _arg_level, _arg_from, _arg_to, _arg_sort, _arg_items,
-#    _arg_skipitems, _arg_titlesonly)
-
-#TITLERE = re.compile("^(?P<heading>\s*(?P<hmarker>=+)\s.*\s(?P=hmarker))$",
-#                     re.M)
 
 INCLUDE_MACRO = re.compile(r'^(\s*(\[\[include((\(.*\))|())\]\])\s*)+$')
 
 def line_has_just_macro(macro, args, formatter):
-  line = macro.parser.lines[macro.parser.lineno-1].lower().strip()
-  if INCLUDE_MACRO.match(line):
-    return True
-  return False
-
+    line = macro.parser.lines[macro.parser.lineno-1].lower().strip()
+    if INCLUDE_MACRO.match(line):
+        return True
+    return False
 
 def extract_titles(body):
     titles = []
     for title, _ in TITLERE.findall(body):
         h = title.strip()
         level = 1
-        while h[level:level+1] == '=': level = level+1
+        while h[level:level+1] == '=':
+            level = level+1
         depth = min(5,level)
         title_text = h[level:-level].strip()
         titles.append((title_text, level))
@@ -55,28 +46,28 @@ Dependencies = []
 
 def execute(macro, args, formatter=None):
     if not formatter:
-      if hasattr(macro.parser, 'formatter'): formatter = macro.parser.formatter
-      else: formatter = macro.formatter
+        if hasattr(macro.parser, 'formatter'):
+            formatter = macro.parser.formatter
+        else:
+            formatter = macro.formatter
     _ = macro.request.getText
 
     inline_edit_state = formatter.inline_edit
     formatter.inline_edit = False
 
-    macro.parser.inhibit_p = 1 # included page will already have paragraphs. no need to print another.
+    # included page will already have paragraphs. no need to print another.
+    macro.parser.inhibit_p = 1 
 
     if line_has_just_macro(macro, args, formatter):
-      macro.parser.inhibit_br = 2
-
-    # return immediately if getting links for the current page
-    #if macro.request.mode_getpagelinks:
-    #    return ''
+        macro.parser.inhibit_br = 2
 
     request = macro.request
 
     # parse and check arguments
     if not args:
-        return (_sysmsg % ('error', _('You did not give a pagename of a page to include!')))
-
+        return (_sysmsg % ('error',
+                           _('You did not give a pagename of a page to '
+                             'include!')))
     # prepare including page
     result = []
     this_page = formatter.page
@@ -88,7 +79,10 @@ def execute(macro, args, formatter=None):
     if not hasattr(this_page, '_macroInclude_pagelist'):
         this_page._macroInclude_pagelist = {}
 
-    re_args = re.match("""(((?P<name1>.+?)(\s*,\s*)((".*")|(left|right)|([0-9]{1,2}%)))|(?P<name2>.+))""", args)
+    re_args = re.match('('
+        '('
+            '(?P<name1>.+?)(\s*,\s*)((".*")|(left|right)|([0-9]{1,2}%)))|'
+        '(?P<name2>.+))', args)
     if not re_args:
         return (_sysmsg % ('error', _('Invalid arguments to Include.')))
 
@@ -96,9 +90,9 @@ def execute(macro, args, formatter=None):
     page_name = re_args.group('name1') or re_args.group('name2')
 
     if have_more_args:
-      args = args[re_args.end('name1'):]
+        args = args[re_args.end('name1'):]
     else:
-      args = ''
+        args = ''
     re_args = re.search('"(?P<heading>.*)"', args)
     if re_args:
         heading = re_args.group('heading')
@@ -131,7 +125,9 @@ def execute(macro, args, formatter=None):
     if not macro.request.user.may.read(inc_page):
         return ''
     if this_page.page_name.lower() == inc_name.lower():
-        result.append('<p><strong class="error">Recursive include of "%s" forbidden</strong></p>' % (inc_name,))
+        result.append('<p><strong class="error">'
+                      'Recursive include of "%s" forbidden</strong></p>' %
+                      inc_name)
 	return ''.join(result)
 
     # check for "from" and "to" arguments (allowing partial includes)
@@ -141,11 +137,15 @@ def execute(macro, args, formatter=None):
     # do headings
     level = 1
     if heading:
-      result.append(formatter.heading(level, heading, action_link="edit", link_to_heading=True, pagename=inc_page.proper_name(), backto=this_page.page_name))
+        result.append(formatter.heading(level, heading, action_link="edit",
+                                        link_to_heading=True,
+                                        pagename=inc_page.proper_name(),
+                                        backto=this_page.page_name))
 
     if this_page._macroInclude_pagelist.has_key(inc_name):
-      if this_page._macroInclude_pagelist[inc_name] > caching.MAX_DEPENDENCY_DEPTH:
-	 return '<em>Maximum include depth exceeded.</em>'
+        if (this_page._macroInclude_pagelist[inc_name] >
+            caching.MAX_DEPENDENCY_DEPTH):
+            return '<em>Maximum include depth exceeded.</em>'
          
     # set or increment include marker
     this_page._macroInclude_pagelist[inc_name] = \
@@ -162,8 +162,8 @@ def execute(macro, args, formatter=None):
 
     # note that our page now depends on the content of the included page
     if formatter.name == 'text_python':
-      # this means we're in the caching formatter
-      caching.dependency(this_page.page_name, inc_name.lower(), macro.request)
+        # this means we're in the caching formatter
+        caching.dependency(this_page.page_name, inc_name.lower(), macro.request)
     # output formatted
     buffer = cStringIO.StringIO()
     formatter.request.redirect(buffer)
@@ -184,7 +184,8 @@ def execute(macro, args, formatter=None):
 
     attrs = ''
     if align:
-    	attrs += ' style="width: %s; float: %s; clear: %s;" ' % (width, align, align)
+    	attrs += (' style="width: %s; float: %s; clear: %s;" ' %
+                  (width, align, align))
     elif was_given_width:
         attrs += ' style="width: %s;' % width
     attrs += ' class="includedPage"'
