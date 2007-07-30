@@ -306,6 +306,7 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0,
     def assemble_query():
         # let's assemble the query and key if we use memcache
         key = None
+        query = ''
         if not deleted and not thumbnail and not version:
             if config.memcache:
                 key = "files:%s,%s" % (mc_quote(dict['filename']),
@@ -360,7 +361,7 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0,
 
     query, key = assemble_query()
 
-    if config.memcache and not fresh:
+    if config.memcache and key and not fresh:
         file_obj = request.mc.get(key)
 
     if file_obj is None:
