@@ -1,10 +1,19 @@
-import time, re
-from Sycamore import wikiutil, config, wikidb, user
-from Sycamore.Page import Page
+# -*- coding: utf-8 -*-
+import time
+import re
+
 from cStringIO import StringIO
 
+from Sycamore import wikiutil
+from Sycamore import config
+from Sycamore import wikidb
+from Sycamore import user
+
+from Sycamore.Page import Page
+
 def execute(macro, args, formatter=None):
-    if not formatter: formatter = macro.formatter
+    if not formatter:
+        formatter = macro.formatter
     request = macro.request
 
     if args:
@@ -13,21 +22,30 @@ def execute(macro, args, formatter=None):
        theuser = user.User(macro.request, name=args.lower())
        wiki_info = theuser.getWikiInfo()
        if not wiki_info.first_edit_date:
-           first_edit_date = "<em>unknown</em>"
+            first_edit_date = "<em>unknown</em>"
        else:
-           first_edit_date = request.user.getFormattedDateTime(wiki_info.first_edit_date)
+            first_edit_date = request.user.getFormattedDateTime(
+                wiki_info.first_edit_date)
        created_count = wiki_info.created_count
        edit_count = wiki_info.edit_count
        file_count = wiki_info.file_count
        last_page_edited = wiki_info.last_page_edited
        last_edit_date = wiki_info.last_edit_date
        if not last_edit_date:
-           last_edit_date = "<em>unknown</em>"
+            last_edit_date = "<em>unknown</em>"
        else:
-           last_edit_date = request.user.getFormattedDateTime(last_edit_date)
+            last_edit_date = request.user.getFormattedDateTime(last_edit_date)
 
        if last_page_edited:
-            htmltext.append('<p><h2>%s\'s Statistics</h2></p><table width=100%% border=0><tr><td><b>Edits&nbsp;&nbsp;</b></td><td><b>Pages Created&nbsp;&nbsp;</b></td><td><b>Files Contributed&nbsp;&nbsp;</b></td><td><b>First Edit Date&nbsp;&nbsp;</b></td><td><b>Last Edit&nbsp;&nbsp;</b></td><td><b>Last Page Edited&nbsp;&nbsp;</b></td></tr>' % args)
+            htmltext.append(
+                '<p><h2>%s\'s Statistics</h2></p>'
+                '<table width=100%% border=0><tr>'
+                '<td><b>Edits&nbsp;&nbsp;</b></td>'
+                '<td><b>Pages Created&nbsp;&nbsp;</b></td>'
+                '<td><b>Files Contributed&nbsp;&nbsp;</b></td>'
+                '<td><b>First Edit Date&nbsp;&nbsp;</b></td>'
+                '<td><b>Last Edit&nbsp;&nbsp;</b></td>'
+                '<td><b>Last Page Edited&nbsp;&nbsp;</b></td></tr>' % args)
             htmltext.append('<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr></table>' % (edit_count,created_count,file_count,first_edit_date,last_edit_date,Page(last_page_edited, request).link_to()))
        elif edit_count or wiki_info.first_edit_date:
             htmltext.append('<p><h2>%s\'s Statistics</h2></p><table width=100%% border=0><tr><td><b>Edits&nbsp;&nbsp;</b></td><td><b>Pages Created&nbsp;&nbsp;</b></td><td><b>Files Contributed&nbsp;&nbsp;</b></td><td><b>First Edit Date&nbsp;&nbsp;</b></td><td><b>Last Edit&nbsp;&nbsp;</b></td><td><b>Last Page Edited&nbsp;&nbsp;</b></td></tr>' % args)

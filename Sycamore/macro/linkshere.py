@@ -25,7 +25,7 @@ def execute(macro, args, formatter=None):
         text.append(formatter.bullet_list(1))
         for link in links_here:
             text.append('%s%s%s' % (formatter.listitem(1),
-                                    formatter.pagelink(link),
+                                    formatter.pagelink(link, generated=True),
                                     formatter.listitem(0)))
         text.append(formatter.bullet_list(0))
     
