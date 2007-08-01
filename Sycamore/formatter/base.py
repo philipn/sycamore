@@ -180,9 +180,6 @@ class FormatterBase:
         """
         processor = wikiutil.importPlugin("processor",
                                           processor_name, "process")
-        if not processor and processor_name=="python":
-            from Sycamore.processor.Colorize import process
-            processor = process
         processor(self.request, self, lines)
         return ''
 
