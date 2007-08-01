@@ -2,14 +2,21 @@
 """
     Sycamore - Sycamore Wiki Markup Parser
 
-    @copyright: 2000, 2001, 2002 by JÃ¼rgen Hermann <jh@web.de>
+    @copyright: 2004-2007 by Philip Neustrom <philipn@gmail.com
+    @copyright: 2000, 2001, 2002 by J�rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
-import os, re
+import os
+import re
 import string
-from Sycamore import config, wikimacro, wikiutil
+import sha
+
+from Sycamore import config
+from Sycamore import wikimacro
+from Sycamore import wikiutil
+
 from Sycamore.Page import Page
 from Sycamore.util import web
 from Sycamore.parser.wiki_simple import Parser as SimpleParser
@@ -17,7 +24,9 @@ from Sycamore.parser.wiki_simple import Parser as SimpleParser
 #############################################################################
 ### Utilities
 #############################################################################
-_heading_re = re.compile('(?P<heading>^\s*(?P<hmarker>=+)(\s)*.*(\s)*(?P=hmarker)( )*$)')
+_heading_re = re.compile(
+    '(?P<heading>^\s*(?P<hmarker>=+)(\s)*.*(\s)*(?P=hmarker)( )*$)')
+
 def _is_heading(line):
     """
     Is the line a heading?
@@ -25,21 +34,18 @@ def _is_heading(line):
     return _heading_re.match(line)
 
 #############################################################################
-
-
-#############################################################################
 ### Sycamore Wiki Markup Parser
 #############################################################################
 
 class Parser(SimpleParser):
     """
-        Object that turns Wiki markup into HTML.
+    Object that turns Wiki markup into HTML.
 
-        All formatting commands can be parsed one line at a time, though
-        some state is carried over between lines.
+    All formatting commands can be parsed one line at a time, though
+    some state is carried over between lines.
 
-        Methods named like _*_repl() are responsible to handle the named regex
-        patterns defined in print_html().
+    Methods named like _*_repl() are responsible to handle the named regex
+    patterns defined in print_html().
     """
 
     DEFINITION_OPERATOR = ':='
@@ -52,22 +58,24 @@ class Parser(SimpleParser):
 (?P<macro>\[\[(%(macronames)s)(?:\(.*?\))?\]\])"""
     formatting_b = r"""
 (?P<heading>^\s*(?P<hmarker>=+)(\s)*.*(\s)*(?P=hmarker)( )*$)"""
-#(?P<definition>^(.*)%(def_op)s(.*)$)"""
 
-    formatting_rules_dict = {
-        'macronames': '|'.join(wikimacro.names),
-        'def_op': DEFINITION_OPERATOR
-        }
+    formatting_rules_dict = {'macronames': '|'.join(wikimacro.names),
+                             'def_op': DEFINITION_OPERATOR}
     formatting_rules_dict.update(SimpleParser.formatting_rules_dict)
-    formatting_rules = ("(?:%s%s)%s%s" % (SimpleParser.formatting_a, formatting_a, SimpleParser.formatting_b, formatting_b)) % formatting_rules_dict
+    formatting_rules = (
+        "(?:%s%s)%s%s" % (SimpleParser.formatting_a, formatting_a,
+                          SimpleParser.formatting_b, formatting_b)
+                       ) % formatting_rules_dict
 
     def format(self, formatter, inline_edit_default_state=None):
-        """ For each line, scan through looking for magic
-            strings, outputting verbatim any intervening text.
+        """
+        For each line, scan through looking for magic
+        strings, outputting verbatim any intervening text.
         """
         if hasattr(formatter, 'page'):
-          self.is_a_page = True
-        else: self.is_a_page = False
+            self.is_a_page = True
+        else:
+            self.is_a_page = False
 
         self.formatter = formatter
         self.hilite_re = ''
@@ -106,10 +114,12 @@ class Parser(SimpleParser):
             self.line_was_empty = self.line_is_empty
             self.line_is_empty = 0
             self.first_list_item = 0
-	    self.formatter.printed_inline_edit_id = False
+            self.formatter.printed_inline_edit_id = False
             self.inhibit_p = 0
-            if self.inhibit_br > 0: self.inhibit_br -= 1
-            else: self.inhibit_br = 0
+            if self.inhibit_br > 0:
+                self.inhibit_br -= 1
+            else:
+                self.inhibit_br = 0
 
             self.formatter.inline_edit_force_state = inline_edit_default_state
 
@@ -136,10 +146,8 @@ class Parser(SimpleParser):
                     continue
                 elif self.print_br():
                     self.request.write('<br/>')
-                    self.inhibit_br += 1 # to avoid printing two if they did [[br]]
-                # start p on first line
-                #elif not self.inhibit_p and self.lineno == 1 and self.print_first_p:
-                #    self.request.write(self.formatter.paragraph(1))
+                    # to avoid printing two if they did [[br]]
+                    self.inhibit_br += 1 
  
                 # check indent level
                 indent = indent_re.match(line)
@@ -165,49 +173,61 @@ class Parser(SimpleParser):
                             indtype = "dl"
 
                 # output proper indentation tags
-                #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
-                #self.request.write("<!-- #%d calling _indent_to -->\n" % self.lineno)
-                self.request.write(self._indent_to(indlen, indtype, numtype, numstart))
-                #self.request.write("<!-- #%d after calling _indent_to -->\n" % self.lineno)
-                #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
+                #self.request.write("<!-- inhibit_p==%d -->\n" %
+                #                   self.inhibit_p)
+                #self.request.write("<!-- #%d calling _indent_to -->\n" %
+                #                   self.lineno)
+                self.request.write(self._indent_to(indlen, indtype, numtype,
+                                                   numstart))
+                #self.request.write("<!-- #%d after calling _indent_to -->\n" %
+                #                   self.lineno)
+                #self.request.write("<!-- inhibit_p==%d -->\n" %
+                #                   self.inhibit_p)
 
                 # start or end table mode
-                if not self.in_table and line[indlen:indlen+2] == "||" and line[-2:] == "||":
+                if (not self.in_table and line[indlen:indlen+2] == "||" and
+                    line[-2:] == "||"):
                     attrs, attrerr = self._getTableAttrs(line[indlen+2:])
-                    self.request.write(self.formatter.table(1, attrs) + attrerr)
+                    self.request.write(self.formatter.table(1, attrs) +
+                                       attrerr)
                     self.in_table = self.lineno
-                elif self.in_table and not(line[:2]=="##" or # intra-table comments should not break a table 
-                    line[indlen:indlen+2] == "||" and line[-2:] == "||"):
+                # intra-table comments should not break a table 
+                elif (self.in_table and not
+                      (line[:2]=="##" or
+                       (line[indlen:indlen+2] == "||" and line[-2:] == "||"))):
                     self.request.write(self.formatter.table(0))
                     self.in_table = 0
-		    self.force_print_p = True
+                    self.force_print_p = True
 
             # convert line from wiki markup to HTML and print it
-            if not self.in_pre:   # we don't want to have trailing blanks in pre
+            # we don't want to have trailing blanks in pre
+            if not self.in_pre:
                 line = line + " " # we don't have \n as whitespace any more
-
 
             if self.formatter.in_list > 0:
                 self.force_print_p = False
             elif self.formatter.just_printed_heading and _is_heading(line):
                 self.force_print_p = False
                 self.formatter.just_printed_heading = False
-            elif self.force_print_p and not self.formatter.in_p and not self.in_table:
+            elif (self.force_print_p and not self.formatter.in_p and not
+                  self.in_table):
                 self.force_print_p = False
                 self.request.write(self.formatter.paragraph(1))
             elif self.formatter.in_p or self.in_table:
                 self.force_print_p = False
-
             
-            formatted_line = self.scan(scan_re, line) # this also sets self.inhibit_p as side effect!
+            # this also sets self.inhibit_p as side effect!
+            formatted_line = self.scan(scan_re, line) 
             #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
 
             #self.request.write("<!-- inhibit_p==%d -->\n" % self.inhibit_p)
-            # we check against force_print_p here to avoid printing out <p> (above) and then immediately </p>
-	    #print line
-            if not (self.inhibit_p or self.in_pre or self.in_table or self.force_print_p):
+            # we check against force_print_p here to avoid printing out <p>
+            # (above) and then immediately </p>
+            if not (self.inhibit_p or self.in_pre or self.in_table or
+                    self.force_print_p):
                  self.request.write(self.formatter.paragraph(1))
-            elif self.formatter.in_list > 0 and not self.formatter.printed_inline_edit_id:
+            elif (self.formatter.in_list > 0 and not
+                  self.formatter.printed_inline_edit_id):
                  self.request.write(self.formatter.paragraph(1))
 
             #self.request.write("<!-- %s\n     start -->\n" % line)
@@ -216,30 +236,32 @@ class Parser(SimpleParser):
 
             if self.in_pre:
                 self.request.write(self.formatter.linebreak())
-            #if self.in_li:
-            #    self.in_li = 0
-            #    self.request.write(self.formatter.listitem(0))
 
         # close code displays, paragraphs, tables and open lists
-        if self.in_pre: self.request.write(self.formatter.preformatted(0))
-        if self.in_table: self.request.write(self.formatter.table(0))
+        if self.in_pre:
+            self.request.write(self.formatter.preformatted(0))
+        if self.in_table:
+            self.request.write(self.formatter.table(0))
         self.request.write(self._undent())
 
         # check for pending footnotes
         if getattr(self.request, 'footnotes', None):
-          from Sycamore.macro.footnote import emit_footnotes
-          emit_footnotes(self.request, self.formatter)
-
+            from Sycamore.macro.footnote import emit_footnotes
+            emit_footnotes(self.request, self.formatter)
 
     def _tableZ_repl(self, word):
-        """Handle table row end."""
+        """
+        Handle table row end.
+        """
         if self.in_table:
             return self.formatter.table_cell(0) + self.formatter.table_row(0)
         else:
             return word
 
     def _table_repl(self, word):
-        """Handle table cell separator."""
+        """
+        Handle table cell separator.
+        """
         if self.in_table:
             # check for attributes
             attrs, attrerr = self._getTableAttrs(word)
@@ -263,11 +285,10 @@ class Parser(SimpleParser):
         else:
             return word
 
-
     def _heading_repl(self, word):
-        """Handle section headings."""
-        import sha
-
+        """
+        Handle section headings.
+        """
         self.inhibit_p = 1
         self.inhibit_br += 2
         icons = ''
@@ -283,7 +304,8 @@ class Parser(SimpleParser):
 
         title_text = h[level:-level].strip()
         # we wikify the title so that things like links show up in the heading
-        title_text = wikiutil.stripOuterParagraph(wikiutil.wikifyString(title_text, self.request, self.formatter.page))
+        title_text = wikiutil.stripOuterParagraph(wikiutil.wikifyString(
+                        title_text, self.request, self.formatter.page))
 
         self.titles.setdefault(title_text, 0)
         self.titles[title_text] += 1
@@ -293,8 +315,11 @@ class Parser(SimpleParser):
             unique_id = '-%d' % self.titles[title_text]
 
         self.force_print_p = True
-        result.append(self.formatter.heading(depth, title_text, icons=icons, id=("head-"+sha.new(title_text.encode('utf-8')).hexdigest()+unique_id).decode('utf-8')))
-
+        result.append(self.formatter.heading(
+            depth, title_text, icons=icons,
+            id=("head-" + sha.new(title_text.encode('utf-8')).hexdigest() +
+                unique_id
+               ).decode('utf-8')))
 
         return ''.join(result)
 
@@ -315,7 +340,9 @@ class Parser(SimpleParser):
         return ''.join(d)
 
     def get_page_lines(self): 
-        # get text and replace TABs
+        """
+        get text and replace TABs
+        """
         rawtext = self.raw.expandtabs()
         self.lines = self.EOL_RE.split(rawtext)
         return self.lines
