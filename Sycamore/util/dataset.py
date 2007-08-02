@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Datasets
 
@@ -10,9 +10,9 @@
 """
 
 class Column:
-    """ Meta-data for a column.
     """
-
+    Meta-data for a column.
+    """
     _SLOTS = [
         ('label', ''),
         ('sortable', 0),
@@ -25,12 +25,11 @@ class Column:
         for slot, defval in self._SLOTS:
             setattr(self, slot, kw.get(slot, defval))
 
-
 class Dataset:
-    """ Holds a 2-dimensional data set (m rows of n columns)
-        and associated meta-data (column titles, etc.)
     """
-
+    Holds a 2-dimensional data set (m rows of n columns)
+    and associated meta-data (column titles, etc.)
+    """
     def __init__(self):
         self.columns = []
         self.data = []
@@ -40,12 +39,14 @@ class Dataset:
         return len(self.data)
 
     def reset(self):
-        """ Reset iterator to start.
+        """
+        Reset iterator to start.
         """
         self._pos = 0
 
     def next(self):
-        """ Return next row as a tuple, ordered by columns.
+        """
+        Return next row as a tuple, ordered by columns.
         """
         if self._pos >= len(self):
             return None
@@ -55,25 +56,26 @@ class Dataset:
         return row
 
     def addRow(self, row):
-        """ Add a row to the dataset.
+        """
+        Add a row to the dataset.
         """
         self.data.append(row)
 
 
 class TupleDataset(Dataset):
-    """ A dataset that stores tuples.
     """
+    A dataset that stores tuples.
+    """
+    pass
 
 
 class DictDataset(Dataset):
-    """ A dataset that stores dicts as the rows.
     """
-
+    A dataset that stores dicts as the rows.
+    """
     def next(self):
         row = Dataset.next(self)
         return tuple([row[col.name] for col in self.columns])
 
-
 class DbDataset(Dataset):
     pass
-

@@ -1,11 +1,17 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - diff3 algorithm
     
+    @copyright: 2006-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2002 by Florian Festi
     @license: GNU GPL, see COPYING for details.
 """
-import os, tempfile, random
+
+# Imports
+import os
+import tempfile
+import random
+
 from Sycamore import config
 
 diff3_marker_mine = '<<<<<<<'
@@ -19,11 +25,11 @@ def escape_text(text):
    """
    text_lines = []
    for line in text.split('\n'):
-     line = line.replace(diff3_marker_mine, "x%s" % diff3_marker_mine)
-     line = line.replace(diff3_marker_old, "x%s" % diff3_marker_old)
-     line = line.replace(diff3_marker_divider, "x%s" % diff3_marker_divider)
-     line = line.replace(diff3_marker_yours, "x%s" % diff3_marker_yours)
-     text_lines.append(line)
+        line = line.replace(diff3_marker_mine, "x%s" % diff3_marker_mine)
+        line = line.replace(diff3_marker_old, "x%s" % diff3_marker_old)
+        line = line.replace(diff3_marker_divider, "x%s" % diff3_marker_divider)
+        line = line.replace(diff3_marker_yours, "x%s" % diff3_marker_yours)
+        text_lines.append(line)
    return '\n'.join(text_lines)
 
 def unescape_text(text):
@@ -32,77 +38,84 @@ def unescape_text(text):
    """
    text_lines = []
    for line in text.split('\n'):
-     line = line.replace("x%s" % diff3_marker_mine, diff3_marker_mine)
-     line = line.replace("x%s" % diff3_marker_old, diff3_marker_old)
-     line = line.replace("x%s" % diff3_marker_divider, diff3_marker_divider)
-     line = line.replace("x%s" % diff3_marker_yours, diff3_marker_yours)
-     text_lines.append(line)
+        line = line.replace("x%s" % diff3_marker_mine, diff3_marker_mine)
+        line = line.replace("x%s" % diff3_marker_old, diff3_marker_old)
+        line = line.replace("x%s" % diff3_marker_divider, diff3_marker_divider)
+        line = line.replace("x%s" % diff3_marker_yours, diff3_marker_yours)
+        text_lines.append(line)
    return '\n'.join(text_lines)
 
-def set_my_markers(diff3_result, my_marker, old_marker1, old_marker2, your_marker, divider_marker, marker1, marker2, marker3):
-  final_output = []
-  ignore = False
-  self_merge = False
-  had_conflict = False
-  for line in diff3_result:
-    line = line.decode('utf-8')
-    if line == my_marker:
-      had_conflict = True
-      final_output.append(marker1)
-    elif line.endswith(old_marker1):
-      # ignore this part for brevity
-      ignore = True
-      on_this_line = line[:line.find(old_marker1)]
-      if on_this_line:
-        final_output.append("%s\n" % on_this_line)
-    elif line == old_marker2:
-      # skip old, use yours
-      ignore = True
-      self_merge = True
-    elif line == divider_marker: 
-      ignore = False
-      if not self_merge:
-        final_output.append(marker2)
-    elif line == your_marker:
-      if not self_merge:
-        had_conflict = True
-        final_output.append(marker3)
-      else:
-        self_merge = False
-    elif not ignore:
-      final_output.append(line)
+def set_my_markers(diff3_result, my_marker, old_marker1, old_marker2,
+                   your_marker, divider_marker, marker1, marker2, marker3):
+    final_output = []
+    ignore = False
+    self_merge = False
+    had_conflict = False
+    for line in diff3_result:
+        line = line.decode('utf-8')
+        if line == my_marker:
+            had_conflict = True
+            final_output.append(marker1)
+        elif line.endswith(old_marker1):
+            # ignore this part for brevity
+            ignore = True
+            on_this_line = line[:line.find(old_marker1)]
+            if on_this_line:
+                final_output.append("%s\n" % on_this_line)
+        elif line == old_marker2:
+            # skip old, use yours
+            ignore = True
+            self_merge = True
+        elif line == divider_marker: 
+            ignore = False
+            if not self_merge:
+                final_output.append(marker2)
+        elif line == your_marker:
+            if not self_merge:
+                had_conflict = True
+                final_output.append(marker3)
+            else:
+                self_merge = False
+        elif not ignore:
+            final_output.append(line)
 
-  return final_output, had_conflict
+    return final_output, had_conflict
 
 def text_merge(old, other, new,
                marker1=diff3_marker_mine,
                marker2=diff3_marker_divider,
                marker3=diff3_marker_yours):
 
-  old = escape_text(old)
-  other = escape_text(other)
-  new = escape_text(new)
+    old = escape_text(old)
+    other = escape_text(other)
+    new = escape_text(new)
 
-  had_conflict = False
-  oldfile = tempfile.NamedTemporaryFile()
-  oldfile.write(old.encode('utf-8'))
-  oldfile.flush()
-  otherfile = tempfile.NamedTemporaryFile()
-  otherfile.write(other.encode('utf-8'))
-  otherfile.flush()
-  myfile = tempfile.NamedTemporaryFile()
-  myfile.write(new.encode('utf-8'))
-  myfile.flush()
-  random_num = random.random()
-  diff3_result = os.popen("%s %s -L mine%s %s -L old%s %s -L yours%s --merge" % (config.diff3_location, myfile.name, random_num, oldfile.name, random_num, otherfile.name, random_num), 'r')
-  my_marker = "%s mine%s\n" % (diff3_marker_mine, random_num)
-  old_marker1 = "%s old%s\n" % (diff3_marker_old, random_num)
-  old_marker2 = "%s old%s\n" % (diff3_marker_mine, random_num)
-  your_marker = "%s yours%s\n" % (diff3_marker_yours, random_num)
-  divider_marker = "=======\n"
+    had_conflict = False
+    oldfile = tempfile.NamedTemporaryFile()
+    oldfile.write(old.encode('utf-8'))
+    oldfile.flush()
+    otherfile = tempfile.NamedTemporaryFile()
+    otherfile.write(other.encode('utf-8'))
+    otherfile.flush()
+    myfile = tempfile.NamedTemporaryFile()
+    myfile.write(new.encode('utf-8'))
+    myfile.flush()
+    random_num = random.random()
+    diff3_result = os.popen(
+        "%s %s -L mine%s %s -L old%s %s -L yours%s --merge" %
+            (config.diff3_location, myfile.name, random_num, oldfile.name,
+             random_num, otherfile.name, random_num),
+        'r')
+    my_marker = "%s mine%s\n" % (diff3_marker_mine, random_num)
+    old_marker1 = "%s old%s\n" % (diff3_marker_old, random_num)
+    old_marker2 = "%s old%s\n" % (diff3_marker_mine, random_num)
+    your_marker = "%s yours%s\n" % (diff3_marker_yours, random_num)
+    divider_marker = "=======\n"
 
-  final_output, had_conflict = set_my_markers(diff3_result, my_marker, old_marker1, old_marker2, your_marker, divider_marker, marker1, marker2, marker3)
-  return (unescape_text(''.join(final_output)), had_conflict)
+    final_output, had_conflict = set_my_markers(
+        diff3_result, my_marker, old_marker1, old_marker2, your_marker,
+        divider_marker, marker1, marker2, marker3)
+    return (unescape_text(''.join(final_output)), had_conflict)
 
 if __name__ == '__main__':
   old = """He and ["Judy Corbett"] are responsible for ["Village Homes"]. Michael and Judy separated, and Michael currently resides in downtown Davis. Michael is the principal designer of the ["Covell Village"] project. He is one of the authors of the ["Ahwahnee Principles"].
