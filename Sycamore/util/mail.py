@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Helper functions for email stuff
 
@@ -8,6 +8,13 @@
 
 # Imports
 import os
+import smtplib
+import socket
+
+from email.MIMEText import MIMEText
+from email.Utils import formatdate
+    
+from Sycamore import config
 
 _transdict = {"AT": "@", "DOT": ".", "DASH": "-"}
 
@@ -31,17 +38,13 @@ def sendmail(request, to, subject, text, **kw):
     @rtype: tuple
     @return: (is_ok, msg)
     """
-    import smtplib, socket
-    from email.MIMEText import MIMEText
-    from email.Utils import formatdate
-    
-    from Sycamore import config
 
     _ = request.getText
     # should not happen, but who knows ...
     if not config.mail_smarthost:
-        return (0, _('''This wiki is not enabled for mail processing. '''
-                '''Contact the owner of the wiki, who can either enable email, or remove the "Subscribe" icon.'''))
+        return (0, _('This wiki is not enabled for mail processing. '
+                     'Contact the owner of the wiki, who can either enable '
+                     'email, or remove the "Subscribe" icon.'))
     mail_from = kw.get('mail_from', config.mail_from) or config.mail_from
 
     # Create a text/plain message
@@ -56,7 +59,8 @@ def sendmail(request, to, subject, text, **kw):
         msg['Message-ID'] = make_msgid() 
         msg['Subject'] = Header(subject, config.charset)
     except ImportError:
-        msg['Subject'] = subject # this is not standards compliant, but mostly works
+        # this is not standards compliant, but mostly works
+        msg['Subject'] = subject 
         # no message-id. if you still have py 2.2.1, you like it old and broken
         
     try:
@@ -76,17 +80,17 @@ def sendmail(request, to, subject, text, **kw):
     except smtplib.SMTPException, e:
         return (0, str(e))
     except (os.error, socket.error), e:
-        return (0, _("Connection to mailserver '%(server)s' failed: %(reason)s") % {
-            'server': config.mail_smarthost, 
-            'reason': str(e)
-        })
+        return (0, _("Connection to mailserver '%(server)s' failed: "
+                     "%(reason)s") % {'server': config.mail_smarthost,
+                                      'reason': str(e)})
 
-    return (1, _("Mail is on its way.  Please check your inbox.  The email will expire in 30 minutes."))
-
+    return (1, _("Mail is on its way.  Please check your inbox.  "
+                 "The email will expire in 30 minutes."))
 
 def decodeSpamSafeEmail(address):
     """
-    Decode a spam-safe email address in `address` by applying the following rules.
+    Decode a spam-safe email address in `address` by applying the following
+    rules.
     
     Known all-uppercase words and their translation:
         "DOT"   -> "."
