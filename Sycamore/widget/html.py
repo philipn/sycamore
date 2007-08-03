@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - HTML Widgets
 
@@ -6,41 +6,42 @@
     @license: GNU GPL, see COPYING for details.
 """
 
+# Imports
 from Sycamore import wikiutil
+
 from Sycamore.widget.base import Widget
 
 # sort attributes or not? (set to 1 by unit tests)
 _SORT_ATTRS = 0
-
 
 #############################################################################
 ### Base Classes
 #############################################################################
 
 class Text:
-    """ A text node which will be escaped.
+    """
+    A text node which will be escaped.
     """
     def __init__(self, text):
         self.text = text
 
     def __str__(self):
         return wikiutil.escape(self.text)
-
         
 class Raw:
-    """ Raw HTML code.
+    """
+    Raw HTML code.
     """
     def __init__(self, markup):
         self.markup = markup
 
     def __str__(self):
         return self.markup
-
         
 class Element:
-    """ Abstract base class for HTML elements.
     """
-
+    Abstract base class for HTML elements.
+    """
     _ATTRS = {
     }
     _DEFAULT_ATTRS = {
@@ -61,7 +62,8 @@ class Element:
 
     def __init__(self, **kw):
         for key in kw.keys():
-            if key == 'html_class': key = 'class'
+            if key == 'html_class':
+                key = 'class'
             key = key.lower()
             if not self._ATTRS.has_key(key):
                 raise AttributeError(
@@ -71,8 +73,8 @@ class Element:
         self.attrs = self._DEFAULT_ATTRS.copy()
         self.attrs.update(kw)
         if self.attrs.has_key('html_class'):  # class=".." is illegal python
-          self.attrs['class'] = self.attrs['html_class']
-          del self.attrs['html_class']
+            self.attrs['class'] = self.attrs['html_class']
+            del self.attrs['html_class']
 
     def tagname(self):
         return self.__class__.__name__.lower()
@@ -80,7 +82,8 @@ class Element:
     def _openingtag(self):
         result = [self.tagname()]
         attrs = self.attrs.items()
-        if _SORT_ATTRS: attrs.sort()
+        if _SORT_ATTRS:
+            attrs.sort()
         for key, val in attrs:
             key = key.lower()
             if self._BOOL_ATTRS.has_key(key):
@@ -94,17 +97,16 @@ class Element:
 
         
 class EmptyElement(Element):
-    """ HTML elements with an empty content model.
     """
-
+    HTML elements with an empty content model.
+    """
     def __str__(self):
         return "<%s>" % self._openingtag()
 
-
 class CompositeElement(Element):
-    """ HTML elements with content.
     """
-
+    HTML elements with content.
+    """
     def __init__(self, **kw):
         Element.__init__(self, **kw)
         self.children = []
@@ -669,11 +671,11 @@ class VAR(CompositeElement):
 class FormWidget(Widget):
     """ Widget to display data as an HTML form.
 
-        TODO: write code to combine the labels, data and HTML DOM to a complete form.
+        TODO: write code to combine the labels, data and HTML DOM to a
+        complete form.
 
         INCOMPLETE!!!
     """
-
     def __init__(self, request, **kw):
         Widget.__init__(self, request)
         # FIXME     vvvv
