@@ -28,7 +28,7 @@ def execute(macro, args, formatter=None):
         if args == "begin":
             text.append('<center>')
         elif args == "end":
- 	text.append('</center>')
+ 	        text.append('</center>')
     else:
         text.append('<b>You must supply the center macro with either '
                     '"begin" or "end": i.e. [[center(begin)]] my '

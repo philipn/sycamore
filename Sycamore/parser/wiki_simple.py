@@ -761,7 +761,8 @@ class Parser:
             result.append(self.highlight_text(line[lastpos:]))
         else:
             result.append(self.formatter.text(line[lastpos:]))
-        return ''.join(result)
+
+        return u''.join(wikiutil.list_to_unicode(result))
 
     def replace(self, match):
         #hit = filter(lambda g: g[1], match.groupdict().items())

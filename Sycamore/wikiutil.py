@@ -386,6 +386,18 @@ def init_logo_sizes(request):
     request.config.set_config(request.config.wiki_name,
                               request.config.get_dict(), request)
 
+def list_to_unicode(l):
+    """
+    Convert all strings in list to unicode.
+    """
+    ll = []
+    for i in l:
+        if type(i) == str:
+            ll.append(i.decode(config.charset))
+        else:
+            ll.append(i)
+    return ll 
+
 def init_theme_files_last_modified(request):
     """
     Gets the wiki theme file's (css, logos) last modification time and
@@ -560,7 +572,8 @@ def escape(s, quote=None):
     @rtype: string
     @return: escaped version of string
     """
-    if not s: return u''
+    if not s:
+        return u''
     s = s.replace("&", "&amp;") # Must be done first!
     s = s.replace("<", "&lt;")
     s = s.replace(">", "&gt;")
