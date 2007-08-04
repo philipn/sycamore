@@ -47,28 +47,24 @@ def execute(pagename, request):
         # check whether this is a valid renaming request (make outside
         # attacks harder by requiring two full HTTP transactions)
         comment_text = request.form.get('comment_text')[0]
-        if len(comment_text) > 1024:
-            msg = _('Your comment is too long.  '
-                    'Please keep it to 1000 characters or less.')
-        else: 
-            if request.user.anonymous:
-                userId = request.user.ip
+        if request.user.anonymous:
+            userId = request.user.ip
+        else:
+            if config.user_page_prefix:
+                userId = '["%s%s"]' % (config.user_page_prefix,
+                                       request.user.propercased_name)
             else:
-                if config.user_page_prefix:
-                    userId = '["%s%s"]' % (config.user_page_prefix,
-                                           request.user.propercased_name)
-                else:
-                    userId = '["%s"]' % request.user.propercased_name
+                userId = '["%s"]' % request.user.propercased_name
 
-            now = time.time()
-            now_formatted = request.user.getFormattedDateTime(
-                now, global_time=True)
-            formatted_comment_text = comment_text + " --" + userId
-            newtext = (oldtext + "------" + "\n" + "''" +
-                       ''.join(now_formatted) + "'' [[nbsp]] " +
-                       formatted_comment_text)
-            page.saveText(newtext, '0',
-                          comment="Comment added.", action="COMMENT_MACRO")
-            msg = _('Your comment has been added.')
+        now = time.time()
+        now_formatted = request.user.getFormattedDateTime(
+            now, global_time=True)
+        formatted_comment_text = comment_text + " --" + userId
+        newtext = (oldtext + "------" + "\n" + "''" +
+                   ''.join(now_formatted) + "'' [[nbsp]] " +
+                   formatted_comment_text)
+        page.saveText(newtext, '0',
+                      comment="Comment added.", action="COMMENT_MACRO")
+        msg = _('Your comment has been added.')
         
     return page.send_page(msg)
