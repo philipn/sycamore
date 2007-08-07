@@ -3,6 +3,7 @@
  * Mainly this files controls the appearance of the web elements rather than their positioning etc.
  * So changes to the colors, font styles, etc. are best made here, if there lacks a tag for a font
  * color, family, size, weight, it currently inherits from some other attribute, so feel free to change it.
+ * v703
  * */
 /*************************************      Top of page *************/
 /***** Logo & Banner    *************/
