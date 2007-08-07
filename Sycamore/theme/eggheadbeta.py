@@ -611,7 +611,7 @@ class Theme(ThemeBase):
                 'var gmaps_src="http://maps.google.com/maps?file=api&v=2&'
                                'key=%(gmaps_api_key)s";'
                 '</script>'
-                '<script src="%(web_dir)s/wiki/gmap.js" '
+                '<script src="%(web_dir)s/wiki/gmap.js?tm=%(theme_last_modified)s" '
                         'type="text/javascript">'
                 '</script>'
                 '<script type="text/javascript">'
