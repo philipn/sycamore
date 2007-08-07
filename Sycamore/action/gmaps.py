@@ -83,7 +83,7 @@ function doLoad() {
 var map = new GMap2(document.getElementById("map"));
 map.addControl(new GSmallMapControl());
 map.addControl(new GMapTypeControl()); 
-map.setCenter(new GLatLng(%s,%s),15);
+map.setCenter(new GLatLng(%s,%s),16);
         """ % (center.latitude, center.longitude)
         
     nearbys_processed = {}
