@@ -1,7 +1,5 @@
 function createMarker(point, index, text) {
-        var letter = String.fromCharCode("A".charCodeAt(0) + index);
         var icon = new GIcon(baseIcon);
-        icon.image = "http://www.google.com/mapfiles/marker" + letter + ".png";
         var marker = new GMarker(point, icon);
 
         GEvent.addListener(marker, "click", function() {
@@ -55,12 +53,12 @@ function initLoad()
     
     mapon = false;
     baseIcon = new GIcon();
-    baseIcon.shadow = "http://www.google.com/mapfiles/shadow50.png";
-    baseIcon.iconSize = new GSize(20, 34);
-    baseIcon.shadowSize = new GSize(37, 34);
-    baseIcon.iconAnchor = new GPoint(9, 34);
-    baseIcon.infoWindowAnchor = new GPoint(9, 2);
-    baseIcon.infoShadowAnchor = new GPoint(18, 25);
+    baseIcon.image = "wiki/marker.png";
+    baseIcon.shadow = "wiki/shadow.png";
+    baseIcon.iconSize = new GSize(12, 20);
+    baseIcon.shadowSize = new GSize(22, 20);
+    baseIcon.iconAnchor = new GPoint(6, 20);
+    baseIcon.infoWindowAnchor = new GPoint(5, 1);
 
     pointIcon = new GIcon();
     pointIcon.shadow = "http://www.google.com/mapfiles/arrowshadow.png";
