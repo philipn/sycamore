@@ -114,7 +114,9 @@ map.setCenter(new GLatLng(%s,%s),15);
                    (page.url(relative=False), x.pagename.replace("'","\\"+"'"),
                     x.address))
         out += ("var p_point = new GLatLng(%s,%s);\n"
-                "map.addOverlay(createArrow(p_point,%s));""" %
+                "var myArrow = createArrow(p_point,%s);\n"
+                "map.addOverlay(myArrow);\n"
+                "GEvent.trigger(myArrow,'click');" %
                 (x.latitude, x.longitude, namestr))
            
     out += """
