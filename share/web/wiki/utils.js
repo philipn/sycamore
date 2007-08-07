@@ -1,4 +1,5 @@
 var can_alter_textarea = true;
+var spider_agents = ['googlebot', 'yahoo! slurp']
 var RC_LIST_THRESHOLD = 15;
 if ((navigator.appName == 'Microsoft Internet Explorer') && (parseInt(navigator.appVersion) <= 6))
     is_ie_6_or_less = true;
@@ -958,10 +959,19 @@ function canSetCookies()
     }
     return false;
 }
+function isSpider()
+{
+    var agent=navigator.userAgent.toLowerCase();
+    for (var i=0;i < spider_agents.length;i++) {
+        spider_agent = spider_agents[i];
+        if (agent.indexOf(spider_agent) != -1) return true;
+    }
+    return false;
+}
 function authenticateWithFarm()
 {
     logout = window.location.href.indexOf('action=userform&logout=Logout');
-    if (canSetCookies() && authentication_url && (logout == -1) && !readCookie('nologin'))
+    if (!isSpider() && canSetCookies() && authentication_url && (logout == -1) && !readCookie('nologin'))
     {
         createCookie('nologin', '1', 60*10);
         if (readCookie('nologin') == '1')
