@@ -34,26 +34,26 @@ def execute(pagename, request):
         for key in request.form:
             if key.endswith('_groupname'):
                 groups.append(unquoteWikiname(key[:-10]))
-          else:
-            if key.endswith('_may_read'):
-                dowhat = 'read'
-                groupname = unquoteWikiname(key[:-9])
-            elif key.endswith('_may_edit'):
-                dowhat = 'edit'
-                groupname = unquoteWikiname(key[:-9])
-            elif key.endswith('_may_delete'):
-                dowhat = 'delete'
-                groupname = unquoteWikiname(key[:-11])
-            elif key.endswith('_may_admin'):
-                dowhat = 'admin'
-                groupname = unquoteWikiname(key[:-10])
             else:
-                continue
+                if key.endswith('_may_read'):
+                    dowhat = 'read'
+                    groupname = unquoteWikiname(key[:-9])
+                elif key.endswith('_may_edit'):
+                    dowhat = 'edit'
+                    groupname = unquoteWikiname(key[:-9])
+                elif key.endswith('_may_delete'):
+                    dowhat = 'delete'
+                    groupname = unquoteWikiname(key[:-11])
+                elif key.endswith('_may_admin'):
+                    dowhat = 'admin'
+                    groupname = unquoteWikiname(key[:-10])
+                else:
+                    continue
 
-            if not groups_dict.has_key(groupname):
-                groups_dict[groupname] = [False, False, False, False]
+                if not groups_dict.has_key(groupname):
+                    groups_dict[groupname] = [False, False, False, False]
 
-            groups_dict[groupname][ACL_RIGHTS_TABLE[dowhat]] = True
+                groups_dict[groupname][ACL_RIGHTS_TABLE[dowhat]] = True
 
         # set groups we weren't sent any checkboxes for to
         # all false (nothing checked)
