@@ -8,6 +8,7 @@
 
 # Imports
 from Sycamore import wikiutil
+from Sycamore import config
 
 from Sycamore.widget.base import Widget
 
@@ -123,9 +124,13 @@ class CompositeElement(Element):
         return self
 
     def __str__(self):
+        def _to_string(c):
+            if type(c) == unicode:
+                return c.encode(config.charset)
+            return str(c)
         return "<%s>%s</%s>" % (
             self._openingtag(),
-            ''.join([str(c) for c in self.children]),
+            ''.join([_to_string(c) for c in self.children]),
             self.tagname(),
         )
 

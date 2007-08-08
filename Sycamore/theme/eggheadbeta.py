@@ -425,12 +425,12 @@ class Theme(ThemeBase):
                       self.request.user.hasUnseenFavorite(wiki_global=True)):
                     tabclass = '%s notice' % tabclass
 
-                html.append('<a href="%%(script_name)s/%s" class="%s">%s</a>' %
+                html.append(('<a href="%(script_name)s/%%s" class="%%s">%%s</a>' % d) %
                             (wikiutil.quoteWikiname(tab), tabclass, tab))
 
             if not in_preset_tab and d['page_name']:
                 html.append('<a href="%(script_name)s/%(q_page_name)s" '
-                               'class="tab activeTab">%(page_name)s</a>')
+                               'class="tab activeTab">%(page_name)s</a>' % d)
         else:
             html = ['<div class="tabArea">']
             in_preset_tab = False
@@ -442,15 +442,15 @@ class Theme(ThemeBase):
                     in_preset_tab = True
 
                 html.append(
-                    '<a href="%%(script_name)s/%s" class="%s">%s</a>' %
+                    ('<a href="%(script_name)s/%%s" class="%%s">%%s</a>' % d) %
                     (wikiutil.quoteWikiname(tab), tabclass, tab))
 
             if not in_preset_tab and d['page_name']:
-              html.append('<a href="%(script_name)s/%(q_page_name)s" '
-                             'class="tab activeTab">%(page_name)s</a>')
+              html.append(('<a href="%(script_name)s/%(q_page_name)s" '
+                             'class="tab activeTab">%(page_name)s</a>' % d))
 
         html.append('</div>')
-        html = ''.join(html) % d
+        html = ''.join(html)
 
         return html
 
