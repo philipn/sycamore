@@ -1428,7 +1428,7 @@ def send_title(request, text, **keywords):
                 '\'', '\\\'').replace('\n', '\\n')) # quote strings, yay
         wikiLines = ','.join(wikiLines)
         user_head.append(
-            '<script name="text/javascript">var wikiLines = [%s]; '
+            '<script type="text/javascript">var wikiLines = [%s]; '
             'var wikiLinesHTML = document.createElement("div");</script>' %
                 wikiLines)
     else:

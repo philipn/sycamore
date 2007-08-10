@@ -25,7 +25,7 @@ class Theme(ThemeBase):
     """
 
     name = "eggheadbeta"
-    last_modified = '1186213052'
+    last_modified = '1186705198'
     showmap = 0
 
     stylesheets_print = (
@@ -630,10 +630,7 @@ class Theme(ThemeBase):
                         '%(map_html)s\n'
                         '%(stylesheets_html)s\n' % dict)
         else:
-            html = ('<title>%(newtitle)s - %(sitename)s</title><script'
-                        'src="%(web_dir)s/wiki/utils.js?tm='
-                            '%(theme_last_modified)s" '
-                         'type="text/javascript"></script>\n'
+            html = ('<title>%(newtitle)s - %(sitename)s</title>'
                     '%(map_html)s\n'
                     '%(stylesheets_html)s\n' % dict)
 
