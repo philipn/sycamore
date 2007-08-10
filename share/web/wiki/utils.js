@@ -348,7 +348,11 @@ function createEditSubmit()
 {
     if (!may_inline_edit)
         return false;
-    document.getElementById('content').innerHTML += '<div style="display: none;"><form name="editform" id="editform" method="post" action="' + action + '"><input type="hidden" name="action" value="savepage"><input type="hidden" name="datestamp" value="' + curTimestamp + '"><input type="text" name="screenposy" style="display: none;"><textarea id="savetext" name="savetext" style="display: none;"></textarea><input type="submit" name="button_save" value="Save Changes" style="display: none;"><input type="hidden" name="comment" value="(quick edit)"><input type="hidden" name="no_save_msg" value="1"></form></div>';
+    var editSubmitObj = document.createElement("div");
+    editSubmitObj.style.display  = 'none';
+    editSubmitObj.innerHTML += '<form name="editform" id="editform" method="post" action="' + action + '"><input type="hidden" name="action" value="savepage"><input type="hidden" name="datestamp" value="' + curTimestamp + '"><input type="text" name="screenposy" style="display: none;"><textarea id="savetext" name="savetext" style="display: none;"></textarea><input type="submit" name="button_save" value="Save Changes" style="display: none;"><input type="hidden" name="comment" value="(quick edit)"><input type="hidden" name="no_save_msg" value="1"></form>';
+    document.getElementById('content').appendChild(editSubmitObj);
+
 }
 
 function createEditAskArea(id_start, id_end, type)
