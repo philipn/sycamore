@@ -570,7 +570,12 @@ function saveEdit(id_start, id_end)
       after_area += wikiLines[j] + '\n';
 
     saveText = before_area + newWikiText + '\n' + after_area;
-    document.getElementById('savetext').value = saveText;
+    saveElm = document.getElementById('savetext');
+    // evil safari hack -- must re-add to dom to get the value to refresh?
+    saveElm.value = saveText;
+    saveElmParent = saveElm.parentNode;
+    saveElmParent.removeChild(saveElm);
+    saveElmParent.appendChild(saveElm);
     document.editform.screenposy.value = screenPosY();
     document.editform.button_save.click();
 }
