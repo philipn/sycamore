@@ -1534,7 +1534,8 @@ var onLoadStuff = new Array();</script>""" % (config.url_prefix, time.time(),
     icon = request.theme.get_icon('searchbutton', wiki_global=True)
     searchfield = (
         '<input class="formfields" type="text" name="inline_string" '
-               'value="%%(value)s" size="15" maxlength="%(max_pagename_length)s">'
+               'value="%%(value)s" size="15" '
+               'maxlength="%(max_pagename_length)s">'
         '&nbsp;<input type="image" src="%(src)s" alt="%(alt)s">'
         ) % {
             'alt': icon[0],
