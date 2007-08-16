@@ -1350,7 +1350,7 @@ def send_title(request, text, **keywords):
     @keyword strict_title: _just_ the html <title> specified
     """
     from Sycamore import i18n, farm
-    from Sycamore.Page import Page
+    from Sycamore.Page import Page, DISPLAYED_MAX_PAGENAME_LENGTH
     from Sycamore.action.Files import getAttachUrl
 
     _ = request.getText
@@ -1534,11 +1534,12 @@ var onLoadStuff = new Array();</script>""" % (config.url_prefix, time.time(),
     icon = request.theme.get_icon('searchbutton', wiki_global=True)
     searchfield = (
         '<input class="formfields" type="text" name="inline_string" '
-               'value="%%(value)s" size="15" maxlength="50">'
+               'value="%%(value)s" size="15" maxlength="%(max_pagename_length)s">'
         '&nbsp;<input type="image" src="%(src)s" alt="%(alt)s">'
         ) % {
             'alt': icon[0],
             'src': icon[1],
+            'max_pagename_length': (DISPLAYED_MAX_PAGENAME_LENGTH-1)
         }
     textsearch = searchfield %  {
         'type': 'normal',
