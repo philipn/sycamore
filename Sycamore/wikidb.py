@@ -1174,6 +1174,8 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0,
         lines.append(editline)
         edit = request.cursor.fetchone()
 
+    lines = _sort_changes_by_time(lines) 
+
     if config.memcache and add_to_cache:
         request.mc.add('rc:%s' % mc_quote(page), lines)
 
@@ -1185,7 +1187,6 @@ def getRecentChanges(request, max_days=False, total_changes_limit=0,
     if total_changes_limit:
         lines = lines[:total_changes_limit]
 
-    lines = _sort_changes_by_time(lines) 
     if changes_since:
         lines = _get_changes_since(changes_since, lines)
     if check_acl:
