@@ -96,23 +96,23 @@ class Page(object):
             self.default_formatter = 1
 
     def get_date(self):
-      # returns date this page/version was created
-      if self.version and not self.date:
-        self.date = self.version_number_to_date(self.version)
+        # returns date this page/version was created
+        if self.version and not self.date:
+          self.date = self.version_number_to_date(self.version)
+          return self.date
+        elif not self.date:
+          self.date = self.last_edit_info()[0]
         return self.date
-      elif not self.date:
-        self.date = self.last_edit_info()[0]
-      return self.date
 
     def get_version(self):
-      # returns date this page/version was created
-      if self.date and not self.version:
-        self.version = self.date_to_version_number(self.date)
+        # returns date this page/version was created
+        if self.date and not self.version:
+          self.version = self.date_to_version_number(self.date)
+          return self.version
+        elif not self.version:
+          self.date = self.last_edit_info()[0]
+          self.version = self.date_to_version_number(self.date)
         return self.version
-      elif not self.version:
-        self.date = self.last_edit_info()[0]
-        self.version = self.date_to_version_number(self.date)
-      return self.version
 
     def version_number_to_date(self, version_number):
         """
