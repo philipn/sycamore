@@ -350,7 +350,7 @@ def getArguments(args):
         image_name = image_name[:-1]
         end_char = image_name[-1]
 
-    return (image_name, caption, thumbnail, px_size, alignment, border)
+    return (image_name, caption.strip(), thumbnail, px_size, alignment, border)
 
 def line_has_just_macro(macro, args, formatter):
     line = macro.parser.lines[macro.parser.lineno-1].lower().strip()

@@ -46,6 +46,10 @@ class ImageBasics(unittest.TestCase):
 	    (('PhilipNeustrom.jpg, "Philip is an avid photographer", thumbnail, '
           'right, 350'),
          ('PhilipNeustrom.jpg', 'Philip is an avid photographer', True, 350,
+          'right', True)),
+        (('PhilipNeustrom.jpg, " Philip is an avid photographer", thumbnail, '
+          'right, 350'),
+         ('PhilipNeustrom.jpg', 'Philip is an avid photographer', True, 350,
           'right', True))
         ]
 

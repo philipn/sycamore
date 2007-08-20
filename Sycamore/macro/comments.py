@@ -33,7 +33,7 @@ def execute(macro, args, formatter=None):
     else:
         text.append(
             '<h3>%(title)s</h3>\n'
-            '<form method="POST" action="%(scriptname)s/%(pagename)s">\n'
+            '<form method="POST" action="%(scriptname)s/%(q_pagename)s">\n'
             '<p><input type="hidden" name="action" value="comments">\n'
             '<textarea id="comment_text" name="comment_text" rows="1" '
                       'style="width:100%%" '
@@ -48,7 +48,7 @@ def execute(macro, args, formatter=None):
             '</p>\n'
             '</form>' % {'title': title,
                          'scriptname': macro.request.getScriptname(),
-                         'pagename': macro.formatter.page.proper_name()})
+                         'q_pagename': wikiutil.quoteWikiname(macro.formatter.page.proper_name())})
 
     # we want to print a paragraph after the comments area if there's
     # anything following it

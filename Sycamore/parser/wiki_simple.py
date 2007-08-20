@@ -294,7 +294,7 @@ class Parser:
             if not text:
                 text = word
                 alt_text = False
-            base_pagename = self.formatter.page.page_name
+            base_pagename = self.formatter.page.proper_name()
             split_base_pagename = base_pagename.split('/')
             split_pagename = word.split('/')
             for entry in split_pagename:
@@ -313,7 +313,8 @@ class Parser:
                 word = split_base_pagename[0]
                 if len(word) > 1:
                     for entry in split_base_pagename[1:]:
-                        word += '/' + entry
+                        if entry:
+                            word += '/' + entry
 
         # is this a link to a user page?
         userpage_link = user.unify_userpage(self.request, word, text)

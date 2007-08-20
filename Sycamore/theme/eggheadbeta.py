@@ -46,7 +46,7 @@ class Theme(ThemeBase):
     
     def __init__(self, request):
         ThemeBase.__init__(self, request)
-        self.icons['www'] = ("[WWW]", "sycamore-www.png", 14, 11)
+        self.icons['www'] = ("[WWW]", "sycamore-www.png", 13, 7)
 
     # Header stuff #######################################################
 
