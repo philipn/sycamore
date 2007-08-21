@@ -47,7 +47,7 @@ def execute(macro, args, formatter=None):
     except StandardError:
         links = 1
 
-    raw = page.get_raw_body()
+    raw = page.get_raw_body(fresh=macro.request.set_cache)
     if not macro.request.user.may.read(page):
         raw = ""
 

@@ -37,7 +37,7 @@ def execute(macro, args, formatter=None):
 
     pagename = args or 'Fortune Cookies'
     page = Page(pagename, macro.request)
-    raw = page.get_raw_body()
+    raw = page.get_raw_body(fresh=macro.request.set_cache)
     if not macro.request.user.may.read(page):
         raw = ""
 
