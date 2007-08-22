@@ -16,4 +16,4 @@ sys.path.extend([os.path.abspath(os.path.join(__directory__, '..')),
 
 __author__ = 'Wiki Spot.  See CONTRIBUTORS file for complete list.'
 
-__version__ = '0.1c_wikis'
+__version__ = '0.1d_wikis'
