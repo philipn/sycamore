@@ -413,7 +413,7 @@ class PageEditor(Page):
 
         if config.wiki_farm:
             from Sycamore import farm
-            help_link = farm.link_to_page(farm.getBaseWikiName(self.request),
+            help_link = farm.link_to_page(farm.getBaseWikiName(),
                                           "Help with Editing",
                                           self.request.formatter,
                                           force_farm=True)
@@ -648,6 +648,13 @@ class PageEditor(Page):
         else:
             type = 'page save new'
         self.buildCache(type=type)
+
+        # check if this is a user page and keep track of it, if so
+        changed_state = (action == 'SAVENEW' or action == 'DELETE')
+        is_user_page = self.page_name.startswith(
+            config.user_page_prefix.lower())
+        if is_user_page and changed_state:
+            user.userPageChangedState(self, action)
 
     def saveText(self, newtext, datestamp, **kw):
         """

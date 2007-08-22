@@ -221,12 +221,12 @@ def isBaseWiki(request):
     """
     return request.config.wiki_id == 1
 
-def getBaseWikiName(request):
+def getBaseWikiName():
     return config.wiki_name
 
 def getBaseWikiFullName(request):
     original_wiki = request.config.wiki_name
-    request.switch_wiki(getBaseWikiName(request))
+    request.switch_wiki(getBaseWikiName())
     full_name = request.config.sitename
     request.switch_wiki(original_wiki)
     return full_name

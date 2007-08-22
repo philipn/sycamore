@@ -138,6 +138,21 @@ def getUserIdentification(request, username=None):
 
     return username or request.remote_addr or _("<unknown>")
 
+def userPageChangedState(page, action):
+    """
+    The user page provided was either deleted or created.
+    """
+    username = page.page_name[len(config.user_page_prefix):]
+    the_user = User(page.request, name=username)
+    if action == 'DELETE':
+        the_user.delUserPage(page.wiki_name)
+        # We remove the page from the user's bookmarks.
+        the_user.delFavorite(page)
+    elif action == 'SAVENEW':
+        the_user.addUserPage(page.wiki_name)
+        # We add the page to the user's bookmarks.
+        the_user.favoritePage(page)
+
 def unify_userpage(request, word, text, prefix=False):
     """
     If this is a userpage, let's link to the one they set as their home.
@@ -250,6 +265,7 @@ class User(object):
         self.wiki_for_userpage = ''
         self.favorites = None
         self.watched_wikis = None
+        self.user_pages = None
         self.is_login = is_login
         self.ip = None
         self.anonymous = False
@@ -1079,6 +1095,67 @@ class User(object):
       """
       self.favorites = self.getFavorites()
 
+    def getUserPages(self):
+        """
+        Get the list of wikis where this user has a page.
+        """
+        user_pages = self.user_pages
+        if config.memcache and user_pages is None:
+            user_pages = self.request.mc.get("user_pages:%s" % self.id,
+                                             wiki_global=True)
+        if user_pages is not None:
+            return user_pages
+        # grab the list of wikis from the database
+        self.request.cursor.execute(
+            """SELECT wiki_name FROM userPageOnWikis
+               WHERE username=%(username)s""", {'username':self.name})
+        result = self.request.cursor.fetchall()
+        if result:
+           user_pages = [i[0] for i in result] 
+        else:
+            user_pages = []
+        
+        if config.memcache:
+            self.request.mc.add("user_pages:%s" % self.id, user_pages,
+                                wiki_global=True)
+        self.user_pages = user_pages
+        return self.user_pages
+
+    def addUserPage(self, wiki_name):
+        """
+        Adds the provided wiki_name to the list of user pages for this user.
+        """
+        user_pages = self.getUserPages()
+        if wiki_name in user_pages:
+            return
+        user_pages.append(wiki_name)
+        self.request.cursor.execute(
+            """INSERT INTO userPageOnWikis (username, wiki_name) VALUES
+               (%(username)s, %(wiki_name)s)""",
+            {'username':self.name, 'wiki_name':wiki_name}, isWrite=True)
+        if config.memcache:
+            self.request.mc.set("user_pages:%s" % self.id, user_pages,
+                                wiki_global=True)
+        self.user_pages = user_pages
+
+    def delUserPage(self, wiki_name):
+        """
+        Deletes the provided wiki_name from the list of user pages for this
+        user.
+        """
+        user_pages = self.getUserPages()
+        if wiki_name not in user_pages:
+            return
+        user_pages.remove(wiki_name)
+        self.request.cursor.execute(
+            """DELETE FROM userPageOnWikis WHERE
+               username=%(username)s and wiki_name=%(wiki_name)s""",
+            {'username':self.name, 'wiki_name':wiki_name}, isWrite=True)
+        if config.memcache:
+            self.request.mc.set("user_pages:%s" % self.id, user_pages,
+                                wiki_global=True)
+        self.user_pages = user_pages
+
     def getWatchedWikis(self):
         """
         Gets the list of wikis the user is watching.
@@ -1160,13 +1237,14 @@ class User(object):
         Returns {wiki_name:{'pagename':viewTime}} dictionary
         """
         favs = None
-        if self.favorites is not None:
-            return self.favorites
         if self.request.req_cache['userFavs'].has_key(self.id):
             favs = self.request.req_cache['userFavs'][self.id]
             return favs
+        if self.favorites is not None:
+            return self.favorites
         if config.memcache:
-            favs = self.request.mc.get("userFavs:%s" % self.id, wiki_global=True)
+            favs = self.request.mc.get("userFavs:%s" % self.id,
+                                       wiki_global=True)
         if favs is None:
             favs = {}
             self.request.cursor.execute(
@@ -1278,6 +1356,23 @@ class User(object):
                             return True
                 return False 
 
+    def hasUserPageChanged(self):
+        """
+        Has one of the user pages for this user been modified since it was
+        last viewed?
+        """
+        from Sycamore.Page import Page
+        user_pages = self.getUserPages()
+        self.favorites = self.getFavorites()
+        for wiki_name in user_pages:
+            user_page_name = config.user_page_prefix.lower() + self.name
+            if (self.favorites.has_key(wiki_name) and
+                self.favorites[wiki_name].has_key(user_page_name)):
+                if (Page(user_page_name, self.request,
+                         wiki_name=wiki_name).mtime() >
+                    self.favorites[wiki_name][user_page_name]):
+                    return True
+        return False
 
     def getFavoriteList(self, wiki_global=False):
         """
@@ -1308,6 +1403,12 @@ class User(object):
         Checks to see if pagename is in the favorites list, and if it is,
         it updates the timestamp.
         """
+        if self.request.req_cache['userFavs'].has_key(self.id):
+            # sometimes there's more than one user object floating around
+            # and so we want to make sure that, if we modified it elsewhere,
+            # that we get the correct favorites
+            # XXX HACKISH/poor form
+            self.favorites = self.request.req_cache['userFavs'][self.id]
         if (self.name and self.favorites and
             self.favorites.has_key(page.wiki_name)):
           if self.favorites[page.wiki_name].has_key(page.page_name):
@@ -1335,7 +1436,7 @@ class User(object):
         @return: 1, if user has page in favorited pages ("Bookmarks")
                  0, if not
         """
-        if self.valid and self.name and not self.favorites:
+        if self.name and not self.favorites:
             self.favorites = self.getFavorites()
         if self.valid:
             if (self.favorites.has_key(page.wiki_name) and
@@ -1388,6 +1489,7 @@ class User(object):
                                                    wiki_name=%(wiki_name)s""",
                 {'pagename':page.page_name, 'username':self.name,
                  'wiki_name':page.wiki_name}, isWrite=True)
+            self.request.req_cache['userFavs'][self.id] = self.favorites
             return True
 
         return False

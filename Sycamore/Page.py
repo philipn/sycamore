@@ -1014,6 +1014,47 @@ class Page(object):
             body = self.get_raw_body()
             self.send_page_content(Parser, body, needsupdate=1)
             cache = caching.CacheEntry(key, request)
+
+    def _emptyUserPageText(self):
+        """
+        Output the default page content for new user pages.
+        
+        @param request: the request object
+        """
+        from Sycamore import farm
+        request = self.request
+        _ = request.getText
+        username = self.proper_name()[len(config.user_page_prefix):]
+
+        request.write(self.formatter.paragraph(1))
+        create_page_link = wikiutil.link_tag(request,
+            wikiutil.quoteWikiname(self.proper_name())+'?action=edit',
+            _("please create one!"))
+        request.write("%s doesn't have a page yet &mdash; %s" %
+                      (username, create_page_link))
+        request.write(self.formatter.paragraph(0))
+
+        the_user = user.User(request, name=username)
+        page_name = config.user_page_prefix + the_user.propercased_name
+        user_pages = the_user.getUserPages()
+        if user_pages:
+            request.write(self.formatter.heading(
+                3, "%s has profiles on these wikis:" % username))
+            request.write(self.formatter.bullet_list(1))
+            for wiki_name in user_pages:
+                request.write(self.formatter.listitem(1))
+                link = farm.link_to_page(wiki_name, page_name, self.formatter,
+                                         no_icon=False, text=wiki_name)
+                request.write(link)
+                request.write(self.formatter.listitem(0))
+            request.write(self.formatter.bullet_list(0))
+
+        user_info_link = self.link_to(know_status=True,
+                                      know_status_exists=True,
+                                      querystr="action=userinfo",
+                                      text="%s's user info" %
+                                           the_user.propercased_name)
+        request.write("You might be interested in %s, too." % user_info_link)
             
     def _emptyPageText(self):
         """
@@ -1024,6 +1065,13 @@ class Page(object):
         request = self.request
         _ = request.getText
   
+        is_user_page = self.page_name.startswith(
+            config.user_page_prefix.lower())
+
+        if is_user_page:
+            self._emptyUserPageText() 
+            return
+
         request.write(self.formatter.paragraph(1))
         request.write(wikiutil.link_tag(request,
             wikiutil.quoteWikiname(self.proper_name())+'?action=edit',

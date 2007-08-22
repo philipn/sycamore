@@ -284,6 +284,24 @@ def create_tables(cursor):
         userWatchedWikis (username);""", isWrite=True)
     cursor.execute("""CREATE INDEX userWatchedWikis_wiki_name on
         userWatchedWikis (wiki_name);""", isWrite=True)
+
+    if config.db_type == 'mysql':
+        cursor.execute("""create table userPageOnWikis
+        (
+        username varchar(100) not null,
+        wiki_name varchar(100) not null,
+        primary key (username, wiki_name)
+        ) ENGINE=InnoDB CHARACTER SET utf8;""", isWrite=True)
+    elif config.db_type == 'postgres':
+        cursor.execute("""create table userPageOnWikis
+        (
+        username varchar(100) not null,
+        wiki_name varchar(100) not null,
+        primary key (username, wiki_name)
+        );""", isWrite=True)
+  
+    cursor.execute("""CREATE INDEX userPageOnWikis_username on
+        userPageOnWikis (username);""", isWrite=True)
    
     if config.db_type == 'mysql':
         #This is throw-away data. User sessions aren't that important

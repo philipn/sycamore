@@ -1401,7 +1401,7 @@ def send_title(request, text, **keywords):
     else:
         if config.wiki_farm:
             on_wiki = request.config.wiki_name
-            request.switch_wiki(farm.getBaseWikiName(request))
+            request.switch_wiki(farm.getBaseWikiName())
             if hasFile(image_pagename, 'tinylogo.png', request):
                 tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png',
                     request, base_url=farm.getBaseFarmURL(request))

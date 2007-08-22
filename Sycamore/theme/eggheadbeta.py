@@ -272,6 +272,19 @@ class Theme(ThemeBase):
                         wikiutil.escape(d['title_text']))
         return ''.join(html)
 
+    def userNotificationLink(self, theuser):
+        if theuser.hasUserPageChanged():
+            url = Page("Interwiki Bookmarks", self.request,
+                       wiki_name=farm.getBaseWikiName()).url(relative=False)
+            link = '<a href="%s#profiles">messages!</a>' % url
+            return ('<span class="rcTag" style="float:none; margin:0; '
+                                               'padding-left: .4em;">'
+                    '<span class="rcTagNew"><a href="#">'
+                    '%s'
+                    '</a></span></span>' % link)
+                
+        return ''
+
     def username(self, d):
         """
         Assemble the username / userprefs link
@@ -309,11 +322,13 @@ class Theme(ThemeBase):
             html = (
                 '<div class="user_area">'
                 '<div class="welcome">Welcome, %s</div>'
+                '%s'
                 '<div class="user_items">'
                 '(%s<a href="%s%s?from_wiki=%s">settings</a> %s| '
                 '<a href="%s/%s?action=userform&amp;logout=Logout">logout</a>)'
                 '</div></div>' %
                 (user.getUserLink(self.request, self.request.user),
+                 self.userNotificationLink(self.request.user),
                  admin_settings, wiki_base_url,
                  wikiutil.quoteWikiname(config.page_user_preferences),
                  self.request.config.wiki_name, watch_wiki,

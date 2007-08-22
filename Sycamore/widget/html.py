@@ -87,6 +87,8 @@ class Element:
             attrs.sort()
         for key, val in attrs:
             key = key.lower()
+            if type(val) == unicode:
+                val = val.encode(config.charset)
             if self._BOOL_ATTRS.has_key(key):
                 if val: result.append(key)
             else:

@@ -624,7 +624,7 @@ class UserSettingsHandler(object):
               msg = _("Account created!  You are now logged in.")
               self.request.user.valid = 1
               if (self.from_wiki and self.from_wiki.lower() !=
-                                     farm.getBaseWikiName(self.request)):
+                                     farm.getBaseWikiName()):
                 go_back_to_wiki = farm.link_to_wiki(self.from_wiki, formatter)
                 msg = ('%s<br/><br/>Head back over to %s and your new account '
                       'should work there!' % (msg, go_back_to_wiki))
@@ -739,10 +739,10 @@ class UserSettings:
         base_wiki_sitename = farm.getBaseWikiFullName(self.request)
         d = {'wiki_name':farm.link_to_wiki(wiki_name, self.request.formatter),
              'base_wiki_name':farm.link_to_wiki(
-                                   farm.getBaseWikiName(self.request),
+                                   farm.getBaseWikiName(),
                                    self.request.formatter),
               'base_wiki_sitename_link':farm.link_to_wiki(
-                                            farm.getBaseWikiName(self.request),
+                                            farm.getBaseWikiName(),
                                             self.request.formatter,
                                             text=base_wiki_sitename,
                                             no_icon=True),
@@ -852,7 +852,7 @@ class UserSettings:
         self.make_form()
 
         if new_user and self.from_wiki:
-            if self.from_wiki != farm.getBaseWikiName(self.request):
+            if self.from_wiki != farm.getBaseWikiName():
                 self._inner.append(html.Raw(self._from_wiki_msg()))
 
         if not self.request.user.valid:
@@ -914,7 +914,7 @@ class UserSettings:
             self._inner.append(html.Raw('<h2>General Settings</h2>'))
 
             if self.from_wiki:
-                if self.from_wiki != farm.getBaseWikiName(self.request):
+                if self.from_wiki != farm.getBaseWikiName():
                     self._inner.append(html.Raw(self._from_wiki_msg()))
 
             self.make_row(_('Email'), [
@@ -948,7 +948,7 @@ class UserSettings:
                     wikis_for_userpage_options[
                         self.request.user.wiki_for_userpage] = None
                 wikis_for_userpage_options[
-                    farm.getBaseWikiName(self.request)] = None
+                    farm.getBaseWikiName()] = None
                 wikis_for_userpage_options = wikis_for_userpage_options.keys()
                 selection_tuples = []
                 for name in wikis_for_userpage_options:
