@@ -2,7 +2,6 @@
  *  This file controls the margins, paddings, and positionings of the various elements of your wiki.
  *  Changes here are a bit more complex and for the most general changes (colors and fonts) please
  *  refer to the style.css file.
- * v719
  *  */
 /*****************t********************      Top of page *************/
 /***** Logo & Banner    *************/
@@ -421,6 +420,7 @@ div.editInfo { margin-top: 10pt; }
 .rcpagelink {
 }
 .rcpagelink span { vertical-align: top; }
+.rcpagelink span * { vertical-align: top; }
 
 /* Recent changes modified time */
 .rctime {
