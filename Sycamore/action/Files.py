@@ -201,18 +201,24 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=1, deleted=0,
     if not deleted:
         if not thumb:
             url = "%s%s?sendfile=true%sfile=%s" % (base_url, 
-                wikiutil.quoteWikiname(pagename), amp, urllib.quote(filename))
+                wikiutil.quoteWikiname(pagename), amp,
+                urllib.quote(filename.encode(config.charset)).decode(
+                    config.charset))
         else:
             if not size:
                 url = "%s%s?sendfile=true%sfile=%s%sthumb=yes" % (
                     base_url, wikiutil.quoteWikiname(pagename), amp,
-                    urllib.quote(filename), amp)
+                    urllib.quote(filename.encode(config.charset)).decode(
+                        config.charset),
+                    amp)
             else:
                 url = ("%s%s?sendfile=true%sfile=%s%sthumb=yes%s"
                        "size=%s" % (base_url,
-                                    wikiutil.quoteWikiname(pagename),
-                                    amp,
-                                    urllib.quote(filename), amp, amp, size))
+                                    wikiutil.quoteWikiname(pagename), amp,
+                                    urllib.quote(filename.encode(
+                                                     config.charset)).decode(
+                                                        config.charset),
+                                    amp, amp, size))
             if ticket:
                 url = "%s%sticket=%s%ssize=%s" % (url, amp, ticket, amp, size)
     else:
@@ -221,13 +227,16 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=1, deleted=0,
                 base_url, 
                 wikiutil.quoteWikiname(pagename),
                 amp,
-                urllib.quote(filename), amp)
+                urllib.quote(filename.encode(config.charset)).decode(
+                    config.charset),
+                amp)
       else:
         url = ("%s%s?sendfile=true%sfile=%s%sdeleted=true%s"
                "version=%s" % (base_url, wikiutil.quoteWikiname(pagename),
                                amp,
-                               urllib.quote(filename), amp, amp,
-                               repr(version)))
+                               urllib.quote(filename.encode(
+                                   config.charset).decode(config.charset),
+                               amp, amp, repr(version))))
     if do_download:
         url = '%s%sdownload=true' % (url, amp)
     if ts:
@@ -238,7 +247,8 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action,
                       filename):
     text = '<div><h4>File history</h4></div><ul>'
 
-    urlfilename = urllib.quote(filename)
+    urlfilename = urllib.quote(filename.encode(config.charset)).decode(
+        config.charset)
     for revision in revisions:
         uploaded_time = revision[1] or 0 # to get rid of weird ='' in url
         if revision[1]:
@@ -275,7 +285,8 @@ def _revisions_footer(request,revisions, baseurl, urlpagename, action,
 def _action_footer(request, pagename, baseurl, urlpagename, action, filename):
     page = Page(pagename, request)
     if request.user.may.delete(page):
-        urlfile = urllib.quote(filename)
+        urlfile = urllib.quote(filename.encode(config.charset)).decode(
+            config.charset)
         return (
             '<div class="actionBoxes"><span>'
             '<a href="%s/%s?action=%s&amp;rename=%s#uploadFileArea">'
@@ -377,7 +388,8 @@ def _get_filelist(request, pagename):
         str.append('<div class="fileList"><ul class="wikipage">')
                 
         for file in files:
-            urlfile = urllib.quote(file)
+            urlfile = urllib.quote(file.encode(config.charset)).decode(
+                config.charset)
             file_icon = get_icon(file, request)
             
             get_url = getAttachUrl(pagename, file, request, escaped=1)
@@ -770,7 +782,7 @@ def _fixFilename(filename, request):
         # it's IE
         filename_split = filename.split("\\")
         filename = filename_split[-1]
-    return urllib.unquote(filename)
+    return urllib.unquote(filename).decode(config.charset)
 
 def changeExtension(filename, ext):
     filename_parts = filename.split('.')[:-1]
@@ -824,7 +836,7 @@ def do_upload(pagename, request):
         filename = _fixFilename(request.form['file__filename__'], request)
     rename = None
     if request.form.has_key('rename'):
-        rename = request.form['rename'][0].strip()
+        rename = request.form['rename'][0].strip().decode(config.charset)
 
     # if we use twisted, "rename" field is NOT optional, because we
     # can't access the client filename
@@ -1456,7 +1468,8 @@ def send_viewfile(pagename, request):
         return
 
     else:
-        filename = urllib.unquote(request.form['target'][0])
+        filename = urllib.unquote(request.form['target'][0].encode(
+            config.charset)).decode(config.charset)
         if request.form.get('version', [''])[0]:
             version = float(request.form['version'][0])
         else:
@@ -1582,7 +1595,8 @@ def send_viewfile(pagename, request):
     baseurl = request.getScriptname()
     action = action_name
     urlpagename = wikiutil.quoteWikiname(pagename)
-    urlfilename = urllib.quote(filename)
+    urlfilename = urllib.quote(filename.encode(config.charset)).decode(
+        config.charset)
 
     timestamp = ''
     if deleted_file:
@@ -1701,7 +1715,8 @@ def show_deleted_files(pagename, request):
     for item in result:
         filename, deleted_time, deleted_by, uploaded_time = item
         uploaded_time = uploaded_time or 0 # to get rid of weird ='' in url
-        url_filename = urllib.quote(filename) 
+        url_filename = urllib.quote(filename.encode(config.charset)).decode(
+            config.charset)
         text_list.append(
             '<li><img src="%s" />'
             '<a href="%s/%s?action=%s&amp;do=view&amp;target=%s">%s</a> '

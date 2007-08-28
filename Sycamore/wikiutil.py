@@ -157,6 +157,8 @@ def mc_quote(s):
     # use a character we know can't occur in pagenames
     s = s.replace("_", NOT_ALLOWED_CHARS[0])  
     s = s.replace(" ", "_")
+    if type(s) == unicode:
+        s = s.encode(config.charset)
     return s
 
 def mc_unquote(s):

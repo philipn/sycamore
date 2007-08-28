@@ -396,7 +396,7 @@ def execute(macro, args, formatter=None):
         macro_text += "%s does not seem to be an image file." % image_name
         return macro_text
 
-    url_image_name = urllib.quote(image_name)
+    url_image_name = urllib.quote(image_name.encode(config.charset))
 
     if (macro.formatter.processed_thumbnails.has_key(
             (pagename, image_name)) and

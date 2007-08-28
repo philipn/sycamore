@@ -148,7 +148,7 @@ def fileSend(request, pagename=None, filename=None):
     datestring = time.strftime('%a, %d %b %Y %H:%M:%S',
                                time.gmtime(modified_time_unix)) + ' GMT' 
     length = len(file)
-    contentstring = 'filename="%s"' % filename
+    contentstring = 'filename="%s"' % filename.encode(config.charset)
     # images are usually compressed anyway, so let's not bother gziping
     request.do_gzip = False
     if do_download:  

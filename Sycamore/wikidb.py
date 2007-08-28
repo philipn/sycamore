@@ -304,6 +304,7 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0,
             (filecontentstring, last_modified_date)
     """
     def assemble_query():
+        from Sycamore.wikiutil import mc_quote
         # let's assemble the query and key if we use memcache
         key = None
         query = ''
@@ -326,8 +327,13 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0,
                                  wiki_id=%(wiki_id)s"""
             else: 
                 if config.memcache:
+                    size_encoded, ticket_encoded = size, ticket
+                    if size:
+                        size_encoded = size.encode(config.charset)
+                    if ticket:
+                        ticket_encoded = ticket.encode(config.charset)
                     key = "thumbnails:%s,%s" % (mc_quote(dict['filename']),
-                                                size or ticket)
+                                                size_encoded or ticket_encoded)
         elif deleted:
             # default behavior is to grab the latest backup
             # version of the image
@@ -353,8 +359,6 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0,
 
         return query, key
 
-
-    from Sycamore.wikiutil import mc_quote
     file_obj = None
     dict['page_name'] = dict['page_name'].lower()
     dict['wiki_id'] = request.config.wiki_id
