@@ -267,7 +267,7 @@ def pageInfo(page, get_from_cache=True, cached_content=None,
 
     pagename_key = wikiutil.mc_quote(page.page_name.lower())
     if page.prev_date:
-        key = u"%s,%s" % (pagename_key, repr(page.prev_date))
+        key = "%s,%s" % (pagename_key, repr(page.prev_date))
     else:
         key = pagename_key
 

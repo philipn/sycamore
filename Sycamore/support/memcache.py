@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+
 """
 client module for memcached (memory cache daemon)
 
@@ -21,7 +21,7 @@ This should give you a feel for how this module operates::
 
     mc.set("another_key", 3)
     mc.delete("another_key")
-    
+
     mc.set("key", "1")   # note that the key used for incr/decr must be a string.
     mc.incr("key")
     mc.decr("key")
@@ -47,50 +47,55 @@ import sys
 import socket
 import time
 import types
-from binascii import crc32 # don't use zlib version -- isn't cross platform
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
+try:
+    from zlib import compress, decompress
+    _supports_compress = True
+except ImportError:
+    _supports_compress = False
+    # quickly define a decompress just in case we recv compressed data.
+    def decompress(val):
+        raise _Error("received compressed data but I don't support compession (import error)")
+
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+
+from binascii import crc32   # zlib version is not cross-platform
+serverHashFunction = crc32
+
 __author__    = "Evan Martin <martine@danga.com>"
-__version__ = "1.34"
+__version__ = "1.39"
 __copyright__ = "Copyright (C) 2003 Danga Interactive"
 __license__   = "Python"
 
 SERVER_MAX_KEY_LENGTH = 250
-SERVER_MAX_VALUE = 1024*1024 # unless you recompiled memcached, you can store at most 1MB values.
-
-def get_flags_val(val):
-    flags = 0
-    if isinstance(val, str):
-        pass
-    elif isinstance(val, int):
-        flags |= Client._FLAG_INTEGER
-        val = "%d" % val
-    elif isinstance(val, long):
-        flags |= Client._FLAG_LONG
-        val = "%d" % val
-    else:
-        flags |= Client._FLAG_PICKLE
-        val = pickle.dumps(val, 2)
-
-    return (flags, val)
-
-def _is_value_too_big(val):
-    """
-    is a given value larger than the maximum allowable value?
-    """
-    return (len(val) >= SERVER_MAX_VALUE)
-
+#  Storing values larger than 1MB requires recompiling memcached.  If you do,
+#  this value can be changed by doing "memcache.SERVER_MAX_VALUE_LENGTH = N"
+#  after importing this module.
+SERVER_MAX_VALUE_LENGTH = 1024*1024
 
 class _Error(Exception):
     pass
 
-class Client:
+try:
+    # Only exists in Python 2.4+
+    from threading import local
+except ImportError:
+    # TODO:  add the pure-python local implementation
+    class local(object):
+        pass
+
+
+class Client(local):
     """
     Object representing a pool of memcache servers.
-    
+
     See L{memcache} for an overview.
 
     In all cases where a key is used, the key can be either:
@@ -101,30 +106,32 @@ class Client:
         server, so you could use the user's unique id as the hash value.
 
     @group Setup: __init__, set_servers, forget_dead_hosts, disconnect_all, debuglog
-    @group Insertion: set, add, replace
+    @group Insertion: set, add, replace, set_multi
     @group Retrieval: get, get_multi
     @group Integers: incr, decr
-    @group Removal: delete
+    @group Removal: delete, delete_multi
     @sort: __init__, set_servers, forget_dead_hosts, disconnect_all, debuglog,\
-           set, add, replace, get, get_multi, incr, decr, delete
+           set, set_multi, add, replace, get, get_multi, incr, decr, delete, delete_multi
     """
     _FLAG_PICKLE  = 1<<0
     _FLAG_INTEGER = 1<<1
     _FLAG_LONG    = 1<<2
+    _FLAG_COMPRESSED = 1<<3
 
     _SERVER_RETRIES = 10  # how many times to try finding a free server.
 
     # exceptions for Client
     class MemcachedKeyError(Exception):
-      pass
+        pass
     class MemcachedKeyLengthError(MemcachedKeyError):
-      pass
+        pass
     class MemcachedKeyCharacterError(MemcachedKeyError):
-      pass
+        pass
     class MemcachedStringEncodingError(Exception):
-      pass
+        pass
 
-    def __init__(self, servers, debug=0):
+    def __init__(self, servers, debug=0, pickleProtocol=0,
+            pickler=pickle.Pickler, unpickler=pickle.Unpickler):
         """
         Create a new Client object with the given list of servers.
 
@@ -132,10 +139,16 @@ class Client:
         @param debug: whether to display error messages when a server can't be
         contacted.
         """
+        local.__init__(self)
         self.set_servers(servers)
         self.debug = debug
         self.stats = {}
-    
+
+        # Allow users to modify pickling/unpickling behavior
+        self.pickleProtocol = pickleProtocol
+        self.pickler = pickler
+        self.unpickler = unpickler
+
     def set_servers(self, servers):
         """
         Set the pool of servers used by this client.
@@ -150,7 +163,7 @@ class Client:
         self._init_buckets()
 
     def get_stats(self):
-        '''Get statistics from each of the servers.  
+        '''Get statistics from each of the servers.
 
         @return: A list of tuples ( server_identifier, stats_dictionary ).
             The dictionary contains a number of name/value pairs specifying
@@ -207,24 +220,90 @@ class Client:
         if type(key) == types.TupleType:
             serverhash, key = key
         else:
-            serverhash = crc32(key)
+            serverhash = serverHashFunction(key)
 
         for i in range(Client._SERVER_RETRIES):
             server = self.buckets[serverhash % len(self.buckets)]
             if server.connect():
                 #print "(using server %s)" % server,
                 return server, key
-            serverhash = crc32(str(serverhash) + str(i))
+            serverhash = serverHashFunction(str(serverhash) + str(i))
         return None, None
 
     def disconnect_all(self):
         for s in self.servers:
             s.close_socket()
-    
+
+    def delete_multi(self, keys, seconds=0, key_prefix=''):
+        '''
+        Delete multiple keys in the memcache doing just one query.
+
+        >>> notset_keys = mc.set_multi({'key1' : 'val1', 'key2' : 'val2'})
+        >>> mc.get_multi(['key1', 'key2']) == {'key1' : 'val1', 'key2' : 'val2'}
+        1
+        >>> mc.delete_multi(['key1', 'key2'])
+        1
+        >>> mc.get_multi(['key1', 'key2']) == {}
+        1
+
+
+        This method is recommended over iterated regular L{delete}s as it reduces total latency, since
+        your app doesn't have to wait for each round-trip of L{delete} before sending
+        the next one.
+
+        @param keys: An iterable of keys to clear
+        @param seconds: number of seconds any subsequent set / update commands should fail. Defaults to 0 for no delay.
+        @param key_prefix:  Optional string to prepend to each key when sending to memcache.
+            See docs for L{get_multi} and L{set_multi}.
+
+        @return: 1 if no failure in communication with any memcacheds.
+        @rtype: int
+
+        '''
+
+        self._statlog('delete_multi')
+
+        server_keys, prefixed_to_orig_key = self._map_and_prefix_keys(keys, key_prefix)
+
+        # send out all requests on each server before reading anything
+        dead_servers = []
+
+        rc = 1
+        for server in server_keys.iterkeys():
+            bigcmd = []
+            write = bigcmd.append
+            if time != None:
+                 for key in server_keys[server]: # These are mangled keys
+                     write("delete %s %d\r\n" % (key, seconds))
+            else:
+                for key in server_keys[server]: # These are mangled keys
+                  write("delete %s\r\n" % key)
+            try:
+                server.send_cmds(''.join(bigcmd))
+            except socket.error, msg:
+                rc = 0
+                server.mark_dead(msg[1])
+                dead_servers.append(server)
+
+        # if any servers died on the way, don't expect them to respond.
+        for server in dead_servers:
+            del server_keys[server]
+
+        notstored = [] # original keys.
+        for server, keys in server_keys.iteritems():
+            try:
+                for key in keys:
+                    server.expect("DELETED")
+            except socket.error, msg:
+                server.mark_dead(msg)
+                rc = 0
+        return rc
+
     def delete(self, key, time=0):
         '''Deletes a key from the memcache.
-        
+
         @return: Nonzero on success.
+        @param seconds: number of seconds any subsequent set / update commands should fail. Defaults to 0 for no delay.
         @rtype: int
         '''
         check_key(key)
@@ -297,27 +376,29 @@ class Client:
             server.mark_dead(msg[1])
             return None
 
-    def add(self, key, val, time=0):
+    def add(self, key, val, time = 0, min_compress_len = 0):
         '''
         Add new key with value.
-        
+
         Like L{set}, but only stores in memcache if the key doesn't already exist.
 
         @return: Nonzero on success.
         @rtype: int
         '''
-        return self._set("add", key, val, time)
-    def replace(self, key, val, time=0):
+        return self._set("add", key, val, time, min_compress_len)
+
+
+    def replace(self, key, val, time=0, min_compress_len=0):
         '''Replace existing key with value.
-        
-        Like L{set}, but only stores in memcache if the key already exists.  
+
+        Like L{set}, but only stores in memcache if the key already exists.
         The opposite of L{add}.
 
         @return: Nonzero on success.
         @rtype: int
         '''
-        return self._set("replace", key, val, time)
-    def set(self, key, val, time=0):
+        return self._set("replace", key, val, time, min_compress_len)
+    def set(self, key, val, time=0, min_compress_len=0):
         '''Unconditionally sets a key to a given value in the memcache.
 
         The C{key} can optionally be an tuple, with the first element being the
@@ -328,10 +409,178 @@ class Client:
 
         @return: Nonzero on success.
         @rtype: int
+        @param time: Tells memcached the time which this value should expire, either
+        as a delta number of seconds, or an absolute unix time-since-the-epoch
+        value. See the memcached protocol docs section "Storage Commands"
+        for more info on <exptime>. We default to 0 == cache forever.
+        @param min_compress_len: The threshold length to kick in auto-compression
+        of the value using the zlib.compress() routine. If the value being cached is
+        a string, then the length of the string is measured, else if the value is an
+        object, then the length of the pickle result is measured. If the resulting
+        attempt at compression yeilds a larger string than the input, then it is
+        discarded. For backwards compatability, this parameter defaults to 0,
+        indicating don't ever try to compress.
         '''
-        return self._set("set", key, val, time)
-    
-    def _set(self, cmd, key, val, time):
+        return self._set("set", key, val, time, min_compress_len)
+
+
+    def _map_and_prefix_keys(self, key_iterable, key_prefix):
+        """Compute the mapping of server (_Host instance) -> list of keys to stuff onto that server, as well as the mapping of
+        prefixed key -> original key.
+
+
+        """
+        # Check it just once ...
+        key_extra_len=len(key_prefix)
+        if key_prefix:
+            check_key(key_prefix)
+
+        # server (_Host) -> list of unprefixed server keys in mapping
+        server_keys = {}
+
+        prefixed_to_orig_key = {}
+        # build up a list for each server of all the keys we want.
+        for orig_key in key_iterable:
+            if type(orig_key) is types.TupleType:
+                # Tuple of hashvalue, key ala _get_server(). Caller is essentially telling us what server to stuff this on.
+                # Ensure call to _get_server gets a Tuple as well.
+                str_orig_key = str(orig_key[1])
+                server, key = self._get_server((orig_key[0], key_prefix + str_orig_key)) # Gotta pre-mangle key before hashing to a server. Returns the mangled key.
+            else:
+                str_orig_key = str(orig_key) # set_multi supports int / long keys.
+                server, key = self._get_server(key_prefix + str_orig_key)
+
+            # Now check to make sure key length is proper ...
+            check_key(str_orig_key, key_extra_len=key_extra_len)
+
+            if not server:
+                continue
+
+            if not server_keys.has_key(server):
+                server_keys[server] = []
+            server_keys[server].append(key)
+            prefixed_to_orig_key[key] = orig_key
+
+        return (server_keys, prefixed_to_orig_key)
+
+    def set_multi(self, mapping, time=0, key_prefix='', min_compress_len=0):
+        '''
+        Sets multiple keys in the memcache doing just one query.
+
+        >>> notset_keys = mc.set_multi({'key1' : 'val1', 'key2' : 'val2'})
+        >>> mc.get_multi(['key1', 'key2']) == {'key1' : 'val1', 'key2' : 'val2'}
+        1
+
+
+        This method is recommended over regular L{set} as it lowers the number of
+        total packets flying around your network, reducing total latency, since
+        your app doesn't have to wait for each round-trip of L{set} before sending
+        the next one.
+
+        @param mapping: A dict of key/value pairs to set.
+        @param time: Tells memcached the time which this value should expire, either
+        as a delta number of seconds, or an absolute unix time-since-the-epoch
+        value. See the memcached protocol docs section "Storage Commands"
+        for more info on <exptime>. We default to 0 == cache forever.
+        @param key_prefix:  Optional string to prepend to each key when sending to memcache. Allows you to efficiently stuff these keys into a pseudo-namespace in memcache:
+            >>> notset_keys = mc.set_multi({'key1' : 'val1', 'key2' : 'val2'}, key_prefix='subspace_')
+            >>> len(notset_keys) == 0
+            True
+            >>> mc.get_multi(['subspace_key1', 'subspace_key2']) == {'subspace_key1' : 'val1', 'subspace_key2' : 'val2'}
+            True
+
+            Causes key 'subspace_key1' and 'subspace_key2' to be set. Useful in conjunction with a higher-level layer which applies namespaces to data in memcache.
+            In this case, the return result would be the list of notset original keys, prefix not applied.
+
+        @param min_compress_len: The threshold length to kick in auto-compression
+        of the value using the zlib.compress() routine. If the value being cached is
+        a string, then the length of the string is measured, else if the value is an
+        object, then the length of the pickle result is measured. If the resulting
+        attempt at compression yeilds a larger string than the input, then it is
+        discarded. For backwards compatability, this parameter defaults to 0,
+        indicating don't ever try to compress.
+        @return: List of keys which failed to be stored [ memcache out of memory, etc. ].
+        @rtype: list
+
+        '''
+
+        self._statlog('set_multi')
+
+
+
+        server_keys, prefixed_to_orig_key = self._map_and_prefix_keys(mapping.iterkeys(), key_prefix)
+
+        # send out all requests on each server before reading anything
+        dead_servers = []
+
+        for server in server_keys.iterkeys():
+            bigcmd = []
+            write = bigcmd.append
+            try:
+                for key in server_keys[server]: # These are mangled keys
+                    store_info = self._val_to_store_info(mapping[prefixed_to_orig_key[key]], min_compress_len)
+                    write("set %s %d %d %d\r\n%s\r\n" % (key, store_info[0], time, store_info[1], store_info[2]))
+                server.send_cmds(''.join(bigcmd))
+            except socket.error, msg:
+                server.mark_dead(msg[1])
+                dead_servers.append(server)
+
+        # if any servers died on the way, don't expect them to respond.
+        for server in dead_servers:
+            del server_keys[server]
+
+        notstored = [] # original keys.
+        for server, keys in server_keys.iteritems():
+            try:
+                for key in keys:
+                    line = server.readline()
+                    if line == 'STORED':
+                        continue
+                    else:
+                        notstored.append(prefixed_to_orig_key[key]) #un-mangle.
+            except (_Error, socket.error), msg:
+                server.mark_dead(msg)
+        return notstored
+
+    def _val_to_store_info(self, val, min_compress_len):
+        """
+           Transform val to a storable representation, returning a tuple of the flags, the length of the new value, and the new value itself.
+        """
+        flags = 0
+        if isinstance(val, str):
+            pass
+        elif isinstance(val, int):
+            flags |= Client._FLAG_INTEGER
+            val = "%d" % val
+            # force no attempt to compress this silly string.
+            min_compress_len = 0
+        elif isinstance(val, long):
+            flags |= Client._FLAG_LONG
+            val = "%d" % val
+            # force no attempt to compress this silly string.
+            min_compress_len = 0
+        else:
+            flags |= Client._FLAG_PICKLE
+            file = StringIO()
+            pickler = self.pickler(file, self.pickleProtocol)
+            pickler.dump(val)
+            val = file.getvalue()
+
+        #  silently do not store if value length exceeds maximum
+        if len(val) >= SERVER_MAX_VALUE_LENGTH: return(0)
+
+        lv = len(val)
+        # We should try to compress if min_compress_len > 0 and we could import zlib and this string is longer than our min threshold.
+        if min_compress_len and _supports_compress and lv > min_compress_len:
+            comp_val = compress(val)
+            #Only retain the result if the compression result is smaller than the original.
+            if len(comp_val) < lv:
+                flags |= Client._FLAG_COMPRESSED
+                val = comp_val
+
+        return (flags, len(val), val)
+
+    def _set(self, cmd, key, val, time, min_compress_len = 0):
         check_key(key)
         server, key = self._get_server(key)
         if not server:
@@ -339,22 +588,20 @@ class Client:
 
         self._statlog(cmd)
 
-        flags, val = get_flags_val(val)
+        store_info = self._val_to_store_info(val, min_compress_len)
+        if not store_info: return(0)
 
-        if _is_value_too_big(val):
-            return 0
-        fullcmd = "%s %s %d %d %d\r\n%s" % (cmd, key, flags, time, len(val), val)
+        fullcmd = "%s %s %d %d %d\r\n%s" % (cmd, key, store_info[0], time, store_info[1], store_info[2])
         try:
             server.send_cmd(fullcmd)
-            server.expect("STORED")
+            return(server.expect("STORED") == "STORED")
         except socket.error, msg:
             server.mark_dead(msg[1])
-            return 0
-        return 1
+        return 0
 
     def get(self, key):
         '''Retrieves a key from the memcache.
-        
+
         @return: The value or None.
         '''
         check_key(key)
@@ -378,13 +625,28 @@ class Client:
             return None
         return value
 
-    def get_multi(self, keys):
+    def get_multi(self, keys, key_prefix=''):
         '''
         Retrieves multiple keys from the memcache doing just one query.
-        
+
         >>> success = mc.set("foo", "bar")
         >>> success = mc.set("baz", 42)
         >>> mc.get_multi(["foo", "baz", "foobar"]) == {"foo": "bar", "baz": 42}
+        1
+        >>> mc.set_multi({'k1' : 1, 'k2' : 2}, key_prefix='pfx_') == []
+        1
+
+        This looks up keys 'pfx_k1', 'pfx_k2', ... . Returned dict will just have unprefixed keys 'k1', 'k2'.
+        >>> mc.get_multi(['k1', 'k2', 'nonexist'], key_prefix='pfx_') == {'k1' : 1, 'k2' : 2}
+        1
+
+        get_mult [ and L{set_multi} ] can take str()-ables like ints / longs as keys too. Such as your db pri key fields.
+        They're rotored through str() before being passed off to memcache, with or without the use of a key_prefix.
+        In this mode, the key_prefix could be a table name, and the key itself a db primary key number.
+
+        >>> mc.set_multi({42: 'douglass adams', 46 : 'and 2 just ahead of me'}, key_prefix='numkeys_') == []
+        1
+        >>> mc.get_multi([46, 42], key_prefix='numkeys_') == {42: 'douglass adams', 46 : 'and 2 just ahead of me'}
         1
 
         This method is recommended over regular L{get} as it lowers the number of
@@ -392,28 +654,22 @@ class Client:
         your app doesn't have to wait for each round-trip of L{get} before sending
         the next one.
 
+        See also L{set_multi}.
+
         @param keys: An array of keys.
-        @return:  A dictionary of key/value pairs that were available.
+        @param key_prefix: A string to prefix each key when we communicate with memcache.
+            Facilitates pseudo-namespaces within memcache. Returned dictionary keys will not have this prefix.
+        @return:  A dictionary of key/value pairs that were available. If key_prefix was provided, the keys in the retured dictionary will not have it present.
 
         '''
 
         self._statlog('get_multi')
 
-        server_keys = {}
-
-        # build up a list for each server of all the keys we want.
-        for key in keys:
-            check_key(key)
-            server, key = self._get_server(key)
-            if not server:
-                continue
-            if not server_keys.has_key(server):
-                server_keys[server] = []
-            server_keys[server].append(key)
+        server_keys, prefixed_to_orig_key = self._map_and_prefix_keys(keys, key_prefix)
 
         # send out all requests on each server before reading anything
         dead_servers = []
-        for server in server_keys.keys():
+        for server in server_keys.iterkeys():
             try:
                 server.send_cmd("get %s" % " ".join(server_keys[server]))
             except socket.error, msg:
@@ -425,7 +681,7 @@ class Client:
             del server_keys[server]
 
         retvals = {}
-        for server in server_keys.keys():
+        for server in server_keys.iterkeys():
             try:
                 line = server.readline()
                 while line and line != 'END':
@@ -433,7 +689,7 @@ class Client:
                     #  Bo Yang reports that this can sometimes be None
                     if rkey is not None:
                         val = self._recv_value(server, flags, rlen)
-                        retvals[rkey] = val
+                        retvals[prefixed_to_orig_key[rkey]] = val   # un-prefix returned key.
                     line = server.readline()
             except (_Error, socket.error), msg:
                 server.mark_dead(msg)
@@ -460,7 +716,12 @@ class Client:
         if len(buf) == rlen:
             buf = buf[:-2]  # strip \r\n
 
-        if flags == 0:
+        if flags & Client._FLAG_COMPRESSED:
+            buf = decompress(buf)
+
+
+        if  flags == 0 or flags == Client._FLAG_COMPRESSED:
+            # Either a bare string or a compressed string now decompressed...
             val = buf
         elif flags & Client._FLAG_INTEGER:
             val = int(buf)
@@ -468,9 +729,11 @@ class Client:
             val = long(buf)
         elif flags & Client._FLAG_PICKLE:
             try:
-                val = pickle.loads(buf)
-            except:
-                self.debuglog('Pickle error...\n')
+                file = StringIO(buf)
+                unpickler = self.unpickler(file)
+                val = unpickler.load()
+            except Exception, e:
+                self.debuglog('Pickle error: %s\n' % e)
                 val = None
         else:
             self.debuglog("unknown flags on get: %x\n" % flags)
@@ -517,7 +780,7 @@ class _Host:
         self.debuglog("MemCache: %s: %s.  Marking dead." % (self, reason))
         self.deaduntil = time.time() + _Host._DEAD_RETRY
         self.close_socket()
-        
+
     def _get_socket(self):
         if self._check_dead():
             return None
@@ -533,7 +796,7 @@ class _Host:
         self.socket = s
         self.buffer = ''
         return s
-    
+
     def close_socket(self):
         if self.socket:
             self.socket.close()
@@ -541,6 +804,10 @@ class _Host:
 
     def send_cmd(self, cmd):
         self.socket.sendall(cmd + '\r\n')
+
+    def send_cmds(self, cmds):
+        """ cmds already has trailing \r\n's applied """
+        self.socket.sendall(cmds)
 
     def readline(self):
         buf = self.buffer
@@ -567,7 +834,7 @@ class _Host:
         if line != text:
             self.debuglog("while expecting '%s', got unexpected response '%s'" % (text, line))
         return line
-    
+
     def recv(self, rlen):
         self_socket_recv = self.socket.recv
         buf = self.buffer
@@ -586,18 +853,24 @@ class _Host:
             d = " (dead until %d)" % self.deaduntil
         return "%s:%d%s" % (self.ip, self.port, d)
 
-def check_key(key):
-    """
-    Checks whether the key is greater than SERVER_MAX_KEY_LENGTH, contains control characters or is a unicode string.
-    If test fails throws MemcachedKeyLength error.
+def check_key(key, key_extra_len=0):
+    """Checks sanity of key.  Fails if:
+        Key length is > SERVER_MAX_KEY_LENGTH (Raises MemcachedKeyLength).
+        Contains control characters  (Raises MemcachedKeyCharacterError).
+        Is not a string (Raises MemcachedStringEncodingError)
     """
     if not isinstance(key, str):
-      raise Client.MemcachedStringEncodingError, "Keys must be str()'s, not unicode.  Convert your unicode strings using mystring.encode(charset)!"
-    if len(key) > SERVER_MAX_KEY_LENGTH:
-      raise Client.MemcachedKeyLengthError, "Key length is > %s" % SERVER_MAX_KEY_LENGTH
-    for char in key:
-      if ord(char) < 33:
-        raise Client.MemcachedKeyCharacterError, "Control characters not allowed"
+        raise Client.MemcachedStringEncodingError, ("Keys must be str()'s, not"
+                "unicode.  Convert your unicode strings using "
+                "mystring.encode(charset)!")
+
+    if isinstance(key, basestring):
+        if len(key) + key_extra_len > SERVER_MAX_KEY_LENGTH:
+             raise Client.MemcachedKeyLengthError, ("Key length is > %s"
+                     % SERVER_MAX_KEY_LENGTH)
+        for char in key:
+          if ord(char) < 33 or ord(char) == 127:
+            raise Client.MemcachedKeyCharacterError, "Control characters not allowed"
 
 def _doctest():
     import doctest, memcache
@@ -630,6 +903,7 @@ if __name__ == "__main__":
             print "FAIL"
             return 0
 
+
     class FooStruct:
         def __init__(self):
             self.bar = "baz"
@@ -639,7 +913,7 @@ if __name__ == "__main__":
             if isinstance(other, FooStruct):
                 return self.bar == other.bar
             return 0
-        
+
     test_setget("a_string", "some random string")
     test_setget("an_integer", 42)
     if test_setget("long", long(1<<30)):
@@ -709,22 +983,22 @@ if __name__ == "__main__":
         print "FAIL",
     else:
         print "OK",
+    import pickle
+    s = pickle.loads('V\\u4f1a\np0\n.')
     try:
-        x = mc.set((u'会'*SERVER_MAX_KEY_LENGTH).encode('utf-8'), 1)
+        x = mc.set((s*SERVER_MAX_KEY_LENGTH).encode('utf-8'), 1)
     except Client.MemcachedKeyLengthError:
         print "OK"
     else:
         print "FAIL"
 
-
-
     print "Testing using a value larger than the memcached value limit...",
-    x = mc.set('keyhere', 'a'*SERVER_MAX_VALUE)
+    x = mc.set('keyhere', 'a'*SERVER_MAX_VALUE_LENGTH)
     if mc.get('keyhere') == None:
         print "OK",
     else:
         print "FAIL",
-    x = mc.set('keyhere', 'a'*SERVER_MAX_VALUE + 'aaa')
+    x = mc.set('keyhere', 'a'*SERVER_MAX_VALUE_LENGTH + 'aaa')
     if mc.get('keyhere') == None:
         print "OK"
     else:

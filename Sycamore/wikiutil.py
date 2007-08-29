@@ -1426,8 +1426,8 @@ def send_title(request, text, **keywords):
         wikitext = page.get_raw_body()
         wikiLines = []
         for line in wikitext.split('\n'):
-            wikiLines.append("'%s'" % line.replace('\\', '\\\\').replace(
-                '\'', '\\\'').replace('\n', '\\n')) # quote strings, yay
+            wikiLines.append("'%s'" %
+                             urllib.quote(line.encode(config.charset)))
         wikiLines = ','.join(wikiLines)
         user_head.append(
             '<script type="text/javascript">var wikiLines = [%s]; '

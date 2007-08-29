@@ -15,6 +15,7 @@
 import urllib
 
 from Sycamore import farm
+from Sycamore import config
 
 from Sycamore.widget import base
 from Sycamore.wikiutil import quoteWikiname
@@ -67,13 +68,13 @@ class Comment(base.Widget):
                         farm.getWikiURL(self.page.wiki_name, self.request) +
                         quoteWikiname(self.pagename) +
                         '?action=Files&do=view&target=' +
-                        urllib.quote(self.comment))
+                        urllib.quote(self.comment.encode(config.charset)))
                 else:
                     link_loc = (
                         self.request.getScriptname() + '/' +
                         quoteWikiname(self.pagename) +
                         '?action=Files&do=view&target=' +
-                        urllib.quote(self.comment))
+                        urllib.quote(self.comment.encode(config.charset)))
                 self.comment = 'Upload of %s <a href="%s">%s</a>.' % (
                     file_type, link_loc, self.comment)
             else:
@@ -89,13 +90,13 @@ class Comment(base.Widget):
                         farm.getWikiURL(self.page.wiki_name, self.request) +
                         quoteWikiname(self.pagename) +
                         '?action=Files&do=view&target=' +
-                        urllib.quote(self.comment))
+                        urllib.quote(self.comment.encode(config.charset)))
                 else:
                     link_loc = (
                         self.request.getScriptname() + '/' +
                         quoteWikiname(self.pagename) +
                         '?action=Files&do=view&target=' +
-                        urllib.quote(self.comment))
+                        urllib.quote(self.comment.encode(config.charset)))
                 self.comment = '%s <a href="%s">%s</a> deleted.' % (
                     file_type, link_loc, self.comment)
             else: 

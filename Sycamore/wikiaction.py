@@ -982,7 +982,14 @@ def do_watch_wiki(pagename, request):
         if wikiutil.isInFarm(wikiname, request):
             if not request.form.has_key('del'):
                 farm.add_wiki_to_watch(wikiname, request)
-                msg = "You are now watching the %s wiki." % wikiname
+                interwiki_rc_link = Page("Interwiki Recent Changes",
+                                         request,
+                                         wiki_name=farm.getBaseWikiName(
+                                         )).link_to(relative=False)
+                msg = ("<p>You are now watching the %s wiki, and "
+                       "changes to this wiki will be tracked on your %s "
+                       "page.</p>"
+                       % (wikiname, interwiki_rc_link))
             else:
                 farm.rem_wiki_from_watch(wikiname, request)
                 msg = "You are no longer watching the %s wiki." % wikiname

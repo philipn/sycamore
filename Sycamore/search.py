@@ -480,7 +480,7 @@ def get_stemmed_text(text, stemmer):
         if k == len(text) or not notdivider_or_whitespace(text[k]):
             j = k
         if (j - i) <= MAX_PROB_TERM_LENGTH and j > i:
-            term = stemmer.stem_word(text[i:j].lower())
+            term = stemmer(text[i:j].lower())
             postings.append((term, pos)) 
             pos += 1
         i = j
