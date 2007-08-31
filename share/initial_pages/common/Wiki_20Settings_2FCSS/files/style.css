@@ -55,7 +55,7 @@ td.user_banner table {
 .login_area {
   color: white;
 }
-.login_area input { font-size: x-small; }
+.login_area input { font-size: 80%; }
 .login_area a { color: blue!important; }
 .login_area table {
 }
