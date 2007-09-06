@@ -33,7 +33,7 @@ for file_info in files_list:
         d['y'] = img_size[1]
         d['wiki_name'] = wiki_name
     
-        req.cursor.execute("UPDATE imageInfo set xsize=%(x)s, ysize=%(y)s from wikis where imageInfo.name=%(filename)s and imageInfo.attached_to_pagename=%(page_name)s and imageInfo.wiki_id=wikis.id and wikis.name=%(wiki_name)s", d, isWrite=True)
+        req.cursor.execute("UPDATE imageInfo set xsize=%(x)s, ysize=%(y)s where imageInfo.name=%(filename)s and imageInfo.attached_to_pagename=%(page_name)s and imageInfo.wiki_id=(SELECT id from wikis where name=%(wiki_name)s)", d, isWrite=True)
     
 
 req.db_disconnect()
