@@ -279,7 +279,7 @@ req.cursor.execute("CREATE INDEX editTime_wiki_id on allPages (editTime, wiki_id
 
 req.cursor.execute("ALTER TABLE users ADD COLUMN last_wiki_edited int;", isWrite=True)
 if config.db_type == 'mysql':
-    req.cursor.execute("ALTER TABLE users CHANGE COLUMN tz_offset TO tz varchar(50);", isWrite=True)
+    req.cursor.execute("ALTER TABLE users CHANGE COLUMN tz_offset tz varchar(50);", isWrite=True)
 else:
     req.cursor.execute("ALTER TABLE users RENAME COLUMN tz_offset TO tz;", isWrite=True)
 req.cursor.execute("ALTER TABLE users ALTER COLUMN tz TYPE varchar(50);", isWrite=True)
