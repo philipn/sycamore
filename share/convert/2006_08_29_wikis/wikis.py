@@ -278,7 +278,10 @@ req.cursor.execute("ALTER TABLE allPages ADD PRIMARY KEY (name, editTime, wiki_i
 req.cursor.execute("CREATE INDEX editTime_wiki_id on allPages (editTime, wiki_id);", isWrite=True)
 
 req.cursor.execute("ALTER TABLE users ADD COLUMN last_wiki_edited int;", isWrite=True)
-req.cursor.execute("ALTER TABLE users RENAME COLUMN tz_offset TO tz;", isWrite=True)
+if config.db_type == 'mysql':
+    req.cursor.execute("ALTER TABLE users CHANGE COLUMN tz_offset TO tz varchar(50);", isWrite=True)
+else:
+    req.cursor.execute("ALTER TABLE users RENAME COLUMN tz_offset TO tz;", isWrite=True)
 req.cursor.execute("ALTER TABLE users ALTER COLUMN tz TYPE varchar(50);", isWrite=True)
 req.cursor.execute("UPDATE users SET tz=%(config_tz)s;", {'config_tz': req.config.tz}, isWrite=True)
 req.cursor.execute("ALTER TABLE users ADD COLUMN wiki_for_userpage varchar(100);", isWrite=True)
