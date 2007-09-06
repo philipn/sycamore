@@ -566,7 +566,7 @@ req.cursor.execute("CREATE INDEX lostpasswords_uid on lostPasswords (uid);", isW
 req.cursor.execute("CREATE INDEX lostpasswords_written_time on lostPasswords (written_time);", isWrite=True)
 
 if config.db_type == 'mysql':
-    reqcursor.execute("""create table wikisPending
+    req.cursor.execute("""create table wikisPending
     (
       wiki_name varchar(100) not null,
       code varchar(255) not null,
