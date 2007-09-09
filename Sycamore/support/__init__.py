@@ -9,6 +9,12 @@
 
     Further details on the modules:
 
+    memcache
+        memcached python module.
+    
+    Captcha
+        an adoption of the py-captcha project
+
     cgitb
         from python 2.2 + patches (see XXX)
 
@@ -18,6 +24,7 @@
         see http://optik.sourceforge.net/.
         2003-01-30: imported version 1.4
 
+    @copyright 2005-2006 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2001-2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """

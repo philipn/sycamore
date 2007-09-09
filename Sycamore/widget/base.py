@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Widget base class
 
@@ -7,10 +7,8 @@
 """
 
 class Widget:
-
     def __init__(self, request, **kw):
         self.request = request
 
     def render(self):
         raise NotImplementedError 
-

@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - PageSize Macro
 
@@ -7,13 +7,17 @@
 """
 
 # Imports
-from Sycamore import config, wikiutil
+from Sycamore import config
+from Sycamore import wikiutil
 from Sycamore.Page import Page
 
 Dependencies = ["pages"]
 
 def execute(macro, args, formatter=None):
-    if not formatter: formatter = macro.formatter
+    if not formatter:
+        formatter = macro.formatter
+    return ("<em>This macro is currently disabled until we make it faster.  "
+            "Sorry!</em>")
 
     # get list of pages and their objects
     pages = wikiutil.getPageDict(macro.request)
@@ -40,4 +44,3 @@ def execute(macro, args, formatter=None):
 
 
     return ''.join(result)
-

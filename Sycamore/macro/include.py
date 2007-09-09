@@ -1,41 +1,42 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Include macro
 
     This macro includes the formatted content of the given page(s).
 
+    @copyright: 2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000-2004 by Jürgen Hermann <jh@web.de>
     @copyright: 2000-2001 by Richard Jones <richard@bizarsoftware.com.au>
     @license: GNU GPL, see COPYING for details.
 """
 
-import re, cStringIO
-from Sycamore import config, wikiutil, caching
+# Imports
+import re
+import cStringIO
+
+from Sycamore import config
+from Sycamore import wikiutil
+from Sycamore import caching
+
 from Sycamore.Page import Page
 
 _sysmsg = '<p><strong class="%s">%s</strong></p>'
-_arg_heading = r'((?P<heading>,)\s*(|(?P<hquote>[\'"])(?P<htext>.+?)(?P=hquote))){0,1}'
-_arg_showtitle = r'(,\s*(?P<showtitle>title)){0,1}'
-_arg_level = r',\s*(?P<level>\d+)'
-_arg_from = r'(,\s*from=(?P<fquote>[\'"])(?P<from>.+?)(?P=fquote))?'
-_arg_to = r'(,\s*to=(?P<tquote>[\'"])(?P<to>.+?)(?P=tquote))?'
-_arg_sort = r'(,\s*sort=(?P<sort>(ascending|descending)))?'
-_arg_items = r'(,\s*items=(?P<items>\d+))?'
-_arg_skipitems = r'(,\s*skipitems=(?P<skipitems>\d+))?'
-_arg_titlesonly = r'(,\s*(?P<titlesonly>titlesonly))?'
-_args_re_pattern = r'^(?P<name>[^,]+)(%s%s(%s)?%s%s%s%s%s%s)?$' % (
-    _arg_heading, _arg_showtitle, _arg_level, _arg_from, _arg_to, _arg_sort, _arg_items,
-    _arg_skipitems, _arg_titlesonly)
 
-TITLERE = re.compile("^(?P<heading>\s*(?P<hmarker>=+)\s.*\s(?P=hmarker))$",
-                     re.M)
+INCLUDE_MACRO = re.compile(r'^(\s*(\[\[include((\(.*\))|())\]\])\s*)+$')
+
+def line_has_just_macro(macro, args, formatter):
+    line = macro.parser.lines[macro.parser.lineno-1].lower().strip()
+    if INCLUDE_MACRO.match(line):
+        return True
+    return False
 
 def extract_titles(body):
     titles = []
     for title, _ in TITLERE.findall(body):
         h = title.strip()
         level = 1
-        while h[level:level+1] == '=': level = level+1
+        while h[level:level+1] == '=':
+            level = level+1
         depth = min(5,level)
         title_text = h[level:-level].strip()
         titles.append((title_text, level))
@@ -45,82 +46,106 @@ Dependencies = []
 
 def execute(macro, args, formatter=None):
     if not formatter:
-      if hasattr(macro.parser, 'formatter'): formatter = macro.parser.formatter
-      else: formatter = macro.formatter
+        if hasattr(macro.parser, 'formatter'):
+            formatter = macro.parser.formatter
+        else:
+            formatter = macro.formatter
     _ = macro.request.getText
-    args_re=re.compile(_args_re_pattern)
 
-    # return immediately if getting links for the current page
-    #if macro.request.mode_getpagelinks:
-    #    return ''
+    inline_edit_state = formatter.inline_edit
+    formatter.inline_edit = False
+
+    # included page will already have paragraphs. no need to print another.
+    macro.parser.inhibit_p = 1 
+
+    if line_has_just_macro(macro, args, formatter):
+        macro.parser.inhibit_br = 2
 
     request = macro.request
 
     # parse and check arguments
-    args = args_re.match(args)
     if not args:
-        return (_sysmsg % ('error', _('Invalid include arguments "%s"!')) % (args,))
-
+        return (_sysmsg % ('error',
+                           _('You did not give a pagename of a page to '
+                             'include!')))
     # prepare including page
     result = []
     this_page = formatter.page
-    showtitle = args.group('showtitle')
+
+    # if we're in a paragraph, let's close it.
+    if macro.formatter.in_p:
+       result.append(macro.formatter.paragraph(0))
 
     if not hasattr(this_page, '_macroInclude_pagelist'):
         this_page._macroInclude_pagelist = {}
 
-    inc_name = wikiutil.AbsPageName(this_page.page_name, args.group('name'))
+    re_args = re.match('('
+        '('
+            '(?P<name1>.+?)(\s*,\s*)((".*")|(left|right)|([0-9]{1,2}%)))|'
+        '(?P<name2>.+))', args)
+    if not re_args:
+        return (_sysmsg % ('error', _('Invalid arguments to Include.')))
+
+    have_more_args = re_args.group('name1')
+    page_name = re_args.group('name1') or re_args.group('name2')
+
+    if have_more_args:
+        args = args[re_args.end('name1'):]
+    else:
+        args = ''
+    re_args = re.search('"(?P<heading>.*)"', args)
+    if re_args:
+        heading = re_args.group('heading')
+    else:
+        heading = None
+
+    if heading:
+        before_heading = args[:re_args.start('heading')-1].strip()
+        after_heading = args[re_args.end('heading')+1:].strip()
+        args = before_heading + after_heading[1:]
+
+    args_elements = args.split(',')
+    align = None
+    was_given_width = False
+    width = '50%'
+    for arg in args_elements:
+        arg = arg.strip()
+        if arg == 'left' or arg == 'right':
+            align = arg
+        elif arg.endswith('%'):
+            try:
+                arg = str(int(arg[:-1])) + '%'
+            except:
+                continue
+            width = arg
+	    was_given_width = True
+
+    inc_name = wikiutil.AbsPageName(this_page.page_name, page_name)
     inc_page = Page(inc_name, macro.request)
     if not macro.request.user.may.read(inc_page):
         return ''
     if this_page.page_name.lower() == inc_name.lower():
-        result.append('<p><strong class="error">Recursive include of "%s" forbidden</strong></p>' % (inc_name,))
+        result.append('<p><strong class="error">'
+                      'Recursive include of "%s" forbidden</strong></p>' %
+                      inc_name)
 	return ''.join(result)
 
     # check for "from" and "to" arguments (allowing partial includes)
-    body = inc_page.get_raw_body() + '\n'
-    from_pos = 0
-    to_pos = -1
-    from_re = args.group('from')
-    if from_re:
-        try:
-            from_match = re.compile(from_re, re.M).search(body)
-        except re.error, e:
-            ##result.append("*** fe=%s ***" % e)
-            from_match = re.compile(re.escape(from_re), re.M).search(body)
-        if from_match:
-            from_pos = from_match.end()
-        else:
-            result.append(_sysmsg % ('warning', 'Include: ' + _('Nothing found for "%s"!')) % from_re)
-    to_re = args.group('to')
-    if to_re:
-        try:
-            to_match = re.compile(to_re, re.M).search(body, from_pos)
-        except re.error:
-            to_match = re.compile(re.escape(to_re), re.M).search(body, from_pos)
-        if to_match:
-            to_pos = to_match.start()
-        else:
-            result.append(_sysmsg % ('warning', 'Include: ' + _('Nothing found for "%s"!')) % to_re)
-
-    if from_pos or to_pos != -1:
-        inc_page.set_raw_body(body[from_pos:to_pos])
-
+    body = inc_page.get_raw_body(fresh=True) + '\n'
     edit_icon = ''
     
     # do headings
-    level = None
-
-    heading = args.group('htext') or inc_page.page_name
     level = 1
-    if args.group('level'):
-        level = int(args.group('level'))
-    if args.group('htext') or showtitle: 
-      result.append(formatter.heading(level, heading, action_link="edit", link_to_heading=True, pagename=inc_page.proper_name(), backto=this_page.page_name))
+    if heading:
+        result.append(formatter.heading(level, heading, action_link="edit",
+                                        link_to_heading=True,
+                                        pagename=inc_page.proper_name(),
+                                        backto=this_page.page_name))
 
     if this_page._macroInclude_pagelist.has_key(inc_name):
-      if this_page._macroInclude_pagelist[inc_name] > caching.MAX_DEPENDENCY_DEPTH:
-	 return '<em>Maximum include depth exceeded.</em>'
+        if (this_page._macroInclude_pagelist[inc_name] >
+            caching.MAX_DEPENDENCY_DEPTH):
+            return '<em>Maximum include depth exceeded.</em>'
          
     # set or increment include marker
     this_page._macroInclude_pagelist[inc_name] = \
@@ -129,17 +154,20 @@ def execute(macro, args, formatter=None):
     # format the included page
     pi_format = config.default_markup or "wiki" 
     Parser = wikiutil.importPlugin("parser", pi_format, "Parser")
-    raw_text = inc_page.get_raw_body()
+    raw_text = inc_page.get_raw_body(fresh=True)
     formatter.setPage(inc_page)
     parser = Parser(raw_text, formatter.request)
+
+    parser.print_first_p = 0 # don't print two <p>'s
+
     # note that our page now depends on the content of the included page
     if formatter.name == 'text_python':
-      # this means we're in the caching formatter
-      caching.dependency(this_page.page_name, inc_name.lower(), macro.request)
+        # this means we're in the caching formatter
+        caching.dependency(this_page.page_name, inc_name.lower(), macro.request)
     # output formatted
     buffer = cStringIO.StringIO()
     formatter.request.redirect(buffer)
-    parser.format(formatter)
+    parser.format(formatter, inline_edit_default_state=False)
 
     formatter.setPage(this_page)
     formatter.request.redirect()
@@ -153,5 +181,19 @@ def execute(macro, args, formatter=None):
     else:
         del this_page._macroInclude_pagelist[inc_name]
 
+
+    attrs = ''
+    if align:
+    	attrs += (' style="width: %s; float: %s; clear: %s;" ' %
+                  (width, align, align))
+    elif was_given_width:
+        attrs += ' style="width: %s;' % width
+    attrs += ' class="includedPage"'
+    include_page = '<div%s>%s</div>' % (attrs, ''.join(result))
+
+    ## turn back on inline editing ability
+    parser.formatter.inline_edit = inline_edit_state
+    formatter.inline_edit = inline_edit_state
+
     # return include text
-    return ''.join(result)
+    return include_page

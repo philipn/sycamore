@@ -15,7 +15,7 @@ handle_static_files = True
 
 from Sycamore.support.wsgi_server import httpserver
 #from Sycamore.support.wsgi_server import swap 
-from Sycamore.request import RequestWSGI
+from Sycamore.request import RequestWSGI, setup_wiki_farm
 from Sycamore import config
 import time, getopt
 
@@ -55,7 +55,11 @@ def handle_request(env, start_response):
     start_response('200 OK', [("Content-Type", mimetype), ("Last-Modified", datestring)])
     return static_file
   else:
-    request = RequestWSGI(env, start_response)
+    wiki_name = setup_wiki_farm(env)
+    if wiki_name:
+      request = RequestWSGI(env, start_response, wiki_name=wiki_name)
+    else:
+      request = RequestWSGI(env, start_response)
     return request.run()
     
 if __name__ == '__main__':
@@ -64,9 +68,9 @@ if __name__ == '__main__':
       if opts:
         for o, a in opts:
           if o == '-d':
-  	    run_as_daemon()
-  	  else:
-  	    do_run()
+            run_as_daemon()
+          else:
+            do_run()
       else:
         do_run()
 

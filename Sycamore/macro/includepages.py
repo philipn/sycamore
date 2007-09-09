@@ -1,6 +1,9 @@
 """
     Sycamore - IncludePages macro
-    This macro is like Include but works on multiple pages via a regular expression
+    This macro is like Include but works on multiple pages via a regular
+    expression
+
+    DEPRECATED: use [[Include]].
     
     Copyright (c) 2003 by Jun Hu <j.hu@tue.nl>
 
@@ -96,7 +99,7 @@ def execute(macro, args,  formatter=None):
         hits = hits[:int(max_items)]
 
     for inc_name in hits:
-        params = '%s,"%s",%s' % (inc_name,inc_name, level)
+        params = '%s,"%s"' % (inc_name,inc_name)
         ret = ret +"<p>"+ Sycamore.macro.include.execute(macro, params, formatter=formatter) +"\n"
 
     # return include text

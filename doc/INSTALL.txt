@@ -2,4 +2,37 @@
 Installing Sycamore
 -------------------
 
-See http://projectsycamore.org/How_to_Install
+:Authors:
+        David Reid
+
+:Version: 0.1
+
+Dependencies
+============
+
+Required
+~~~~~~~~
+
+ * Python >= 2.3 (http://python.org/)
+ * PIL >= 1.1.5 (http://pythonware.com/products/pil/)
+ * diffutils >= 2.8.1 (http://gnu.org/software/diffutils/)
+ 
+ * MySQL:
+ 
+  - MySQL >= 5.0 (http://mysql.com/) 
+  - MySQLdb >= 1.2.1c3 (http://sourceforge.net/projects/mysql-python) python MySQL module
+
+ * or PostgreSQL:
+
+  - PostgreSQL >= 7.4 (http://postgresql.org/)
+  - psycopg2 >= 2.0 (http://initd.org/projects/psycopg2) python PostgreSQL module
+
+Optional
+~~~~~~~~
+
+ * xapian-core >= 0.9.4 (http://xapian.org) and xapian-bindings >= 0.9.4 (http://xapian.org).  Xapian provides fast, scalable and flexible search for Sycamore.  Your search on your wiki will suck and eat up lots of CPU/disk activity if you don't install this.
+ * Memcached >= 1.1.12 and >= python-memcached 1.2_tummy6.  Memcached speeds up Sycamore by allowing it to cache objects in memory.  If possible, set up memcache and you'll experience speed and database load improvements.
+
+Instructions
+============
+For now, see http://projectsycamore.org/How_to_Install

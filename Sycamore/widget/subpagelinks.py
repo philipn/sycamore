@@ -1,12 +1,21 @@
-# This will take a string, such as "Front Page/Things to do/Fun stuff" and break it into logical subpage links. 
+# -*- coding: utf-8 -*-
+"""
+    Sycamore - sub page title rendering widget
 
+    This will take a string, such as "Front Page/Things to do/Fun stuff" and break it into logical subpage links. 
+
+    @copyright: 2006-2007 by Philip Neustrom <philipn@gmail.com>
+    @license: GNU GPL, see COPYING for details.
+"""
+
+# Imports
 from Sycamore.widget import base
 from Sycamore.Page import Page
 
 class SubpageLinks(base.Widget):
     def __init__(self, request, pagename):
-	self.pagename = pagename
-	base.Widget.__init__(self, request)
+        self.pagename = pagename
+        base.Widget.__init__(self, request)
 
     def _subpages(self):
         possible_subpages = self.pagename.split('/') 
@@ -17,19 +26,19 @@ class SubpageLinks(base.Widget):
         while n <= max_number_possible:
             pagename = possible_subpages[-n]
             parent_pagename = '/'.join(possible_subpages[:-n])
-            if not parent_pagename:  # at end
-                pagelinks.append((pagename, pagename))
-            pagenames_queue.insert(0, pagename)
-            if Page(parent_pagename, self.request).exists():
-                display_pagename = '/'.join(pagenames_queue)
+            parent_page = Page(parent_pagename, self.request)
+            pagenames_queue.append(pagename)
+            if parent_page.exists() or parent_page.page_name == 'users':
+                pagenames_queue.reverse()
+                display_name = '/'.join(pagenames_queue)
+                pagelinks.append(
+                    ('%s/%s' % (parent_pagename, display_name), display_name))
                 pagenames_queue = []
-                pagelinks.append(("%s/%s" % (parent_pagename, display_pagename), display_pagename))
-            # tested all possible pagenames & we have no parent page that exists
-            elif n == (max_number_possible-1) and len(pagenames_queue) == (max_number_possible-1):
-                pagelinks = [(self.pagename, self.pagename)]
-                break
+
             n += 1
 
+        pagenames_queue.reverse()
+        pagelinks.append(('/'.join(pagenames_queue), '/'.join(pagenames_queue)))
         pagelinks.reverse()
         return pagelinks
 
@@ -37,4 +46,4 @@ class SubpageLinks(base.Widget):
         """
         Returns a list of tuples [ .. (pagename, display_pagename), ... ] 
         """
-	return self._subpages()
+        return self._subpages()

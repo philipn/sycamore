@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Load I18N Text
 
@@ -14,7 +14,8 @@
 Dependencies = ["language"]
 
 def execute(macro, args, formatter):
-    if not formatter: formatter = macro.formatter
+    if not formatter:
+        formatter = macro.formatter
     return macro.formatter.text(
         macro.request.getText(args).replace('<br>', '\n')
     )

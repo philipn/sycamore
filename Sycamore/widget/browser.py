@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - DataBrowserWidget
 
@@ -6,17 +6,17 @@
     @license: GNU GPL, see COPYING for details.
 """
 
+# Imports
 from Sycamore.widget import base
 
-
 class DataBrowserWidget(base.Widget):
-
     def __init__(self, request, **kw):
         base.Widget.__init__(self, request, **kw)
         self.data = None
 
     def setData(self, dataset):
-        """ Sets the data for the browser (see Sycamore.util.dataset).
+        """
+        Sets the data for the browser (see Sycamore.util.dataset).
         """
         self.data = dataset
 
@@ -60,11 +60,12 @@ class DataBrowserWidget(base.Widget):
 	# deal with extra appended row, if we want a next/previous thing
 	if append:
 	    for entry in append:
-	      result.append(fmt.table_row(1))
-	      result.append(fmt.table_cell(1, attrs={'colspan':len(self.data.columns)}))
-	      result.append(entry)
-	      result.append(fmt.table_cell(0))
-	      result.append(fmt.table_row(0))
+	        result.append(fmt.table_row(1))
+	        result.append(fmt.table_cell(1, attrs={'colspan':
+                len(self.data.columns)}))
+	        result.append(entry)
+	        result.append(fmt.table_cell(0))
+	        result.append(fmt.table_row(0))
 
         result.append(fmt.table(0))
         return ''.join(result)
@@ -72,4 +73,3 @@ class DataBrowserWidget(base.Widget):
 
     def render(self, attrs={}, append=[]):
         self.request.write(self.toHTML(table_attrs=attrs, append=append))
-

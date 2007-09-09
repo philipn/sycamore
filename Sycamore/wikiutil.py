@@ -1,15 +1,34 @@
+# -*- coding: utf-8 -*-
 """
     Sycamore - Wiki Utility Functions
 
+    @copyright: 2006 - 2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2000 - 2004 by J?rgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
-import os, re, urllib, difflib, string
-from Sycamore import config, util, wikidb
-from Sycamore.util import pysupport
+import os
+import re
+import urllib
+import difflib
+import string
 import time
+import cStringIO
+from copy import copy
+
+#import pytz from support
+import sys, os.path
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, 'support'))])
+import pytz
+
+from Sycamore import config
+from Sycamore import util
+from Sycamore import wikidb
+from Sycamore.util import pysupport
+
+DAY_IN_SECONDS = 86400
 
 # constants for page names
 PARENT_PREFIX = "../" # changing this might work, but it's not tested
@@ -21,128 +40,467 @@ _FORM_RE = None
 _CATEGORY_RE = None
 _GROUP_RE = None
 
+# interwiki types
+INTERWIKI_LIST_TYPE = 0
+INTERWIKI_FARM_TYPE = 1
+INTERWIKI_NONE_TYPE = 2
+
 # The maximum number of random pages to grab from the current page list
 MAX_RANDOM_GET = 1000
 RAND_EXPIRE_TIME = 60*60
 
-if config.db_type == 'postgres': RAND_FUNCTION = 'random()'
-elif config.db_type == 'mysql': RAND_FUNCTION = 'rand()'
+if config.db_type == 'postgres':
+    RAND_FUNCTION = 'random()'
+elif config.db_type == 'mysql':
+    RAND_FUNCTION = 'rand()'
 
 def isImage(filename):
-  import mimetypes
-  guess = mimetypes.guess_type(filename)
-  if guess[0]:
-    return ((guess[0].split('/'))[0] == 'image')
-  return False
+    import mimetypes
+    from Sycamore.action.Files import f2e
+    guess = mimetypes.guess_type(filename)
+    if guess[0]:
+        return (((guess[0].split('/'))[0] == 'image') and
+                ((guess[0].split('/'))[1]).upper() in f2e)
+    return False
 
 def prepareAllProperties():
-  # sets up the consistent data between requests.  right now, this is just the db connection
+  """
+  sets up the consistent data between requests.
+  right now, this is just the db connection
+  """
   d = {}
   return d
 
-def baseScriptURL():
-   # gives something like: '/installhtml/index.cgi' or '' or '/index.cgi'..
-   if config.relative_dir:
-       return '/' + config.relative_dir
-   else:
-       return ''
-
 def simpleParse(request, text):
     # this needs to convert all the basic formatting to HTML
-    # so the ''text'' stuff, along with [http://myurl.com url] -> a href, and the ["wiki link" link text] -> a href
+    # so the ''text'' stuff, along with [http://myurl.com url] -> a href
+    # and the ["wiki link" link text] -> a href
     # Wiki links
 
-    text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])', r'<a href="%s/\g<wikilink>">\g<wikilink></a>' % request.getScriptname(), text)
-    text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])', r'<a href="%s/\g<wikilink>">\g<txt></a>' % request.getScriptname(), text)
+    text = re.sub(r'(\[\"(?P<wikilink>[^\]\"]+)\"\])',
+                  r'<a href="%s/\g<wikilink>">\g<wikilink></a>' %
+                    request.getScriptname(), text)
+    text = re.sub(r'(\[\"(?P<wikilink>([^\]\"]+))\" (?P<txt>([^\]]+))\])',
+                  r'<a href="%s/\g<wikilink>">\g<txt></a>' %
+                    request.getScriptname(), text)
     # External links
-#    text = re.sub(r'(\[(?P<link>([^ ])+) (?P<ltext>([^\]])+)\])', r'<a href="\g<link>">\g<ltext></a>', text)
-    text = re.sub(r'(\[(?P<link>[^\]]+(.jpg|.jpeg|.gif|.png))\])', r'<img src="\g<link>">', text)
-    text = re.sub(r'(\[(?P<link>[^\] ]+)( )+(?P<txt>([^\]])+)\])', r'<a href="\g<link>">\g<txt></a>', text)
-    text = re.sub(r'(\[(?P<link>[^\]]+)\])', r'<a href="\g<link>">\g<link></a>', text)
+    text = re.sub(r'(\[(?P<link>[^\]]+(.jpg|.jpeg|.gif|.png))\])',
+                  r'<img src="\g<link>">', text)
+    text = re.sub(r'(\[(?P<link>[^\] ]+)( )+(?P<txt>([^\]])+)\])',
+                  r'<a href="\g<link>">\g<txt></a>', text)
+    text = re.sub(r'(\[(?P<link>[^\]]+)\])',
+                  r'<a href="\g<link>">\g<link></a>', text)
     # Limited Formatting
-    text = re.sub(r'(\'\'\'\'\'(?P<txt>.*?)\'\'\'\'\')', r'<b><i>\g<txt></b></i>', text)
+    text = re.sub(r'(\'\'\'\'\'(?P<txt>.*?)\'\'\'\'\')',
+                  r'<b><i>\g<txt></b></i>', text)
     text = re.sub(r'(\'\'\'(?P<txt>.*?)\'\'\')', r'<b>\g<txt></b>', text)
     text = re.sub(r'(\'\'(?P<txt>.*?)\'\')', r'<i>\g<txt></i>', text) 
     return text
 
 def simpleStrip(request, text):
-    # mirror of simpleParse, except it kills all tags, really, so it's stripping and giving us just 'text'
+    """
+    mirror of simpleParse, except it kills all html tags, really, so it's
+    stripping and giving us just 'text'
+    """
     text = simpleParse(request, text)
     text = re.sub(r'\<[^\>]+\>', r'', text)
     return text
 
-def wikifyString(text, request, page, doCache=True, formatter=None, delays=None, strong=False):
-  import cStringIO
-  # easy to turng wiki markup string into html
-  # only use this in macros, etc.
+p_len = len('<p>\n')
+end_p_len = len('</p>')
+
+def stripOuterParagraph(quote):
+    """
+    We always put <p>'s around things, so in this case let's remove the
+    outer-most <p>'s.
+    """
+    quote = quote.strip()
+    return quote[ quote.find('>')+1: len(quote)-end_p_len].strip()
+
+def getTemplatePages(request):
+    """
+    Returns a list of Template pages.  Filters out /Talk pages.
+    """
+    if config.memcache:
+        template_pages = request.mc.get('templates')
+        if template_pages is not None:
+            return template_pages
+
+    template_pages = filter(lambda page : isTemplatePage(page),
+                            request.getPageList())
+    if config.memcache:
+        request.mc.add('templates', template_pages)
+    return template_pages
+
+def getTimeOffset(tz_string):
+    import datetime
+    def _utcoffset(timezone):
+        utc_offset_delta = timezone.localize(
+            datetime.datetime.utcnow()).utcoffset()
+        return utc_offset_delta.days*DAY_IN_SECONDS + utc_offset_delta.seconds
+
+    if type(tz_string) == unicode:
+        tz_string = tz_string.encode('utf-8')
+    t = pytz.timezone(tz_string)
+    tz = pytz.timezone(tz_string)
+    return _utcoffset(tz)
+
+def getDomainFromURL(url):
+    without_schema = url[url.find('://')+3:]
+    return without_schema[:without_schema.find('/')]
+
+def mc_quote(s):
+    """
+    Quoting for memcached use.
+    """
+    from Sycamore.wikiaction import NOT_ALLOWED_CHARS
+    # use a character we know can't occur in pagenames
+    s = s.replace("_", NOT_ALLOWED_CHARS[0])  
+    s = s.replace(" ", "_")
+    if type(s) == unicode:
+        s = s.encode(config.charset)
+    return s
+
+def mc_unquote(s):
+    """
+    un-does mc_quote()
+    """
+    from Sycamore.wikiaction import NOT_ALLOWED_CHARS
+    s = s.replace("_", " ")
+    s = s.replace(NOT_ALLOWED_CHARS[0], "_")
+    return s 
+
+def suitable_mc_key(unquoted_key):
+    """
+    Is the unquoted_key suitable to be a mc key after being quoted?
+    """
+    from Sycamore.support import memcache 
+    if not unquoted_key: 
+        return False
+    key = mc_quote(unquoted_key)
+    try:
+        memcache.check_key(key)
+    except:
+        return False
+    return True
+
+def wikifyString(text, request, page, doCache=True, formatter=None,
+                 delays=None, strong=False):
+    """
+    easy to turn wiki markup string into html. only use this in macros, etc.
+    """
+    import cStringIO
   
-  # find out what type of formatter we're using
-  if hasattr(formatter, 'assemble_code'):
-    from Sycamore.formatter.text_html import Formatter
-    html_formatter = Formatter(request) 
-    py_formatter = formatter
-  else:
-    doCache = False
-    from Sycamore.formatter.text_python import Formatter
+    # back up attributes we might want before doing simple parsing
     if formatter:
-      html_formatter = formatter
+        orig_inline_edit = formatter.inline_edit
+        orig_inline_edit_force_state = formatter.inline_edit_force_state
+    
+    # find out what type of formatter we're using
+    if hasattr(formatter, 'assemble_code'):
+        from Sycamore.formatter.text_html import Formatter
+        html_formatter = Formatter(request) 
+        py_formatter = formatter
     else:
-      from Sycamore.formatter.text_html import Formatter
-      html_formatter = Formatter(request)
-    doCache = False
-    py_formatter = Formatter(request)
+        doCache = False
+        from Sycamore.formatter.text_python import Formatter
+        if formatter:
+            html_formatter = formatter
+        else:
+            from Sycamore.formatter.text_html import Formatter
+            html_formatter = Formatter(request)
+        doCache = False
+        py_formatter = Formatter(request)
 
-  if strong: Parser = importPlugin("parser", "wiki", "Parser")
-  else: Parser = importPlugin("parser", "wiki_simple", "Parser")
+    if strong:
+        Parser = importPlugin("parser", "wiki", "Parser")
+    else:
+        Parser = importPlugin("parser", "wiki_simple", "Parser")
 
-  html_formatter.setPage(page)
-  buffer = cStringIO.StringIO()
-  request.redirect(buffer)
-  html_parser = Parser(text, request)
-  html_parser.format(html_formatter)
-  request.redirect()
-  
-  if doCache:
-    import marshal
-    buffer.close()
+    html_formatter.setPage(page)
     buffer = cStringIO.StringIO()
     request.redirect(buffer)
-    parser = Parser(text, request)
-    py_formatter.delays = delays
-    parser.format(py_formatter)
+    html_parser = Parser(text, request)
+    html_parser.format(html_formatter)
     request.redirect()
-    text = buffer.getvalue().decode('utf-8')
-    buffer.close()
+    
+    if doCache:
+        import marshal
+        buffer.close()
+        buffer = cStringIO.StringIO()
+        request.redirect(buffer)
+        parser = Parser(text, request)
+        py_formatter.delays = delays
+        parser.format(py_formatter)
+        request.redirect()
+        text = buffer.getvalue().decode('utf-8')
+        buffer.close()
+    else:
+        text = buffer.getvalue()
+        buffer.close()
+        text = text.decode('utf-8')
+
+    # restore attributes
+    if formatter:
+        formatter.inline_edit = orig_inline_edit
+        formatter.inline_edit_force_state = orig_inline_edit_force_state
 
     return text
-  else:
-    text = buffer.getvalue()
-    buffer.close()
-    return text.decode('utf-8')
 
-def getSmiley(text, formatter):
+def macro_delete_checks(page, theuser_id=None, theuser_ip=None):
     """
-    Get a graphical smiley for a text smiley
+    Certain macros, such as [[address]], do things when they are taken out
+    of the page.
     
-    @param text: the text smiley
-    @param formatter: the formatter to use
-    @rtype: string
-    @return: formatted output
+    This is where locations are added and deleted.
     """
-    req = formatter.request
-    # We turn off smilies for now...
-    """
-    if req.user.show_emoticons:
-        w, h, b, img = config.smileys[text.strip()]
-        href = img
-        if not href.startswith('/'):
-            href = req.theme.img_url(img)
-        return formatter.image(src=href, alt=text, width=w, height=h)
-    else:
-        return formatter.text(text)
-    """
-    return formatter.text(text)
+    from Sycamore.Page import Page
+    if page.request.config.has_old_wiki_map:
+        return
 
+    # we parse the page text here because we need to in order to
+    # infer macro information
+    request = page.request
+    buffer = cStringIO.StringIO()
+    request.redirect(buffer)
+    Page(page.page_name, request).send_page(content_only=1)
+    request.sent_page_content = buffer.getvalue()
+    request.redirect()
+
+    if not theuser_id or not theuser_ip:
+        theuser_id = page.request.user.id
+	heuser_ip = page.request.remote_addr
+
+    timenow = time.time()
+    # get current locations
+    current_locations = []
+    page.request.cursor.execute(
+        """SELECT x, y, created_time, created_by, created_by_ip,
+                  pagename_propercased, address from mapPoints
+           where pagename=%(pagename)s and wiki_id=%(wiki_id)s""",
+        {'pagename':page.page_name, 'wiki_id':page.request.config.wiki_id})
+    result = page.request.cursor.fetchall()
+    if result:
+         for (x, y, created_time, created_by, created_by_ip,
+              pagename_propercased, address) in result:
+             current_locations.append(
+                (pagename_propercased.lower(), x, y, address))
+
+    locations_to_remove = copy(current_locations)
+    locations_to_add = []
+    # filter out locations we have listed as an address but are
+    # already in the DB
+    if page.request.addresses.has_key(page.page_name):
+        for place in page.request.addresses[page.page_name]:
+            if (place.name.lower(), place.latitude, place.longitude,
+                place.address) in current_locations:
+                if (place.name.lower(), place.latitude, place.longitude,
+                    place.address) in locations_to_remove:
+                   locations_to_remove.remove(
+                       (place.name.lower(), place.latitude, place.longitude,
+                        place.address))
+            else:
+               locations_to_add.append(place)
+
+    for pagename, x, y, address in locations_to_remove:
+        page.request.cursor.execute(
+            """INSERT into oldMapPoints
+               (pagename, x, y, created_time, created_by, created_by_ip,
+                deleted_time, deleted_by, deleted_by_ip, pagename_propercased,
+                address, wiki_id
+               )
+               values
+               (%(pagename)s, %(x)s, %(y)s,
+                (select created_time from mapPoints
+                     where pagename=%(pagename)s and x=%(x)s and y=%(y)s and
+                           address=%(address)s and wiki_id=%(wiki_id)s
+                ),
+                (select created_by from mapPoints
+                     where pagename=%(pagename)s and x=%(x)s and y=%(y)s and
+                           address=%(address)s and wiki_id=%(wiki_id)s
+                ),
+                (select created_by_ip from mapPoints
+                     where pagename=%(pagename)s and x=%(x)s and y=%(y)s and
+                           address=%(address)s and wiki_id=%(wiki_id)s
+                ),
+                %(time_now)s, %(deleted_by)s, %(deleted_by_ip)s,
+                (select pagename_propercased from mapPoints
+                     where pagename=%(pagename)s and x=%(x)s and y=%(y)s and
+                           address=%(address)s and wiki_id=%(wiki_id)s
+                ),
+                %(address)s, %(wiki_id)s)""",
+            {'pagename':pagename, 'x':x, 'y':y, 'time_now':timenow,
+             'deleted_by':theuser_id, 'deleted_by_ip':theuser_ip,
+             'address':address, 'wiki_id':page.request.config.wiki_id},
+            isWrite=True)
+        page.request.cursor.execute(
+            """DELETE from mapPoints
+                   where pagename=%(pagename)s and wiki_id=%(wiki_id)s and
+                         x=%(x)s and y=%(y)s and address=%(address)s""",
+            {'pagename':pagename, 'x':x, 'y':y, 'address':address,
+             'wiki_id':page.request.config.wiki_id}, isWrite=True)
+
+    for place in locations_to_add:
+        place.addPlace(theuser_id, theuser_ip)
+
+def isInFarm(wikiname, request):
+    """
+    Is wikiname in our wiki farm?
+    """
+    wiki_settings = config.Config(wikiname, request)
+    return wiki_settings.active
+
+def talk_to_article_pagename(talk_pagename):
+    """
+    Returns the article pagename associated with this talk pagename.
+    """
+    return talk_pagename[:len(talk_pagename)-5]
+
+def article_to_talk_pagename(article_pagename):
+    """
+    Returns the talk pagename associated with this article pagename.
+    """
+    return article_pagename + '/Talk'
+
+def init_logo_sizes(request):
+    """
+    Gets the wiki logos' sizes and saves them to the wiki config.
+    """
+    from PIL import Image
+    from action.Files import EDITABLE_ICONS
+    images_pagename = '%s/%s' % (config.wiki_settings_page,
+                                 config.wiki_settings_page_images)
+    for filename_size_info in EDITABLE_ICONS:
+        if type(filename_size_info) == tuple:
+            filename = filename_size_info[0]
+        else:
+            filename = filename_size_info
+
+        logo_file = wikidb.getFile(request,
+            {'filename':filename, 'page_name': images_pagename})
+        if logo_file:
+            logo_file = cStringIO.StringIO(logo_file[0])
+            logo = Image.open(logo_file)
+            logo_size = logo.size
+            logo_file.close()
+            request.config.logo_sizes[filename] = logo_size
+
+    request.config.set_config(request.config.wiki_name,
+                              request.config.get_dict(), request)
+
+def list_to_unicode(l):
+    """
+    Convert all strings in list to unicode.
+    """
+    ll = []
+    for i in l:
+        if type(i) == str:
+            ll.append(i.decode(config.charset))
+        else:
+            ll.append(i)
+    return ll 
+
+def init_theme_files_last_modified(request):
+    """
+    Gets the wiki theme file's (css, logos) last modification time and
+    saves them to the wiki config.
+    """
+    from action.Files import EDITABLE_ICONS, EDITABLE_CSS
+    images_pagename = '%s/%s' % (config.wiki_settings_page,
+                                 config.wiki_settings_page_images)
+    css_pagename = '%s/%s' % (config.wiki_settings_page,
+                              config.wiki_settings_page_css)
+    for filename in EDITABLE_CSS:
+        css_file_result = wikidb.getFile(request,
+            {'filename':filename, 'page_name': css_pagename})
+        if css_file_result:
+            css_file, last_modified = css_file_result
+            request.config.theme_files_last_modified[filename] = last_modified
+    for file_info in EDITABLE_ICONS:
+        if type(file_info) == tuple:
+            filename = file_info[0]
+        else:
+            filename = file_info
+        logo_file_result = wikidb.getFile(request,
+            {'filename':filename, 'page_name': images_pagename})
+        if logo_file_result:
+            logo_file, last_modified = logo_file_result
+            request.config.theme_files_last_modified[filename] = last_modified
+
+    request.config.set_config(request.config.wiki_name,
+        request.config.get_dict(), request)
+    
+def getWikiList(request):
+    """
+    Returns a list of the names of all of the wikis.
+    """
+    request.cursor.execute("SELECT name from wikis")
+    results = request.cursor.fetchall()
+    if results:
+        return [result[0] for result in results]
+    return None
+
+def getCookieDomain(request):
+    if (config.wiki_base_domain == 'localhost' or
+        config.wiki_base_domain == '127.0.0.1'):
+          wiki_domain = ''
+    else:
+        if config.wiki_farm and request.config.domain:
+            # custom domain, so we want to bind to this
+            wiki_domain = request.config.domain
+            if (request.http_host and not
+                request.http_host.endswith(wiki_domain)):
+                # we are on something like wikiname.basefarmname.org
+                # for wikiname that has a custom domain
+                s_host = request.http_host.split('.')
+                if len(s_host) > 2:
+                    s_host = s_host[len(s_host)-2:] 
+                wiki_domain = '.'.join(s_host)
+                wiki_domain = request.http_host
+        else:
+            wiki_domain = config.wiki_base_domain
+    return wiki_domain
+
+def hasFile(pagename, filename, request):
+    """
+    Does pagename have filename on it?
+    """
+    d = {'filename': filename, 'page_name': pagename}
+    if wikidb.getFile(request, d):
+        return True
+    return False
+
+suspect_css_start = '/* suspect CSS: '
+def is_suspect_css(css):
+    """
+    We take the provided string of CSS and check it to ensure it does
+    not contain malicious javascript or sneaky ways of inserting malicious
+    javascript.
+    """
+    from popen2 import popen2
+    css = str(css) # fixes weird buffer errors..
+    css_cleaner_location = os.path.join(config.sycamore_dir, "support",
+                                        "css_cleaner", "css_clean.pl")
+    css_cleaner_dependencies = os.path.join(config.sycamore_dir, "support",
+                                            "css_cleaner")
+    r, w = popen2('perl -I%s %s' %
+                  (css_cleaner_dependencies, css_cleaner_location))
+    w.write(css)
+    w.close()
+    lines = [ line for line in r ]
+    r.close()
+    if lines[0].startswith(suspect_css_start):
+        # grab the error given to us by the cleaner
+        return lines[0][len(suspect_css_start):-3] 
+    return False
+
+def sanitize_html(html):
+    """
+    Strips out bad things from HTML.
+    Namely, strips out javascript and evil ways of inserting javascript.
+    """
+    from Sycamore.support.feedparser import _sanitizeHTML
+    return _sanitizeHTML(html, 'utf-8')
 
 #############################################################################
 ### Quoting
@@ -166,7 +524,8 @@ def quoteFilename(filename, always_safe=always_file_safe):
 
     (taken from urllib.quote)
     """
-    filename = filename.encode(config.charset)
+    if type(filename) == unicode:
+       filename = filename.encode(config.charset)
     safe = ''
     cachekey = (safe, always_safe)
     try:
@@ -181,6 +540,9 @@ def quoteFilename(filename, always_safe=always_file_safe):
     res = map(safe_map.__getitem__, filename)
     return ''.join(res)
 
+def quoteCookiename(name):
+    return quoteFilename(name, always_safe=always_cookie_safe)
+
 def unquoteFilename(filename):
     """
     Return decoded original filename when given an encoded filename.
@@ -189,29 +551,31 @@ def unquoteFilename(filename):
     @rtype: string
     @return: decoded, original filename
     """
-                                    
     return urllib.unquote(filename.replace('_', '%'))
-
 
 # XXX UNICODE - see above
 def quoteWikiname(filename):
-    return quoteFilename(filename).replace('_', '%').replace('%20', '_').replace('%2F', '/').replace('%3A', ':')
+    return quoteFilename(filename).replace('_', '%').replace(
+        '%20', '_').replace('%2F', '/').replace('%3A', ':')
 
 def unquoteWikiname(filename):
-    return string.strip(unquoteFilename(filename.replace('_', '%20').replace('/','%2F').replace(':', '%3A')))
+    return string.strip(unquoteFilename(
+        filename.replace('_', '%20').replace('/','%2F').replace(':', '%3A')))
 
 
 def escape(s, quote=None):
     """
     Replace special characters '&', '<' and '>' by SGML entities.
-    (taken from cgi.escape so we don't have to include that, even if we don't use cgi at all)
+    (taken from cgi.escape so we don't have to include that,
+    even if we don't use cgi at all)
     
     @param s: string to escape
     @param quote: if given, transform '\"' to '&quot;'
     @rtype: string
     @return: escaped version of string
     """
-    if not s: return u''
+    if not s:
+        return u''
     s = s.replace("&", "&amp;") # Must be done first!
     s = s.replace("<", "&lt;")
     s = s.replace(">", "&gt;")
@@ -246,7 +610,6 @@ def split_wiki(wikiurl):
 
     return (wikitag, tail)
 
-
 def join_wiki(wikiurl, wikitail):
     """
     Add a page name to an interwiki url.
@@ -261,66 +624,90 @@ def join_wiki(wikiurl, wikitail):
     else:
         return wikiurl.replace('$PAGE', wikitail)
 
+def format_interwiki_words(words, in_farm=False):
+    """
+    Does things like remove quotes from interwiki links if need be.
 
-def resolve_wiki(request, wikiurl):
+    @param in_farm: if True then we run unquote() on non-"quoted" strings.
+    """
+    original_words = words
+    wikiname = original_words[0].split(':')[1]
+    words = ' '.join(words) 
+    quotes = words.split('"')
+    if len(quotes) > 2:
+        pagename = quotes[1]
+        quotes[2] = quotes[2][1:] # remove space
+        texts = quotes[2:]
+        text = '"'.join(texts)
+        if not text:
+            text = pagename
+        wikiurl = 'wiki:%s:%s' % (wikiname, pagename)
+        return [wikiurl, text]
+    else:
+        if in_farm:
+            split_words = original_words[0].split(':')
+            wikiname = split_words[1]
+            pagename = ':'.join(split_words[2:])
+            pagename = unquoteWikiname(pagename)
+            new_word = 'wiki:%s:%s' % (wikiname, pagename)
+            original_words = [new_word] + original_words[1:]
+
+        return original_words
+
+def resolve_wiki(request, wikiurl, force_farm=False):
     """
     Resolve an interwiki link.
     
     @param request: the request object
     @param wikiurl: the InterWiki:PageName link
+    @param force_farm: whether or not to force a lookup in our own farm
+        (if True, this excludes external interwiki lookups)
     @rtype: tuple
-    @return: (wikitag, wikiurl, wikitail)
+    @return: (wikitag, wikiurl, wikitail, wikitag_bad, wikitype)
     """
-
-    from Sycamore import wikidicts
+    from Sycamore import wikidicts, farm
 
     _interwiki_list = None
     got_memcache = False
 
-    if request.req_cache['interwiki']:
-      _interwiki_list = request.req_cache['interwiki']
+    if (request.req_cache['interwiki'].has_key(request.config.wiki_id) and not
+        force_farm):
+      _interwiki_list = request.req_cache['interwiki'][request.config.wiki_id]
+      got_memcache = True
     else:
       if config.memcache:
-        interwiki_dict = request.mc.get('interwiki')
-	_interwiki_list = interwiki_dict
-        if interwiki_dict is not None: got_memcache = True
+            interwiki_dict = request.mc.get('interwiki')
+            _interwiki_list = interwiki_dict
+            if interwiki_dict is not None:
+                got_memcache = True
 
     if _interwiki_list is None:
-      _interwiki_list = wikidicts.Dict(config.interwikimap,request,case_insensitive=True)
+      _interwiki_list = wikidicts.Dict(request.config.interwikimap, request,
+                                       case_insensitive=True,fresh=True)
 
     # split wiki url
     wikitag, tail = split_wiki(wikiurl)
     wikitag = wikitag.lower()
 
-    request.req_cache['interwiki'] = _interwiki_list
+    request.req_cache['interwiki'][request.config.wiki_id] = _interwiki_list
     if config.memcache and not got_memcache:
-      request.mc.add('interwiki', _interwiki_list)
+        request.mc.add('interwiki', _interwiki_list)
 
     # return resolved url
-    if wikitag and _interwiki_list.has_key(wikitag):
-        return (wikitag, _interwiki_list[wikitag], tail, False)
+    if wikitag and _interwiki_list.has_key(wikitag) and not force_farm:
+        return (wikitag, _interwiki_list[wikitag], tail, False,
+                INTERWIKI_LIST_TYPE)
     else:
-        return (wikitag, request.getScriptname(),'/%s' % quoteWikiname(config.interwikimap), True)
-
+        if isInFarm(wikitag, request):
+            return (wikitag, farm.getWikiURL(wikitag, request), tail, False,
+                    INTERWIKI_FARM_TYPE)
+        return (wikitag, request.getScriptname(),
+                '/%s' % quoteWikiname(request.config.interwikimap), True,
+                INTERWIKI_NONE_TYPE)
 
 #############################################################################
 ### Page types (based on page names)
 #############################################################################
-
-def isSystemPage(request, pagename):
-    """
-    Is this a system page? Uses System Pages Group internally.
-    
-    @param request: the request object
-    @param pagename: the page name
-    @rtype: bool
-    @return: true if page is a system page
-    """
-    return (request.dicts.has_member('System Pages Group', pagename) or
-        isTemplatePage(pagename))
-
-#def isEditorBackup(pagename):
-#    return pagename.endswith('/MoinEditorBackup')
 
 def isTemplatePage(pagename):
     """
@@ -330,10 +717,9 @@ def isTemplatePage(pagename):
     @rtype: bool
     @return: true if page is a template page
     """
-    global _TEMPLATE_RE
-    if _TEMPLATE_RE is None:
-        _TEMPLATE_RE = re.compile(config.page_template_regex)
-    return _TEMPLATE_RE.search(pagename) is not None
+    lpagename = pagename.lower()
+    return (lpagename.startswith(config.page_template_prefix.lower()) and not
+            lpagename.endswith('/talk'))
 
 def isGroupPage(pagename):
     """
@@ -348,61 +734,46 @@ def isGroupPage(pagename):
         _GROUP_RE = re.compile(config.page_group_regex, re.IGNORECASE)
     return _GROUP_RE.search(pagename) is not None
 
-
-def filterCategoryPages(pagelist):
-    """
-    Return a copy of `pagelist` that only contains category pages.
-
-    If you pass a list with a single pagename, either that is returned
-    or an empty list, thus you can use this function like a `isCategoryPage`
-    one.
-       
-    @param pagelist: a list of (one or some or all) pages
-    @rtype: list
-    @return: only the category pages of pagelist
-    """
-    global _CATEGORY_RE
-    if _CATEGORY_RE is None:
-        _CATEGORY_RE = re.compile(config.page_category_regex)
-    return filter(_CATEGORY_RE.search, pagelist)
-
-def isImageOnPage(pagename, filename, cursor):
-    """
-    Returns True if the image is on the page.  Returns false otherwise.
-    """
-    cursor.execute("SELECT name from images where attached_to_pagename=%(pagename)s and name=%(filename)s", {'pagename':pagename, 'filename':filename})
-    result = cursor.fetchone()
-    if result:  return True
-    else:  return False
-
-
 #############################################################################
 ### Page storage helpers
 #############################################################################
 
-def getPageList(request, alphabetize=False, objects=False, lowercase=False):
+def getPageList(request, alphabetize=False, objects=False, lowercase=False,
+                wiki_global=False):
     """
     List all pages, except for "CVS" directories,
     hidden files (leading '.') and temp files (leading '#')
     @ param alphabetize: if True then, you know, alphabetize the list 
     @rtype: list
     @return: all (unquoted) wiki page names
-
     """
-    if objects: from Sycamore.Page import Page
+    if objects:
+        from Sycamore.Page import Page
     cursor = request.cursor
 
-    if lowercase: type_of_name = 'name'
-    else: type_of_name = 'propercased_name'
+    if lowercase:
+        type_of_name = 'name'
+    else:
+        type_of_name = 'propercased_name'
 
-    if not alphabetize: cursor.execute("SELECT %s from curPages" % type_of_name)
-    else: cursor.execute("SELECT %s from curPages order by name" % type_of_name)
+    if not alphabetize:
+        cursor.execute(
+            """SELECT %s from curPages where wiki_id=%%(wiki_id)s""" % 
+                type_of_name,
+            {'wiki_id':request.config.wiki_id})
+    else:
+        cursor.execute(
+            """SELECT %s from curPages where wiki_id=%%(wiki_id)s
+               order by name""" % type_of_name,
+            {'wiki_id':request.config.wiki_id})
     result = []
     p = cursor.fetchone()
     while p:
-      if not objects: result.append(p[0])
-      else: result.append(Page(p[0], request))
-      p = cursor.fetchone()
+        if not objects:
+            result.append(p[0])
+        else:
+            result.append(Page(p[0], request))
+        p = cursor.fetchone()
 
     return result
 
@@ -424,25 +795,25 @@ def getPageDict(request):
     return pages
 
 def getRandomPages(request):
-   """
-   Returns a list of random pages -- cached.  The maximum number of pages is MAX_RANDOM_GET.
-   """
-   if request.req_cache['random'].has_key('*'):
-     return request.req_cache['random']['*']
-   rand_pages = None
-   if config.memcache:
-     rand_pages = request.mc.get('random:*')
-   if rand_pages is None: 
-     rand_pages = []
-     query = "SELECT name from curPages order by %s limit %s" % (RAND_FUNCTION, MAX_RANDOM_GET)
-     request.cursor.execute(query)
-     for item in request.cursor.fetchall(): 
-       rand_pages.append(item[0])
-     if config.memcache:
-       request.mc.add("random:*", rand_pages, time=RAND_EXPIRE_TIME)
-   request.req_cache['random']['*'] = rand_pages
-   return rand_pages
-
+    """
+    Returns a list of random pages -- cached.  The maximum number of pages is MAX_RANDOM_GET.
+    """
+    if request.req_cache['random'].has_key(('*', request.config.wiki_id)):
+        return request.req_cache['random'][('*', request.config.wiki_id)]
+    rand_pages = None
+    if config.memcache:
+        rand_pages = request.mc.get('random:*')
+    if rand_pages is None: 
+        rand_pages = []
+        query = ("SELECT name from curPages where wiki_id=%%(wiki_id)s "
+                 "order by %s limit %s" % (RAND_FUNCTION, MAX_RANDOM_GET))
+        request.cursor.execute(query, {'wiki_id':request.config.wiki_id})
+        for item in request.cursor.fetchall(): 
+            rand_pages.append(item[0])
+        if config.memcache:
+            request.mc.add("random:*", rand_pages, time=RAND_EXPIRE_TIME)
+    request.req_cache['random'][('*', request.config.wiki_id)] = rand_pages
+    return rand_pages
 
 def getBackupList(backup_dir, pagename=None):
     """
@@ -476,7 +847,6 @@ def getBackupList(backup_dir, pagename=None):
 
     return oldversions
 
-
 def getSysPage(request, pagename):
     """
     Get a system page according to user settings and available translations.
@@ -495,32 +865,6 @@ def getSysPage(request, pagename):
             return i18n_page
     return Page(pagename, request)
 
-
-def getHomePage(request, username=None):
-    """
-    Get a user's homepage, or return None for anon users and
-    those who have not created a homepage.
-    
-    @param request: the request object
-    @param username: the user's name
-    @rtype: Page
-    @return: user's homepage object - or None
-    """
-    # default to current user
-    if username is None and request.user.valid:
-        username = request.user.name
-
-    # known user?
-    if username:
-        from Sycamore.Page import Page
-
-        # plain homepage?
-        pg = Page(username, request)
-        if pg.exists(): return pg
-
-    return None
-
-
 def AbsPageName(context, pagename):
     """
     Return the absolute pagename for a (possibly) relative pagename.
@@ -532,12 +876,11 @@ def AbsPageName(context, pagename):
     """
     if config.allow_subpages:
         if pagename.startswith(PARENT_PREFIX):
-            pagename = '/'.join(filter(None, context.split('/')[:-1] + [pagename[3:]]))
+            pagename = '/'.join(filter(None, context.split('/')[:-1] +
+                                             [pagename[3:]]))
         elif pagename.startswith(CHILD_PREFIX):
             pagename = context + pagename
-
     return pagename
-
 
 #############################################################################
 ### Plugins
@@ -545,8 +888,10 @@ def AbsPageName(context, pagename):
 
 def importPlugin(kind, name, function="execute"):
     """
-    Returns an object from a plugin module or None if module or 'function' is not found
-    kind may be one of 'action', 'formatter', 'macro', 'processor', 'parser'
+    Returns an object from a plugin module or None if module or 'function'
+    is not found.
+
+    Kind may be one of 'action', 'formatter', 'macro', 'processor', 'parser'
     or any other directory that exist in Sycamore or data/plugin
     
     @param kind: what kind of module we want to import
@@ -558,8 +903,8 @@ def importPlugin(kind, name, function="execute"):
     # First try data/plugins
     result = pysupport.importName("plugin." + kind + "." + name, function)
     if not result:
-      # then Sycamore
-      result = pysupport.importName("Sycamore." + kind + "." + name, function)
+        # then Sycamore
+        result = pysupport.importName("Sycamore." + kind + "." + name, function)
     return result
 
 def builtinPlugins(kind):
@@ -590,7 +935,6 @@ def extensionPlugins(kind):
     else:
         return plugins
 
-
 def getPlugins(kind):
     """
     Gets a list of module names.
@@ -600,7 +944,8 @@ def getPlugins(kind):
     @return: module names
     """
     builtin_plugins = builtinPlugins(kind)
-    extension_plugins = extensionPlugins(kind)[:] # use a copy to not destroy the value
+    # use a copy to not destroy the value
+    extension_plugins = extensionPlugins(kind)[:] 
     for module in builtin_plugins:
         if module not in extension_plugins:
             extension_plugins.append(module)
@@ -618,12 +963,15 @@ def parseAttributes(request, attrstring, endtoken=None, extension=None):
     None when it was not interested into the token, '' when all was OK
     and it did eat the token, and any other string to return an error
     message.
+
+    This is used for table stuff.
     
     @param request: the request object
     @param attrstring: string containing the attributes to be parsed
     @param endtoken: token terminating parsing
     @param extension: extension function -
-                      gets called with the current token, the parser and the dict
+                      gets called with the current token, the parser
+                      and the dict
     @rtype: dict, msg
     @return: a dict plus a possible error message
     """
@@ -638,14 +986,19 @@ def parseAttributes(request, attrstring, endtoken=None, extension=None):
 
     while not msg:
         key = parser.get_token()
-        if not key: break
-        if endtoken and key == endtoken: break
+        if not key:
+            break
+        if endtoken and key == endtoken:
+            break
 
-        # call extension function with the current token, the parser, and the dict
+        # call extension function with the current token,
+        # the parser, and the dict
         if extension:
             msg = extension(key, parser, attrs)
-            if msg == '': continue
-            if msg: break
+            if msg == '':
+                continue
+            if msg:
+                break
 
         eq = parser.get_token()
         if eq != "=":
@@ -669,7 +1022,6 @@ def parseAttributes(request, attrstring, endtoken=None, extension=None):
 
     return attrs, msg or ''
 
-
 def taintfilename(basename):
     """
     Make a filename that is supposed to be a plain name secure, i.e.
@@ -684,7 +1036,6 @@ def taintfilename(basename):
     basename = basename.replace('/', '_')
     basename = basename.replace('\\', '_')
     return basename
-
 
 def mapURL(url):
     """
@@ -705,7 +1056,6 @@ def mapURL(url):
     # return unchanged url
     return url
 
-
 def getUnicodeIndexGroup(name):
     """
     Return a group letter for `name`, which must be a unicode string.
@@ -719,7 +1069,6 @@ def getUnicodeIndexGroup(name):
         return unichr(0xac00 + (int(ord(name[0]) - 0xac00) / 588) * 588)
     else:
         return None
-
 
 def isUnicodeName(name):
     """
@@ -738,7 +1087,9 @@ def isUnicodeName(name):
     return len(text.replace('_','')) == len(text) * 2/3
     # XXX UNICODE 
 
-def isStrictWikiname(name, word_re=re.compile(r"^(?:[%(u)s][%(l)s]+){2,}$" % {'u':config.upperletters, 'l':config.lowerletters})):
+def isStrictWikiname(name, word_re=re.compile(r"^(?:[%(u)s][%(l)s]+){2,}$" %
+                                                  {'u':config.upperletters,
+                                                  'l':config.lowerletters})):
     """
     Check whether this is NOT an extended name.
     
@@ -747,7 +1098,6 @@ def isStrictWikiname(name, word_re=re.compile(r"^(?:[%(u)s][%(l)s]+){2,}$" % {'u
     @return: true if name matches the word_re
     """
     return word_re.match(name)
-
 
 def isPicture(url):
     """
@@ -758,7 +1108,8 @@ def isPicture(url):
     @return: true if url points to a picture
     """
     extpos = url.rfind(".")
-    return extpos > 0 and url[extpos:].lower() in ['.gif', '.jpg', '.jpeg', '.png']
+    return (extpos > 0 and
+            url[extpos:].lower() in ['.gif', '.jpg', '.jpeg', '.png'])
 
 def attach_link_tag(request, params, text=None, formatter=None, **kw):
     """
@@ -776,13 +1127,23 @@ def attach_link_tag(request, params, text=None, formatter=None, **kw):
     if text is None:
         text = params # default
     if formatter:
-        return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
+        if kw.has_key('absolute'):
+            return formatter.url("%s/%s" %
+                    (farm.getWikiURL(request.config.wiki_name, request),
+                    params),
+                text, css_class, **kw)
+        else:
+            return formatter.url("%s/%s" % (request.getScriptname(), params),
+                                 text, css_class, **kw)
     attrs = []
     if kw.has_key('attrs'):
         attrs.append(' %s' % kw['attrs'])
     if css_class:
         attrs.append(' class="%s"' % css_class)
-    return ('<a%s class="nonexistent" onclick="%s%s/%s%s">%s</a>' % (''.join(attrs), "window.open('", request.getScriptname(), params, "', 'attachments', 'width=800,height=600,scrollbars=1');", text))
+    return (
+        '<a%s class="nonexistent" onclick="%s%s/%s%s">%s</a>' %
+            (''.join(attrs), "window.open('", request.getScriptname(), params,
+             "', 'attachments', 'width=800,height=600,scrollbars=1');", text))
 
 def link_tag(request, params, text=None, formatter=None, **kw):
     """
@@ -793,46 +1154,39 @@ def link_tag(request, params, text=None, formatter=None, **kw):
     @param text: text / inner part of the <a>...</a> link
     @param formatter: the formatter object to use
     @keyword attrs: additional attrs (HTMLified string)
+    @keyword absolute: render absolute url
     @rtype: string
     @return: formatted link tag
     """
+    from Sycamore import farm
     css_class = kw.get('css_class', None)
     if text is None:
         text = params # default
     if formatter:
-        return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
+        if kw.has_key('absolute'):
+            return formatter.url("%s%s" %
+                    (farm.getWikiURL(request.config.wiki_name, request),
+                     params),
+                text, css_class, **kw)
+        else:
+            return formatter.url("%s/%s" % (request.getScriptname(), params),
+                                 text, css_class, **kw)
     attrs = []
     if kw.has_key('attrs'):
         attrs.append(' %s' % kw['attrs'])
     if css_class:
         attrs.append(' class="%s"' % css_class)
-    return ('<a%s href="%s/%s">%s</a>' % (''.join(attrs), request.getScriptname(), params, text))
+    if kw.has_key('absolute'):
+        return ('<a%s href="%s%s">%s</a>' %
+                (''.join(attrs), farm.getWikiURL(request.config.wiki_name,
+                                                 request),
+                 params, text))
+    else:
+        return ('<a%s href="%s/%s">%s</a>' % 
+                (''.join(attrs), request.getScriptname(), params, text))
     
-def link_tag_style(style, request, params, text=None, formatter=None, **kw):
-    """
-    Create a link.
-
-    @param request: the request object
-    @param params: parameter string appended to the URL after the scriptname/
-    @param text: text / inner part of the <a>...</a> link
-    @param formatter: the formatter object to use
-    @keyword attrs: additional attrs (HTMLified string)
-    @rtype: string
-    @return: formatted link tag
-    """
-    css_class = kw.get('css_class', None)
-    if text is None:
-        text = params # default
-    if formatter:
-        return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
-    attrs = []
-    if kw.has_key('attrs'):
-        attrs.append(' %s' %  kw['attrs'])
-    if css_class:
-        attrs.append(' class="%s"' % css_class)
-    return ('<a%s href="%s/%s" class="%s">%s</a>' % (''.join(attrs), request.getScriptname(), params, style, text))
-
-def link_tag_explicit(inbetween, request, params, text=None, formatter=None, **kw):
+def link_tag_explicit(inbetween, request, params, text=None, formatter=None,
+                      script_name='', **kw):
     """
     Create a link.
     But let me tell it what i want between the 'a' and the 'href'!
@@ -849,15 +1203,17 @@ def link_tag_explicit(inbetween, request, params, text=None, formatter=None, **k
     if text is None:
         text = params # default
     if formatter:
-        return formatter.url("%s/%s" % (request.getScriptname(), params), text, css_class, **kw)
+        return formatter.url("%s/%s" %
+                (script_name or request.getScriptname(), params),
+            text, css_class, **kw)
     attrs = []
     if kw.has_key('attrs'):
         attrs.append(' %s' % kw['attrs'])
     if css_class:
         attrs.append(' class="%s"' % css_class)
-    return ('<a%s %s href="%s/%s">%s</a>' % (''.join(attrs), inbetween, request.getScriptname(), params, text))
-
-
+    return ('<a%s %s href="%s/%s">%s</a>' %
+            (''.join(attrs), inbetween, script_name or request.getScriptname(),
+             params, text))
 
 def linediff(oldlines, newlines, **kw):
     """
@@ -889,7 +1245,6 @@ def linediff(oldlines, newlines, **kw):
         if "no questionmark lines":
             lines = filter(lambda line : line[0]!='?', lines)
         return lines
-
 
     # calculate the hunks and remove the unchanged lines between them
     i = 0              # actual index in lines
@@ -927,7 +1282,6 @@ def linediff(oldlines, newlines, **kw):
         lines[-count+3:] = []
     
     return lines
-
 
 def pagediff(page1, page2, **kw):
     """
@@ -969,17 +1323,16 @@ def pagediff(page1, page2, **kw):
 
 def simple_send_title(request, pagename, msg='', strict_title=''):
    """
-   requires only pagename and request object and prepares the usual page title.
+   requires only pagename and request object and prepares
+   the usual page title.
    """
    page_needle = pagename
    if config.allow_subpages and page_needle.count('/'):
-     page_needle = '/' + page_needle.split('/')[-1]
-   link = '%s/%s?action=info&links=1' % (
-     request.getScriptname(),
-     quoteWikiname(pagename))
+        page_needle = '/' + page_needle.split('/')[-1]
+   has_link = True
 
-   send_title(request, pagename, pagename=pagename, link=link, msg=msg, strict_title=strict_title)
-
+   send_title(request, pagename, pagename=pagename, has_link=has_link,
+              msg=msg, strict_title=strict_title)
 
 def send_title(request, text, **keywords):
     """
@@ -990,135 +1343,158 @@ def send_title(request, text, **keywords):
     @keyword link: URL for the title
     @keyword msg: additional message (after saving)
     @keyword pagename: 'PageName'
+    @keyword page: page object.  Optional.  If given, we use this as the
+                   page object.
     @keyword print_mode: 1 (or 0)
-    @keyword allow_doubleclick: 1 (or 0)
     @keyword html_head: additional <head> code
     @keyword body_attr: additional <body> attributes
     @keyword body_onload: additional "onload" JavaScript code
     @keyword strict_title: _just_ the html <title> specified
     """
-    from Sycamore import i18n
-    from Sycamore.Page import Page
+    from Sycamore import i18n, farm
+    from Sycamore.Page import Page, DISPLAYED_MAX_PAGENAME_LENGTH
+    from Sycamore.action.Files import getAttachUrl
 
     _ = request.getText
     pagename = keywords.get('pagename', '')
-    page = Page(pagename, request)
-
-    # get name of system pages
-    #page_front_page = getSysPage(request, config.page_front_page).page_name
-    #page_help_contents = getSysPage(request, 'Wiki Guide').page_name
-    #page_title_index = getSysPage(request, 'Title Index').page_name
-    #page_user_prefs = getSysPage(request, 'User Preferences').page_name
-    #page_find_page = getSysPage(request, 'Search').page_name
+    page = keywords.get('page', Page(pagename, request))
 
     # Print the HTML <head> element
-    user_head = [config.html_head]
+    user_head = [config.html_head] + request.html_head
     
     # search engine precautions / optimization:
     # if it is an action or edit/search, send query headers (noindex,nofollow):
     crawl = True # by default, we want search engines to crawl us
     if request.query_string:
         crawl = False
-	if request.query_string == 'action=show':
-	  crawl = True
-	elif request.form.has_key('action'):
-	  # index the files attached to pages
-	  if request.form['action'][0] == 'Files':
-	    if request.form.has_key('do'):
-	      if request.form['do'][0] == 'view':
-	        crawl = True
+        if request.query_string == 'action=show':
+            crawl = True
+        # index the files attached to pages
+        elif (request.form.has_key('action') and
+              request.form['action'][0] == 'Files' and
+              request.form.has_key('do') and
+              request.form['do'][0] == 'view'):
+            crawl = True
 
-    user_head.append("""<meta http-equiv="Content-Type" content="text/html; charset=%s">\n""" % config.charset)
+    user_head.append(
+        '<meta http-equiv="Content-Type" content="text/html; charset=%s">\n' %
+        config.charset)
 
-    if config.noindex_everywhere:
-        user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
-    elif (not crawl) or (request.request_method == 'POST'):
-        user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
+    if request.config.noindex_everywhere:
+        user_head.append('<meta name="robots" content="noindex,nofollow">\n')
+    elif ((not crawl) or (request.request_method == 'POST') or not
+          request.user.may.read(page)):
+        user_head.append('<meta name="robots" content="noindex,nofollow">\n')
     elif not page.exists():
-	user_head.append("""<meta name="robots" content="noindex,nofollow">\n""")
+        user_head.append('<meta name="robots" content="noindex,nofollow">\n')
     # if it is a special page, index it and follow the links:
     elif pagename in ['Front Page', 'Title Index',]:
-        user_head.append("""<meta name="robots" content="index,follow">\n""")
+        user_head.append('<meta name="robots" content="index,follow">\n')
     # if it is a normal page, index it, but do not follow the links, because
     else:
-        user_head.append("""<meta name="robots" content="index,follow">\n""")
+        user_head.append('<meta name="robots" content="index,follow">\n')
+
+    # do we show an icon for the wiki?
+    tiny_logo_url = None
+    image_pagename = '%s/%s' % (config.wiki_settings_page,
+                                config.wiki_settings_page_images)
+    if hasFile(image_pagename, 'tinylogo.png', request):
+        tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png', request)
+    else:
+        if config.wiki_farm:
+            on_wiki = request.config.wiki_name
+            request.switch_wiki(farm.getBaseWikiName())
+            if hasFile(image_pagename, 'tinylogo.png', request):
+                tiny_logo_url = getAttachUrl(image_pagename, 'tinylogo.png',
+                    request, base_url=farm.getBaseFarmURL(request))
+            request.switch_wiki(on_wiki)
+
+    if tiny_logo_url:
+        user_head.append(
+            '<link rel="shortcut icon" href="%s" type="image/png">'
+            '<link rel="icon" href="%s" type="image/png">' %
+            (tiny_logo_url, tiny_logo_url))
         
     if keywords.has_key('pi_refresh') and keywords['pi_refresh']:
-        user_head.append('<meta http-equiv="refresh" content="%(delay)d;URL=%(url)s">' % keywords['pi_refresh'])
+        user_head.append(
+            '<meta http-equiv="refresh" content="%(delay)d;URL=%(url)s">' %
+            keywords['pi_refresh'])
 
     # global javascript variable needed by edit.js
-    user_head.append("""<script type="text/javascript">var urlPrefix = '%s';</script>""" % (config.url_prefix))
+    if not page.prev_date and page.exists() and request.user.may.edit(page):
+        may_inline_edit = 'true'
+        wikitext = page.get_raw_body()
+        wikiLines = []
+        for line in wikitext.split('\n'):
+            wikiLines.append("'%s'" %
+                             urllib.quote(line.encode(config.charset)))
+        wikiLines = ','.join(wikiLines)
+        user_head.append(
+            '<script type="text/javascript">var wikiLines = [%s]; '
+            'var wikiLinesHTML = document.createElement("div");</script>' %
+                wikiLines)
+    else:
+        may_inline_edit = 'false'
+    user_head.append("""<script type="text/javascript">var urlPrefix = '%s';
+var curTimestamp = '%s'; var action = '%s'; var may_inline_edit = %s;
+var onLoadStuff = new Array();</script>""" % (config.url_prefix, time.time(),
+                                              page.url(), may_inline_edit))
+    user_head.append(
+        '<script src="%s%s/utils.js?tm=%s" type="text/javascript"></script>' %
+            (config.web_dir, config.url_prefix, request.theme.last_modified))
 
-    
-    if keywords.has_key('strict_title') and keywords['strict_title']: strict_title = keywords['strict_title']
-    else: strict_title = text
+    if keywords.has_key('strict_title') and keywords['strict_title']:
+        strict_title = keywords['strict_title']
+    else:
+        strict_title = text
 
     # add the rss link for per-page rss
+    lower_pagename = pagename.lower()
 
-    if pagename.lower() == 'bookmarks':
-      rss_html = ''
+    if (lower_pagename == 'bookmarks' or
+        lower_pagename == 'interwiki bookmarks'):
+        rss_html = ''
     else: 
-      if pagename.lower() == 'recent changes':
-        rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc" title="Recent Changes RSS Feed">' % (request.getScriptname(), quoteWikiname(pagename))
-      else:
-        rss_html = '<link rel=alternate type="application/rss+xml" href="%s/%s?action=rss_rc" title="Recent Changes RSS Feed for %s">' % (request.getScriptname(), quoteWikiname(pagename), pagename)
+        if lower_pagename == 'recent changes':
+            rss_html = ('<link rel=alternate type="application/rss+xml" '
+                              'href="%s/%s?action=rss_rc" '
+                              'title="Recent Changes RSS Feed">' %
+                        (request.getScriptname(), quoteWikiname(pagename)))
+        elif lower_pagename == 'interwiki recent changes':
+            rss_html = ('<link rel=alternate type="application/rss+xml" '
+                              'href="%s/%s?action=rss_rc&amp;user=%s" '
+                              'title="Interwiki Recent Changes RSS Feed '
+                                     'for %s">' %
+                        (request.getScriptname(), quoteWikiname(pagename),
+                         request.user.name, request.user.propercased_name))
+        else:
+            rss_html = ('<link rel=alternate type="application/rss+xml" '
+                              'href="%s/%s?action=rss_rc" '
+                              'title="Recent Changes RSS Feed for %s">' %
+                        (request.getScriptname(), quoteWikiname(pagename),
+                         pagename))
 
-    request.write("""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
-<head>
-%s
-%s
-%s
-%s
-""" % (
+    request.write(
+        """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" """
+        """"http://www.w3.org/TR/html4/loose.dtd">\n"""
+        "<html>\n"
+        "<head>\n"
+        "%s\n"
+        "%s\n"
+        "%s\n"
+        "%s\n" %
+        (
         ''.join(user_head),
         keywords.get('html_head', ''),
-	rss_html,
+        rss_html,
         request.theme.html_head({
             'title': escape(strict_title),
-            'sitename': escape(config.html_pagetitle or config.sitename),
+            'sitename': escape(config.html_pagetitle or
+                               request.config.sitename),
             'print_mode': keywords.get('print_mode', False),
-        })
-    ))
-# later: <html xmlns=\"http://www.w3.org/1999/xhtml\">
-
-    # Links
-    #request.write('<link rel="Start" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_front_page)))
-    #if pagename:
-    #    request.write('<link rel="Alternate" title="%s" href="%s/%s?action=raw">\n' % (
-    #        _('Wiki Markup'), request.getScriptname(), quoteWikiname(pagename),))
-    #    request.write('<link rel="Alternate" media="print" title="%s" href="%s/%s?action=print">\n' % (
-    #        _('Print View'), request.getScriptname(), quoteWikiname(pagename),))
-
-        # !!! currently disabled due to Mozilla link prefetching, see
-        # http://www.mozilla.org/projects/netlib/Link_Prefetching_FAQ.html
-        #~ all_pages = request.getPageList()
-        #~ if all_pages:
-        #~     try:
-        #~         pos = all_pages.index(pagename)
-        #~     except ValueError:
-        #~         # this shopuld never happend in theory, but let's be sure
-        #~         pass
-        #~     else:
-        #~         request.write('<link rel="First" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(all_pages[0]))
-        #~         if pos > 0:
-        #~             request.write('<link rel="Previous" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(all_pages[pos-1])))
-        #~         if pos+1 < len(all_pages):
-        #~             request.write('<link rel="Next" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(all_pages[pos+1])))
-        #~         request.write('<link rel="Last" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(all_pages[-1])))
-
-     #   if page_parent_page:
-     #       request.write('<link rel="Up" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_parent_page)))
-
-        #from Sycamore.action import Files 
-        #Files.send_link_rel(request, pagename)
-
-    #request.write(
-    #    '<link rel="Search" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_find_page)) +
-    #    '<link rel="Index" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_title_index)) +
-    #    '<link rel="Help" href="%s/%s">\n' % (request.getScriptname(), quoteWikiname(page_help_contents))
-    #)
-    request.write("<script type=\"text/javascript\" src=\"%s/wiki/highlight.js\"></script>\n" % (config.web_dir))
+            'page': page
+            })
+        ))
 
     request.write("</head>\n")
 
@@ -1127,78 +1503,75 @@ def send_title(request, text, **keywords):
 
     if keywords.has_key('body_attr'):
         bodyattr.append(' %s' % keywords['body_attr'])
-    if keywords.get('allow_doubleclick', 0) and not keywords.get('print_mode', 0) \
-            and pagename and request.user.may.edit(page) \
-            and request.user.edit_on_doubleclick:
-        bodyattr.append(''' ondblclick="location.href='%s'"''' % (
-            page.url("action=edit")))
 
     # Set body to the user interface language and direction
     bodyattr.append(' %s' % request.theme.ui_lang_attr())
     
     body_onload = keywords.get('body_onload', '')
-    if body_onload:
-        bodyattr.append(''' onload="%s"''' % body_onload)
+    # doOnLoadStuff() is a javascript function that eval()s
+    # JS code sprinkled anywhere
+    # this is good because we can only really do a lot of things
+    # during the body's onload event
+    bodyattr.append(''' onload="doOnLoadStuff();%s"''' % body_onload)
     request.write('\n<body %s>\n' % ''.join(bodyattr))
+
+    # if the wiki is disabled then we print out a message telling them so
+    if request.config.is_disabled:
+        request.write(
+            '<div style="border: 1px solid gray; margin: 1em; padding: 1em; '
+                        'background-color: #ffff99;">'
+            'This wiki is <strong>marked as deleted</strong> and will be '
+            'erased permanently in no more than 30 days.  If you made a '
+            'mistake deleting this wiki, immediately un-check the "delete '
+            'this wiki" check box at %s.</div>' % 
+            Page('%s/%s' % (config.wiki_settings_page,
+                            config.wiki_settings_page_general),
+                           request).link_to())
 
     # if in Print mode, emit the title and return immediately
     if keywords.get('print_mode', 0):
-        ## print '<h1>%s</h1><hr>\n' % (escape(text),)
         return
 
-    # list user actions that start with an uppercase letter
-    #available_actions = []
-    #if keywords.get('showactions', 1):
-    #    from Sycamore.wikiaction import getPlugins
-    #    from Sycamore.action import extension_actions
-    #    dummy, actions = getPlugins()
-    #    actions.extend(extension_actions)
-    #    actions.sort()
-    #     
-    #    for action in actions:
-    #        if action[0] != action[0].upper(): continue
-    #        available_actions.append(action)
-
     form = keywords.get('form', None)
-    icon = request.theme.get_icon('searchbutton')
+    icon = request.theme.get_icon('searchbutton', wiki_global=True)
     searchfield = (
-        '<input class="formfields" type="text" name="inline_string" value="%%(value)s" size="15" maxlength="50">'
+        '<input class="formfields" type="text" name="inline_string" '
+               'value="%%(value)s" size="15" '
+               'maxlength="%(max_pagename_length)s">'
         '&nbsp;<input type="image" src="%(src)s" alt="%(alt)s">'
         ) % {
             'alt': icon[0],
             'src': icon[1],
+            'max_pagename_length': (DISPLAYED_MAX_PAGENAME_LENGTH-1)
         }
     textsearch = searchfield %  {
         'type': 'normal',
         'value': escape(form and form.get('search', [''])[0] or '', 1),
     }
-    #page = Page(pagename)    
+
     # prepare dict for theme code:
     d = {
         'theme': request.theme.name,
         'script_name': request.getScriptname(),
         'title_text': text,
-        'title_link': keywords.get('link', ''),
-	'script_name': request.getScriptname(),
+        'title_link': keywords.get('has_link', ''),
+        'script_name': request.getScriptname(),
         'site_name': config.sitename,
         'page': page,             # necessary???
         'page_name': page.proper_name(),
-	'lower_page_name': page.page_name.lower(),
-        'page_user_prefs': "User Preferences",
-	'polite_msg': keywords.get('polite_msg', ''),
+        'lower_page_name': page.page_name.lower(),
+        'page_user_prefs': config.page_user_preferences,
+        'polite_msg': keywords.get('polite_msg', ''),
         'user_name': request.user.name,
         'user_valid': request.user.valid,
-        'user_prefs': ("User Preferences", request.user.name)[request.user.valid],
         'msg': keywords.get('msg', ''),
         'trail': keywords.get('trail', None),
         'textsearch': textsearch,
     }
 
-    # for some special pages, like images
-#    if request.query_string.startswith('action=Files'):
-#	pagename = request.path_info[1:]
-#	d['page_name'] = pagename
-#
+    if request.isSSL():
+        d['script_name'] = request.getQualifiedURL(uri=d['script_name'],
+                                                   force_ssl_off=True)
     # add quoted versions of pagenames
     newdict = {}
     for key in d:
@@ -1219,7 +1592,6 @@ def send_after_content(request):
     Called after content is sent but before the footer is sent.
     """
     request.write(request.theme.after_content())
-    
 
 def send_footer(request, pagename, **keywords):
     """
@@ -1235,9 +1607,6 @@ def send_footer(request, pagename, **keywords):
     d.update({
         'footer_fragments': request._footer_fragments,
     })
-    # I guess this is probably the best place for this now
-    #request.user.checkFavorites(d['page_name'])
 
     request.write('\n\n') # the content does not always end with a newline
     request.write(request.theme.footer(d, **keywords))
-

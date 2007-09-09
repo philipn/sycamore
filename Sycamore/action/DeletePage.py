@@ -1,23 +1,27 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - DeletePage action
 
     This action allows you to delete a page. Note that the standard
-    config lists this action as excluded!
+    acl lists this action as excluded!
 
+    @copyright: 2005-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
 """
 
 # Imports
-from Sycamore import config, wikiutil, wikiaction
+from Sycamore import config
+from Sycamore import wikiutil
+from Sycamore import wikiaction
 from Sycamore.PageEditor import PageEditor
-
 
 def execute(pagename, request):
     _ = request.getText
     actname = __name__.split('.')[-1]
     page = PageEditor(pagename, request)
+    permanent = False
+    showrc = True
 
     msg = ''
 
@@ -40,15 +44,23 @@ def execute(pagename, request):
         # attacks harder by requiring two full HTTP transactions)
         if not _checkTicket(request.form['ticket'][0]):
             return page.send_page(
-                msg = _('Please use the interactive user interface to delete pages!'))
+                msg = _('Please use the interactive user interface '
+                        'to delete pages!'))
 
         # Delete the page
         comment = request.form.get('comment', [''])[0]
         if len(comment) > wikiaction.MAX_COMMENT_LENGTH:
-          msg = "Comments must be less than %s characters long." % wikiaction.MAX_COMMENT_LENGTH
-          return page.send_page(msg)
+            msg = ("Comments must be less than %s characters long." %
+                   wikiaction.MAX_COMMENT_LENGTH)
+            return page.send_page(msg)
 
-        msg = page.deletePage(comment)
+        if (request.form.has_key('permanent') and
+            request.form['permanent'][0] and request.user.may.admin(page)):
+            permanent = True
+            if request.form.has_key('noshowrc') and request.form['noshowrc'][0]:
+                showrc = False 
+
+        msg = page.deletePage(comment, permanent=permanent, showrc=showrc)
 
         return page.send_page(
                 msg = _('Page "%s" was successfully deleted!') % (pagename,))
@@ -56,32 +68,55 @@ def execute(pagename, request):
     # send deletion form
     url = page.url()
     ticket = _createTicket()
-    querytext = _('Really delete this page?')
     button = _('Delete')
-    comment_label = _("Reason for deletion")
-    formhtml = """
-<form method="GET" action="%(url)s">
-<strong>%(querytext)s</strong>
-<input type="hidden" name="action" value="%(actname)s">
-<input type="hidden" name="ticket" value="%(ticket)s">
-<input type="submit" name="button" value="%(button)s">
-<p>
-%(comment_label)s<br>
-<input type="text" name="comment" size="60" maxlength="80">
-</form>""" % {
-    'url': url,
-    'querytext': querytext,
-    'actname': actname,
-    'ticket': ticket,
-    'button': button,
-    'comment_label': comment_label,
-}
+    comment_label = _("Reason for deletion:")
+
+    if request.user.may.admin(page):
+        admin_label = (
+            """<p>Permanently remove old versions: <input type="checkbox" """
+            """id="noshowrctoggle" name="permanent" value="1">\n"""
+            """<span id="noshowrc">Don't log on Recent Changes: """
+            '<input type="checkbox" name="noshowrc" value="1"></span></p>\n'
+            '<script type="text/javascript">\n'
+            "document.getElementById('noshowrc').style.visibility = 'hidden';"
+            "document.getElementById('noshowrc').style.paddingLeft = '1em';"
+            "document.getElementById('noshowrctoggle').onclick = "
+               "function () {"
+                 "document.getElementById('noshowrc').style.visibility = "
+                     "document.getElementById('noshowrctoggle').checked ? "
+                         "'visible' : 'hidden';"
+               "}"
+            "</script>")
+    else:
+        admin_label = ''
+    formhtml = (
+        '<form method="GET" action="%(url)s">\n'
+        '<input type="hidden" name="action" value="%(actname)s">\n'
+        '<input type="hidden" name="ticket" value="%(ticket)s">\n'
+        '<p>\n'
+        '%(comment_label)s\n'
+        '</p>\n'
+        '<p>\n'
+        '<input type="text" name="comment" size="60" maxlength="80">\n'
+        '<input type="submit" name="button" value="%(button)s">\n'
+        '</p>\n'
+        '%(admin_label)s\n'
+        '</form>' %
+            {
+            'url': url,
+            'actname': actname,
+            'ticket': ticket,
+            'button': button,
+            'comment_label': comment_label,
+            'admin_label': admin_label,
+            })
 
     return page.send_page(msg=formhtml)
 
-
 def _createTicket(tm = None):
-    """Create a ticket using a site-specific secret (the config)"""
+    """
+    Create a ticket using a site-specific secret (the config)
+    """
     import sha, time, types
     ticket = (tm or "%010x" % time.time())
     digest = sha.new()
@@ -94,10 +129,10 @@ def _createTicket(tm = None):
 
     return ticket + '.' + digest.hexdigest()
 
-
 def _checkTicket(ticket):
-    """Check validity of a previously created ticket"""
+    """
+    Check validity of a previously created ticket
+    """
     timestamp = ticket.split('.')[0]
     ourticket = _createTicket(timestamp)
     return ticket == ourticket
-

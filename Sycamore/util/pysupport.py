@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - Supporting function for Python magic
 
@@ -6,12 +6,17 @@
     @license: GNU GPL, see COPYING for details.
 """
 
+# Imports
+import os
+import fnmatch
+
 #############################################################################
 ### Module import / Plugins
 #############################################################################
 
 def isImportable(module):
-    """ Check whether a certain module is available.
+    """
+    Check whether a certain module is available.
     """
     try:
         __import__(module)
@@ -19,28 +24,26 @@ def isImportable(module):
     except ImportError:
         return 0
 
-
 def getPackageModules(packagefile):
-    """ Return a list of modules for a package, omitting any modules
-        starting with an underscore (note that this uses file system
-        calls, i.e. it won't work with ZIPped packages and the like).
     """
-
-    import os, fnmatch
-
-    return [os.path.splitext(f)[0] for f in fnmatch.filter(os.listdir(os.path.dirname(packagefile)), "[!_]*.py")]
+    Return a list of modules for a package, omitting any modules
+    starting with an underscore (note that this uses file system
+    calls, i.e. it won't work with ZIPped packages and the like).
+    """
+    return [os.path.splitext(f)[0] for f in
+        fnmatch.filter(os.listdir(os.path.dirname(packagefile)), "[!_]*.py")]
 
 def importName(modulename, name):
-    """ Import a named object from a module in the context of this function,
-        which means you should use fully qualified module paths.
+    """
+    Import a named object from a module in the context of this function,
+    which means you should use fully qualified module paths.
 
-        Return None on failure.
+    Return None on failure.
     """
     try:
-        module = __import__(modulename, globals(), {}, [name]) # {} was: locals()
+        module = __import__(modulename, globals(), {}, [name])
     except ImportError:
         return None
     return getattr(module, name, None)
 
 # if you look for importPlugin: see wikiutil.importPlugin
-

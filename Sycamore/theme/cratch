@@ -1,2 +1,0 @@
-if self.showapplet:
-              html.append('</td><td nowrap id="show">&nbsp;&nbsp;&nbsp;&nbsp;[<a href="#" onclick="doshow();">View Map</a>]</td><td nowrap id="hide" style="display: none;">&nbsp;&nbsp;&nbsp;&nbsp;[<a href="#" onclick="dohide();">Hide Map</a>]</td>')

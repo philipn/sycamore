@@ -1,4 +1,4 @@
-# -*- coding: iso-8859-1 -*-
+# -*- coding: utf-8 -*-
 """
     Sycamore - RandomQuote Macro
 
@@ -12,6 +12,7 @@
         It will look for list delimiters on the page in question.
         It will ignore anything that is not in an "*" list.
 
+    @copyright: 2006-2007 by Philip Neustrom <philipn@gmail.com>
     @copyright: 2002-2004 by Jürgen Hermann <jh@web.de>
     @license: GNU GPL, see COPYING for details.
     
@@ -19,23 +20,30 @@
     Gustavo Niemeyer added wiki markup parsing of the quotes.
 """
 
-import random, cStringIO
-from Sycamore.Page import Page, wikiutil
+# Imports
+import random
+import cStringIO
+
+from Sycamore import wikiutil
+
+from Sycamore.Page import Page
 
 Dependencies = ["time"]
 
 def execute(macro, args, formatter=None):
-    if not formatter: formatter = macro.formatter
+    if not formatter:
+        formatter = macro.formatter
     _ = macro.request.getText
 
     pagename = args or 'Fortune Cookies'
     page = Page(pagename, macro.request)
-    raw = page.get_raw_body()
+    raw = page.get_raw_body(fresh=macro.request.set_cache)
     if not macro.request.user.may.read(page):
         raw = ""
 
     # this selects lines looking like a list item
-    # !!! TODO: make multi-line quotes possible (optionally split by "----" or something)
+    # !!! TODO: make multi-line quotes possible
+    # (optionally split by "----" or something)
     quotes = raw.splitlines()
     quotes = [quote.strip() for quote in quotes]
     quotes = [quote[2:] for quote in quotes if quote.startswith('* ')]
@@ -47,15 +55,8 @@ def execute(macro, args, formatter=None):
                 
     quote = random.choice(quotes)
 
-    # FIXME : : THIS IS A HACK AND I HATE IT -SO MUCH- 
-    #macro.request.write("Rwrite " + quote.lower() + "\n")
-    #macro.request.write("Rfind " + str(quote.find("RandomQuote")) + "\n")
-
     if quote.lower().find("randomquote") == -1:
         quote = wikiutil.wikifyString(quote, macro.request, page, strong=True)
+        quote = wikiutil.stripOuterParagraph(quote)
 
-    #import re
-    # XXX line below messes up images by cutting the div around it apart.  not sure of the use, removed 2006-5-14
-    #quote = re.sub('(\<div[^\>]+\>)|(\</div\>)', '', quote)
-    
     return quote
