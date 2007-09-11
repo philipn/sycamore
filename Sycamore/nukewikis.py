@@ -46,6 +46,7 @@ if __name__ == '__main__':
         cursor.execute("DELETE from userGroups where wiki_id=%(wiki_id)s", d, isWrite=True)
         cursor.execute("DELETE from userGroupsIPs where wiki_id=%(wiki_id)s", d, isWrite=True)
         cursor.execute("DELETE from userWatchedWikis where wiki_name=%(wiki_name)s", d, isWrite=True)
+        cursor.execute("DELETE from userPageOnWikis where wiki_name=%(wiki_name)s", d, isWrite=True)
         cursor.execute("DELETE from userWikiInfo where wiki_id=%(wiki_id)s", d, isWrite=True)
 
         cursor.execute("DELETE from wikis where id=%(wiki_id)s", d, isWrite=True)
