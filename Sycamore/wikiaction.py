@@ -426,6 +426,24 @@ def print_context(the_search, text, request, context=40, max_context=10):
 ### Misc Actions
 #############################################################################
 
+def do_gotowikipage(pagename, request):
+    """
+    Does a "Moved Permanently" redirect to the provided wiki and page.
+
+    wikiandpage is a string of the form wikiname:pagename
+    """
+    from Sycamore import farm
+    try:
+        wikiandpage = request.form['v'][0]
+        wikiandpage_split = wikiandpage.split(':')
+        wikiname = wikiandpage_split[0].lower()
+        page = ':'.join(wikiandpage_split[1:])
+        base_url = farm.getWikiURL(wikiname, request)
+        url = base_url + page
+        request.http_redirect(url, status="301 Moved Permanently")
+    except:
+        return
+
 def do_diff(pagename, request, in_wiki_interface=True, text_mode=False,
             version1=None, version2=None, diff1_date='', diff2_date=''):
     """
