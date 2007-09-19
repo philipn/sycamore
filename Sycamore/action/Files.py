@@ -235,8 +235,8 @@ def getAttachUrl(pagename, filename, request, addts=0, escaped=1, deleted=0,
                "version=%s" % (base_url, wikiutil.quoteWikiname(pagename),
                                amp,
                                urllib.quote(filename.encode(
-                                   config.charset).decode(config.charset),
-                               amp, amp, repr(version))))
+                                   config.charset).decode(config.charset)),
+                               amp, amp, repr(version)))
     if do_download:
         url = '%s%sdownload=true' % (url, amp)
     if ts:
@@ -1184,7 +1184,7 @@ def restore_file(filename, uploaded_time, pagename, request, permanent=False,
                      attached_to_pagename=%(pagename)s and
                      uploaded_time=%(uploaded_time)s and
                      wiki_id=%(wiki_id)s""", dict)
-        filestring = request.cursor.fetchone()[0]
+        filestring = str(request.cursor.fetchone()[0])
         file_obj = (filestring, uploaded_time)
         if permanent and not showrc:
             if not (file_deleted_at_time and keep_deleted_state):
@@ -1285,7 +1285,7 @@ def restore_file(filename, uploaded_time, pagename, request, permanent=False,
                      attached_to_pagename=%(pagename)s and
                      uploaded_time=%(uploaded_time)s and
                      wiki_id=%(wiki_id)s""", dict)
-        filestring = request.cursor.fetchone()[0]
+        filestring = str(request.cursor.fetchone()[0])
         file_obj = (filestring, uploaded_time)
         # insert into current files 
         if permanent and not showrc:

@@ -179,6 +179,7 @@ def display_edits(request, userpage, on_pagename):
                     (version, version-1),
                 guess_case=True, absolute=True)
             formatted_mtime = request.user.getFormattedDateTime(mtime)
+            comment = Comment(request, comment, editType).render()
         else:
             may_read = False
             show_page = """<em>hidden</em>"""
@@ -186,7 +187,6 @@ def display_edits(request, userpage, on_pagename):
             comment = '<em>hidden</em>'
             formatted_mtime = '<em>hidden</em>'
                      
-        comment = Comment(request, comment, editType).render()
 
         if config.wiki_farm:
             if may_read:

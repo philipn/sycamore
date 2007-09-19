@@ -25,7 +25,7 @@ class Theme(ThemeBase):
     """
 
     name = "eggheadbeta"
-    last_modified = '1187065726'
+    last_modified = '1189974570'
     showmap = 0
 
     stylesheets_print = (
