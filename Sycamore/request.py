@@ -664,12 +664,12 @@ class RequestBase(object):
                 else:
                     self.pagename = pagename
 
-            if self.pagename.endswith('/'):
-                pagename = self.pagename[:-1]
-                while pagename.endswith('/'):
-                    pagename = pagename[:-1]
-                url = Page(pagename, self).url(relative=False)
-                self.http_redirect(url, status="301 MOVED PERMANENTLY")
+                if self.pagename.endswith('/'):
+                    pagename = self.pagename[:-1]
+                    while pagename.endswith('/'):
+                        pagename = pagename[:-1]
+                    url = Page(pagename, self).url(relative=False)
+                    self.http_redirect(url, status="301 MOVED PERMANENTLY")
  
         except Page.ExcessiveLength, msg:
             Page(self.config.page_front_page, self).send_page(msg=msg)
