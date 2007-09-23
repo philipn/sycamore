@@ -309,7 +309,7 @@ function createClickProperties(start)
     for (i = start, j = 0; i < wikiLines.length && j < process_chunk_size; i++, j++)
     {
         line = wikiLines[i-1];
-        wikiLines[i-1] = unescape(line);
+        wikiLines[i-1] = decodeURIComponent(line);
         spanWithLine = document.createElement("div");
         spanWithLine.setAttribute('title', "Double click here to edit!");
         try
