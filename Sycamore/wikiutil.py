@@ -1430,7 +1430,7 @@ def send_title(request, text, **keywords):
                              urllib.quote(line.encode(config.charset)))
         wikiLines = ','.join(wikiLines)
         user_head.append(
-            '<script type="text/javascript">var wikiLines = [%s]; '
+            '<script type="text/javascript" charset="utf-8">var wikiLines = [%s]; '
             'var wikiLinesHTML = document.createElement("div");</script>' %
                 wikiLines)
     else:
@@ -1440,7 +1440,8 @@ var curTimestamp = '%s'; var action = '%s'; var may_inline_edit = %s;
 var onLoadStuff = new Array();</script>""" % (config.url_prefix, time.time(),
                                               page.url(), may_inline_edit))
     user_head.append(
-        '<script src="%s%s/utils.js?tm=%s" type="text/javascript"></script>' %
+        '<script src="%s%s/utils.js?tm=%s" type="text/javascript"'
+               ' charset="utf-8"></script>' %
             (config.web_dir, config.url_prefix, request.theme.last_modified))
 
     if keywords.has_key('strict_title') and keywords['strict_title']:
