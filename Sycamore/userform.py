@@ -313,7 +313,7 @@ class UserSettingsHandler(object):
                         'Contact the owner of the wiki, who can either enable '
                         'email, or remove the "Subscribe" icon.')
             try:
-                email = form['email'][0].lower()
+                email = form['email'][0]
             except KeyError:
                 return _("Please provide a valid email address!")
     
