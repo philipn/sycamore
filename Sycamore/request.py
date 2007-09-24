@@ -76,6 +76,31 @@ def setup_wiki_farm(request):
                 return wiki_name
     return None
 
+def canonical_url(request):
+    """
+    If we're in a wiki farm, make sure we're at the canonical
+    location for this wiki -- e.g. their domain if they have
+    one.
+    """
+    from Sycamore import farm
+    if hasattr(request, 'env'):
+        env = request.env
+    else:
+        return False
+    domain = env.get('HTTP_HOST', '')
+    if request.config.domain and not domain == request.config.domain:
+        # we redirect to the canonical location for this wiki:
+        # their proper domain name
+        wiki_url = farm.getWikiURL(request.config.wiki_name, request)
+        query_string = ''
+        if request.query_string:
+            query_string = '?' + request.query_string
+        url = wiki_url + request.path_info[1:] + query_string
+        request.http_redirect(url, status="301 Moved Permanently")
+        return True
+
+    return False
+
 def getRelativeDir(request):
     """
     Sets self.relative_dir to properly reflect config.relative_dir,
@@ -226,6 +251,9 @@ class RequestBase(object):
 
         self.config = config.Config(wiki_name, self,
             process_config=process_config)
+        if canonical_url(self):
+            # We do an http_redirect, so let's just return
+            return
         self.setup_basics()
 
         self.reset()
