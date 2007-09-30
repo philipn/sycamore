@@ -1065,8 +1065,12 @@ class Page(object):
         request = self.request
         _ = request.getText
   
-        is_user_page = self.page_name.startswith(
-            config.user_page_prefix.lower())
+        is_user_page = (self.page_name.startswith(
+            config.user_page_prefix.lower()) and
+            user.User(self.request,
+                      name=self.page_name[
+                        len(config.user_page_prefix):]
+                     ).exists())
 
         if is_user_page:
             self._emptyUserPageText() 
