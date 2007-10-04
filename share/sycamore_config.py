@@ -24,9 +24,11 @@ sitename = 'Our Untitled Wiki'
 interwikiname = None
 interwiki_map = 'Interwiki Map'
 
+# You probably don't need to change this.
 #no slashes at the end on these guys !!
 data_dir = os.path.join(__directory__, 'data')
 
+# You probably don't need to change this.
 # this is the root where, say, a href="/" resolves to (considering whether or not you have a domain)
 web_root = os.path.join(__directory__, 'web')
 
@@ -56,9 +58,9 @@ relative_dir = ''
 # relative_dir can also be of the form (string, quoted parameters), e.g ("wikis/%s", "wiki_name")
 #relative_dir = ("wikis/%s", "wiki_name")
 
-#your domain (used for cookies, etc)
-# uncomment only if you've got a domain
-wiki_base_domain = 'topsikiw.org'
+# uncomment only if you've got a domain:
+# your domain (used for cookies, etc)
+#wiki_base_domain = 'topsikiw.org'
 
 # turn to 0 if you want to disable the built-in talk-page theme stuff
 talk_pages = 1
@@ -78,7 +80,9 @@ tabs_nonuser = ['Front Page', 'People', 'Recent Changes']
 # tabs at teh top of the browser for people who are logged in
 tabs_user = ['Front Page', 'People', 'Bookmarks', 'Recent Changes']
 
-gmaps_api_key = 'ABQIAAAAOEBBNZASx3d_UuJ3mi57ohTEjcm4VSoPxWzMEwTEo7cRC39heBT9fu36vZ2IIW6H_AvpMpBXQQd9Xw'
+# Change this to a google maps API key that *you* generate
+# Don't bother with this if you don't plan on using the google maps.
+gmaps_api_key = 'thisIsNotARealKey!'
 
 wiki_farm_from_wiki_msg = """<div style="float: right; width: 12em; padding: 1em; border: 1px dashed gray; background-color: #ccddff;">%(wiki_name)s is a member of the %(base_wiki_sitename)s community, a nonprofit effort that allows people everywhere to easily collaborate on wikis.<br/><br/>Your account here will work on %(wiki_name)s, the %(base_wiki_name)s hub, and all the other wikis that are part of the %(base_wiki_sitename_link)s community.</div>"""
 
@@ -150,7 +154,8 @@ max_file_size = 5000
 
 mail_smarthost = "localhost"
 #mail_smarthost_auth = ('username', 'password')
-mail_from = "dont_respond@wikispot.org"
+# This should be an email address you own
+mail_from = "dont_respond@example.org"
 
 paypal_address = 'daviswiki@gmail.com'
 paypal_name = 'Wiki Spot'
