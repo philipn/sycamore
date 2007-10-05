@@ -394,7 +394,7 @@ def getFile(request, dict, deleted=False, thumbnail=False, version=0,
             request.mc.add(key, file_obj)
 
     if file_obj:
-        return file_obj[0], file_obj[1]
+        return file_obj[0], float(file_obj[1])
 
 def putFile(request, dict, thumbnail=False, do_delete=False, temporary=False,
             ticket=None, permanent=False):
