@@ -176,7 +176,7 @@ pre {
 /* Link Formatting */
 a:link {
   background-color: inherit;
-  color: #000088;
+  color: #000088!important;
 }
 a:visited {
   background-color: inherit;
@@ -189,9 +189,9 @@ a:hover {
 }
 a.nonexistent, a.badinterwiki {
   background-color: inherit;
-  color: #000088;
-  text-decoration: none;
-  border-bottom: 1px dashed #000088;
+  color: #000088!important;
+  text-decoration: none!important;
+  border-bottom: 1px dashed #000088!important;
 }
 a.nonexistent:hover {
   border-bottom: 0px;
