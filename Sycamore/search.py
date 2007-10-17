@@ -25,6 +25,14 @@ DIVIDERS_RE = r"""!"#$%&'()*+,-./:;<=>?@\[\\\]^_`{|}~"""
 # (only used if we get an error)
 NUM_ENQUIRE_TRIES = 10 
 
+# Limit imposed by xapian's internal btree
+BTREE_SAFE_KEY_LEN = 240
+
+# I know this is repetitive..
+NOT_ALLOWED_CHARS = '><?#[]_{}|~"'
+# ..but we can't import because it's circular
+id_seperator = NOT_ALLOWED_CHARS[0]
+
 def make_id(pagename, wikiname):
     if config.wiki_farm:
         # TODO: let's fix this so we really only send this function one type
@@ -32,19 +40,18 @@ def make_id(pagename, wikiname):
             wikiname = wikiname.encode('utf-8')
         if type(pagename) == unicode:
             pagename = pagename.encode('utf-8')
-        return "%s,%s" % (wikiutil.quoteFilename(wikiname),
-                          wikiutil.quoteFilename(pagename))
+        return "%s%s%s" % (wikiname, id_seperator, pagename)
     else:
-        return wikiutil.quoteFilename(pagename.encode('utf-8'))
+        return pagename.encode('utf-8')
 
 def get_id(id):
     if config.wiki_farm:
-        id_split = id.split(',') 
-        wikiname = wikiutil.unquoteFilename(id_split[0])
-        pagename = wikiutil.unquoteFilename(id_split[1])
+        id_split = id.split(id_seperator) 
+        wikiname = id_split[0]
+        pagename = id_split[1]
         return (pagename, wikiname)
     else:
-        return wikiutil.unquoteFilename(id)
+        return id
 
 def build_regexp(terms):
     """
@@ -497,6 +504,8 @@ def _do_postings(doc, text, id, stemmer, request):
     # exploitable.
     # The reason we use such a unique id is that it's the easiest way to do
     # this using xapian.
+    if len(("Q:%s" % id).encode('utf-8')) > BTREE_SAFE_KEY_LEN:
+        return
     doc.add_term(("Q:%s" % id).encode('utf-8'))
     if config.wiki_farm:
         doc.add_term(("F:%s" % request.config.wiki_name).encode('utf-8'))
@@ -504,7 +513,8 @@ def _do_postings(doc, text, id, stemmer, request):
     doc.add_value(0, id)
 
     for term, pos in get_stemmed_text(text, stemmer):
-        doc.add_posting(term, pos)
+        if len(term) < BTREE_SAFE_KEY_LEN:
+            doc.add_posting(term, pos)
 
 def _search_sleep_time():
     """

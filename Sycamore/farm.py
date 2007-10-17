@@ -91,8 +91,11 @@ def get_name_from_domain(domain, request):
     name = get_name_from_domain_base(domain, request)
     if name:
         return name
+
     if domain.startswith('www'):
         return get_name_from_domain_base(domain[4:], request)
+    else:
+        return get_name_from_domain_base('www.' + domain, request)
 
 def create_config(wikiname, request):
     config_dict = config.reduce_to_local_config(config.CONFIG_VARS)

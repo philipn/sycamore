@@ -32,8 +32,8 @@ from Sycamore import config
 from Sycamore import util
 from Sycamore import wikiutil
 from Sycamore import user
-from Sycamore import search
 from Sycamore import farm
+from Sycamore import search
 from Sycamore.Page import Page
 from Sycamore.util import SycamoreNoFooter, pysupport
 
