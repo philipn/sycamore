@@ -69,7 +69,7 @@ a.nonexistent:visited { color: #000088; }
 a.tinyNonexistent /* used for things like "Talk" links when they don't exist */ {
   text-decoration: none;
   background-color: inherit;
-  color: gray;
+  color: gray!important;
 }
 a.tinyNonexistent:hover {
   cursor: pointer;
