@@ -118,7 +118,7 @@ has_xapian = True
 search_db_location = os.path.join(data_dir, 'search')
 
 # do we want to use the remote sycamore-xapian databse?
-remote_search = ('127.0.0.1', 33432)
+#remote_search = ('127.0.0.1', 33432)
 
 # do we want SSL for authentication?  do we have an HTTPS running, too?
 use_ssl = True
