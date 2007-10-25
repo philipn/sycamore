@@ -766,7 +766,7 @@ class UserSettings:
                 action = '%s/%s' % (self.request.getQualifiedURL(
                                         self.request.getScriptname(),
                                         force_ssl=config.use_ssl),
-                                    wikiutil.quoteWikiName(
+                                    wikiutil.quoteWikiname(
                                         config.page_user_preferences))
         else:
             action = self.request.getScriptname() + self.request.getPathinfo()
