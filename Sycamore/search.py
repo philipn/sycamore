@@ -504,9 +504,9 @@ def _do_postings(doc, text, id, stemmer, request):
     # exploitable.
     # The reason we use such a unique id is that it's the easiest way to do
     # this using xapian.
-    if len(("Q:%s" % id).encode('utf-8')) > BTREE_SAFE_KEY_LEN:
+    if len(("Q:%s" % id)) > BTREE_SAFE_KEY_LEN:
         return
-    doc.add_term(("Q:%s" % id).encode('utf-8'))
+    doc.add_term(("Q:%s" % id))
     if config.wiki_farm:
         doc.add_term(("F:%s" % request.config.wiki_name).encode('utf-8'))
 
