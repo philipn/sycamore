@@ -34,6 +34,8 @@ web_root = os.path.join(__directory__, 'web')
 
 # roughly, this is what's after the url if your wiki is in a directory
 # no trailing slash
+# examples: web_dir = '' # (not in a directory)
+#           web_dir = '/mywiki' # (sits in mywiki directory)
 web_dir = ''
 
 # this is the directory where the images and javascript for wiki stuff is stored
