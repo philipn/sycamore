@@ -323,9 +323,9 @@ class UserSettingsHandler(object):
                 theuser = user.User(self.request, uid)
                 if theuser.valid:
                     code = self.createCode(theuser.id)
+                    sitename = farm.getBaseWikiFullName(self.request)
                     if config.wiki_farm:
                         url = farm.getBaseFarmURL(self.request)
-                        sitename = farm.getBaseWikiFullName(self.request)
                     else:
                         url = '%s/' % self.request.getBaseURL()
                     text = ("Go here to automatically log into %s: "
