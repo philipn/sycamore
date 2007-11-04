@@ -1088,6 +1088,7 @@ def do_edit(pagename, request):
 def isValidPageName(name):
     return (not re.search('[%s]' % re.escape(NOT_ALLOWED_CHARS), name) and
             len(name) <= MAX_PAGENAME_LENGTH and
+            not name.lower() == 'robots.txt' and
             # XXX Google Webmaster Tools cludge
             # This prevents random users from deindexing wikis! :-0
             # TODO: allow admin creation of such pages
