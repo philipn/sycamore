@@ -895,17 +895,6 @@ class User(object):
         else: 
             return datetime.tmtuple(tm + self.request.config.tz_offset)
 
-    def userTimeToUTC(self, time_tuple):
-        """
-        Converts a users' time tuple into UTC.
-        @return: tm unix timestamp in UTC
-        """
-        import calendar
-        tz = pytz.timezone(self.tz)
-        time_tuple_with_tz = list(time_tuple).append(tz)
-        d = datetime.datetime(time_tuple)
-        return calendar.timegm(d.timetuple())
-
     def getFormattedDate(self, tm):
         """
         Get formatted date adjusted for user's timezone.
