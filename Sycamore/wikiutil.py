@@ -71,6 +71,28 @@ def prepareAllProperties():
   d = {}
   return d
 
+def timeInTzToUTC(tz, time_tuple):
+    """
+    Converts a time tuple into UTC.
+    @return: tm unix timestamp in UTC
+    """
+    import calendar, datetime
+    tz = pytz.timezone(tz)
+    localize_time = tz.localize(datetime.datetime(*time_tuple))
+    utc_time = localized_time.astimezone(pytz.timezone('UTC'))
+    return calendar.timegm(utc_time.timetuple())
+
+def timeInUnixToLocal(tz, tm):
+    """
+    Converts a time in unix time to local timezone.
+    @return: time tuple.
+    """
+    import calendar, datetime
+    tz = pytz.timezone(tz)
+    utc = pytz.timezone('UTC')
+    utc_time = utc.localize(datetime.datetime.utcfromtimestamp(tm))
+    return utc_time.astimezone(tz).timetuple()
+
 def simpleParse(request, text):
     # this needs to convert all the basic formatting to HTML
     # so the ''text'' stuff, along with [http://myurl.com url] -> a href

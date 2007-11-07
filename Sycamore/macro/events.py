@@ -132,8 +132,9 @@ def full_events(events, are_events_today, htmltext, macro):
             event_name = event[5]
             # we store it as a general time and we convert it to a local time..
             event_time_unix = event[1]
-            event_time_struct = time.gmtime(event_time_unix + 
-                                            macro.request.user.tz_offset)
+
+            event_time_struct = wikiutil.timeInUnixToLocal(
+                                    macro.request.config.tz, event_time_unix)
             year = event_time_struct[0]
             month = event_time_struct[1]
             day = event_time_struct[2]
@@ -164,6 +165,8 @@ def full_events(events, are_events_today, htmltext, macro):
                    ptime = str(hour) + ":" + str(minute) + " AM"  
                 else:
                    ptime = str(hour) + ":00 AM"
+
+            ptime = "%s (%s)" % (ptime, macro.request.config.tz)
                 
             # This is where we want to run through the wiki processor        
             text = event[3]

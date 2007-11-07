@@ -24,6 +24,12 @@ from Sycamore import wikiutil
 from Sycamore import wikidb
 from Sycamore.util import datetime
 
+#import pytz from support
+import sys, os.path
+__directory__ = os.path.dirname(__file__)
+sys.path.extend([os.path.abspath(os.path.join(__directory__, 'support'))])
+import pytz
+
 #############################################################################
 ### Helpers
 #############################################################################
@@ -895,8 +901,10 @@ class User(object):
         @return: tm unix timestamp in UTC
         """
         import calendar
-        unix_time = calendar.timegm(time_tuple)
-        return unix_time - self.tz_offset
+        tz = pytz.timezone(self.tz)
+        time_tuple_with_tz = list(time_tuple).append(tz)
+        d = datetime.datetime(time_tuple)
+        return calendar.timegm(d.timetuple())
 
     def getFormattedDate(self, tm):
         """

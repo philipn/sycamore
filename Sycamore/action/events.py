@@ -110,8 +110,9 @@ def execute(pagename, request):
             if (isValid(event_text, event_name, event_location, month, day,
                        hour, minute, year) and not
                hasPassed(month, day, hour,minute, year, request)):
-                event_time_unix = request.user.userTimeToUTC(
-                    (year, month, day, hour, minute, 0, 0, 0, -1))
+                event_time_unix = wikiutil.timeInTzToUTC(
+                    request.config.tz,
+                    (year, month, day, hour, minute, 0, 0))
                 writeEvent(request, event_text, event_name,
                            event_location, event_time_unix, posted_by)
                 msg = _('Your event has been added!')
