@@ -78,7 +78,7 @@ def timeInTzToUTC(tz, time_tuple):
     """
     import calendar, datetime
     tz = pytz.timezone(tz)
-    localize_time = tz.localize(datetime.datetime(*time_tuple))
+    localized_time = tz.localize(datetime.datetime(*time_tuple))
     utc_time = localized_time.astimezone(pytz.timezone('UTC'))
     return calendar.timegm(utc_time.timetuple())
 
