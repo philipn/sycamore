@@ -247,7 +247,6 @@ _cfg_defaults_global = {
     'lowerletters': ('0-9a-z\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe8\xe9\xea\xeb\xec'
                      '\xed\xee\xef\xf2\xf3\xf4\xf5\xf6'
                      '\xf8\xf9\xfa\xfb\xfc\xfd\xff\xb5\xdf\xe7\xf0\xf1\xfe'),
-    'mail_login': None, # or "user pwd" if you need to use SMTP AUTH
     'mail_port': 25,
     'mail_smarthost': None,
     'mail_smarthost_auth': None,
