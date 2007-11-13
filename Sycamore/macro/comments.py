@@ -43,7 +43,7 @@ def execute(macro, args, formatter=None):
                       'onKeyPress="sizeTextField(this.id,event)">'
             '</textarea>\n'
             '<input style="display: none;" type="submit" name="button_dont" '
-                    'value="Dont press me">'
+                    'value="Dont press me">\n'
             '<input type="hidden" name="button" value="Add Comment">\n'
             '<input class="formbutton" type="submit" name="button" '
                     'value="Add Comment">'

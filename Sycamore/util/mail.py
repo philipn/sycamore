@@ -64,13 +64,17 @@ def sendmail(request, to, subject, text, **kw):
         # no message-id. if you still have py 2.2.1, you like it old and broken
         
     try:
-        server = smtplib.SMTP(config.mail_smarthost, 25, config.domain)
+        server = smtplib.SMTP(config.mail_smarthost, config.mail_port, config.domain)
         try:
+            if config.use_tls:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
             #server.set_debuglevel(1)
-            if config.mail_login:
-                user, pwd = config.mail_login
+            if config.mail_smarthost_auth:
+                user, pwd = config.mail_smarthost_auth
                 server.login(user, pwd)
-            server.sendmail(mail_from, to, msg.as_string())
+                server.sendmail(mail_from, to, msg.as_string())
         finally:
             try:
                 server.quit()

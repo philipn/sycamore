@@ -248,6 +248,7 @@ _cfg_defaults_global = {
                      '\xed\xee\xef\xf2\xf3\xf4\xf5\xf6'
                      '\xf8\xf9\xfa\xfb\xfc\xfd\xff\xb5\xdf\xe7\xf0\xf1\xfe'),
     'mail_login': None, # or "user pwd" if you need to use SMTP AUTH
+    'mail_port': 25,
     'mail_smarthost': None,
     'mail_smarthost_auth': None,
     'mail_from': None,
@@ -322,6 +323,7 @@ _cfg_defaults_global = {
     'url_mappings': {},
     'user_page_prefix': 'Users/',
     'use_ssl': False,
+    'use_tls': False,
     'valid_image_extensions': ['.gif', '.jpe', '.jpeg', '.jpg', '.png'],
     'web_dir' : '',
     'web_root': '/var/www/html',
