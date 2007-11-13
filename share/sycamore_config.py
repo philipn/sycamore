@@ -158,6 +158,9 @@ mail_smarthost = "localhost"
 #mail_smarthost_auth = ('username', 'password')
 # This should be an email address you own
 mail_from = "dont_respond@example.org"
+mail_port = 25
+# TLS is for SSL email
+use_tls = False
 
 paypal_address = 'daviswiki@gmail.com'
 paypal_name = 'Wiki Spot'
