@@ -74,7 +74,7 @@ def sendmail(request, to, subject, text, **kw):
             if config.mail_smarthost_auth:
                 user, pwd = config.mail_smarthost_auth
                 server.login(user, pwd)
-                server.sendmail(mail_from, to, msg.as_string())
+            server.sendmail(mail_from, to, msg.as_string())
         finally:
             try:
                 server.quit()
