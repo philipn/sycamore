@@ -31,6 +31,7 @@ def execute(pagename, request):
     oldtext = page.get_raw_body()
     everything_is_okay = 0
 
+    print request.form
     # be extra paranoid
     if (actname in config.excluded_actions or not
         request.user.may.edit(page) or
