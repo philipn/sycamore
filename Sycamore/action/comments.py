@@ -31,7 +31,6 @@ def execute(pagename, request):
     oldtext = page.get_raw_body()
     everything_is_okay = 0
 
-    print request.form
     # be extra paranoid
     if (actname in config.excluded_actions or not
         request.user.may.edit(page) or
@@ -45,7 +44,7 @@ def execute(pagename, request):
         msg = _('This page does not exist.')
 
     # check whether the user clicked the delete button
-    elif request.form.has_key('button') and \
+    elif request.form.has_key('button_do') and \
         request.form.has_key('comment_text'):
         # check whether this is a valid renaming request (make outside
         # attacks harder by requiring two full HTTP transactions)

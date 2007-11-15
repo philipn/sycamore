@@ -47,7 +47,7 @@ def execute(macro, args, formatter=None):
             '<input class="formbutton" type="submit" name="button_dont" '
                     'value="Dont press me">\n'
             '</span>'
-            '<input class="formbutton" type="submit" name="button" '
+            '<input class="formbutton" type="submit" name="button_do" '
                     'value="Add Comment">\n'
             '</p>\n'
             '</form>' % {'title': title,
