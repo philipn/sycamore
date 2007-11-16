@@ -34,7 +34,9 @@ def execute(pagename, request):
     # be extra paranoid
     if (actname in config.excluded_actions or not
         request.user.may.edit(page) or
-        request.form.has_key('button_dont') # bot
+        # bot checks
+        request.form.has_key('button_dont') or
+        request.form.has_key('comment_dont')
         ):
             msg = _('You are not allowed to edit this page. '
                     '(An account is needed in most cases)')
