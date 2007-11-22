@@ -290,7 +290,7 @@ class Parser(SimpleParser):
             # return the complete cell markup           
             return leader + self.formatter.table_cell(1, attrs) + attrerr
         else:
-            return word
+            return wikiutil.escape(word)
 
     def _heading_repl(self, word):
         """
