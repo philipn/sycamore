@@ -60,6 +60,7 @@ def execute(macro, args, formatter=None):
     request = macro.request
 
     text = []
+    text.append('<div style="float: left; width: 40%;">')
     text.append(formatter.heading(2, "Recently created wikis"))
     text.append(formatter.bullet_list(1))
 
@@ -70,9 +71,11 @@ def execute(macro, args, formatter=None):
         text.append('%s%s%s' %
                     (formatter.listitem(1), link, formatter.listitem(0)))
     text.append(formatter.bullet_list(0))
+    text.append('</div>')
 
     set_recent_wikis_cache(request, recent_wikis)
 
+    text.append('<div style="float: right; width: 40%;">')
     text.append(formatter.heading(2, "Recently edited wikis"))
     text.append(formatter.bullet_list(1))
 
@@ -83,6 +86,7 @@ def execute(macro, args, formatter=None):
         text.append('%s%s%s' %
                     (formatter.listitem(1), link, formatter.listitem(0)))
     text.append(formatter.bullet_list(0))
+    text.append('</div>')
 
     set_recently_edited_cache(request, recently_edited)
 
