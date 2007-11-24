@@ -95,7 +95,8 @@ def canonical_url(request):
         query_string = ''
         if request.query_string:
             query_string = '?' + request.query_string
-        url = wiki_url + request.path_info[1:] + query_string
+        url = (wiki_url.encode(config.charset) + request.path_info[1:] +
+               query_string)
         request.http_redirect(url, status="301 Moved Permanently")
         return True
 
