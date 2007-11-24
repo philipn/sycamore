@@ -90,5 +90,7 @@ def execute(macro, args, formatter=None):
 
     set_recently_edited_cache(request, recently_edited)
 
+    text.append('<div style="clear:both;"></div>')
+
     output_html = formatter.rawHTML(''.join(text))
     return output_html
