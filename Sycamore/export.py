@@ -175,7 +175,7 @@ def start_wiki(request, file):
 def wiki_settings(request, file):
     local_config = config.reduce_to_local_config(
         request.config.__dict__)
-    file.write(('<settings %s />\n' %
+    file.write('<settings %s />\n' %
                generate_attributes(local_config))
 
 def start_pages(request, file):
