@@ -29,17 +29,20 @@ def execute(pagename, request):
     msg = ''
     oldtext = page.get_raw_body().lower()
 
+    events_page = Page("Events Board", request) 
+
     # Do we want an RSS feed?
-    if request.form.has_key('rss'):
-        if request.form.get("rss")[0] == "1":
-            request.http_headers()
-            request.write(doRSS(request))
-            raise util.SycamoreNoFooter
-            return
+    if (request.form.has_key('rss') and request.form.get("rss")[0] == 1 and
+        request.user.may.read(events_page)):
+        request.http_headers()
+        request.write(doRSS(request))
+        raise util.SycamoreNoFooter
+        return
 
     # be extra paranoid
-    elif (actname in config.excluded_actions or not
-          request.user.valid):
+    elif (actname in config.excluded_actions or
+          not request.user.valid or not request.user.may.edit(events_page) or
+          not request.user.may.edit(page)):
         msg = _('You are not allowed to edit this page. '
                 '(You need an account in most cases)')
     # check to make sure the events macro is in the page

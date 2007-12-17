@@ -222,7 +222,10 @@ class SiteSettingsSecurityHandler(object):
             # intialize default rights
             default_rights = {}
             for groupname in grouplist:
-                default_rights[groupname] = [False, False, False, False]
+                if groupname == 'Admin':
+                    default_rights['Admin'] = [True, True, True, True]
+                else:
+                    default_rights[groupname] = [False, False, False, False]
 
             for key in form: 
                 if key.endswith('_may_read'):

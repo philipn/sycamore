@@ -1092,7 +1092,7 @@ def isValidPageName(name):
             # XXX Google Webmaster Tools cludge
             # This prevents random users from deindexing wikis! :-0
             # TODO: allow admin creation of such pages
-            not (name.startswith('google') and name.endswith('.html')))
+            not (name.endswith('html') or name.endswith('.htm')))
 
 def do_savepage(pagename, request):
     from Sycamore.PageEditor import PageEditor

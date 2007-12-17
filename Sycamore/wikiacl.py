@@ -33,6 +33,10 @@ class AccessControlList:
         Initialize an ACL.
         """
         self.acl_dict_defaults = request.config.acl_rights_default
+        if not dict:
+            self.default_acl = True
+        else:
+            self.default_acl = False
         self.acl_dict = dict
 
     def grouplist(self):
@@ -220,6 +224,8 @@ class Group(object):
         Return (may read, may edit, may delete, may admin) tuple of
         default rights for the group.
         """
+        if self.name == 'Admin':
+            return (True, True, True, True)
         return self.acl_rights_default
 
     def set_default_rights(self, default_rights, request):

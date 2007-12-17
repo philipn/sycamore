@@ -30,6 +30,11 @@ def getText(nodelist):
 def execute(macro, args, formatter=None):
     if not formatter:
         formatter=macro.formatter
+
+    events_page = Page('Events Board', macro.request)
+    if not macro.request.user.may.read(events_page):
+        return ''
+
     htmltext = []
     do_mini = False
     if args == 'mini':

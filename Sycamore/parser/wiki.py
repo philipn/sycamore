@@ -209,13 +209,13 @@ class Parser(SimpleParser):
             elif self.formatter.just_printed_heading:
                 if _is_heading(line):
                     self.force_print_p = False
-                    self.formatter.just_printed_heading = False
                 else:
-                    self.inhibit_br -= 1 
-                    self.force_print_p = True
                     if not self.formatter.in_p and not self.in_table:
                         self.force_print_p = False
                         self.request.write(self.formatter.paragraph(1))
+                        self.inhibit_br -= 1 
+                        self.force_print_p = True
+                    self.formatter.just_printed_heading = False
             elif (self.force_print_p and not self.formatter.in_p and not
                   self.in_table):
                 self.force_print_p = False
