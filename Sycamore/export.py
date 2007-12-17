@@ -176,7 +176,7 @@ def wiki_settings(request, file):
     local_config = config.reduce_to_local_config(
         request.config.__dict__)
     file.write(('<settings %s />\n' %
-               generate_attributes(local_config).encode(config.charset))
+               generate_attributes(local_config))
 
 def start_pages(request, file):
     file.write('<pages>\n')
