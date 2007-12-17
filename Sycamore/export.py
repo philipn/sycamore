@@ -170,13 +170,13 @@ def start_wiki(request, file):
         'sitename': request.config.sitename
     }
     text = '<wiki %s>\n' % generate_attributes(d)
-    file.write(text)
+    file.write(text.encode(config.charset))
 
 def wiki_settings(request, file):
     local_config = config.reduce_to_local_config(
         request.config.__dict__)
-    file.write('<settings %s />\n' %
-               generate_attributes(local_config))
+    file.write(('<settings %s />\n' %
+               generate_attributes(local_config).encode(config.charset))
 
 def start_pages(request, file):
     file.write('<pages>\n')
@@ -385,7 +385,7 @@ def events(request, file):
         text = result[6]
 
         file.write('<event %s>' % generate_attributes(d))
-        file.write(text)
+        file.write(text.encode(config.charset))
         file.write('</event>\n')
         
     end_events(request, file)
@@ -543,6 +543,7 @@ if __name__ == '__main__':
     print "     public can see."
     grab_level = raw_input().strip()
     if grab_level == '2':
+        command_line = False
         request.user = user.User(req)
 
     export(req, wiki_name=wiki_name)
