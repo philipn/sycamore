@@ -32,7 +32,7 @@ def execute(pagename, request):
     events_page = Page("Events Board", request) 
 
     # Do we want an RSS feed?
-    if (request.form.has_key('rss') and request.form.get("rss")[0] == 1 and
+    if (request.form.has_key('rss') and request.form.get("rss")[0] == '1' and
         request.user.may.read(events_page)):
         request.http_headers()
         request.write(doRSS(request))
