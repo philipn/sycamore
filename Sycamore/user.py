@@ -244,7 +244,7 @@ class User(object):
         
         if auth_username:
             self.auth_username = auth_username
-        elif request:
+        elif request and hasattr(request, 'auth_username'):
             self.auth_username = request.auth_username
         else:
             self.auth_username = ""
@@ -301,7 +301,8 @@ class User(object):
         self.remember_me = 1
         logged_in_via_cookie = False
 
-        if not self.auth_username and not self.id and not self.name:
+        if (not self.auth_username and not self.id and not self.name and
+            hasattr(request, 'saved_cookie')):
             try:
                 cookie = Cookie.SimpleCookie(request.saved_cookie)
             except Cookie.CookieError:

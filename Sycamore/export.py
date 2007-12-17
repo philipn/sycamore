@@ -535,6 +535,15 @@ if __name__ == '__main__':
 
     sys.stdout.write("Enter the wiki shortname: ")
     wiki_name = raw_input().strip().lower()
-    req = request.RequestDummy()
+
+    req = request.RequestDummy(wiki_name=wiki_name)
+
+    print "  1) Admin grab -- everything no matter what"
+    print "  2) Unprivileged user grab -- only what non-logged in"
+    print "     public can see."
+    grab_level = raw_input().strip()
+    if grab_level == '2':
+        request.user = user.User(req)
+
     export(req, wiki_name=wiki_name)
     req.db_disconnect()
