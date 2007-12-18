@@ -242,8 +242,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1,
                           '&nbsp;(<a href="%s?action=%s&string=%s&pstart=%s">'
                          'next %s matches</a>)</div></dl>' %
                          (request.getScriptname(), action,
-                          urllib.quote_plus(needle.encode()), pstart+pwith,
-                          pwith))
+                          urllib.quote_plus(needle.encode(config.charset)),
+                          pstart+pwith, pwith))
         else:
             request.write('</div></dl>')
 
