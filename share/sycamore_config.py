@@ -18,7 +18,6 @@ __directory__ = os.path.dirname(os.path.abspath(__file__))
 from blacklist import *
 
 # basic options (you normally need to change these)
-wiki_farm = True
 wiki_name = 'wikispot'
 sitename = 'Our Untitled Wiki'
 interwikiname = None
@@ -127,12 +126,12 @@ use_ssl = True
 
 # farm settings
 # leave blank unless you want a wiki farm
-wiki_farm = True
-wiki_farm_dir = ''
-wiki_farm_subdomains = True
+#wiki_farm = True
+#wiki_farm_dir = ''
+#wiki_farm_subdomains = True
 # turn on web based wiki creation to allow _anyone_ that can access your site to create a wiki
 # don't turn this on unless you know what you're doing, 'mate!
-allow_web_based_wiki_creation = True
+#allow_web_based_wiki_creation = True
 
 page_footer1 = '<div class="wikiSpotFooter">This is a <a href="http://wikispot.org/">Wiki Spot</a> wiki.  Wiki Spot is a non-profit organization that helps communities collaborate via wikis.</div>'
 
