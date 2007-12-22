@@ -15,7 +15,7 @@ sys.path.extend([os.path.abspath(os.path.join(__directory__, '..', '..'))]),
 
 # if you are using this as an "external" fastcgi server, leave this the way it is.
 # (e.g. FastCgiExternalServer in Apache or when using host/local options in lighttpd)
-bindAddress = ('localhost', 8892)
+bindAddress = ('localhost', 8882)
 # ..otherwise, uncomment this line:
 #bindAddress = None
 
