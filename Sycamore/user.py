@@ -157,7 +157,7 @@ def userPageChangedState(page, action):
     elif action == 'SAVENEW':
         the_user.addUserPage(page.wiki_name)
         # We add the page to the user's bookmarks.
-        the_user.favoritePage(page)
+        the_user.favoritePage(page, by_user=False)
 
 def unify_userpage(request, word, text, prefix=False):
     """
@@ -1443,7 +1443,7 @@ class User(object):
         return False
 
 
-    def favoritePage(self, page):
+    def favoritePage(self, page, by_user=True):
         """
         Favorite a wiki page.
         
@@ -1454,7 +1454,10 @@ class User(object):
         if self.valid and self.name and not self.favorites:
             self.favorites = self.getFavorites()
         if not self.isFavoritedTo(page):
-            timenow = time.time()
+            if by_user:
+                timenow = time.time()
+            else:
+                timenow = 0
             if not self.favorites.has_key(page.wiki_name):
                 self.favorites[page.wiki_name] = {}
             self.favorites[page.wiki_name][page.page_name] = timenow
