@@ -1067,7 +1067,7 @@ def restore_file(filename, uploaded_time, pagename, request, permanent=False,
                     {'filename':filename, 'pagename':lower_pagename,
                      'uploaded_time':uploaded_time,
                      'wiki_id':request.config.wiki_id})
-                filecontent = request.cursor.fetchone()[0]
+                filecontent = str(request.cursor.fetchone()[0])
                 suspect_css = wikiutil.is_suspect_css(filecontent)
                 if suspect_css:
                     upload_form(pagename, request,
@@ -1086,7 +1086,7 @@ def restore_file(filename, uploaded_time, pagename, request, permanent=False,
                      wiki_id=%(wiki_id)s""",
             {'filename':filename, 'pagename':lower_pagename,
              'uploaded_time':uploaded_time, 'wiki_id':request.config.wiki_id})
-        filecontent = request.cursor.fetchone()[0]
+        filecontent = str(request.cursor.fetchone()[0])
         try:
             im = openImage(filecontent)
         except IOError:
