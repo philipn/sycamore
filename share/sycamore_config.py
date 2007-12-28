@@ -122,7 +122,9 @@ search_db_location = os.path.join(data_dir, 'search')
 #remote_search = ('127.0.0.1', 33432)
 
 # do we want SSL for authentication?  do we have an HTTPS running, too?
-use_ssl = True
+# Note: before turning this on you need to be running an https pointed
+# at a sycamore instance
+use_ssl = False
 
 # farm settings
 # leave blank unless you want a wiki farm
