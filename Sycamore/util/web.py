@@ -13,6 +13,7 @@ import urllib
 from Sycamore import config
 
 from Sycamore.widget import html
+from Sycamore.support.IPy import IP
 
 _ua_match = None
 
@@ -21,13 +22,10 @@ def isIpAddress(addr):
     XXX THIS ONLY SUPPORTS IPv4
     """
     try:
-        s_addr = map(int, addr.split('.'))
-        is_octet = True
-        for o in s_addr:
-            is_octet = is_octet and 0 <= o and o <= 255
-        return len(s_addr) == 4 and is_octet
+        IP(addr)
     except ValueError:
         return False
+    return True
 
 def isSpiderAgent(**kw):
     """
