@@ -118,10 +118,6 @@ def execute(macro, args, formatter=None):
     links = []
     for w_result in wanted_results:
         if old_pagename.startswith(config.user_page_prefix.lower()):
-            if not show_users:
-                old_pagename_propercased = w_result[0]
-                old_pagename = old_pagename_propercased.lower()
-                continue
             if user.unify_userpage(macro.request, old_pagename, old_pagename):
                 theusername = old_pagename[len(config.user_page_prefix):]
                 theuser = user.User(macro.request, name=theusername)
@@ -139,7 +135,9 @@ def execute(macro, args, formatter=None):
             links.append(w_result[1])
         else:
             # done counting -- we now append to the wanted list
-            wanted.append((old_pagename_propercased, num_links, links))
+            if not (old_pagename.startswith(config.user_page_prefix.lower()) and
+                not show_users):
+                wanted.append((old_pagename_propercased, num_links, links))
             num_links = 1
             links = [w_result[1]]
             old_pagename_propercased = new_pagename_propercased
