@@ -41,22 +41,42 @@ def showUsers(request):
     return (request.form.has_key("show_users") and
             request.form["show_users"][0] == "true")
 
-def execute(macro, args, formatter=None):
-    if not formatter:
-        formatter = macro.formatter
-    _ = macro.request.getText
-
-    # prevent recursive calls
-    global _guard
-    if _guard:
-        return ''
-    html = []
-
-    # flush request output because this may take a second to generate
-    macro.request.flush()
-
-    # build a list of wanted pages tuples.  (pagename, k) where k is the number of links to pagename
+def where_wanted_from(wanted_results, macro):
     wanted = []
+    old_pagename_propercased = wanted_results[0][0]
+    old_pagename = old_pagename_propercased.lower()
+    num_links = 0
+    links = []
+    for w_result in wanted_results:
+        if old_pagename.startswith(config.user_page_prefix.lower()):
+            if user.unify_userpage(macro.request, old_pagename, old_pagename):
+                theusername = old_pagename[len(config.user_page_prefix):]
+                theuser = user.User(macro.request, name=theusername)
+                if (theuser.wiki_for_userpage and
+                    (theuser.wiki_for_userpage !=
+                     macro.request.config.wiki_name)):
+                    old_pagename_propercased = w_result[0]
+                    old_pagename = old_pagename_propercased.lower()
+                    continue
+
+        new_pagename_propercased = w_result[0]
+        new_pagename = new_pagename_propercased.lower()
+        if old_pagename == new_pagename:
+            num_links += 1
+            links.append(w_result[1])
+        else:
+            # done counting -- we now append to the wanted list
+            if not (old_pagename.startswith(config.user_page_prefix.lower()) and
+                not showUsers(macro.request)):
+                wanted.append((old_pagename_propercased, num_links, links))
+            num_links = 1
+            links = [w_result[1]]
+            old_pagename_propercased = new_pagename_propercased
+            old_pagename = old_pagename_propercased.lower()
+    wanted.append((old_pagename_propercased, num_links, links))
+    return wanted
+
+def raw_wanted_results(macro):
     cursor = macro.request.cursor
     if showUsers(macro.request):
         cursor.execute(
@@ -104,53 +124,62 @@ def execute(macro, args, formatter=None):
                      ORDER BY destination_pagename""",
             {'wiki_id':macro.request.config.wiki_id})
       
-    show_users = showUsers(macro.request)
-    dont_append = False
     wanted_results = cursor.fetchall()
+    return wanted_results
+
+def output_complete_wanted_list(wanted, macro):
+    for name, links, source_pagenames in wanted:
+        macro.request.write('<li value="%s">' % links)
+        macro.request.write(Page(name, macro.request).link_to(
+                know_status=True, know_status_exists=False) +
+            ": ")
+        macro.request.write(Page(source_pagenames[0], macro.request).link_to(
+                know_status=True, know_status_exists=True))
+        if len(source_pagenames) > 1:
+            for p in source_pagenames[1:-1]:
+                macro.request.write(", " +
+                    Page(p, macro.request).link_to(know_status=True,
+                                                   know_status_exists=True))
+            macro.request.write(", " +
+                Page(source_pagenames[-1], macro.request).link_to(
+                        know_status=True, know_status_exists=True))
+        macro.request.write("</li>")
+
+def execute(macro, args, formatter=None):
+    if not formatter:
+        formatter = macro.formatter
+    _ = macro.request.getText
+
+    # prevent recursive calls
+    global _guard
+    if _guard:
+        return ''
+    html = []
+
+    # flush request output because this may take a second to generate
+    macro.request.flush()
+
+    # build a list of wanted pages tuples.
+    # (pagename, k) where k is the number of links to pagename
+    wanted_results = raw_wanted_results(macro)
+
     if not wanted_results:
         macro.request.write("<p>%s</p>" % _("No wanted pages in this wiki."))
         return ''
 
-    # we have wanted pages
-    old_pagename_propercased = wanted_results[0][0]
-    old_pagename = old_pagename_propercased.lower()
-    num_links = 0
-    links = []
-    for w_result in wanted_results:
-        if old_pagename.startswith(config.user_page_prefix.lower()):
-            if user.unify_userpage(macro.request, old_pagename, old_pagename):
-                theusername = old_pagename[len(config.user_page_prefix):]
-                theuser = user.User(macro.request, name=theusername)
-                if (theuser.wiki_for_userpage and
-                    (theuser.wiki_for_userpage !=
-                     macro.request.config.wiki_name)):
-                    old_pagename_propercased = w_result[0]
-                    old_pagename = old_pagename_propercased.lower()
-                    continue
+    # we have wanted pages, so let's generate a list of
+    # where the wanted pages are wanted from
+    wanted = where_wanted_from(wanted_results, macro)
 
-        new_pagename_propercased = w_result[0]
-        new_pagename = new_pagename_propercased.lower()
-        if old_pagename == new_pagename:
-            num_links += 1
-            links.append(w_result[1])
-        else:
-            # done counting -- we now append to the wanted list
-            if not (old_pagename.startswith(config.user_page_prefix.lower()) and
-                not show_users):
-                wanted.append((old_pagename_propercased, num_links, links))
-            num_links = 1
-            links = [w_result[1]]
-            old_pagename_propercased = new_pagename_propercased
-            old_pagename = old_pagename_propercased.lower()
-    wanted.append((old_pagename_propercased, num_links, links))
-    
     # find the 'most wanted' pages
     wanted.sort(comparey)
     most_wanted = wanted[0:60]
     #alphabetize these
     most_wanted.sort(comparey_alpha)
+
     # usually 'Wanted Page' or something such
     pagename = macro.request.getPathinfo()[1:] 
+
     if not showUsers(macro.request):
         html.append('<div style="float: right;">'
                     '<div class="actionBoxes"><span>%s</span></div></div>' %
@@ -171,6 +200,7 @@ def execute(macro, args, formatter=None):
                   'padding-left: 7px; padding-right: 7px; width: 760px; '
                   'solid 1px #eee; background: #f5f5f5; '
                   'border: 1px solid rgb(170, 170, 170); ">\n')
+
     # find the max number of links
     number_list = []
     for name, number, source_name in most_wanted:
@@ -196,25 +226,10 @@ def execute(macro, args, formatter=None):
     macro.request.write(''.join(html))
     macro.request.write('<p>What follows is a list of all "wanted" pages.  '
                         'Each wanted page includes a list, following it, of '
-                        'all the pages where it is referred to:</p>\n'
-                        '<ol>\n')
+                        'all the pages where it is referred to:</p>\n')
 
-    for name, links, source_pagenames in wanted:
-        macro.request.write('<li value="%s">' % links)
-        macro.request.write(Page(name, macro.request).link_to(
-                know_status=True, know_status_exists=False) +
-            ": ")
-        macro.request.write(Page(source_pagenames[0], macro.request).link_to(
-                know_status=True, know_status_exists=True))
-        if len(source_pagenames) > 1:
-            for p in source_pagenames[1:-1]:
-                macro.request.write(", " +
-                    Page(p, macro.request).link_to(know_status=True,
-                                                   know_status_exists=True))
-            macro.request.write(", " +
-                Page(source_pagenames[-1], macro.request).link_to(
-                        know_status=True, know_status_exists=True))
-        macro.request.write("</li>")
+    macro.request.write('<ol>\n')
+    output_complete_wanted_list(wanted, macro)
     macro.request.write("</ol>")
 
     return ''
