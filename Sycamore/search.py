@@ -391,7 +391,14 @@ if config.has_xapian:
                     else:
                         word.append(c)
                 if word:
+                    this_word_differed = (
+                        unstemmed_terms[i] != corrected_terms[i]
+                    )
+                    if html and this_word_differed:
+                        correct_string.append('<strong>')
                     correct_string += corrected_terms[i]
+                    if html and this_word_differed:
+                        correct_string.append('</strong>')
 
                 return ''.join(correct_string)
 
@@ -406,6 +413,7 @@ if config.has_xapian:
                 self.spelling_database.get_spelling_suggestion(word) or word
                 for word in flatten(self.unstemmed_terms)
             ]
+
             corrected_needle = _fill_in_corrected(corrected_terms)
             corrected_html = _fill_in_corrected(corrected_terms, html=True)
 
