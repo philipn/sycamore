@@ -33,6 +33,10 @@ NOT_ALLOWED_CHARS = '><?#[]_{}|~"'
 # ..but we can't import because it's circular
 id_seperator = NOT_ALLOWED_CHARS[0]
 
+# How many results can a spelling-corrected query differ
+# from a normal query before we display the correction?
+SPELLING_DELTA = 1
+
 def make_id(pagename, wikiname):
     if config.wiki_farm:
         # TODO: let's fix this so we really only send this function one type
@@ -55,7 +59,8 @@ def get_id(id):
 
 def build_regexp(terms):
     """
-    builds a query out of the terms.  Takes care of things like "quoted text" properly
+    Builds a query out of the terms.
+    Takes care of things like "quoted text" properly
     """
     regexp = []
     for term in terms:
@@ -83,6 +88,11 @@ def find_num_matches(regexp, text):
         found = regexp.search(text[loc:])
 
     return i
+
+def flatten(L):
+    if type(L) != type([]): return [L]
+    if L == []: return L
+    return flatten(L[0]) + flatten(L[1:])
 
 def isdivider(w):
     """
@@ -187,6 +197,8 @@ class SearchBase(object):
 
         return nice_terms
 
+    def spelling_suggestion():
+        pass
 
 if config.has_xapian:
     import xapian
@@ -205,10 +217,13 @@ if config.has_xapian:
                                                               'text'))
             self.title_database = xapian.Database(os.path.join(db_location,
                                                                'title'))
-                  
+            # just where we keep it
+            self.spelling_database = self.title_database
+
             if not processed_terms:
                 self.stemmer = xapian.Stem("english")
                 self.terms = self._remove_junk(self._stem_terms(needles))
+                self.unstemmed_terms = self._remove_junk(needles)
                 self.printable_terms = needles
             else:
                 self.terms = processed_terms
@@ -227,15 +242,16 @@ if config.has_xapian:
                     new_terms.append(self._stem_terms(term))
                 else:
                     term = term.lower()
-                    for stemmed_term, pos in get_stemmed_text(term,
-                                                              self.stemmer):
+                    for stemmed_term, real_term, pos in get_stemmed_text(
+                            term, self.stemmer):
                         new_terms.append(stemmed_term)
             return new_terms
     
         def _build_query(self, terms, op=xapian.Query.OP_OR):
             """
             builds a query out of the terms.
-            Takes care of things like "quoted text" properly"""
+            Takes care of things like "quoted text" properly
+            """
             query = None
 
             if type(terms[0]) == list:
@@ -306,6 +322,7 @@ if config.has_xapian:
             matches = self._get_matchset(enquire, self.text_database,
                                          self.p_start_loc, self.num_results+1)
             
+            self.estimated_results = matches.get_matches_estimated()
             t1 = time.time()
             for match in matches:
                 id = match[xapian.MSET_DOCUMENT].get_value(0)
@@ -330,6 +347,8 @@ if config.has_xapian:
             enquire.set_query(self.query)
             matches = self._get_matchset(enquire, self.text_database,
                                          self.t_start_loc, self.num_results+1)
+
+            self.estimated_results += matches.get_matches_estimated()
             for match in matches:
                 id = match[xapian.MSET_DOCUMENT].get_value(0)
                 wiki_name = self.request.config.wiki_name
@@ -349,21 +368,83 @@ if config.has_xapian:
                                            page.page_name, wiki_name)
                 self.title_results.append(search_item)
 
+        def spelling_suggestion(self, needle):
+            def _fill_in_corrected(corrected_terms, html=False):
+                correct_string = []
+                word = []
+                i = 0
+                unstemmed_terms = flatten(self.unstemmed_terms)
+                for c in needle:
+                    if isdivider_or_whitespace(c):
+                        if word:
+                            this_word_differed = (
+                                unstemmed_terms[i] != corrected_terms[i]
+                            )
+                            if html and this_word_differed:
+                                correct_string.append('<strong>')
+                            correct_string += corrected_terms[i]
+                            if html and this_word_differed:
+                                correct_string.append('</strong>')
+                            i += 1
+                        correct_string.append(c)
+                        word = []
+                    else:
+                        word.append(c)
+                if word:
+                    correct_string += corrected_terms[i]
+
+                return ''.join(correct_string)
+
+            if not self.terms:
+                return
+
+            corrected_terms = [
+                self.spelling_database.get_spelling_suggestion(word) or word
+                for word in flatten(self.unstemmed_terms)
+            ]
+            corrected_needle = _fill_in_corrected(corrected_terms)
+            corrected_html = _fill_in_corrected(corrected_terms, html=True)
+
+            corrected_terms_for_query = self._remove_junk(
+                self._stem_terms(corrected_terms))
+            corrected_query = self._build_query(corrected_terms_for_query)
+
+            enquire = xapian.Enquire(self.text_database)
+            enquire.set_query(corrected_query)
+            matches = self._get_matchset(enquire, self.text_database,
+                                         0, self.num_results+1)
+            corrected_estimated_results = matches.get_matches_estimated()
+
+            enquire = xapian.Enquire(self.title_database)
+            enquire.set_query(corrected_query)
+            matches = self._get_matchset(enquire, self.title_database,
+                                         0, self.num_results+1)
+            corrected_estimated_results += matches.get_matches_estimated()
+
+            num_results_difference = (corrected_estimated_results -
+                                      self.estimated_results)
+            if (num_results_difference >= 0 and
+                corrected_terms != flatten(self.unstemmed_terms)):
+                return (corrected_needle, corrected_html)
 
     class RemoteSearch(XapianSearch):
         def __init__(self, needles, request, p_start_loc=0, t_start_loc=0,
-                     num_results=10, wiki_global=False):
+                     num_results=10, wiki_global=False, needle_as_entered=''):
             SearchBase.__init__(self, needles, request, p_start_loc,
                                 t_start_loc, num_results,
                                 wiki_global=wiki_global)
             self.stemmer = xapian.Stem("english")
             self.terms = self._remove_junk(self._stem_terms(needles))
+            self.unstemmed_terms = self._remove_junk(needles)
             self.printable_terms = self._remove_junk(needles)
+            self.needles = needles
+            self._spelling_suggestion = None
+            self.needle_as_entered = needle_as_entered
 
         def process(self):
             import socket, cPickle
-            encoded_terms = wikiutil.quoteFilename(cPickle.dumps(self.terms,
-                                                                 True))
+            encoded_terms = wikiutil.quoteFilename(
+                cPickle.dumps(self.needle_as_entered, True))
             server_address, server_port = config.remote_search
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
             s.connect((server_address, server_port))
@@ -385,14 +466,17 @@ if config.has_xapian:
                 results_encoded = line.strip()
                 break
 
-            title_results, text_results = cPickle.loads(
+            title_results, text_results, spelling_suggest = cPickle.loads(
                 wikiutil.unquoteFilename(results_encoded))
 
             s.close()
 
             self.title_results = title_results
             self.text_results = text_results
+            self._spelling_suggestion = spelling_suggest
 
+        def spelling_suggestion(self, needle):
+            return self._spelling_suggestion
 
 class RegexpSearch(SearchBase):
     def __init__(self, needles, request, p_start_loc=0, t_start_loc=0,
@@ -434,8 +518,10 @@ class RegexpSearch(SearchBase):
                                                              page.page_name,
                                                            wiki_name))
             # sort the title and text results by relevancy
-            self.title_results.sort(lambda x,y: cmp(y.percentage, x.percentage))
-            self.text_results.sort(lambda x,y: cmp(y.percentage, x.percentage))
+            self.title_results.sort(lambda x,y: cmp(y.percentage,
+                                                    x.percentage))
+            self.text_results.sort(lambda x,y: cmp(y.percentage,
+                                                   x.percentage))
 
             # normalize the percentages.
             # still gives shit, but what can you expect from regexp?
@@ -468,6 +554,8 @@ class RegexpSearch(SearchBase):
 def get_stemmed_text(text, stemmer):
     """
     Returns a stemmed version of text.
+
+    @return list of stemmed_term, real_term, position tuples.
     """
     postings = []
     pos = 0
@@ -487,8 +575,9 @@ def get_stemmed_text(text, stemmer):
         if k == len(text) or not notdivider_or_whitespace(text[k]):
             j = k
         if (j - i) <= MAX_PROB_TERM_LENGTH and j > i:
-            term = stemmer(text[i:j].lower())
-            postings.append((term, pos)) 
+            real_term = text[i:j].lower()
+            term = stemmer(real_term)
+            postings.append((term, real_term, pos)) 
             pos += 1
         i = j
     return postings
@@ -512,9 +601,35 @@ def _do_postings(doc, text, id, stemmer, request):
 
     doc.add_value(0, id)
 
-    for term, pos in get_stemmed_text(text, stemmer):
+    for term, real_term, pos in get_stemmed_text(text, stemmer):
         if len(term) < BTREE_SAFE_KEY_LEN:
             doc.add_posting(term, pos)
+
+def _get_document_words(text, stemmer):
+    """
+    Gets the list of non-stemmed words that the document contains.
+
+    @return list of words
+    """
+    return [ real_term for stemmed_term, real_term, pos in
+                get_stemmed_text(text, stemmer) ]
+
+def _add_to_spelling(doc, text, database, stemmer):
+    """
+    Add the given text to the spelling database.
+    """
+    _delete_from_spelling(doc, database, stemmer)
+    doc.set_data(text)
+    for word in _get_document_words(text, stemmer):
+        database.add_spelling(word)
+
+def _delete_from_spelling(doc, database, stemmer):
+    """
+    Delete the given text from the spelling database.
+    """
+    current_document_text = doc.get_data()
+    for word in _get_document_words(current_document_text, stemmer):
+        database.remove_spelling(word)
 
 def _search_sleep_time():
     """
@@ -568,7 +683,9 @@ def add_to_remote_index(page):
 
 def add_to_index(page, db_location=None, text_db=None, title_db=None,
                  try_remote=True, do_now=False):
-    """Add page to the search index"""
+    """
+    Add page to the search index
+    """
     if not config.has_xapian:
         return
     if not db_location:
@@ -614,12 +731,16 @@ def index(page, db_location=None, text_db=None, title_db=None):
                 break
     else:
         database = title_db
+
+    # we just keep spelling information in one place
+    spelling_database = database
     
     text = page.page_name
     pagename = page.page_name
     id = make_id(pagename, page.request.config.wiki_name)
     doc = xapian.Document()
     _do_postings(doc, text, id, stemmer, page.request)
+    _add_to_spelling(doc, text, spelling_database, stemmer)
     database.replace_document("Q:%s" % id, doc)
 
     if not text_db:
@@ -647,6 +768,7 @@ def index(page, db_location=None, text_db=None, title_db=None):
     text = page.get_raw_body().encode('utf-8')
     doc = xapian.Document()
     _do_postings(doc, text, id, stemmer, page.request)
+    _add_to_spelling(doc, text, spelling_database, stemmer)
     database.replace_document("Q:%s" % id, doc)
 
 def remove_from_remote_index(page):

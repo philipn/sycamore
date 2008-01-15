@@ -55,6 +55,19 @@ def do_global_search(pagename, request, fieldname='inline_string', inc_title=1,
 def do_search(pagename, request, fieldname='inline_string', inc_title=1,
               pstart=0, tstart=0, twith=10, pwith=10, action='search',
               wiki_global=False):
+    def print_suggestion(corrected_query_and_html, request):
+        if not corrected_query_and_html:
+            return
+        corrected_query, corrected_query_html = corrected_query_and_html
+        search_url = ('%s?action=%s&string=%s' %
+                      (request.getScriptname(), action,
+                       urllib.quote_plus(
+                           corrected_query.encode(config.charset))))
+        request.write('<p id="didyoumean">')
+        request.write('Did you mean: <a href="%s">%s</a>?' %
+                      (search_url, corrected_query_html))
+        request.write('</p>')
+
     from Sycamore.formatter.text_html import Formatter
     _ = request.getText
     start = time.clock()
@@ -111,7 +124,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1,
     
     this_search = search.Search(search.prepare_search_needle(needle), request,
                                 p_start_loc=pstart, t_start_loc=tstart,
-                                num_results=pwith+1, wiki_global=wiki_global)
+                                num_results=pwith+1, wiki_global=wiki_global,
+                                needle_as_entered=needle)
     this_search.process()
 
     # don't display results they can't read
@@ -139,6 +153,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1,
 
     # start content div
     request.write('<div id="content" class="wikipage content">\n') 
+    print_suggestion(this_search.spelling_suggestion(needle), request)
+
     if len(title_hits) < 1:
             request.write('<h3>&nbsp;No title matches</h3>')
             if not wiki_global:
@@ -185,7 +201,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1,
             request.write('</ul>')
             request.write('<p>(<a href="%s?action=%s&string=%s&tstart=%s">'
                           'next %s matches</a>)' %
-                          (request.getScriptname(), action, needle,
+                          (request.getScriptname(), action,
+                           urllib.quote_plus(needle.encode(config.charset)),
                            tstart+twith, twith))
     else:
             for t_hit in title_hits:

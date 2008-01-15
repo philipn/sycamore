@@ -42,7 +42,7 @@ db_location = None
 in_re_init = False
 db_files_moving = False
 
-DEBUG = True
+DEBUG = False
 MAX_RETRY_OPEN = 10 
 
 def debug_log(t):
@@ -169,7 +169,7 @@ def cleanup_file_locks():
             os.remove(os.path.join(os.path.join(config.search_db_location,
                                                 "title"), 'db_lock'))
 
-def process_search(terms, wiki_name, client, p_start_loc, t_start_loc):
+def process_search(needles, wiki_name, client, p_start_loc, t_start_loc):
     global db_location, db_files_moving
     req = request.RequestDummy()
     if wiki_name:
@@ -188,13 +188,17 @@ def process_search(terms, wiki_name, client, p_start_loc, t_start_loc):
             req.db_disconnect()
 	    return
 
-    thesearch = search.XapianSearch(None, req, db_location=db_location,
-                                    processed_terms=terms,
+    # We're sent the raw needle so we must prepare it
+    prepared_needles = search.prepare_search_needle(needles)
+    thesearch = search.XapianSearch(prepared_needles, req,
+                                    db_location=db_location,
                                     wiki_global=wiki_global,
                                     p_start_loc=p_start_loc,
                                     t_start_loc=t_start_loc)
     thesearch.process()
-    results = (thesearch.title_results, thesearch.text_results)
+    spelling_suggestion = thesearch.spelling_suggestion(needles)
+    results = (thesearch.title_results, thesearch.text_results,
+               spelling_suggestion)
     thesearch_encoded = wikiutil.quoteFilename(cPickle.dumps(results))
     output = client.makefile('w',0)
     output.write(thesearch_encoded)
@@ -533,8 +537,8 @@ def serveclient(client):
         lines = data
         p_start_loc = int(data[0])
         t_start_loc = int(data[1])
-        terms = cPickle.loads(wikiutil.unquoteFilename(''.join(data[2:])))
-        process_search(terms, wiki_name, client, p_start_loc, t_start_loc)
+        needles = cPickle.loads(wikiutil.unquoteFilename(''.join(data[2:])))
+        process_search(needles, wiki_name, client, p_start_loc, t_start_loc)
         client.close()
         
     global spool_lock, spool
