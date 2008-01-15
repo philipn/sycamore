@@ -143,7 +143,7 @@ class searchResult(object):
 
 class SearchBase(object):
     def __init__(self, needles, request, p_start_loc=0, t_start_loc=0,
-                 num_results=10, wiki_global=False):
+                 num_results=10, wiki_global=False, needle_as_entered=''):
         self.request = request
         self.needles = needles
         self.p_start_loc = p_start_loc
@@ -205,7 +205,7 @@ if config.has_xapian:
     class XapianSearch(SearchBase):
         def __init__(self, needles, request, p_start_loc=0, t_start_loc=0,
                      num_results=10, db_location=None, processed_terms=None,
-                     wiki_global=False):
+                     wiki_global=False, needle_as_entered=''):
             SearchBase.__init__(self, needles, request, p_start_loc,
                                 t_start_loc, num_results,
                                 wiki_global=wiki_global)
@@ -396,6 +396,10 @@ if config.has_xapian:
                 return ''.join(correct_string)
 
             if not self.terms:
+                return
+            # old version of Xapian
+            if not hasattr(self.spelling_database,
+                            'get_spelling_suggestion'):
                 return
 
             corrected_terms = [
