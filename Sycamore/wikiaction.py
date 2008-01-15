@@ -55,11 +55,13 @@ def do_global_search(pagename, request, fieldname='inline_string', inc_title=1,
 def do_search(pagename, request, fieldname='inline_string', inc_title=1,
               pstart=0, tstart=0, twith=10, pwith=10, action='search',
               wiki_global=False):
+
     def print_suggestion(corrected_query_and_html, request):
-        if not corrected_query_and_html:
+        # don't show suggestions twice because it's intensely confusing
+        if not corrected_query_and_html or request.form.has_key('sug'):
             return
         corrected_query, corrected_query_html = corrected_query_and_html
-        search_url = ('%s?action=%s&string=%s' %
+        search_url = ('%s?action=%s&string=%s&sug=1' %
                       (request.getScriptname(), action,
                        urllib.quote_plus(
                            corrected_query.encode(config.charset))))
