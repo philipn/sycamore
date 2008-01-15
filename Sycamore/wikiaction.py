@@ -58,7 +58,8 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1,
 
     def print_suggestion(corrected_query_and_html, request):
         # don't show suggestions twice because it's intensely confusing
-        if not corrected_query_and_html or request.form.has_key('sug'):
+        if (not corrected_query_and_html or request.form.has_key('sug') or
+            request.form.has_key('pstart') or request.form.has_key('tstart')):
             return
         corrected_query, corrected_query_html = corrected_query_and_html
         search_url = ('%s?action=%s&string=%s&sug=1' %
