@@ -9,6 +9,7 @@ import time
 import threading
 import socket
 import random
+from copy import copy
 
 from Sycamore.Page import Page
 
@@ -369,17 +370,22 @@ if config.has_xapian:
                 self.title_results.append(search_item)
 
         def spelling_suggestion(self, needle):
+            """
+            Given a search needle we produce good suggestions for misspelled words.
+
+            @param needle: search needle
+            @return None or (corrected_needle, corrected_html)
+            """
             def _fill_in_corrected(corrected_terms, html=False):
                 correct_string = []
                 word = []
                 i = 0
-                unstemmed_terms = flatten(self.unstemmed_terms)
+                flat_unstemmed_terms = flatten(unstemmed_terms)
                 for c in needle:
                     if isdivider_or_whitespace(c):
                         if word:
-                            this_word_differed = (
-                                unstemmed_terms[i] != corrected_terms[i]
-                            )
+                            this_word_differed = (flat_unstemmed_terms[i] !=
+                                                  corrected_terms[i].lower())
                             if html and this_word_differed:
                                 correct_string.append('<strong>')
                             correct_string += corrected_terms[i]
@@ -392,7 +398,7 @@ if config.has_xapian:
                         word.append(c)
                 if word:
                     this_word_differed = (
-                        unstemmed_terms[i] != corrected_terms[i]
+                        flat_unstemmed_terms[i] != corrected_terms[i].lower()
                     )
                     if html and this_word_differed:
                         correct_string.append('<strong>')
@@ -402,41 +408,73 @@ if config.has_xapian:
 
                 return ''.join(correct_string)
 
-            if not self.terms:
-                return
-            # old version of Xapian
-            if not hasattr(self.spelling_database,
-                            'get_spelling_suggestion'):
+            def estimated_decent_results(query):
+                """
+                Estimate of how many results meet an arbitrary threshold.
+                """
+                enquire = xapian.Enquire(self.text_database)
+                enquire.set_cutoff(50);
+                enquire.set_query(query)
+                matches = self._get_matchset(enquire, self.text_database,
+                                             0, self.num_results+1)
+                estimated_good_results = \
+                    matches.get_matches_estimated()
+
+                enquire = xapian.Enquire(self.title_database)
+                enquire.set_cutoff(50);
+                enquire.set_query(query)
+                matches = self._get_matchset(enquire, self.title_database,
+                                             0, self.num_results+1)
+                estimated_good_results += \
+                    matches.get_matches_estimated()
+
+                return estimated_good_results
+
+            def get_suggested_terms(uncorrected_words, results_threshold):
+                """
+                For each suggested word, construct a query with that word
+                corrected.  If that query yields more results then include
+                that spelling suggestion.
+                """
+                corrected_terms = []
+                for i, word in enumerate(uncorrected_words):
+                    sug = self.spelling_database.get_spelling_suggestion(word)
+                    if sug.lower() != word.lower():
+                        this_word_corrected = copy(uncorrected_words)
+                        this_word_corrected[i] = sug
+                        corrected_needle = _fill_in_corrected(this_word_corrected)
+                        corrected_terms_for_query = self._remove_junk(
+                            self._stem_terms(this_word_corrected))
+                        corrected_query = self._build_query(corrected_terms_for_query)
+
+                        if estimated_decent_results(corrected_query) > results_threshold:
+                            corrected_terms.append(sug)
+                        else:
+                            corrected_terms.append(word)
+                    else:
+                        corrected_terms.append(word)
+                return corrected_terms
+
+            # no query or old version of Xapian
+            if not self.terms or not hasattr(self.spelling_database, 'get_spelling_suggestion'):
                 return
 
-            corrected_terms = [
-                self.spelling_database.get_spelling_suggestion(word) or word
-                for word in flatten(self.unstemmed_terms)
-            ]
+            unstemmed_terms = [ w.lower() for w in self.unstemmed_terms ]
+            uncorrected_words = flatten(self.unstemmed_terms)
 
+            current_query_est_results = estimated_decent_results(self.query)
+
+            corrected_terms = get_suggested_terms(uncorrected_words, current_query_est_results)
             corrected_needle = _fill_in_corrected(corrected_terms)
             corrected_html = _fill_in_corrected(corrected_terms, html=True)
 
-            corrected_terms_for_query = self._remove_junk(
-                self._stem_terms(corrected_terms))
+            corrected_terms_for_query = self._remove_junk(self._stem_terms(corrected_terms))
             corrected_query = self._build_query(corrected_terms_for_query)
 
-            enquire = xapian.Enquire(self.text_database)
-            enquire.set_query(corrected_query)
-            matches = self._get_matchset(enquire, self.text_database,
-                                         0, self.num_results+1)
-            corrected_estimated_results = matches.get_matches_estimated()
-
-            enquire = xapian.Enquire(self.title_database)
-            enquire.set_query(corrected_query)
-            matches = self._get_matchset(enquire, self.title_database,
-                                         0, self.num_results+1)
-            corrected_estimated_results += matches.get_matches_estimated()
-
-            num_results_difference = (corrected_estimated_results -
-                                      self.estimated_results)
-            if (num_results_difference >= 0 and
-                corrected_terms != flatten(self.unstemmed_terms)):
+            corrected_terms_lower = [ w.lower() for w in corrected_terms ]
+            queries_differ = corrected_terms_lower != flatten(unstemmed_terms)
+            if (estimated_decent_results(corrected_query) > current_query_est_results and
+                queries_differ):
                 return (corrected_needle, corrected_html)
 
     class RemoteSearch(XapianSearch):
