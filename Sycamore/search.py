@@ -439,15 +439,18 @@ if config.has_xapian:
                 corrected_terms = []
                 for i, word in enumerate(uncorrected_words):
                     sug = self.spelling_database.get_spelling_suggestion(word)
-                    if sug.lower() != word.lower():
+                    if sug and sug.lower() != word.lower():
                         this_word_corrected = copy(uncorrected_words)
                         this_word_corrected[i] = sug
-                        corrected_needle = _fill_in_corrected(this_word_corrected)
+                        corrected_needle = _fill_in_corrected(
+                            this_word_corrected)
                         corrected_terms_for_query = self._remove_junk(
                             self._stem_terms(this_word_corrected))
-                        corrected_query = self._build_query(corrected_terms_for_query)
+                        corrected_query = self._build_query(
+                            corrected_terms_for_query)
 
-                        if estimated_decent_results(corrected_query) > results_threshold:
+                        if (estimated_decent_results(corrected_query) >
+                            results_threshold):
                             corrected_terms.append(sug)
                         else:
                             corrected_terms.append(word)
