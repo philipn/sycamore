@@ -392,7 +392,7 @@ if config.has_xapian:
                             if html and this_word_differed:
                                 correct_string.append('</strong>')
                             i += 1
-                        correct_string.append(c)
+                        correct_string.append(c.encode(config.charset))
                         word = []
                     else:
                         word.append(c)
