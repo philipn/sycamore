@@ -459,24 +459,28 @@ if config.has_xapian:
                 return corrected_terms
 
             # no query or old version of Xapian
-            if not self.terms or not hasattr(self.spelling_database, 'get_spelling_suggestion'):
+            if (not self.terms or not
+                hasattr(self.spelling_database, 'get_spelling_suggestion')):
                 return
 
-            unstemmed_terms = [ w.lower() for w in self.unstemmed_terms ]
             uncorrected_words = flatten(self.unstemmed_terms)
+            unstemmed_terms = [ w.lower() for w in uncorrected_words ]
 
             current_query_est_results = estimated_decent_results(self.query)
 
-            corrected_terms = get_suggested_terms(uncorrected_words, current_query_est_results)
+            corrected_terms = get_suggested_terms(uncorrected_words,
+                                                  current_query_est_results)
             corrected_needle = _fill_in_corrected(corrected_terms)
             corrected_html = _fill_in_corrected(corrected_terms, html=True)
 
-            corrected_terms_for_query = self._remove_junk(self._stem_terms(corrected_terms))
+            corrected_terms_for_query = self._remove_junk(self._stem_terms(
+                corrected_terms))
             corrected_query = self._build_query(corrected_terms_for_query)
 
             corrected_terms_lower = [ w.lower() for w in corrected_terms ]
             queries_differ = corrected_terms_lower != flatten(unstemmed_terms)
-            if (estimated_decent_results(corrected_query) > current_query_est_results and
+            if ((estimated_decent_results(corrected_query) >
+                 current_query_est_results) and
                 queries_differ):
                 return (corrected_needle, corrected_html)
 
