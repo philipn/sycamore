@@ -371,7 +371,8 @@ if config.has_xapian:
 
         def spelling_suggestion(self, needle):
             """
-            Given a search needle we produce good suggestions for misspelled words.
+            Given a search needle we produce good suggestions for misspelled
+            words.
 
             @param needle: search needle
             @return None or (corrected_needle, corrected_html)

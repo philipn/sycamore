@@ -298,7 +298,7 @@ class Page(object):
         if body is not None:
             # TODO: len(body) only after converting to a byte string
             return len(body)
-        return 0
+        return ''
 
     def isRedirect(self):
         """
