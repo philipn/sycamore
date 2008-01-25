@@ -1154,7 +1154,7 @@ class User(object):
                                 wiki_global=True)
         self.user_pages = user_pages
 
-    def getWatchedWikis(self):
+    def getWatchedWikis(self, fresh=False):
         """
         Gets the list of wikis the user is watching.
         """
@@ -1163,10 +1163,11 @@ class User(object):
            return {}
         if self.watched_wikis is not None:
             return self.watched_wikis
-        if self.request.req_cache['watchedWikis'].has_key(self.id):
-            return self.request.req_cache['watchedWikis'][self.id]
-        if config.memcache:
-            watched = self.request.mc.get('watchedWikis:%s' % self.id,
+        if not fresh:
+            if self.request.req_cache['watchedWikis'].has_key(self.id):
+                return self.request.req_cache['watchedWikis'][self.id]
+            if config.memcache:
+                watched = self.request.mc.get('watchedWikis:%s' % self.id,
                                           wiki_global=True)
         if watched is None:
             watched = {}
@@ -1191,7 +1192,7 @@ class User(object):
         Sets the user's wiki list to be the given wiki_list.
         """
         # ensure we have the list before proceeding
-        currently_watched_wikis = self.getWatchedWikis() 
+        currently_watched_wikis = self.getWatchedWikis(fresh=True) 
         wikis_to_add = []
         wikis_to_remove = copy(currently_watched_wikis)
         for wiki_name in new_wiki_list:
