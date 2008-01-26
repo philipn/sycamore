@@ -378,11 +378,16 @@ def execute(macro, args, formatter=None, **kw):
                           '<strong>all</strong> of the wikis you are watching!'
                           '</p>')
             if not watched_wikis:
-                request.write('<p>You are not watching any wikis, though.  '
-                              'To watch a wiki, simply go to the wiki you\'re'
-                              'interested in and click the "watch this wiki" '
-                              'link next to your user settings in the upper '
-                              'right.</p>')
+                if request.user.valid:
+                    request.write('<p>You are not watching any wikis, though.  '
+                                  'To watch a wiki, simply go to the wiki you\'re '
+                                  'interested in and click the "watch this wiki" '
+                                  'link next to your user settings in the upper '
+                                  'right.</p>')
+                else:
+                    request.write('<p>You are not logged in.  Please login to '
+                                  'view changes on the wikis you are watching.'
+                                  '</p>')
         if not wiki_global or watched_wikis:
             request.write("<p>No recent changes.  Quick &mdash; change "
                           "something while nobody's looking!</p>")
