@@ -251,7 +251,7 @@ def execute(macro, args, formatter=None, **kw):
                'href="%s/%s?action=rss_rc&amp;bookmarks=1&amp;user=%s" '
                'style="border:1px solid;border-color:#FC9 #630 #330 #F96;'
                       'padding:0 3px;font:bold 10px verdana,sans-serif;'
-                      'color:#FFF;background:#F60;text-decoration:none;'
+                      'color:#FFF!important;background:#F60;text-decoration:none;'
                       'margin:0;">'
             'RSS</a></div>' %
             (request.getScriptname(),
