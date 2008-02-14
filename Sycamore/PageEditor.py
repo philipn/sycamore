@@ -337,6 +337,19 @@ class PageEditor(Page):
                                        wikiutil.escape(kw.get('comment', ''),
                                        1), text_cols))
 
+        spam_catch_button = (
+            '<span style="position: absolute; top: 0px; left: 0px;'
+                         'height: 0px; width: 0px; overflow: hidden;">'
+            'dont enter into this box:'
+            '<input type="text" name="text_dont"/>'
+            '</span>'
+            '<span style="position: absolute; top: 0px; left: 0px;'
+                         'height: 0px; width: 0px; overflow: hidden;">'
+            '<input class="formbutton" type="submit" name="button_dont" '
+                    'value="Dont press me">\n'
+            '</span>')
+        self.request.write(spam_catch_button)
+
         # button bar
         button_spellcheck = (SpellCheck and
             '<input type="submit" class="formbutton" name="button_spellcheck"'

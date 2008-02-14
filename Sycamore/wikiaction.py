@@ -1114,12 +1114,20 @@ def isValidPageName(name):
             # TODO: allow admin creation of such pages
             not (name.endswith('html') or name.endswith('.htm')))
 
+def spam_catch(page):
+    form = page.request.form
+    if form.has_key('button_dont') and form['button_dont'][0]:
+        return True
+    elif form.has_key('text_dont') and form['text_dont'][0]:
+        return True
+    return False
+
 def do_savepage(pagename, request):
     from Sycamore.PageEditor import PageEditor
     _ = request.getText
 
     page = Page(pagename, request)
-    if not request.user.may.edit(page):
+    if not request.user.may.edit(page) or spam_catch(page):
         page.send_page(
             msg = _('You are not allowed to edit this page.'))
         return
