@@ -234,7 +234,8 @@ class UserSettingsHandler(object):
             backto = urllib.unquote(form['backto_page'][0].encode(
                 config.charset))
             if form.has_key('qs') and not is_form_logout:
-                query_string = '?%s' % urllib.unquote(form['qs'][0])
+                query_string = '?%s' % (urllib.unquote(form['qs'][0]
+                                         ).encode(config.charset))
             else:
                 query_string = ''
             url = '%s%s' % (backto, query_string)
