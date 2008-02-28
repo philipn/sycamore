@@ -535,13 +535,8 @@ class RequestBase(object):
         if not host:
             host = self.server_name
 
-        port = self.server_port
         if force_ssl_off and self.is_ssl:
-            port = '80'
             schema = 'http'
-
-        if port != stdport and not (force_ssl or force_ssl_off):
-            host = "%s:%s" % (host, port)
 
         result = "%s://%s" % (schema, host)
         if uri:
