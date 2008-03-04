@@ -36,7 +36,8 @@ def execute(pagename, request):
         request.user.may.edit(page) or
         # bot checks
         request.form.has_key('button_dont') or
-        request.form.has_key('comment_dont')
+        request.form.has_key('comment_dont') or
+        not request.isPOST()
         ):
             msg = _('You are not allowed to edit this page. '
                     '(An account is needed in most cases)')
