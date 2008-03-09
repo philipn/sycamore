@@ -157,10 +157,10 @@ def getTemplatePages(request):
 def getTimeOffset(tz_string):
     import datetime
     def _utcoffset(timezone):
-        return timezone.utcoffset(timezone)
+        utc_offset_delta = timezone.utcoffset(timezone)
         #utc_offset_delta = timezone.localize(
         #    datetime.datetime.utcnow()).utcoffset()
-        #return utc_offset_delta.days*DAY_IN_SECONDS + utc_offset_delta.seconds
+        return utc_offset_delta.days*DAY_IN_SECONDS + utc_offset_delta.seconds
 
     if type(tz_string) == unicode:
         tz_string = tz_string.encode('utf-8')
