@@ -157,9 +157,12 @@ def getTemplatePages(request):
 def getTimeOffset(tz_string):
     import datetime
     def _utcoffset(timezone):
-        utc_offset_delta = timezone.utcoffset(timezone)
-        #utc_offset_delta = timezone.localize(
-        #    datetime.datetime.utcnow()).utcoffset()
+        try:
+            utc_offset_delta = timezone.localize(
+                datetime.datetime.utcnow()).utcoffset()
+        except:
+            # weird intra-DST switchover issue
+            utc_offset_delta = timezone.utcoffset(timezone)
         return utc_offset_delta.days*DAY_IN_SECONDS + utc_offset_delta.seconds
 
     if type(tz_string) == unicode:
