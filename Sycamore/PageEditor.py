@@ -276,7 +276,7 @@ class PageEditor(Page):
                                 config.url_prefix))
         else:
             self.request.write("<script type=\"text/javascript\" "
-                               "src=\"%s%s/wiki/edit.js\"></script>\n" % (
+                               "src=\"%s%s/edit.js\"></script>\n" % (
                                 config.web_dir, config.url_prefix))
 
         # send form
