@@ -187,6 +187,8 @@ def getWikiURL(wikiname, request):
     """
     Get the url of the wiki in the farm.
     """
+    if not config.wiki_farm:
+        return "%s/" % request.getQualifiedURL()
     wiki_config = config.Config(wikiname, request)     
     if wiki_config.domain and wiki_config.domain != config.wiki_base_domain:
         return "http://%s/" % wiki_config.domain

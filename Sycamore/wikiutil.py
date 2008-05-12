@@ -1188,7 +1188,7 @@ def link_tag(request, params, text=None, formatter=None, **kw):
     if text is None:
         text = params # default
     if formatter:
-        if kw.has_key('absolute'):
+        if kw.get('absolute'):
             return formatter.url("%s%s" %
                     (farm.getWikiURL(request.config.wiki_name, request),
                      params),
@@ -1201,7 +1201,7 @@ def link_tag(request, params, text=None, formatter=None, **kw):
         attrs.append(' %s' % kw['attrs'])
     if css_class:
         attrs.append(' class="%s"' % css_class)
-    if kw.has_key('absolute'):
+    if kw.get('absolute'):
         return ('<a%s href="%s%s">%s</a>' %
                 (''.join(attrs), farm.getWikiURL(request.config.wiki_name,
                                                  request),
