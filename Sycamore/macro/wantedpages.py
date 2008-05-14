@@ -73,7 +73,9 @@ def where_wanted_from(wanted_results, macro):
             links = [w_result[1]]
             old_pagename_propercased = new_pagename_propercased
             old_pagename = old_pagename_propercased.lower()
-    wanted.append((old_pagename_propercased, num_links, links))
+    if not (old_pagename.startswith(config.user_page_prefix.lower()) and
+        not showUsers(macro.request)):
+        wanted.append((old_pagename_propercased, num_links, links))
     return wanted
 
 def raw_wanted_results(macro):
