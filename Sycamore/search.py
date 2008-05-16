@@ -225,7 +225,7 @@ if config.has_xapian:
                 self.stemmer = xapian.Stem("english")
                 self.terms = self._remove_junk(self._stem_terms(needles))
                 self.unstemmed_terms = self._remove_junk(needles)
-                self.printable_terms = needles
+                self.printable_terms = self._remove_junk(needles)
             else:
                 self.terms = processed_terms
 
