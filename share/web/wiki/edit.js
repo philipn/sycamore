@@ -217,3 +217,63 @@ function insertTags(tagOpen, tagClose, sampleText) {
 	// reposition cursor if possible
 	if (txtarea.createTextRange) txtarea.caretPos = document.selection.createRange().duplicate();
 }
+
+
+// Resize the edit box by increments of 5 rows
+// and updates the user preference using XMLHttpRequest
+// args: mode - string, values 'bigger' or 'smaller'
+//       url - string, old-style resize link
+
+// designed to be called by an onclick form element so
+// returns "false" if the editor was resized successfully,
+// otherwise returns true
+function sizeEditor( mode , url) {
+    var height_change;
+    var min_height = 10;
+    var max_height = 100;
+
+    // calculate the change in size 
+    if ( mode == 'bigger' ) {
+        height_change = 5;
+    } else if ( mode == 'smaller' )  {
+        height_change = -5;
+    }
+    
+    // get the element from the form
+    var editor = document.getElementById( 'savetext' );
+    var editor_height = editor.rows;
+
+    // make sure we have valid objects before continuing
+    if ( editor && editor_height ) {
+
+        // calc new height and make sure it is a number
+        var new_height = parseInt(editor_height) + height_change;
+        if (isNaN(new_height)) {
+            return true;
+        }
+
+        // set the editor rows to the new height if it's in range
+        if ( new_height < min_height ) {
+            editor.rows = min_height;
+        } else if (new_height > max_height) {
+            editor.rows = max_height;
+        } else {
+            editor.rows = new_height;
+        }
+
+       // save the choice in the user's preferences
+        var client = new XMLHttpRequest();
+        client.onreadystatechange = function() {
+            if(this.readyState == 4 && this.status == 200)
+                returnStatus(this.status);
+        }
+        client.open("GET", url+'&rows='+editor.rows);
+        client.send("");
+        return false;
+
+    } else {
+
+        return true;
+
+    }
+}
