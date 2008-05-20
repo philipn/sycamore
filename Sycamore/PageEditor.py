@@ -319,12 +319,12 @@ class PageEditor(Page):
        # draw edit size links
         self.request.write(_('<div class="pageEditInfo" id="editorSize">'
                              'editor size:'))
-        self.request.write('<a href="%s&amp;rows=%d&amp;cols=60%s">%s'
-                           '</a>' % (base_uri, text_rows + 10,
-                                     template_param, '+'))
-        self.request.write(',<a href="%s&amp;rows=%s&amp;cols=60%s">%s'
-                           '</a>' % (base_uri, text_rows - 10,
-                                     template_param, '-'))
+        self.request.write('<a href="#" onclick="return sizeEditor(\'bigger\','
+                           '\'%s&amp;preview=1&amp;cols=60%s\')">%s'
+                           '</a>' % (base_uri, template_param, '+'))
+        self.request.write(',<a href="#" onclick="return sizeEditor(\'smaller\','
+                           '\'%s&amp;preview=1&amp;cols=60%s\')">%s'
+                           '</a>' % (base_uri, template_param, '-'))
         self.request.write('</div>')
         self.request.write('</p>') # close textarea
 
