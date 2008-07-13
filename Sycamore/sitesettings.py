@@ -178,6 +178,8 @@ class SiteSettingsHandler(object):
                              "..enter less!")
                 address_locale = address_locale
                 self.request.config.address_locale = address_locale
+            else:
+                self.request.config.address_locale = ''
 
             checkbox_fields = config.local_config_checkbox_fields
             for key, description in checkbox_fields:
