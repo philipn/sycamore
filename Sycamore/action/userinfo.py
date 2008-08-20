@@ -210,8 +210,10 @@ def display_edits(request, userpage, on_pagename):
     
     if has_edits:
         request.write('<p>This user has made <b>%d</b> edits to <b>%d</b> '
-                      'pages on <b>%s</b> wikis.</p>' %
-                      (totalEdits, editedPages, editedWikis))
+                      'pages' % (totalEdits, editedPages ))
+        if config.wiki_farm:
+            request.write(' on <b>%s</b> wikis' % editedWikis)
+        request.write('.</p>')
 
         request.write('<div id="useredits">')
         edit_table = DataBrowserWidget(request)
