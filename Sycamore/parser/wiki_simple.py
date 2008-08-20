@@ -75,8 +75,8 @@ class Parser:
 (?P<emph>'{2,3})
 (?P<u>__)
 (?P<center>(-{1,2}-\>)|(\<--{1,2}))
-(?P<sup>\^.*?\^)
-(?P<sub>,,[^,]{1,40},,)
+(?P<sup>\^)
+(?P<sub>,,)
 (?P<tt>\{\{\{.*?\}\}\})
 (?P<pre>(\{\{\{ ?|\}\}\}))
 (?P<rule>^\s*-{4,}\s*$)
@@ -114,6 +114,8 @@ class Parser:
 
         self.is_em = 0
         self.is_b = 0
+        self.is_sup = 0 
+        self.is_sub = 0
         self.is_u = 0
         self.is_center = 0
         self.is_strike = 0
@@ -248,15 +250,15 @@ class Parser:
         """
         Handle superscript.
         """
-        return (self.formatter.sup(1) + self.highlight_text(word[1:-1]) +
-                self.formatter.sup(0))
+        self.is_sup= not self.is_sup
+        return self.formatter.sup(self.is_sup)
 
     def _sub_repl(self, word):
         """
         Handle subscript.
         """
-        return (self.formatter.sub(1) + self.highlight_text(word[2:-2]) +
-                self.formatter.sub(0))
+        self.is_sub= not self.is_sub
+        return self.formatter.sub(self.is_sub)
 
     def _rule_repl(self, word):
         """
