@@ -99,7 +99,7 @@ map.setCenter(new GLatLng(%s,%s),16);
             namestr = ("""'<b><a href="%s" target=_parent>%s</a></b>"""
                        """<br>%s'""" %
                        (nearby_page.url(relative=False),
-                        x.pagename.replace("'","\\"+"'"), x.address))
+                        x.pagename.replace("'","\\"+"'"), x.address.replace("'","\\"+"'")))
             out += """
             var point = new GLatLng(%s,%s);
             map.addOverlay(createMarker(point,%s, %s));
@@ -112,7 +112,7 @@ map.setCenter(new GLatLng(%s,%s),16);
         namestr = ("""'<b><a href="%s" target=_parent>%s</a></b>"""
                    """<br>%s'""" %
                    (page.url(relative=False), x.pagename.replace("'","\\"+"'"),
-                    x.address))
+                    x.address.replace("'","\\"+"'")))
         out += ("var p_point = new GLatLng(%s,%s);\n"
                 "var myArrow = createArrow(p_point,%s);\n"
                 "map.addOverlay(myArrow);\n"
