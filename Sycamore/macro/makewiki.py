@@ -15,8 +15,7 @@ def execute(macro, args, formatter=None):
         return ('<i>This wiki farm does not have web-based wiki creation '
                 'enabled.</i>')
     if request.user.valid:
-            d = {'form_action': wikiutil.quoteWikiname(
-                    macro.formatter.page.proper_name()),
+            d = {'form_action': formatter.page.url(),
                 'wikiname_length': farm.WIKINAME_MAX_LENGTH,
                 'create_wiki_button': 'send_email'}
             wiki_create_form = (
