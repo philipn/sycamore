@@ -35,8 +35,9 @@ def execute(pagename, request):
     if (actname in config.excluded_actions or not
         request.user.may.edit(page) or
         # bot checks
-        request.form.has_key('button_dont') or
-        request.form.has_key('comment_dont') or
+        request.form.has_key('button_dont1') or
+        request.form.has_key('button_dont2') or
+        request.form.has_key('comment_dont2') or
         not request.isPOST()
         ):
             msg = _('You are not allowed to edit this page. '
