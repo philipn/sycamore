@@ -12,6 +12,7 @@
 """
 
 # Imports
+import hashlib
 from Sycamore import wikiutil
 from Sycamore import config
 
@@ -35,7 +36,7 @@ def execute(macro, args, formatter=None):
             '<h3>%(title)s</h3>\n'
             '<form method="POST" action="%(scriptname)s/%(q_pagename)s">\n'
             '<p><input type="hidden" name="action" value="comments">\n'
-            '<textarea id="comment_text" name="comment_text" rows="1" '
+            '<textarea id="comment_text" name="comment_text_%(pghash)s" rows="1" '
                       'style="width:100%%" '
                       'onSelect="sizeTextField(this.id,event)" '
                       'onPaste="sizeTextField(this.id,event)" '
@@ -45,23 +46,34 @@ def execute(macro, args, formatter=None):
             '<span style="position: absolute; top: 0px; left: 0px; height: 100px; width: 100px;'
                          'height: 0px!important; width: 0px!important; overflow: hidden;">'
             'dont enter into this box:'
-            '<input type="text" name="comment_dont2"/>'
+            '<input type="text" name="comment_dont_%(pghash)s"/>'
             '</span>'
             '<span style="position: absolute; top: 0px; left: 0px; height: 100px; width: 100px;'
                          'height: 0px!important; width: 0px!important; overflow: hidden;">'
-            '<input class="formbutton" type="submit" name="button_dont1" '
-                    'value="Dont press me">\n'
+            '<input class="formbutton" type="submit" name="button_dont1_%(pghash)s" '
+                    'value="Add Comment (not! Do not press!)">\n'
             '</span>'
-            '<input class="formbutton" type="submit" name="button_do" '
+            '<span style="position: absolute; top: 0px; left: 0px; height: 100px; width: 100px;'
+                         'height: 0px!important; width: 0px!important; overflow: hidden;">'
+            '<input class="formbutton" type="submit" name="button_dont2_%(pghash)s" '
+                    'value="Add Comment (not! Do not press!)">\n'
+            '</span>'
+            '<span style="position: absolute; top: 0px; left: 0px; height: 100px; width: 100px;'
+                         'height: 0px!important; width: 0px!important; overflow: hidden;">'
+            '<input class="formbutton" type="submit" name="button_dont3_%(pghash)s" '
+                    'value="Add Comment (not! Do not press!)">\n'
+            '</span>'
+            '<input class="formbutton" type="submit" name="button_do_%(pghash)s" '
                     'value="Add Comment">\n'
             '<span style="position: absolute; top: 0px; left: 0px; height: 100px; width: 100px;'
                          'height: 0px!important; width: 0px!important; overflow: hidden;">'
-            '<input class="formbutton" type="submit" name="button_dont2" '
-                    'value="Dont press me">\n'
+            '<input class="formbutton" type="submit" name="button_dont4_%(pghash)s" '
+                    'value="Add Comment (not! Do not press!)">\n'
             '</span>'
             '</p>\n'
             '</form>' % {'title': title,
                          'scriptname': macro.request.getScriptname(),
+                         'pghash': hash(macro.formatter.page.page_name.lower()),
                          'q_pagename': wikiutil.quoteWikiname(macro.formatter.page.proper_name())})
 
     # we want to print a paragraph after the comments area if there's
@@ -69,3 +81,7 @@ def execute(macro, args, formatter=None):
     macro.parser.force_print_p = True
 
     return formatter.rawHTML(''.join(text))
+
+def hash(s):
+    h = hashlib.md5(s)
+    return h.hexdigest()

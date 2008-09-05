@@ -11,6 +11,7 @@ import time
 import string
 import thread
 import os
+import hashlib
 
 from Sycamore import config
 from Sycamore import user
@@ -23,6 +24,10 @@ from Sycamore.PageEditor import PageEditor
 from Sycamore.request import RequestBase
 from Sycamore.user import User
 
+def hash(s):
+    h = hashlib.md5(s)
+    return h.hexdigest()
+
 def execute(pagename, request):
     _ = request.getText
     actname = __name__.split('.')[-1]
@@ -30,14 +35,18 @@ def execute(pagename, request):
     msg = ''
     oldtext = page.get_raw_body()
     everything_is_okay = 0
+    # kinda lame spam protection, but it should work
+    pghash = hash(pagename.lower())
 
     # be extra paranoid
     if (actname in config.excluded_actions or not
         request.user.may.edit(page) or
         # bot checks
-        request.form.has_key('button_dont1') or
-        request.form.has_key('button_dont2') or
-        request.form.has_key('comment_dont2') or
+        request.form.has_key('button_dont1_%s' % pghash) or
+        request.form.has_key('button_dont2_%s' % pghash) or
+        request.form.has_key('button_dont3_%s' % pghash) or
+        request.form.has_key('button_dont4_%s' % pghash) or
+        request.form.has_key('comment_dont_%s' % pghash) or
         not request.isPOST()
         ):
             msg = _('You are not allowed to edit this page. '
@@ -48,11 +57,11 @@ def execute(pagename, request):
         msg = _('This page does not exist.')
 
     # check whether the user clicked the delete button
-    elif request.form.has_key('button_do') and \
-        request.form.has_key('comment_text'):
+    elif request.form.has_key('button_do_%s' % pghash) and \
+        request.form.has_key('comment_text_%s' % pghash):
         # check whether this is a valid renaming request (make outside
         # attacks harder by requiring two full HTTP transactions)
-        comment_text = request.form.get('comment_text')[0]
+        comment_text = request.form.get('comment_text_%s' % pghash)[0]
         if request.user.anonymous:
             userId = request.user.ip
         else:
