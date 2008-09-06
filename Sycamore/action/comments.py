@@ -25,7 +25,7 @@ from Sycamore.request import RequestBase
 from Sycamore.user import User
 
 def hash(s):
-    h = hashlib.md5(s)
+    h = hashlib.md5(s.encode(config.charset))
     return h.hexdigest()
 
 def execute(pagename, request):

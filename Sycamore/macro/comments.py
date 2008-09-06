@@ -83,5 +83,5 @@ def execute(macro, args, formatter=None):
     return formatter.rawHTML(''.join(text))
 
 def hash(s):
-    h = hashlib.md5(s)
+    h = hashlib.md5(s.encode(config.charset))
     return h.hexdigest()
