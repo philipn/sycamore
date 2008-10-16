@@ -63,7 +63,12 @@ class FormatterBase:
     # Links ##############################################################
     
     def pagelink(self, pagename, text=None, **kw):
+        from Sycamore.Page import Page
         if kw.get('generated', 0) or not self._store_pagelinks:
+            return
+        try:
+            Page(pagename, self.request)
+        except Page.ExcessiveLength, msg:
             return
         lower_pagename = pagename.lower()
         if lower_pagename not in self.pagelinks:

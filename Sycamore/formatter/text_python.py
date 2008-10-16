@@ -131,7 +131,11 @@ class Formatter:
                         (adjust, self.__parser, callback, arg_list, arg_dict))
 
     def pagelink(self, pagename, text=None, **kw):
-        return Page(pagename, self.request).link_to(text, kw)
+        try:
+            link = Page(pagename, self.request).link_to(text, kw)
+        except Page.ExcessiveLength, msg:
+            link = '<em>%s</em>' % str(msg)
+        return link
 
     def setPage(self, page):
         self.page = page

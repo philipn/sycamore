@@ -62,10 +62,11 @@ def do_search(pagename, request, fieldname='inline_string', inc_title=1,
             request.form.has_key('pstart') or request.form.has_key('tstart')):
             return
         corrected_query, corrected_query_html = corrected_query_and_html
+        if type(corrected_query) == unicode:
+            corrected_query = corrected_query.encode(config.charset)
         search_url = ('%s?action=%s&string=%s&sug=1' %
                       (request.getScriptname(), action,
-                       urllib.quote_plus(
-                           corrected_query.encode(config.charset))))
+                       urllib.quote_plus(corrected_query)))
         request.write('<p id="didyoumean">')
         request.write('Did you mean: <a href="%s">%s</a>?' %
                       (search_url, corrected_query_html))
