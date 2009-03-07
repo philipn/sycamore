@@ -52,6 +52,9 @@ class AccessControlList:
         """
         if username in Group('Admin', request):
             return True  # Admin group owns all
+        if config.read_only:
+            if dowhat != 'read':
+                return False
         allowed = None
         has_all_setting = ('All' in self.acl_dict)
         has_known_setting = ('Known' in self.acl_dict)

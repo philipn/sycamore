@@ -290,6 +290,7 @@ _cfg_defaults_global = {
     'paypal_address': 'donate@example.com',
     'paypal_name': 'Wiki Spot',
     'processors': False,
+    'read_only': False, # is the wiki set to be read only?
     'refresh': None, # (minimum_delay, type), e.g.: (2, 'internal')
     'relative_dir': 'index.cgi',
     'remote_search': False,
