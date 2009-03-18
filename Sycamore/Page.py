@@ -22,7 +22,7 @@ from Sycamore import util
 from Sycamore import wikiutil
 from Sycamore import wikidb 
 
-MAX_PAGENAME_LENGTH = 100
+MAX_PAGENAME_LENGTH = 105
 DISPLAYED_MAX_PAGENAME_LENGTH = MAX_PAGENAME_LENGTH - len("Talk")
 
 class Page(object):
