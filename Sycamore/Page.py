@@ -22,7 +22,7 @@ from Sycamore import util
 from Sycamore import wikiutil
 from Sycamore import wikidb 
 
-MAX_PAGENAME_LENGTH = 105
+MAX_PAGENAME_LENGTH = 106
 DISPLAYED_MAX_PAGENAME_LENGTH = MAX_PAGENAME_LENGTH - len("Talk")
 
 class Page(object):
@@ -50,6 +50,9 @@ class Page(object):
         @keyword wiki_name: name of a wiki to switch to for this page
             (wiki farms only)
         """
+        if type(page_name) == str:
+          page_name = page_name.decode(config.charset)
+
         if len(page_name) > MAX_PAGENAME_LENGTH:
             msg = "Page names must be less than %s characters!" % (
                 DISPLAYED_MAX_PAGENAME_LENGTH)
