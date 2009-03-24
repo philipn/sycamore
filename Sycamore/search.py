@@ -198,7 +198,7 @@ class SearchBase(object):
 
         return nice_terms
 
-    def spelling_suggestion():
+    def spelling_suggestion(self, needle):
         pass
 
 if config.has_xapian:
@@ -538,7 +538,7 @@ if config.has_xapian:
 
 class RegexpSearch(SearchBase):
     def __init__(self, needles, request, p_start_loc=0, t_start_loc=0,
-                 num_results=10, wiki_global=False):
+                 num_results=10, wiki_global=False, needle_as_entered=''):
         SearchBase.__init__(self, needles, request, p_start_loc, t_start_loc,
                             num_results, wiki_global=wiki_global)
         self.terms = self._remove_junk(needles)
