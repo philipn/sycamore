@@ -330,13 +330,15 @@ class User(object):
                                 cookie_dir = config.web_dir
                                 if not cookie_dir:
                                     cookie_dir = '/'
+                                expirestr = time.strftime("%A, %d-%b-%Y %H:%M:%S GMT",
+                                                          time.gmtime(0))
                                 request.setHttpHeader(('Set-Cookie',
-                                    ('%s=%s; expires=Tuesday, 01-Jan-1999 '
-                                     '12:00:00 GMT;domain=%s;Path=%s' % (
+                                     ('%s="%s"; domain=%s; path=%s; '
+                                      'expires=%s' % (
                                         COOKIE_NOT_LOGGED_IN,
                                         cookie[COOKIE_NOT_LOGGED_IN].value,
                                         wikiutil.getCookieDomain(request),
-                                        cookie_dir))))
+                                        cookie_dir, expirestr))))
                     else:
                         # clear out this cookie
                         cookie_dir = config.web_dir
@@ -349,10 +351,14 @@ class User(object):
                             domain = '' 
                         else:
                             domain = config.wiki_base_domain
+                        expirestr = time.strftime("%A, %d-%b-%Y %H:%M:%S GMT",
+                                                  time.gmtime(0))
                         request.setHttpHeader(('Set-Cookie',
-                            ('%s=%s; expires=Tuesday, 01-Jan-1999 12:00:00 '
-                             'GMT;domain=%s;Path=%s' % (cookie_id,
-                                cookie[cookie_id].value, domain, cookie_dir))))
+                             ('%s="%s"; domain=%s; path=%s; '
+                              'expires=%s' % (
+                             (cookie_id, cookie[cookie_id].value,
+                                domain, cookie_dir, expirestr)))))
+
 
                         if (cookie.has_key(COOKIE_NOT_LOGGED_IN) or
                             request.form.has_key('not_logged_in')):
@@ -726,18 +732,15 @@ class User(object):
         if not id:
             id = self.id
 
-        cookie[cookie_id] = id + ',' + sessionid + ',' + secret
+        cookie_value = id + ',' + sessionid + ',' + secret
         cookie_dir = config.web_dir
         if not cookie_dir: cookie_dir = '/'
-        # this is stupid, but we need to send headers in tuple format..
-        cookie_value = cookie.output()[12:]  
         wiki_domain = wikiutil.getCookieDomain(self.request)
         
-        domain = "domain=%s;" % wiki_domain
+        domain = " domain=%s;" % wiki_domain
 
-        return ("Set-Cookie", "%s; expires=%s;%sPath=%s" % (cookie_value,
-                                                            expirestr, domain,
-                                                            cookie_dir))
+        return ("Set-Cookie", '%s="%s";%s path=%s; expires=%s' %
+                (cookie_id, cookie_value, domain, cookie_dir, expirestr))
 
     def cookieDough(self, expiretime, now):
         """
@@ -789,6 +792,8 @@ class User(object):
     def isValidCookieDough(self, cookiestring):
         stored_secret = False
         split_string = cookiestring.split(',')
+        if len(split_string) != 3:
+            return False
         userid = split_string[0].strip()
         sessionid = split_string[1].strip()
         secret = split_string[2]
@@ -843,13 +848,15 @@ class User(object):
                 # clear out this cookie
                 cookie_dir = config.web_dir
                 if not cookie_dir: cookie_dir = '/'
+                expirestr = time.strftime("%A, %d-%b-%Y %H:%M:%S GMT",
+                                          time.gmtime(0))
                 request.setHttpHeader(('Set-Cookie',
-                                       '%s=%s; expires=Tuesday, 01-Jan-1999 '
-                                       '12:00:00 GMT;domain=%s;Path=%s' % (
+                                       '%s="%s"; '
+                                       'domain=%s; path=%s; expires=%s' % (
                                             COOKIE_NOT_LOGGED_IN,
                                             cookie[COOKIE_NOT_LOGGED_IN].value,
                                             wikiutil.getCookieDomain(request),
-                                            cookie_dir)))
+                                            cookie_dir, expirestr)))
 
     def sendCookie(self, request, expire=None, sessionid=None, secret=None,
                    id=None):

@@ -296,11 +296,14 @@ class UserSettingsHandler(object):
                     cookie_dir = config.web_dir
                     if not cookie_dir: cookie_dir = '/'
                     domain = wikiutil.getCookieDomain(self.request)
+                    expirestr = time.strftime("%A, %d-%b-%Y %H:%M:%S GMT",
+                                              time.gmtime(0))
                     self.request.setHttpHeader(('Set-Cookie',
-                        '%s=%s; expires=Tuesday, 01-Jan-1999 12:00:00 '
-                        'GMT;domain=%s;Path=%s' % (
-                            cookie_id, cookie[cookie_id].value, domain,
-                            cookie_dir)))
+                        ('%s="%s"; domain=%s; path=%s; '
+                         'expires=%s' % (
+                         (cookie_id, cookie[cookie_id].value,
+                          domain, cookie_dir, expirestr)))))
+
             self.request.saved_cookie = ''
             self.request.auth_username = ''
             self.request.user = user.User(self.request)
