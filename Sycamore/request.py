@@ -698,6 +698,13 @@ class RequestBase(object):
         except Page.ExcessiveLength, msg:
             Page(self.config.page_front_page, self).send_page(msg=msg)
             return self.finish()
+        except Page.InvalidPageName, page_name:
+            from wikiaction import NOT_ALLOWED_CHARS
+            not_allowed = ' '.join(NOT_ALLOWED_CHARS)
+            msg = ('Invalid pagename: the characters %s are not allowed in page'
+                   ' names.' % wikiutil.escape(not_allowed))
+            Page(self.config.page_front_page, self).send_page(msg=msg)
+            return self.finish()
 
         except: # catch and print any exception
             self.reset_output()

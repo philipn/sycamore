@@ -33,6 +33,8 @@ class Page(object):
     """
     class ExcessiveLength(Exception):
         pass
+    class InvalidPageName(Exception):
+        pass
 
     def __init__(self, page_name, request, **keywords):
         """
@@ -50,6 +52,7 @@ class Page(object):
         @keyword wiki_name: name of a wiki to switch to for this page
             (wiki farms only)
         """
+        from wikiaction import isValidPageName
         if type(page_name) == str:
             page_name = page_name.decode(config.charset)
 
@@ -57,8 +60,8 @@ class Page(object):
             msg = "Page names must be less than %s characters!" % (
                 DISPLAYED_MAX_PAGENAME_LENGTH)
             raise self.ExcessiveLength, msg
-
-        
+        if not isValidPageName(page_name):
+            raise self.InvalidPageName, page_name
         self.on_wiki_name = request.config.wiki_name  # wiki _we are_ on
         wiki_name = keywords.get('wiki_name')
         if wiki_name and request.config.wiki_name != wiki_name:
