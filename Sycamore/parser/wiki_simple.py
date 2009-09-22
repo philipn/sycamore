@@ -337,7 +337,15 @@ class Parser:
 
         text = self.highlight_text(text)
         # need to do this for the side-effect of adding to pagelinks
-        pagelink = self.formatter.pagelink(word, text) 
+        try:
+            pagelink = self.formatter.pagelink(word, text) 
+        except Page.InvalidPageName, msg:
+            from Sycamore.wikiaction import NOT_ALLOWED_CHARS
+            not_allowed = ' '.join(NOT_ALLOWED_CHARS)
+            msg = ('<em style="background-color: #ffffaa; padding: 2px;">'
+                   'Invalid pagename: %s &mdash; The characters %s are not allowed in page'
+                   ' names.</em>' % (wikiutil.escape(word), wikiutil.escape(not_allowed)))
+            pagelink = msg
         return userpage_link or pagelink
 
     def _notword_repl(self, word):
