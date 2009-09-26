@@ -60,7 +60,8 @@ class Page(object):
             msg = "Page names must be less than %s characters!" % (
                 DISPLAYED_MAX_PAGENAME_LENGTH)
             raise self.ExcessiveLength, msg
-        if not isValidPageName(page_name):
+        if (page_name.find('<') != -1 or
+            page_name.find('>') != -1):
             raise self.InvalidPageName, page_name
         self.on_wiki_name = request.config.wiki_name  # wiki _we are_ on
         wiki_name = keywords.get('wiki_name')
