@@ -897,7 +897,7 @@ def do_upload(pagename, request):
                                        "on this wiki." % ext))
         return
 
-    if wikiutil.isImage(ext):
+    if wikiutil.isImage(filename):
         # open the image
         try:
             im = openImage(filecontent)
