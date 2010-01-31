@@ -1095,13 +1095,15 @@ def do_edit(pagename, request):
             msg = _('You are not allowed to edit this page.'))
         return
     from Sycamore.PageEditor import PageEditor
-    if isValidPageName(pagename):
+    if (isValidPageName(pagename) and
+       (not isAdminOnlyPageName(pagename) or request.user.may.admin(page))):
         PageEditor(pagename, request).sendEditor()
     else:
         _ = request.getText
         not_allowed = ' '.join(NOT_ALLOWED_CHARS)
         msg = _('Invalid pagename: the characters %s are not allowed in page '
-                'names.  Page names must be less than %s characters.' %
+                'names.  Page names must be less than %s characters '
+                'and may not end with .html or .htm.' %
                 (wikiutil.escape(not_allowed), MAX_PAGENAME_LENGTH))
 
         Page(pagename, request).send_page(msg = msg)
@@ -1109,11 +1111,12 @@ def do_edit(pagename, request):
 def isValidPageName(name):
     return (not re.search('[%s]' % re.escape(NOT_ALLOWED_CHARS), name) and
             len(name) <= MAX_PAGENAME_LENGTH and
-            not name.lower() == 'robots.txt' and
-            # XXX Google Webmaster Tools cludge
-            # This prevents random users from deindexing wikis! :-0
-            # TODO: allow admin creation of such pages
-            not (name.endswith('html') or name.endswith('.htm')))
+            not name.lower() == 'robots.txt')
+
+def isAdminOnlyPageName(name):
+    # XXX Google Webmaster Tools cludge
+    # This prevents random users from deindexing wikis! :-0
+    return (name.endswith('html') or name.endswith('.htm'))
 
 def spam_catch(page):
     form = page.request.form
