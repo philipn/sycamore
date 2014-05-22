@@ -551,13 +551,13 @@ def _createTicket(tm = None):
     """
     Create a ticket using a site-specific secret (the config)
     """
-    import sha, types
+    import hashlib, types
     if tm:
         tm = int(tm) 
     else:
         tm = int(time.time())
     ticket_hex = "%010x" % tm
-    digest = sha.new()
+    digest = hashlib.new('sha1')
     digest.update(ticket_hex)
 
     cfgvars = vars(config)

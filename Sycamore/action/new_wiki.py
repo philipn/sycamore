@@ -13,7 +13,6 @@
 # Imports
 import random
 import base64
-import sha
 import time
 
 from Sycamore import config

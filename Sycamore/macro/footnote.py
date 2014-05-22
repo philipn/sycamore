@@ -10,7 +10,7 @@
 """
 
 # Imports
-import sha
+import hashlib
 
 from Sycamore import wikiutil
 
@@ -29,7 +29,7 @@ def execute(macro, args, formatter):
     else:
         # store footnote and emit number
         idx = len(formatter.request.footnotes)
-        fn_id = "-%s-%s" % (sha.new(args.encode('utf-8')).hexdigest(), idx)
+        fn_id = "-%s-%s" % (hashlib.new('sha1', args.encode('utf-8')).hexdigest(), idx)
         formatter.request.footnotes.append((args, fn_id))
         return "%s%s%s" % (
             formatter.sup(1),

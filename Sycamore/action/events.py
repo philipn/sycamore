@@ -2,7 +2,7 @@
 
 # Imports
 import time
-import sha
+import hashlib 
 import types
 import string
 import calendar
@@ -299,7 +299,7 @@ def _createTicket(tm = None):
     """
     Create a ticket using a site-specific secret (the config)"""
     ticket = tm or "%010x" % time.time()
-    digest = sha.new()
+    digest = hashlib.new('sha1')
     digest.update(ticket)
 
     cfgvars = vars(config)

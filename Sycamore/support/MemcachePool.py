@@ -48,8 +48,8 @@ def hash(cleartext):
     """
     hash of cleartext returned
     """
-    import base64, sha, md5
-    return '%s_%s' % (base64.encodestring(sha.new(cleartext.encode('utf-8')).digest()).rstrip()[:-1], base64.encodestring(md5.new(cleartext.encode('utf-8')).hexdigest())[:-2])
+    import base64, hashlib, md5
+    return '%s_%s' % (base64.encodestring(hashlib.new('sha1', cleartext.encode('utf-8')).digest()).rstrip()[:-1], base64.encodestring(md5.new(cleartext.encode('utf-8')).hexdigest())[:-2])
 
 
 def check_key(key):

@@ -54,9 +54,9 @@ def createTicket(tm = None):
     """
     Create a ticket using a site-specific secret (the config)
     """
-    import sha, time, types
+    import hashlib, time, types
     ticket = tm or "%010x" % time.time()
-    digest = sha.new()
+    digest = hashlib.new('sha1')
     digest.update(ticket)
 
     cfgvars = vars(config)

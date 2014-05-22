@@ -11,7 +11,7 @@
 import os
 import re
 import string
-import sha
+import hashlib
 
 from Sycamore import config
 from Sycamore import wikimacro
@@ -324,7 +324,7 @@ class Parser(SimpleParser):
         self.force_print_p = True
         result.append(self.formatter.heading(
             depth, title_text, icons=icons,
-            id=("head-" + sha.new(title_text.encode('utf-8')).hexdigest() +
+            id=("head-" + hashlib.new('sha1', title_text.encode('utf-8')).hexdigest() +
                 unique_id
                ).decode('utf-8')))
 

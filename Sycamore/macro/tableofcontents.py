@@ -11,7 +11,7 @@
 
 # Imports
 import re
-import sha
+import hashlib
 
 from Sycamore import wikiutil
 
@@ -86,7 +86,7 @@ def execute(macro, args, formatter=None):
         result.append(macro.formatter.listitem(1))
         result.append(macro.formatter.anchorlink(
                         "head-" +
-                            sha.new(title_text.encode('utf-8')).hexdigest() +
+                            hashlib.new('sha1', title_text.encode('utf-8')).hexdigest() +
                             unique_id,
                         title_text, escape=False))
         result.append(macro.formatter.listitem(0))

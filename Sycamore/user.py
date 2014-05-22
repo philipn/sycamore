@@ -12,7 +12,7 @@ import os
 import string
 import time
 import Cookie
-import sha
+import hashlib
 import locale
 import pickle
 import urllib
@@ -209,8 +209,8 @@ def hash(cleartext):
     SHA hash of cleartext returned
     """
     import base64
-    return base64.encodestring(sha.new(cleartext.encode('utf-8')).digest()
-                              ).rstrip()
+    return base64.encodestring(hashlib.new('sha1', cleartext.encode('utf-8')
+                               ).digest()).rstrip()
 
 #############################################################################
 ### User
