@@ -308,9 +308,10 @@ def pageInfo(page, get_from_cache=True, cached_content=None,
                     editUserID = result[1]
         else:
             page.cursor.execute("""SELECT userEdited from allPages
-                where name=%(page_name)s and editTime=%(date)s and
-                      wiki_id=%(wiki_id)s""",
-                {'page_name':page.page_name, 'date':page.prev_date,
+                where name=%(page_name)s and editTime>%(date1)s and
+                      editTime<%(date2)s and wiki_id=%(wiki_id)s""",
+                {'page_name':page.page_name, 'date1':page.prev_date-0.00001,
+                 'date2':page.prev_date+0.00001,
                  'wiki_id':page.request.config.wiki_id})
             result = page.cursor.fetchone()
             editUserID = result[0]
@@ -391,9 +392,10 @@ def pageInfo(page, get_from_cache=True, cached_content=None,
 
     else:
         page.cursor.execute("""SELECT userEdited from allPages
-         where name=%(page_name)s and editTime=%(date)s and
-               wiki_id=%(wiki_id)s""",
-         {'page_name':page.page_name, 'date':page.prev_date,
+         where name=%(page_name)s and editTime>%(date1)s and
+               editTime<%(date2)s and wiki_id=%(wiki_id)s""",
+         {'page_name':page.page_name, 'date1':page.prev_date-0.00001,
+          'date2':page.prev_date+0.00001,
           'wiki_id':page.request.config.wiki_id})
         result = page.cursor.fetchone()
         editUserID = result[0]
